@@ -1,0 +1,77 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Seed configuration
+// We will run: npx prisma db seed
+// Set in package.json: "prisma": { "seed": "ts-node prisma/seed.ts" }
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model IdentityCard {
+  id               String        @id @default(uuid())
+  brandName        String
+  website          String
+  industry         String
+  shortDescription String
+  fullDescription  String
+  keyFeaturesJson  String        // Stored as JSON string
+  competitorsJson  String        // Stored as JSON string
+  data             String        @default("{}")
+  updatedAt        DateTime      @updatedAt
+  createdAt        DateTime      @default(now())
+  promptSets       PromptSet[]
+  weeklyReports    WeeklyReport[]
+
+  @@map("identity_cards")
+}
+
+model PromptSet {
+  id            String       @id @default(uuid())
+  companyId     String
+  spontaneous   String       // Array of prompts as JSON string
+  direct        String       // Array of prompts as JSON string
+  comparison    String       // Array of prompts as JSON string
+  updatedAt     DateTime     @updatedAt
+  createdAt     DateTime     @default(now())
+  identityCard  IdentityCard @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId])
+  @@map("prompt_sets")
+}
+
+model WeeklyReport {
+  id           String       @id @default(uuid())
+  companyId    String
+  weekStart    DateTime
+  spontaneous  String
+  sentiment    String
+  comparison   String
+  llmVersions  String
+  generatedAt  DateTime
+  updatedAt    DateTime     @updatedAt
+  createdAt    DateTime     @default(now())
+  identityCard IdentityCard @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, weekStart])
+  @@map("weekly_reports")
+}
+
+model RawResponse {
+  id          String   @id @default(uuid())
+  reportId    String
+  llmProvider String
+  promptType  String   // 'spontaneous', 'direct', 'comparison'
+  promptIndex Int
+  response    String  
+  createdAt   DateTime @default(now())
+
+  @@index([reportId])
+  @@map("raw_responses")
+}

@@ -1,0 +1,93 @@
+{
+  "llmModels": [
+    {
+      "id": "openai-gpt4o",
+      "provider": "OpenAI",
+      "model": "gpt-4o",
+      "enabled": true,
+      "parameters": {
+        "temperature": 0.7,
+        "maxTokens": 500,
+        "systemPrompt": "You are a helpful assistant providing clear, factual information."
+      }
+    },
+    {
+      "id": "openai-gpt-o3",
+      "provider": "OpenAI",
+      "model": "o3",
+      "enabled": true,
+      "parameters": {
+        "temperature": 0.7,
+        "maxTokens": 500,
+        "systemPrompt": "You are a helpful assistant providing clear, factual information."
+      }
+    },
+    {
+      "id": "anthropic-claude3.7sonnet",
+      "provider": "Anthropic",
+      "model": "claude-3-7-sonnet-20250219",
+      "enabled": true,
+      "parameters": {
+        "temperature": 0.7,
+        "maxTokens": 500,
+        "systemPrompt": "You are Claude, a helpful AI assistant created by Anthropic."
+      }
+    },
+    {
+      "id": "anthropic-claude3.5sonnet",
+      "provider": "Anthropic",
+      "model": "claude-3-5-sonnet-20241022",
+      "enabled": true,
+      "parameters": {
+        "temperature": 0.7,
+        "maxTokens": 500,
+        "systemPrompt": "You are Claude, a helpful AI assistant created by Anthropic."
+      }
+    },
+
+    {
+      "id": "perplexity-sonar-pro",
+      "provider": "Perplexity",
+      "model": "sonar-pro",
+      "enabled": true,
+      "parameters": {
+        "temperature": 0.7,
+        "maxTokens": 500,
+        "systemPrompt": "You are a helpful assistant."
+      }
+    }
+  ],
+  "analyzerConfig": {
+    "spontaneous": {
+      "primary": {
+        "provider": "Anthropic",
+        "model": "claude-3-7-sonnet-20250219"
+      },
+      "fallback": {
+        "provider": "OpenAI",
+        "model": "gpt-4o"
+      }
+    },
+    "sentiment": {
+      "primary": {
+        "provider": "Anthropic",
+        "model": "claude-3-7-sonnet-20250219"
+      },
+      "fallback": {
+        "provider": "OpenAI",
+        "model": "gpt-4o"
+      }
+    },
+    "comparison": {
+      "primary": {
+        "provider": "Anthropic",
+        "model": "claude-3-7-sonnet-20250219"
+      },
+      "fallback": {
+        "provider": "OpenAI",
+        "model": "gpt-4o"
+      }
+    }
+  },
+  "concurrencyLimit": 5
+}
