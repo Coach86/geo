@@ -1,17 +1,14 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { MongoService } from '../../../services/mongo.service';
 
 @ApiTags('health')
 @Controller('healthz')
 export class HealthController {
-  constructor(private readonly mongoService: MongoService) {}
-
   @Get()
   @ApiOperation({ summary: 'Check application health status' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'The application is healthy', 
+  @ApiResponse({
+    status: 200,
+    description: 'The application is healthy',
     schema: {
       type: 'object',
       properties: {
@@ -21,8 +18,8 @@ export class HealthController {
       },
     },
   })
-  @ApiResponse({ 
-    status: 503, 
+  @ApiResponse({
+    status: 503,
     description: 'The application is unhealthy',
     schema: {
       type: 'object',

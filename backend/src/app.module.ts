@@ -7,7 +7,6 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { MongooseModule } from '@nestjs/mongoose';
 import { join } from 'path';
 
-import { CoreModule } from './services/core.module';
 import { AppController } from './controllers/app.controller';
 import { IdentityCardModule } from './modules/identity-card/identity-card.module';
 import { PromptModule } from './modules/prompt/prompt.module';
@@ -34,14 +33,18 @@ import { getWinstonConfig } from './utils/logger.config';
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => {
-        const mongoUri = configService.get<string>('MONGODB_URI', 'mongodb://localhost:27017/geo');
-        return {
-          uri: mongoUri,
-          useNewUrlParser: true,
-          useUnifiedTopology: true,
-        };
-      },
+      useFactory: (configService: ConfigService) => ({
+        uri:
+          process.env.NODE_ENV === 'production'
+            ? `mongodb://${configService.get('DB_USER')}:${configService.get('DB_USER_PWD')}@${configService.get('DB_HOST')}:${configService.get('DB_PORT')}/${configService.get('DB_NAME')}?authMechanism=SCRAM-SHA-1`
+            : `mongodb://${configService.get('DB_HOST')}:${configService.get('DB_PORT')}/${configService.get('DB_NAME')}`,
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+        ssl: process.env.NODE_ENV === 'production',
+        retryWrites: false,
+        tlsCAFile: process.env.NODE_ENV === 'production' ? 'global-bundle.pem' : undefined,
+        tlsAllowInvalidCertificates: true, // Only use this in development
+      }),
     }),
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'public'),
@@ -51,11 +54,10 @@ import { getWinstonConfig } from './utils/logger.config';
         cacheControl: true,
         maxAge: 3600000,
         index: false, // Don't serve index.html automatically
-      }
+      },
     }),
     ScheduleModule.forRoot(),
     EventEmitterModule.forRoot(),
-    CoreModule,
     UserModule,
     IdentityCardModule,
     PromptModule,
