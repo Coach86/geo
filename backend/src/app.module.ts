@@ -17,6 +17,7 @@ import { BatchModule } from './modules/batch/batch.module';
 import { HealthModule } from './modules/health/health.module';
 import { UserModule } from './modules/user/user.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { ConfigModule as AppConfigModule } from './modules/config/config.module';
 import { getWinstonConfig } from './utils/logger.config';
 
 @Module({
@@ -69,6 +70,7 @@ import { getWinstonConfig } from './utils/logger.config';
     BatchModule,
     HealthModule,
     AuthModule,
+    AppConfigModule,
   ],
   controllers: [AppController],
   providers: [],

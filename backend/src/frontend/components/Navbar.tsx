@@ -16,6 +16,7 @@ import AddIcon from '@mui/icons-material/Add';
 import PeopleIcon from '@mui/icons-material/People';
 import EmailIcon from '@mui/icons-material/Email';
 import LogoutIcon from '@mui/icons-material/Logout';
+import SettingsIcon from '@mui/icons-material/Settings';
 import { logout } from '../utils/auth';
 
 const Navbar: React.FC = () => {
@@ -130,6 +131,21 @@ const Navbar: React.FC = () => {
               }}
             >
               Email Preview
+            </Button>
+
+            {/* Config Button */}
+            <Button
+              color="info"
+              variant="outlined"
+              startIcon={<SettingsIcon />}
+              component={NavLink}
+              to="/config"
+              sx={{
+                ml: 2,
+                px: 2,
+              }}
+            >
+              Config
             </Button>
 
             {/* Logout Button */}
