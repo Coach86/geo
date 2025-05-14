@@ -34,7 +34,8 @@ import HistoryIcon from '@mui/icons-material/History';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EmailIcon from '@mui/icons-material/Email';
 import { getCompanyById, getPromptSet, runFullBatchAnalysis, deleteCompany, runBatchWithEmailNotification } from '../utils/api';
-import { runSpontaneousPipeline, runSentimentPipeline, runComparisonPipeline } from '../utils/api-batch';
+import { runSpontaneousPipeline, runSentimentPipeline, runComparisonPipeline, getBatchExecution } from '../utils/api-batch';
+import authApi from '../utils/auth';
 import BatchProcessingOverlay, { BatchProcessStage } from '../components/BatchProcessingOverlay';
 import {
   CompanyIdentityCard,
@@ -142,29 +143,88 @@ const CompanyDetail: React.FC = () => {
       try {
         // Run full batch analysis with all pipelines in parallel
         setBatchStage('processing');
-        setBatchProgress(50);
+        setBatchProgress(20);
 
-        // This call runs all pipelines in parallel and saves results to the database
-        const batchResult = await runFullBatchAnalysis(id);
-
-        // Update UI state with results
-        setSpontaneousResults(batchResult.results.spontaneous);
-        setSentimentResults(batchResult.results.sentiment);
-        setComparisonResults(batchResult.results.comparison);
-
-        // Finalize
-        setBatchStage('finalizing');
-        setBatchProgress(90);
-
-        // Complete
-        setTimeout(() => {
-          setBatchStage('completed');
-          setBatchProgress(100);
-
-          // Switch to batches tab after completion
-          setCurrentTab(TabValue.BATCHES);
-          setSearchParams({ tab: TabValue.BATCHES });
-        }, 500);
+        // Start the batch process and get the batch ID
+        const response = await authApi.post(`/batch/process/${id}`);
+        
+        if (!response.data.success) {
+          throw new Error(response.data.error || 'Failed to run batch analysis');
+        }
+        
+        const batchExecutionId = response.data.batchExecutionId;
+        
+        // Set progress to show we're polling
+        setBatchProgress(30);
+        
+        // Poll for completion with progress updates
+        let pollCount = 0;
+        const maxPolls = 30; // 5 minutes with 10-second interval
+        const pollInterval = 10000; // 10 seconds
+        
+        const pollForResults = async () => {
+          const intervalId = setInterval(async () => {
+            try {
+              // Update progress to show polling activity
+              setBatchProgress(30 + Math.min(50 * (pollCount / maxPolls), 50)); // Progress from 30% to 80%
+              
+              // Get batch execution status
+              const batchExecution = await getBatchExecution(batchExecutionId);
+              
+              // If completed or failed, clear interval and proceed
+              if (batchExecution.status === 'completed' || batchExecution.status === 'failed') {
+                clearInterval(intervalId);
+                
+                if (batchExecution.status === 'failed') {
+                  throw new Error('Batch execution failed');
+                }
+                
+                // Parse the results
+                const spontaneousResult = batchExecution.finalResults.find((r: any) => r.resultType === 'spontaneous');
+                const sentimentResult = batchExecution.finalResults.find((r: any) => r.resultType === 'sentiment');
+                const comparisonResult = batchExecution.finalResults.find((r: any) => r.resultType === 'comparison');
+                
+                if (!spontaneousResult || !sentimentResult || !comparisonResult) {
+                  throw new Error('Missing batch results. Not all pipeline results are available.');
+                }
+                
+                // Update UI state with results
+                setSpontaneousResults(JSON.parse(spontaneousResult.result));
+                setSentimentResults(JSON.parse(sentimentResult.result));
+                setComparisonResults(JSON.parse(comparisonResult.result));
+                
+                // Finalize
+                setBatchStage('finalizing');
+                setBatchProgress(90);
+                
+                // Complete
+                setTimeout(() => {
+                  setBatchStage('completed');
+                  setBatchProgress(100);
+                  
+                  // Switch to batches tab after completion
+                  setCurrentTab(TabValue.BATCHES);
+                  setSearchParams({ tab: TabValue.BATCHES });
+                }, 500);
+              }
+              
+              pollCount++;
+              if (pollCount >= maxPolls) {
+                clearInterval(intervalId);
+                throw new Error('Batch execution timed out');
+              }
+            } catch (error) {
+              clearInterval(intervalId);
+              console.error('Polling error:', error);
+              setBatchStage('error');
+              setBatchError('Failed to complete the batch analysis. Please check the batch status later.');
+            }
+          }, pollInterval);
+        };
+        
+        // Start polling
+        pollForResults();
+        
       } catch (error) {
         console.error('Failed to run batch analysis:', error);
         setBatchStage('error');
@@ -267,40 +327,60 @@ const CompanyDetail: React.FC = () => {
       setBatchError(undefined);
 
       try {
-        // Run the selected pipeline
+        // Indicate we're starting the pipeline
         setBatchStage('processing');
-        setBatchProgress(50);
-
+        setBatchProgress(20);
+        
+        // Start the appropriate pipeline (will poll internally)
+        // The frontend API functions now handle the polling internally
         let result;
-
-        switch (batchType) {
-          case 'spontaneous':
-            result = await runSpontaneousPipeline(id);
-            setSpontaneousResults(result);
-            break;
-          case 'sentiment':
-            result = await runSentimentPipeline(id);
-            setSentimentResults(result);
-            break;
-          case 'comparison':
-            result = await runComparisonPipeline(id);
-            setComparisonResults(result);
-            break;
+        
+        // Show polling progress while waiting
+        // Create a progress interval for visual feedback
+        const progressInterval = setInterval(() => {
+          setBatchProgress((prev) => {
+            // Progress from 20% to 80% during polling
+            return prev < 80 ? prev + 1 : prev;
+          });
+        }, 1000); // Update every second
+        
+        try {
+          switch (batchType) {
+            case 'spontaneous':
+              result = await runSpontaneousPipeline(id);
+              setSpontaneousResults(result);
+              break;
+            case 'sentiment':
+              result = await runSentimentPipeline(id);
+              setSentimentResults(result);
+              break;
+            case 'comparison':
+              result = await runComparisonPipeline(id);
+              setComparisonResults(result);
+              break;
+          }
+          
+          // Clear the progress interval
+          clearInterval(progressInterval);
+          
+          // Finalize
+          setBatchStage('finalizing');
+          setBatchProgress(90);
+  
+          // Complete
+          setTimeout(() => {
+            setBatchStage('completed');
+            setBatchProgress(100);
+  
+            // Switch to batches tab after completion
+            setCurrentTab(TabValue.BATCHES);
+            setSearchParams({ tab: TabValue.BATCHES });
+          }, 500);
+        } catch (error) {
+          // Clear the progress interval if there's an error
+          clearInterval(progressInterval);
+          throw error;
         }
-
-        // Finalize
-        setBatchStage('finalizing');
-        setBatchProgress(90);
-
-        // Complete
-        setTimeout(() => {
-          setBatchStage('completed');
-          setBatchProgress(100);
-
-          // Switch to batches tab after completion
-          setCurrentTab(TabValue.BATCHES);
-          setSearchParams({ tab: TabValue.BATCHES });
-        }, 500);
       } catch (error) {
         console.error(`Failed to run ${batchType} batch:`, error);
         setBatchStage('error');

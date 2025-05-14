@@ -49,9 +49,10 @@ export const PromptTemplates = {
   Analyze the following response to the question: "{originalPrompt}"
   
   Determine if "{brandName}" is mentioned (either directly by exact name, or clearly referred to).
-  Also extract all companies or brands that are mentioned as a list.
-  
-  When extracting brand names, always use the most common, official, or canonical name for each brand. Do not return spelling variations, abbreviations, or partial names—normalize all mentions to the standard brand name (e.g., always extract "Manpower Group" for any mention like "Manpower", "Manpower Grp", or "ManpowerGroup").
+  **Also extract all companies or brands that are mentioned, as a list, even if they are not "{brandName}". The list should be empty if no brand was mentioned.**
+
+  When extracting brand names, always use the most common, official, or canonical name for each brand.
+  Do not return spelling variations, abbreviations, or partial names—normalize all mentions to the standard brand name (e.g., always extract "Manpower Group" for any mention like "Manpower", "Manpower Grp", or "ManpowerGroup").
   
   Response: {llmResponse}
   `,

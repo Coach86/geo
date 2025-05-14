@@ -129,9 +129,10 @@ export class BatchService {
   /**
    * Process a specific company by ID
    * @param companyId The ID of the company to process
+   * @param batchExecutionId Optional batch execution ID if one was already created
    * @returns Result of the batch processing including the batch execution ID
    */
-  async processCompany(companyId: string) {
+  async processCompany(companyId: string, batchExecutionId?: string) {
     try {
       // Get the company data with context
       const company = await this.getCompanyBatchContext(companyId);
@@ -142,9 +143,14 @@ export class BatchService {
 
       // Current week's start date (Monday 00:00:00 UTC)
       const weekStart = this.getCurrentWeekStart();
+      
+      // Add batchExecutionId to context if provided
+      const contextWithBatchId = batchExecutionId 
+        ? { ...company, batchExecutionId }
+        : company;
 
       // Process the company
-      const result = await this.processCompanyInternal(company, weekStart);
+      const result = await this.processCompanyInternal(contextWithBatchId, weekStart);
 
       return {
         success: true,
@@ -377,6 +383,88 @@ export class BatchService {
       competitors: company.competitors,
       promptSet,
     };
+  }
+
+  /**
+   * Create a batch execution record
+   * @param companyId The ID of the company
+   * @returns The created batch execution
+   */
+  async createBatchExecution(companyId: string): Promise<any> {
+    this.logger.log(`Creating batch execution for company ${companyId}`);
+    
+    try {
+      return await this.batchExecutionService.createBatchExecution(companyId);
+    } catch (error) {
+      this.logger.error(`Failed to create batch execution: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Complete a batch execution with results
+   * @param batchExecutionId The ID of the batch execution
+   * @param result The result of the batch execution
+   * @returns The updated batch execution
+   */
+  async completeBatchExecution(batchExecutionId: string, result: any): Promise<any> {
+    this.logger.log(`Completing batch execution ${batchExecutionId}`);
+    
+    try {
+      // If the result contains results for different pipelines, save them individually
+      if (result && result.results) {
+        // Check which pipeline results are available
+        if (result.results.spontaneous) {
+          await this.batchExecutionService.saveBatchResult(
+            batchExecutionId,
+            'spontaneous',
+            result.results.spontaneous
+          );
+        }
+        
+        if (result.results.sentiment) {
+          await this.batchExecutionService.saveBatchResult(
+            batchExecutionId,
+            'sentiment',
+            result.results.sentiment
+          );
+        }
+        
+        if (result.results.comparison) {
+          await this.batchExecutionService.saveBatchResult(
+            batchExecutionId,
+            'comparison',
+            result.results.comparison
+          );
+        }
+      }
+      
+      // Update the batch execution status to completed
+      return await this.batchExecutionService.updateBatchExecutionStatus(batchExecutionId, 'completed');
+    } catch (error) {
+      this.logger.error(`Failed to complete batch execution: ${error.message}`, error.stack);
+      
+      // If saving results fails, mark the batch execution as failed
+      await this.failBatchExecution(batchExecutionId, error.message || 'Unknown error during completion');
+      throw error;
+    }
+  }
+
+  /**
+   * Mark a batch execution as failed
+   * @param batchExecutionId The ID of the batch execution
+   * @param errorMessage The error message
+   * @returns The updated batch execution
+   */
+  async failBatchExecution(batchExecutionId: string, errorMessage: string): Promise<any> {
+    this.logger.error(`Marking batch execution ${batchExecutionId} as failed: ${errorMessage}`);
+    
+    try {
+      return await this.batchExecutionService.updateBatchExecutionStatus(batchExecutionId, 'failed');
+    } catch (error) {
+      this.logger.error(`Failed to mark batch execution as failed: ${error.message}`, error.stack);
+      throw error;
+    }
   }
 
   /**

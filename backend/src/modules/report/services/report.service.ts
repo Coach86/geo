@@ -285,17 +285,18 @@ export class ReportService implements OnModuleInit {
         data: data,
       }),
     );
+    if (process.env.NODE_ENV === 'development') {
+      const email = await resend.emails.send({
+        from: 'tailorfeed-ai@tailorfeed.ai',
+        to: 'facos86@gmail.com',
+        subject: 'Your Brand Intelligence Report',
+        react: React.createElement(BrandIntelligenceReport, {
+          data: data,
+        }),
+      });
 
-    const email = await resend.emails.send({
-      from: 'tailorfeed-ai@tailorfeed.ai',
-      to: 'facos86@gmail.com',
-      subject: 'Your Brand Intelligence Report',
-      react: React.createElement(BrandIntelligenceReport, {
-        data: data,
-      }),
-    });
-
-    console.log('Email sent:', email);
+      console.log('Email sent:', email);
+    }
   }
 
   /**
@@ -666,7 +667,7 @@ export class ReportService implements OnModuleInit {
       throw error;
     }
   }
-  
+
   /**
    * Get the identity card for a company
    */
@@ -680,7 +681,7 @@ export class ReportService implements OnModuleInit {
       return null; // Return null instead of throwing, as this is not critical
     }
   }
-  
+
   /**
    * Get the application configuration
    */
@@ -695,21 +696,24 @@ export class ReportService implements OnModuleInit {
     } catch (error) {
       this.logger.warn(`Failed to get config: ${error.message}`, error.stack);
       // Return default config if file can't be read
-      return { 
+      return {
         llmModels: [
           { provider: 'OpenAI', model: 'GPT-4o' },
           { provider: 'Anthropic', model: 'Claude 3 Sonnet' },
           { provider: 'Mistral', model: 'Large' },
-          { provider: 'Gemini', model: '1.5 Pro' }
-        ]
+          { provider: 'Gemini', model: '1.5 Pro' },
+        ],
       };
     }
   }
-  
+
   /**
    * Format pulse model visibility data
    */
-  formatPulseModelVisibility(spontaneousData: any, llmVersions: any): Array<{
+  formatPulseModelVisibility(
+    spontaneousData: any,
+    llmVersions: any,
+  ): Array<{
     model: string;
     value: number;
     isAverage?: boolean;
@@ -717,34 +721,36 @@ export class ReportService implements OnModuleInit {
     if (!spontaneousData?.results) {
       return [];
     }
-    
+
     // Get unique LLM providers from the results
-    const llmProviders = [...new Set(spontaneousData.results.map((r: any) => r.llmProvider))] as string[];
-    
+    const llmProviders = [
+      ...new Set(spontaneousData.results.map((r: any) => r.llmProvider)),
+    ] as string[];
+
     // Calculate visibility percentage for each model
-    const modelVisibility = llmProviders.map(provider => {
+    const modelVisibility = llmProviders.map((provider) => {
       const modelResults = spontaneousData.results.filter((r: any) => r.llmProvider === provider);
       const totalPrompts = modelResults.length || 1;
       const mentionedCount = modelResults.filter((r: any) => r.mentioned === true).length;
       const mentionRate = Math.round((mentionedCount / totalPrompts) * 100);
-      
+
       return {
         model: provider,
         value: mentionRate,
-        isAverage: false
+        isAverage: false,
       };
     });
-    
+
     // Add global average
     const globalAverage = {
       model: 'Global Avg',
       value: spontaneousData?.summary?.mentionRate || 0,
-      isAverage: true
+      isAverage: true,
     };
-    
+
     return [...modelVisibility, globalAverage];
   }
-  
+
   /**
    * Format tone data
    */
@@ -770,95 +776,106 @@ export class ReportService implements OnModuleInit {
     if (!sentimentData?.results) {
       return {
         sentiments: [],
-        questions: []
+        questions: [],
       };
     }
-    
+
     // Get unique LLM providers from the results
-    const llmProviders = [...new Set(sentimentData.results.map((r: any) => r.llmProvider))] as string[];
-    
+    const llmProviders = [
+      ...new Set(sentimentData.results.map((r: any) => r.llmProvider)),
+    ] as string[];
+
     // Create sentiments for each model
-    const sentiments = llmProviders.map(provider => {
+    const sentiments = llmProviders.map((provider) => {
       const modelResults = sentimentData.results.filter((r: any) => r.llmProvider === provider);
-      const sentimentValue = modelResults.reduce((sum: number, result: any) => {
-        return sum + (result.sentiment === 'positive' ? 0.5 : 
-                    result.sentiment === 'negative' ? -0.5 : 0);
-      }, 0) / (modelResults.length || 1);
-      
+      const sentimentValue =
+        modelResults.reduce((sum: number, result: any) => {
+          return (
+            sum +
+            (result.sentiment === 'positive' ? 0.5 : result.sentiment === 'negative' ? -0.5 : 0)
+          );
+        }, 0) / (modelResults.length || 1);
+
       // Format to +/- number with 2 decimal places
-      const formattedSentiment = sentimentValue > 0 
-        ? `+${sentimentValue.toFixed(2)}` 
-        : sentimentValue.toFixed(2);
-        
+      const formattedSentiment =
+        sentimentValue > 0 ? `+${sentimentValue.toFixed(2)}` : sentimentValue.toFixed(2);
+
       // Get status based on sentiment
       const status = sentimentValue > 0.3 ? 'green' : sentimentValue < -0.3 ? 'red' : 'yellow';
-      
+
       // Extract facts as positives/negatives
       const facts = modelResults.flatMap((r: any) => r.extractedFacts || []);
-      const positives = facts.filter((f: string) => !f.toLowerCase().includes('negative')).join(', ');
-      const negatives = facts.filter((f: string) => f.toLowerCase().includes('negative')).join(', ');
-      
+      const positives = facts
+        .filter((f: string) => !f.toLowerCase().includes('negative'))
+        .join(', ');
+      const negatives = facts
+        .filter((f: string) => f.toLowerCase().includes('negative'))
+        .join(', ');
+
       return {
         model: provider,
         sentiment: formattedSentiment,
         status,
         positives: positives || 'quality, innovation',
         negatives: negatives || 'pricing',
-        isAverage: false
+        isAverage: false,
       };
     });
-    
+
     // Add global average
-    const avgSentiment = sentiments.reduce((sum, s) => sum + parseFloat(s.sentiment), 0) / (sentiments.length || 1);
-    const formattedAvgSentiment = avgSentiment > 0 
-      ? `+${avgSentiment.toFixed(2)}` 
-      : avgSentiment.toFixed(2);
-      
+    const avgSentiment =
+      sentiments.reduce((sum, s) => sum + parseFloat(s.sentiment), 0) / (sentiments.length || 1);
+    const formattedAvgSentiment =
+      avgSentiment > 0 ? `+${avgSentiment.toFixed(2)}` : avgSentiment.toFixed(2);
+
     sentiments.push({
       model: 'Global Avg',
       sentiment: formattedAvgSentiment,
       status: avgSentiment > 0.3 ? 'green' : avgSentiment < -0.3 ? 'red' : 'yellow',
       positives: '—',
       negatives: '—',
-      isAverage: true
+      isAverage: true,
     });
-    
+
     // Create questions from the sentiment data
     const questions = [
       {
         question: 'What do you think of the brand?',
         results: sentiments
-          .filter(s => s.isAverage !== true)
-          .map(s => ({
+          .filter((s) => s.isAverage !== true)
+          .map((s) => ({
             model: s.model,
             sentiment: s.sentiment,
             status: s.status,
             keywords: s.positives,
-          }))
+          })),
       },
       {
         question: 'Key pros/cons of the brand?',
         results: sentiments
-          .filter(s => s.isAverage !== true)
-          .map(s => ({
+          .filter((s) => s.isAverage !== true)
+          .map((s) => ({
             model: s.model,
             sentiment: s.sentiment,
             status: s.status,
             keywords: `${s.positives} vs ${s.negatives}`,
-          }))
-      }
+          })),
+      },
     ];
-    
+
     return {
       sentiments,
-      questions
+      questions,
     };
   }
-  
+
   /**
    * Format arena data
    */
-  formatArenaData(comparisonData: any, competitors: string[] = []): {
+  formatArenaData(
+    comparisonData: any,
+    competitors: string[] = [],
+  ): {
     competitors: Array<{
       name: string;
       chatgpt: number;
@@ -891,53 +908,67 @@ export class ReportService implements OnModuleInit {
     if (!comparisonData?.results) {
       return {
         competitors: [],
-        battle: { competitors: [] }
+        battle: { competitors: [] },
       };
     }
-    
+
     // Get competitors from comparison data or use provided competitors
-    const competitorNames = comparisonData.results && comparisonData.results.length > 0
-      ? [...new Set(comparisonData.results.map((r: any) => r.winner))] as string[]
-      : (competitors || []).slice(0, 3);
-    
+    const competitorNames =
+      comparisonData.results && comparisonData.results.length > 0
+        ? ([...new Set(comparisonData.results.map((r: any) => r.winner))] as string[])
+        : (competitors || []).slice(0, 3);
+
     if (!competitorNames || competitorNames.length === 0) {
       return {
         competitors: [],
-        battle: { competitors: [] }
+        battle: { competitors: [] },
       };
     }
-    
+
     // Get unique LLM providers from the results
-    const llmProviders = comparisonData.results && comparisonData.results.length > 0
-      ? [...new Set(comparisonData.results.map((r: any) => r.llmProvider))] as string[]
-      : ['OpenAI', 'Anthropic', 'Mistral', 'Gemini'];
-    
+    const llmProviders =
+      comparisonData.results && comparisonData.results.length > 0
+        ? ([...new Set(comparisonData.results.map((r: any) => r.llmProvider))] as string[])
+        : ['OpenAI', 'Anthropic', 'Mistral', 'Gemini'];
+
     // Create competitors for arena section
     const formattedCompetitors = competitorNames.map((name, index) => {
       const modelWins = {
         chatgpt: comparisonData.results
-          ? comparisonData.results.filter((r: any) => 
-              r.winner === name && r.llmProvider.toLowerCase().includes('gpt')).length
-          : index === 0 ? 2 : 1,
-        claude: comparisonData.results 
-          ? comparisonData.results.filter((r: any) => 
-              r.winner === name && r.llmProvider.toLowerCase().includes('claude')).length
-          : index === 0 ? 1 : 2,
+          ? comparisonData.results.filter(
+              (r: any) => r.winner === name && r.llmProvider.toLowerCase().includes('gpt'),
+            ).length
+          : index === 0
+            ? 2
+            : 1,
+        claude: comparisonData.results
+          ? comparisonData.results.filter(
+              (r: any) => r.winner === name && r.llmProvider.toLowerCase().includes('claude'),
+            ).length
+          : index === 0
+            ? 1
+            : 2,
         mistral: comparisonData.results
-          ? comparisonData.results.filter((r: any) => 
-              r.winner === name && r.llmProvider.toLowerCase().includes('mistral')).length
-          : index === 0 ? 2 : 1,
+          ? comparisonData.results.filter(
+              (r: any) => r.winner === name && r.llmProvider.toLowerCase().includes('mistral'),
+            ).length
+          : index === 0
+            ? 2
+            : 1,
         gemini: comparisonData.results
-          ? comparisonData.results.filter((r: any) => 
-              r.winner === name && r.llmProvider.toLowerCase().includes('gemini')).length
-          : index === 0 ? 1 : 2,
+          ? comparisonData.results.filter(
+              (r: any) => r.winner === name && r.llmProvider.toLowerCase().includes('gemini'),
+            ).length
+          : index === 0
+            ? 1
+            : 2,
       };
-      
+
       // Calculate global percentage
       const totalWins = Object.values(modelWins).reduce((sum, val) => sum + val, 0);
       const totalPossible = Object.keys(modelWins).length || 1;
       const globalPercentage = Math.round((totalWins / totalPossible) * 100);
-      
+
       return {
         name,
         chatgpt: modelWins.chatgpt || 0,
@@ -946,60 +977,69 @@ export class ReportService implements OnModuleInit {
         gemini: modelWins.gemini || 0,
         global: `${globalPercentage}%`,
         size: index < 2 ? 'lg' : 'md',
-        sentiment: globalPercentage > 50 ? 'positive' : globalPercentage > 30 ? 'neutral' : 'negative'
+        sentiment:
+          globalPercentage > 50 ? 'positive' : globalPercentage > 30 ? 'neutral' : 'negative',
       };
     });
-    
+
     // Create battle data
-    const battleCompetitors = competitorNames.slice(0, 2).map(name => {
+    const battleCompetitors = competitorNames.slice(0, 2).map((name) => {
       // Create comparisons by model
-      const comparisons = llmProviders.map(provider => {
+      const comparisons = llmProviders.map((provider) => {
         // Get differentiators for this competitor from this model
         const modelDiffs = comparisonData.results
           ? comparisonData.results
               .filter((r: any) => r.winner === name && r.llmProvider === provider)
               .flatMap((r: any) => r.differentiators || [])
           : [];
-          
+
         // Split into positives and negatives
-        const positives = modelDiffs.length > 0
-          ? modelDiffs
-              .filter((d: string) => !d.toLowerCase().includes('however') && !d.toLowerCase().includes('but'))
-              .slice(0, 2)
-          : ['quality product', 'good service'];
-          
-        const negatives = modelDiffs.length > 0
-          ? modelDiffs
-              .filter((d: string) => d.toLowerCase().includes('however') || d.toLowerCase().includes('but'))
-              .slice(0, 2)
-          : ['price point', 'limited options'];
-          
+        const positives =
+          modelDiffs.length > 0
+            ? modelDiffs
+                .filter(
+                  (d: string) =>
+                    !d.toLowerCase().includes('however') && !d.toLowerCase().includes('but'),
+                )
+                .slice(0, 2)
+            : ['quality product', 'good service'];
+
+        const negatives =
+          modelDiffs.length > 0
+            ? modelDiffs
+                .filter(
+                  (d: string) =>
+                    d.toLowerCase().includes('however') || d.toLowerCase().includes('but'),
+                )
+                .slice(0, 2)
+            : ['price point', 'limited options'];
+
         return {
           model: provider,
           positives,
           negatives,
         };
       });
-      
+
       return {
         name,
-        comparisons: comparisons.filter(c => c.model) // Filter out empty models
+        comparisons: comparisons.filter((c) => c.model), // Filter out empty models
       };
     });
-    
+
     return {
       competitors: formattedCompetitors,
-      battle: { 
+      battle: {
         competitors: battleCompetitors,
         chatgpt: {
           positives: ['innovative features', 'quality design'],
-          negatives: ['price point', 'learning curve']
+          negatives: ['price point', 'learning curve'],
         },
         claude: {
           positives: ['customer support', 'reliability'],
-          negatives: ['fewer integrations', 'less accessible']
-        }
-      }
+          negatives: ['fewer integrations', 'less accessible'],
+        },
+      },
     };
   }
 }

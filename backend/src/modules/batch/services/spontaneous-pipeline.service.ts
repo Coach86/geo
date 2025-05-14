@@ -22,7 +22,13 @@ export class SpontaneousPipelineService extends BasePipelineService {
     protected readonly llmService: LlmService,
     protected readonly rawResponseService?: RawResponseService,
   ) {
-    super(configService, llmService, SpontaneousPipelineService.name, 'spontaneous', rawResponseService);
+    super(
+      configService,
+      llmService,
+      SpontaneousPipelineService.name,
+      'spontaneous',
+      rawResponseService,
+    );
   }
 
   /**
@@ -43,8 +49,8 @@ export class SpontaneousPipelineService extends BasePipelineService {
     try {
       // Get the prompts for this pipeline - could be array or JSON string
       const promptsRaw = context.promptSet?.spontaneous || [];
-      const prompts: string[] = Array.isArray(promptsRaw) 
-        ? promptsRaw 
+      const prompts: string[] = Array.isArray(promptsRaw)
+        ? promptsRaw
         : JSON.parse(typeof promptsRaw === 'string' ? promptsRaw : '[]');
 
       if (!prompts.length) {
@@ -61,7 +67,7 @@ export class SpontaneousPipelineService extends BasePipelineService {
       // Get the number of runs per model from config (default to 1 if not specified)
       const runsPerModel = this.getAnalyzerConfig().runsPerModel || 1;
       this.logger.log(`Running each model ${runsPerModel} times per prompt`);
-      
+
       // Create tasks for each model and prompt, running each multiple times
       const tasks = [];
 
@@ -72,14 +78,16 @@ export class SpontaneousPipelineService extends BasePipelineService {
             tasks.push(
               this.limiter(async () => {
                 try {
-                  this.logger.log(`Executing run ${runIndex + 1}/${runsPerModel} for ${modelConfig.provider}/${modelConfig.model} with prompt ${i + 1}`);
-                  
+                  this.logger.log(
+                    `Executing run ${runIndex + 1}/${runsPerModel} for ${modelConfig.provider}/${modelConfig.model} with prompt ${i + 1}`,
+                  );
+
                   // Step 1: Execute the prompt with this model
                   const llmResponse = await this.executePrompt(
                     modelConfig.id,
                     prompts[i],
                     context.batchExecutionId, // Pass batch execution ID for storing raw responses
-                    i                 // Pass prompt index
+                    i, // Pass prompt index
                   );
 
                   // Step 2: Analyze the response
@@ -89,7 +97,7 @@ export class SpontaneousPipelineService extends BasePipelineService {
                     prompts[i],
                     llmResponse,
                     i,
-                    runIndex // Pass the run index for tracking
+                    runIndex, // Pass the run index for tracking
                   );
                 } catch (error) {
                   this.logger.error(
@@ -117,25 +125,25 @@ export class SpontaneousPipelineService extends BasePipelineService {
 
       // Analyze and summarize results
       const summary = this.analyzeSpontaneousResults(results);
-      
+
       // Generate web search summary
       const webSearchSummary = this.createWebSearchSummary(results);
-      
+
       // Generate brand visibility summary for the UI dashboard
       const brandVisibility = this.generateBrandVisibilitySummary(results);
 
       this.logger.log(
         `Completed spontaneous pipeline for ${context.companyId} with ${results.length} results`,
       );
-      
+
       if (webSearchSummary.usedWebSearch) {
         this.logger.log(
-          `Web search was used in ${webSearchSummary.webSearchCount} responses with ${webSearchSummary.consultedWebsites.length} websites consulted`
+          `Web search was used in ${webSearchSummary.webSearchCount} responses with ${webSearchSummary.consultedWebsites.length} websites consulted`,
         );
       }
-      
+
       this.logger.log(
-        `Brand visibility: ${(brandVisibility.globalMentionRate * 100).toFixed(1)}% across ${brandVisibility.promptsTested} prompts and ${brandVisibility.modelBreakdown.length} models`
+        `Brand visibility: ${(brandVisibility.globalMentionRate * 100).toFixed(1)}% across ${brandVisibility.promptsTested} prompts and ${brandVisibility.modelBreakdown.length} models`,
       );
 
       return {
@@ -176,24 +184,30 @@ export class SpontaneousPipelineService extends BasePipelineService {
     );
 
     // Extract the text from the response object
-    const llmResponse = typeof llmResponseObj === 'string' 
-      ? llmResponseObj 
-      : llmResponseObj.text || JSON.stringify(llmResponseObj);
-    
+    const llmResponse =
+      typeof llmResponseObj === 'string'
+        ? llmResponseObj
+        : llmResponseObj.text || JSON.stringify(llmResponseObj);
+
     // Extract metadata if available
     const metadata = llmResponseObj.metadata || {};
 
     // Define the schema for structured output
     const schema = z.object({
       mentioned: z.boolean().describe('Whether the brand was mentioned without prompting'),
-      topOfMind: z.array(z.string()).describe('List of top-of-mind brands or companies mentioned'),
+      topOfMind: z
+        .array(z.string())
+        .describe(
+          'List of top-of-mind brands or companies mentioned, empty if no brand was mentioned',
+        )
+        .optional(),
     });
 
     // Format the user prompt using the template
     const userPrompt = formatPrompt(PromptTemplates.SPONTANEOUS_ANALYSIS, {
       originalPrompt: prompt,
       brandName,
-      llmResponse
+      llmResponse,
     });
 
     try {
@@ -201,15 +215,18 @@ export class SpontaneousPipelineService extends BasePipelineService {
       const result = await this.getStructuredAnalysis(
         userPrompt,
         schema,
-        SystemPrompts.SPONTANEOUS_ANALYSIS
+        SystemPrompts.SPONTANEOUS_ANALYSIS,
       );
 
       // Check if the brand name is mentioned in the top-of-mind list as a backup
       const normalizedBrandName = brandName.toLowerCase();
       let mentioned = result.mentioned;
 
-      if (!mentioned) {
-        mentioned = result.topOfMind.some((brand) =>
+      // Safe access to topOfMind with fallback to empty array
+      const topOfMind = result.topOfMind || [];
+      
+      if (!mentioned && topOfMind.length > 0) {
+        mentioned = topOfMind.some((brand) =>
           brand.toLowerCase().includes(normalizedBrandName),
         );
       }
@@ -217,9 +234,9 @@ export class SpontaneousPipelineService extends BasePipelineService {
       return {
         llmProvider: `${modelConfig.provider}/${modelConfig.model}`,
         promptIndex,
-        runIndex,  // Include the run index in the result
+        runIndex, // Include the run index in the result
         mentioned,
-        topOfMind: result.topOfMind,
+        topOfMind,
         originalPrompt: prompt,
         llmResponse,
         // Include web search and citation information if available
@@ -227,7 +244,7 @@ export class SpontaneousPipelineService extends BasePipelineService {
         citations: metadata.annotations || [],
         toolUsage: metadata.toolUsage || [],
         // Include the full LLM response object for provider-specific metadata extraction
-        llmResponseObj: llmResponseObj
+        llmResponseObj: llmResponseObj,
       };
     } catch (error) {
       this.logger.error(`All analyzers failed for spontaneous analysis: ${error.message}`);
@@ -248,7 +265,7 @@ export class SpontaneousPipelineService extends BasePipelineService {
   private createWebSearchSummary(results: SpontaneousPipelineResult[]): WebSearchSummary {
     // Filter out results with errors
     const validResults = results.filter((r) => !r.error);
-    
+
     if (validResults.length === 0) {
       return {
         usedWebSearch: false,
@@ -256,25 +273,25 @@ export class SpontaneousPipelineService extends BasePipelineService {
         consultedWebsites: [],
       };
     }
-    
+
     // Check which results used web search
-    const webSearchResults = validResults.filter(r => r.usedWebSearch);
+    const webSearchResults = validResults.filter((r) => r.usedWebSearch);
     const webSearchCount = webSearchResults.length;
     const usedWebSearch = webSearchCount > 0;
-    
+
     // Collect unique websites consulted from metadata and citations
     const websites = new Set<string>();
-    
+
     for (const result of webSearchResults) {
       // First check for structured URLs in responseMetadata which is the most reliable source
       const llmResponseObj = result.llmResponseObj || {};
-      const metadata = (llmResponseObj.metadata || llmResponseObj.responseMetadata || {});
-      
+      const metadata = llmResponseObj.metadata || llmResponseObj.responseMetadata || {};
+
       // Extract websites based on LLM provider format
       // Anthropic: Look for web_search_tool_result in content blocks
       if (result.llmProvider.includes('Anthropic')) {
         // Check if we have the full response object with content blocks
-        const content = (metadata.responseMetadata?.content || metadata.content || []);
+        const content = metadata.responseMetadata?.content || metadata.content || [];
         for (const block of content) {
           if (block.type === 'web_search_tool_result' && block.content) {
             for (const webResult of block.content) {
@@ -291,7 +308,7 @@ export class SpontaneousPipelineService extends BasePipelineService {
           }
         }
       }
-      
+
       // OpenAI: Check for webSearchResults in responseMetadata
       if (result.llmProvider.includes('OpenAI')) {
         const webSearchResults = metadata.webSearchResults || [];
@@ -306,7 +323,7 @@ export class SpontaneousPipelineService extends BasePipelineService {
           }
         }
       }
-      
+
       // Perplexity: Always uses web search, check for webSearchResults in metadata
       if (result.llmProvider.includes('Perplexity')) {
         const webSearchResults = metadata.webSearchResults || [];
@@ -321,7 +338,7 @@ export class SpontaneousPipelineService extends BasePipelineService {
           }
         }
       }
-      
+
       // Fallback: Check citations for all providers as a secondary source
       if (result.citations && result.citations.length > 0) {
         for (const citation of result.citations) {
@@ -335,7 +352,7 @@ export class SpontaneousPipelineService extends BasePipelineService {
           }
         }
       }
-      
+
       // Last resort: Check tool usage for URLs in execution_details
       if (websites.size === 0 && result.toolUsage && result.toolUsage.length > 0) {
         for (const tool of result.toolUsage) {
@@ -352,14 +369,14 @@ export class SpontaneousPipelineService extends BasePipelineService {
         }
       }
     }
-    
+
     return {
       usedWebSearch,
       webSearchCount,
       consultedWebsites: Array.from(websites),
     };
   }
-  
+
   private analyzeSpontaneousResults(
     results: SpontaneousPipelineResult[],
   ): SpontaneousResults['summary'] {
@@ -397,7 +414,7 @@ export class SpontaneousPipelineService extends BasePipelineService {
       topMentions: sortedMentions,
     };
   }
-  
+
   /**
    * Generate brand visibility data for the dashboard UI
    * @param results Array of pipeline results
@@ -408,7 +425,7 @@ export class SpontaneousPipelineService extends BasePipelineService {
   ): BrandVisibilitySummary {
     // Filter out results with errors
     const validResults = results.filter((r) => !r.error);
-    
+
     if (validResults.length === 0) {
       return {
         globalMentionRate: 0,
@@ -417,28 +434,28 @@ export class SpontaneousPipelineService extends BasePipelineService {
         modelBreakdown: [],
       };
     }
-    
+
     // Calculate global mention rate (same as regular summary)
     const mentionCount = validResults.filter((r) => r.mentioned).length;
     const globalMentionRate = mentionCount / validResults.length;
-    
+
     // Get unique prompts count
-    const uniquePromptIndices = new Set(validResults.map(r => r.promptIndex));
+    const uniquePromptIndices = new Set(validResults.map((r) => r.promptIndex));
     const promptsTested = uniquePromptIndices.size;
-    
+
     // Group results by LLM provider
     const resultsByProvider: Record<string, SpontaneousPipelineResult[]> = {};
-    
+
     for (const result of validResults) {
       // Extract provider name without model specifics (e.g., "Anthropic/claude-3-opus" -> "Anthropic")
       // We'll use a friendly display name for the UI
       const providerParts = result.llmProvider.split('/');
       let providerName = providerParts[0].trim();
       let modelName = providerParts.length > 1 ? providerParts[1] : '';
-      
+
       // Create friendly display names
       let displayName = '';
-      
+
       if (providerName.includes('Anthropic')) {
         displayName = 'Claude 3';
       } else if (providerName.includes('OpenAI')) {
@@ -453,24 +470,24 @@ export class SpontaneousPipelineService extends BasePipelineService {
         // Use the raw provider name as fallback
         displayName = providerName;
       }
-      
+
       if (!resultsByProvider[displayName]) {
         resultsByProvider[displayName] = [];
       }
-      
+
       resultsByProvider[displayName].push(result);
     }
-    
+
     // Generate model breakdown
     const modelBreakdown: ModelBreakdown[] = [];
-    
+
     for (const [name, providerResults] of Object.entries(resultsByProvider)) {
-      const modelMentionCount = providerResults.filter(r => r.mentioned).length;
+      const modelMentionCount = providerResults.filter((r) => r.mentioned).length;
       const modelMentionRate = modelMentionCount / providerResults.length;
-      
+
       // Count unique prompt indices for this model
-      const modelPromptIndices = new Set(providerResults.map(r => r.promptIndex));
-      
+      const modelPromptIndices = new Set(providerResults.map((r) => r.promptIndex));
+
       modelBreakdown.push({
         name,
         mentionRate: modelMentionRate,
@@ -478,10 +495,10 @@ export class SpontaneousPipelineService extends BasePipelineService {
         runs: providerResults.length,
       });
     }
-    
+
     // Sort model breakdown by mention rate (highest first)
     modelBreakdown.sort((a, b) => b.mentionRate - a.mentionRate);
-    
+
     return {
       globalMentionRate,
       promptsTested,
