@@ -12,6 +12,7 @@ import BatchResults from './pages/BatchResults';
 import UserList from './pages/UserList';
 import UserCreation from './pages/UserCreation';
 import EmailPreview from './pages/email-preview';
+import Config from './pages/Config';
 
 const App: React.FC = () => {
   return (
@@ -36,6 +37,7 @@ const App: React.FC = () => {
           <Route path="users" element={<UserList />} />
           <Route path="users/new" element={<UserCreation />} />
           <Route path="email-preview" element={<EmailPreview />} />
+          <Route path="config" element={<Config />} />
           <Route path="*" element={<Navigate to="/companies" replace />} />
         </Route>
       </Routes>

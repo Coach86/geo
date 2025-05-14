@@ -1,4 +1,5 @@
 import axios from 'axios';
+import authApi from './auth';
 import {
   CompanyIdentityCard,
   PromptSet,
@@ -20,17 +21,17 @@ const api = axios.create({
 
 // Company Identity Card API
 export const getCompanies = async (): Promise<CompanyIdentityCard[]> => {
-  const response = await api.get('/identity-card');
+  const response = await authApi.get('/identity-card');
   return response.data;
 };
 
 export const getCompanyById = async (id: string): Promise<CompanyIdentityCard> => {
-  const response = await api.get(`/identity-card/${id}`);
+  const response = await authApi.get(`/identity-card/${id}`);
   return response.data;
 };
 
 export const createCompanyFromUrl = async (url: string, userId?: string, market?: string): Promise<CompanyIdentityCard> => {
-  const response = await api.post('/identity-card/from-url', { url, userId, market });
+  const response = await authApi.post('/identity-card/from-url', { url, userId, market });
   return response.data;
 };
 
@@ -41,27 +42,27 @@ export const updateCompanyDetails = async (
     competitors?: string[];
   }
 ): Promise<CompanyIdentityCard> => {
-  const response = await api.patch(`/identity-card/${id}`, data);
+  const response = await authApi.patch(`/identity-card/${id}`, data);
   return response.data;
 };
 
 export const deleteCompany = async (id: string): Promise<void> => {
-  await api.delete(`/identity-card/${id}`);
+  await authApi.delete(`/identity-card/${id}`);
 };
 
 // User API
 export const getUsers = async (): Promise<User[]> => {
-  const response = await api.get('/users');
+  const response = await authApi.get('/users');
   return response.data;
 };
 
 export const getUserById = async (id: string): Promise<User> => {
-  const response = await api.get(`/users/${id}`);
+  const response = await authApi.get(`/users/${id}`);
   return response.data;
 };
 
 export const getUserByEmail = async (email: string): Promise<User> => {
-  const response = await api.get(`/users?email=${encodeURIComponent(email)}`);
+  const response = await authApi.get(`/users?email=${encodeURIComponent(email)}`);
   return response.data;
 };
 
@@ -69,7 +70,7 @@ export const createUser = async (data: {
   email: string;
   language: string;
 }): Promise<User> => {
-  const response = await api.post('/users', data);
+  const response = await authApi.post('/users', data);
   return response.data;
 };
 
@@ -80,19 +81,25 @@ export const updateUser = async (
     language?: string;
   }
 ): Promise<User> => {
-  const response = await api.patch(`/users/${id}`, data);
+  const response = await authApi.patch(`/users/${id}`, data);
   return response.data;
 };
 
 export const deleteUser = async (id: string): Promise<User> => {
-  const response = await api.delete(`/users/${id}`);
+  const response = await authApi.delete(`/users/${id}`);
+  return response.data;
+};
+
+// Config API
+export const getConfig = async () => {
+  const response = await authApi.get('/config');
   return response.data;
 };
 
 // Prompt Set API
 export const getPromptSet = async (companyId: string): Promise<PromptSet | null> => {
   try {
-    const response = await api.get(`/prompt-set/${companyId}`);
+    const response = await authApi.get(`/prompt-set/${companyId}`);
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 404) {
@@ -110,12 +117,12 @@ export const updatePromptSet = async (
     comparison?: string[];
   }
 ): Promise<PromptSet> => {
-  const response = await api.patch(`/prompt-set/${companyId}`, data);
+  const response = await authApi.patch(`/prompt-set/${companyId}`, data);
   return response.data;
 };
 
 export const regeneratePromptSet = async (companyId: string): Promise<PromptSet> => {
-  const response = await api.post(`/prompt-set/${companyId}/regenerate`);
+  const response = await authApi.post(`/prompt-set/${companyId}/regenerate`);
   return response.data;
 };
 
@@ -146,17 +153,17 @@ export const waitForPromptSet = async (
 
 // Batch Pipeline API
 export const runSpontaneousPipeline = async (companyId: string): Promise<SpontaneousResults & { batchExecutionId: string }> => {
-  const response = await api.post(`/batch/pipeline/spontaneous/${companyId}`);
+  const response = await authApi.post(`/batch/pipeline/spontaneous/${companyId}`);
   return response.data;
 };
 
 export const runSentimentPipeline = async (companyId: string): Promise<SentimentResults & { batchExecutionId: string }> => {
-  const response = await api.post(`/batch/pipeline/sentiment/${companyId}`);
+  const response = await authApi.post(`/batch/pipeline/sentiment/${companyId}`);
   return response.data;
 };
 
 export const runComparisonPipeline = async (companyId: string): Promise<ComparisonResults & { batchExecutionId: string }> => {
-  const response = await api.post(`/batch/pipeline/comparison/${companyId}`);
+  const response = await authApi.post(`/batch/pipeline/comparison/${companyId}`);
   return response.data;
 };
 
@@ -170,7 +177,7 @@ export const runFullBatchAnalysis = async (companyId: string): Promise<{
   }
 }> => {
   // This calls the backend's full batch process endpoint
-  const response = await api.post(`/batch/process/${companyId}`);
+  const response = await authApi.post(`/batch/process/${companyId}`);
 
   if (!response.data.success) {
     throw new Error(response.data.error || 'Failed to run batch analysis');
@@ -206,13 +213,13 @@ export const runFullBatchAnalysis = async (companyId: string): Promise<{
 
 // Get all batch executions for a company
 export const getBatchExecutions = async (companyId: string): Promise<BatchExecution[]> => {
-  const response = await api.get(`/batch-executions?companyId=${companyId}`);
+  const response = await authApi.get(`/batch-executions?companyId=${companyId}`);
   return response.data;
 };
 
 // Get a specific batch execution
 export const getBatchExecution = async (batchId: string): Promise<BatchExecution> => {
-  const response = await api.get(`/batch-executions/${batchId}`);
+  const response = await authApi.get(`/batch-executions/${batchId}`);
   return response.data;
 };
 
@@ -222,7 +229,7 @@ export const runBatchWithEmailNotification = async (companyId: string): Promise<
   message: string;
   result: any;
 }> => {
-  const response = await api.post(`/batch/orchestrate/${companyId}`);
+  const response = await authApi.post(`/batch/orchestrate/${companyId}`);
   return response.data;
 };
 
@@ -235,7 +242,7 @@ export const getAllCompanyReports = async (companyId: string): Promise<{
   }[];
   total: number;
 }> => {
-  const response = await api.get(`/reports/${companyId}/all`);
+  const response = await authApi.get(`/reports/${companyId}/all`);
   return response.data;
 };
 
@@ -249,7 +256,7 @@ export const sendReportEmail = async (
   success: boolean;
   message: string;
 }> => {
-  const response = await api.post('/reports/send-email', {
+  const response = await authApi.post('/reports/send-email', {
     reportId,
     companyId,
     email,
@@ -265,7 +272,7 @@ export const getPromptTemplates = async (companyId: string): Promise<{
   comparison: { systemPrompt: string; userPrompt: string };
 }> => {
   try {
-    const response = await api.get(`/prompt-set/templates/${companyId}`);
+    const response = await authApi.get(`/prompt-set/templates/${companyId}`);
     return response.data;
   } catch (error) {
     console.error('Failed to fetch prompt templates:', error);
