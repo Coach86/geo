@@ -27,7 +27,7 @@ export class PerplexityAdapter implements LlmAdapter {
     try {
       // Default model is Sonar-Medium-Online
       const model = options?.model || 'sonar-medium-online';
-
+      this.logger.log(`Calling Perplexity API with model: ${model} and key: ${this.apiKey}`);
       const chatModel = new ChatPerplexity({
         apiKey: this.apiKey,
         model: model,
@@ -141,12 +141,14 @@ export class PerplexityAdapter implements LlmAdapter {
           `Perplexity search found ${uniqueUrls.length} URLs: ${uniqueUrls.slice(0, 3).join(', ')}${uniqueUrls.length > 3 ? '...' : ''}`,
         );
       }
-      
+
       // Deduplicate citations by URL
       const uniqueCitations = this.deduplicateCitations(citations);
-      
+
       if (citations.length !== uniqueCitations.length) {
-        this.logger.log(`Deduplicated ${citations.length - uniqueCitations.length} duplicate citations`);
+        this.logger.log(
+          `Deduplicated ${citations.length - uniqueCitations.length} duplicate citations`,
+        );
       }
 
       return {
@@ -174,22 +176,27 @@ export class PerplexityAdapter implements LlmAdapter {
       throw new Error(`Failed to call Perplexity API: ${error.message}`);
     }
   }
-  
+
   /**
    * Deduplicates an array of citations based on URL
    * @param citations The array of citations to deduplicate
    * @returns A new array with duplicates removed
    */
-  private deduplicateCitations(citations: Array<{ url: string; title: string; text: string; type: string }>): Array<{ url: string; title: string; text: string; type: string }> {
-    const uniqueUrls = new Map<string, { url: string; title: string; text: string; type: string }>();
-    
+  private deduplicateCitations(
+    citations: Array<{ url: string; title: string; text: string; type: string }>,
+  ): Array<{ url: string; title: string; text: string; type: string }> {
+    const uniqueUrls = new Map<
+      string,
+      { url: string; title: string; text: string; type: string }
+    >();
+
     // Keep only the first occurrence of each URL
     for (const citation of citations) {
       if (citation.url && !uniqueUrls.has(citation.url)) {
         uniqueUrls.set(citation.url, citation);
       }
     }
-    
+
     return Array.from(uniqueUrls.values());
   }
 }
