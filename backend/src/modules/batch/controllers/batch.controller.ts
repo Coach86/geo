@@ -46,15 +46,27 @@ export class BatchController {
   @ApiOperation({ summary: 'Process a specific company' })
   @ApiParam({ name: 'companyId', description: 'The ID of the company to process' })
   @ApiResponse({
-    status: 200,
-    description: 'Company processed successfully',
+    status: 202,
+    description: 'Company batch processing started successfully',
   })
   async processCompany(@Param('companyId') companyId: string) {
-    const result = await this.batchService.processCompany(companyId);
+    // Create a new batch execution record first
+    const batchExecution = await this.batchService.createBatchExecution(companyId);
+    
+    // Start the batch processing in the background (don't await)
+    this.batchService.processCompany(companyId, batchExecution.id)
+      .then(result => {
+        this.batchService.completeBatchExecution(batchExecution.id, result);
+      })
+      .catch(error => {
+        this.batchService.failBatchExecution(batchExecution.id, error.message || 'Unknown error');
+      });
+    
+    // Return immediately with the batch execution ID
     return {
       success: true,
-      message: `Company ${companyId} processed`,
-      result,
+      message: `Batch processing for company ${companyId} started`,
+      batchExecutionId: batchExecution.id,
     };
   }
   
@@ -78,8 +90,8 @@ export class BatchController {
   @ApiOperation({ summary: 'Run spontaneous mentions pipeline for a company' })
   @ApiParam({ name: 'companyId', description: 'The ID of the company' })
   @ApiResponse({
-    status: 200,
-    description: 'Spontaneous mentions pipeline completed',
+    status: 202,
+    description: 'Spontaneous mentions pipeline started',
   })
   async runSpontaneousPipeline(@Param('companyId') companyId: string) {
     // Get company data
@@ -90,28 +102,36 @@ export class BatchController {
 
     // Create batch execution record
     const batchExecution = await this.batchService.createSinglePipelineBatchExecution(companyId, 'spontaneous');
+    const batchExecutionId = batchExecution.id;
 
+    // Process in background
+    this.processSpontaneousPipeline(companyContext, batchExecutionId);
+    
+    // Return immediately with the batch execution ID
+    return {
+      success: true,
+      message: `Spontaneous pipeline for company ${companyId} started`,
+      batchExecutionId,
+    };
+  }
+  
+  // Background processing method for spontaneous pipeline
+  private async processSpontaneousPipeline(companyContext: any, batchExecutionId: string) {
     // Add batch execution ID to context
-    const contextWithExecId = { ...companyContext, batchExecutionId: batchExecution.id };
+    const contextWithExecId = { ...companyContext, batchExecutionId };
 
     try {
       // Run pipeline
       const result = await this.batchService.runSpontaneousPipeline(contextWithExecId);
 
       // Save result to batch_results
-      await this.batchService.saveSinglePipelineResult(batchExecution.id, 'spontaneous', result);
+      await this.batchService.saveSinglePipelineResult(batchExecutionId, 'spontaneous', result);
 
       // Mark batch execution as completed
-      await this.batchService.completeSinglePipelineBatchExecution(batchExecution.id);
-
-      return {
-        ...result,
-        batchExecutionId: batchExecution.id
-      };
+      await this.batchService.completeSinglePipelineBatchExecution(batchExecutionId);
     } catch (error) {
       // Mark batch execution as failed
-      await this.batchService.failSinglePipelineBatchExecution(batchExecution.id, error.message);
-      throw error;
+      await this.batchService.failSinglePipelineBatchExecution(batchExecutionId, error.message);
     }
   }
 
@@ -119,8 +139,8 @@ export class BatchController {
   @ApiOperation({ summary: 'Run sentiment analysis pipeline for a company' })
   @ApiParam({ name: 'companyId', description: 'The ID of the company' })
   @ApiResponse({
-    status: 200,
-    description: 'Sentiment analysis pipeline completed',
+    status: 202,
+    description: 'Sentiment analysis pipeline started',
   })
   async runSentimentPipeline(@Param('companyId') companyId: string) {
     // Get company data
@@ -131,28 +151,36 @@ export class BatchController {
 
     // Create batch execution record
     const batchExecution = await this.batchService.createSinglePipelineBatchExecution(companyId, 'sentiment');
+    const batchExecutionId = batchExecution.id;
 
+    // Process in background
+    this.processSentimentPipeline(companyContext, batchExecutionId);
+    
+    // Return immediately with the batch execution ID
+    return {
+      success: true,
+      message: `Sentiment pipeline for company ${companyId} started`,
+      batchExecutionId,
+    };
+  }
+  
+  // Background processing method for sentiment pipeline
+  private async processSentimentPipeline(companyContext: any, batchExecutionId: string) {
     // Add batch execution ID to context
-    const contextWithExecId = { ...companyContext, batchExecutionId: batchExecution.id };
+    const contextWithExecId = { ...companyContext, batchExecutionId };
 
     try {
       // Run pipeline
       const result = await this.batchService.runSentimentPipeline(contextWithExecId);
 
       // Save result to batch_results
-      await this.batchService.saveSinglePipelineResult(batchExecution.id, 'sentiment', result);
+      await this.batchService.saveSinglePipelineResult(batchExecutionId, 'sentiment', result);
 
       // Mark batch execution as completed
-      await this.batchService.completeSinglePipelineBatchExecution(batchExecution.id);
-
-      return {
-        ...result,
-        batchExecutionId: batchExecution.id
-      };
+      await this.batchService.completeSinglePipelineBatchExecution(batchExecutionId);
     } catch (error) {
       // Mark batch execution as failed
-      await this.batchService.failSinglePipelineBatchExecution(batchExecution.id, error.message);
-      throw error;
+      await this.batchService.failSinglePipelineBatchExecution(batchExecutionId, error.message);
     }
   }
 
@@ -160,8 +188,8 @@ export class BatchController {
   @ApiOperation({ summary: 'Run comparison pipeline for a company' })
   @ApiParam({ name: 'companyId', description: 'The ID of the company' })
   @ApiResponse({
-    status: 200,
-    description: 'Comparison pipeline completed',
+    status: 202,
+    description: 'Comparison pipeline started',
   })
   async runComparisonPipeline(@Param('companyId') companyId: string) {
     // Get company data
@@ -172,28 +200,36 @@ export class BatchController {
 
     // Create batch execution record
     const batchExecution = await this.batchService.createSinglePipelineBatchExecution(companyId, 'comparison');
+    const batchExecutionId = batchExecution.id;
 
+    // Process in background
+    this.processComparisonPipeline(companyContext, batchExecutionId);
+    
+    // Return immediately with the batch execution ID
+    return {
+      success: true,
+      message: `Comparison pipeline for company ${companyId} started`,
+      batchExecutionId,
+    };
+  }
+  
+  // Background processing method for comparison pipeline
+  private async processComparisonPipeline(companyContext: any, batchExecutionId: string) {
     // Add batch execution ID to context
-    const contextWithExecId = { ...companyContext, batchExecutionId: batchExecution.id };
+    const contextWithExecId = { ...companyContext, batchExecutionId };
 
     try {
       // Run pipeline
       const result = await this.batchService.runComparisonPipeline(contextWithExecId);
 
       // Save result to batch_results
-      await this.batchService.saveSinglePipelineResult(batchExecution.id, 'comparison', result);
+      await this.batchService.saveSinglePipelineResult(batchExecutionId, 'comparison', result);
 
       // Mark batch execution as completed
-      await this.batchService.completeSinglePipelineBatchExecution(batchExecution.id);
-
-      return {
-        ...result,
-        batchExecutionId: batchExecution.id
-      };
+      await this.batchService.completeSinglePipelineBatchExecution(batchExecutionId);
     } catch (error) {
       // Mark batch execution as failed
-      await this.batchService.failSinglePipelineBatchExecution(batchExecution.id, error.message);
-      throw error;
+      await this.batchService.failSinglePipelineBatchExecution(batchExecutionId, error.message);
     }
   }
 }
