@@ -26,4 +26,4 @@ COPY --from=builder /app/dist ./dist
 
 EXPOSE 3000
 
-ENTRYPOINT ["./entrypoint.sh"]
+ENTRYPOINT ["node", "dist/main"]
