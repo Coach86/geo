@@ -35,10 +35,6 @@
           "value": "re_Cn3dF47M_L5kW48f2yqUXUn7sAWCSRmMB"
         },
         {
-          "name": "MISTRAL_API_KEY",
-          "value": "cNKNg05IGNFHZwpJZtwsF878iAoSWblG"
-        },
-        {
           "name": "DB_USER_PWD",
           "value": "yomastudio"
         },
@@ -75,6 +71,10 @@
         {
           "name": "PERPLEXITY_API_KEY",
           "valueFrom": "arn:aws:secretsmanager:eu-west-1:767828741433:secret:PERPLEXITY_API_KEY-YI224L"
+        },
+        {
+          "name": "MISTRAL_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-west-1:767828741433:secret:MISTRAL_API_KEY-0Jimdv"
         }
       ],
       "environmentFiles": [],
