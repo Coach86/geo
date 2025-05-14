@@ -21,6 +21,9 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/dist ./dist
 
+# Copy SSL certificate for RDS
+RUN wget https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
+
 EXPOSE 3000
 
-ENTRYPOINT ["node", "dist/main"]
+CMD ["node", "dist/main.js"]
