@@ -4,7 +4,7 @@ const { v4: uuidv4 } = require('uuid');
 
 async function createDemoUser() {
   // Connect to MongoDB
-  const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/geo';
+  const uri = process.env.DB_HOST || 'mongodb://localhost:27017/geo';
   await mongoose.connect(uri);
   console.log('Connected to MongoDB');
 
