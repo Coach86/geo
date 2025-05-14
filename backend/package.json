@@ -74,7 +74,8 @@
     "zod": "^3.24.4",
     "resend": "4.2.0",
     "react-email": "4.0.13",
-    "@react-email/components": "0.0.40"
+    "@react-email/components": "0.0.40",
+    "date-fns": "^3.6.0"
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.7",
