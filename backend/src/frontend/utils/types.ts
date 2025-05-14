@@ -38,6 +38,18 @@ export interface PromptSet {
   updatedAt: string;
 }
 
+// Prompt Template interfaces
+export interface PromptTemplate {
+  systemPrompt: string;
+  userPrompt: string;
+}
+
+export interface PromptTemplates {
+  spontaneous: PromptTemplate;
+  direct: PromptTemplate;
+  comparison: PromptTemplate;
+}
+
 // Batch Execution interfaces
 export interface BatchExecution {
   id: string;

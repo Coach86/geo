@@ -257,3 +257,18 @@ export const sendReportEmail = async (
   });
   return response.data;
 };
+
+// Get prompt templates used to generate company prompts
+export const getPromptTemplates = async (companyId: string): Promise<{
+  spontaneous: { systemPrompt: string; userPrompt: string };
+  direct: { systemPrompt: string; userPrompt: string };
+  comparison: { systemPrompt: string; userPrompt: string };
+}> => {
+  try {
+    const response = await api.get(`/prompt-set/templates/${companyId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Failed to fetch prompt templates:', error);
+    throw error;
+  }
+};
