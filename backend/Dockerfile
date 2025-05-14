@@ -12,9 +12,6 @@ COPY . .
 
 RUN npm run build
 
-# Remove development dependencies
-RUN npm prune --production
-
 FROM node:20-alpine
 
 WORKDIR /app
