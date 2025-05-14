@@ -20,7 +20,8 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "test:brand-insight": "./run-test.sh",
-    "setup": "npm run build"
+    "setup": "npm run build",
+    "create:admin": "ts-node scripts/create-admin-user.ts"
   },
   "repository": {
     "type": "git",

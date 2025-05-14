@@ -64,19 +64,19 @@ export class IdentityCardService {
         if (!createIdentityCardDto.data || !createIdentityCardDto.data.market) {
           throw new BadRequestException('Market is required');
         }
-        
+
         // Summarize with LLM using web search + scraped data
         identityCard = await this.summarizeWithLLM(
-          scrapedData, 
+          scrapedData,
           createIdentityCardDto.url,
-          createIdentityCardDto.data.market // Pass the market (we've verified it exists)
+          createIdentityCardDto.data.market, // Pass the market (we've verified it exists)
         );
       } else if (createIdentityCardDto.data) {
         // Check if market is provided in the data
         if (!createIdentityCardDto.data.market) {
           throw new BadRequestException('Market is required');
         }
-        
+
         // Create from provided data
         identityCard = {
           companyId: uuidv4(),
@@ -192,10 +192,7 @@ export class IdentityCardService {
     }
 
     // Use Mongoose to query with filter and sort by updatedAt in descending order
-    const identityCards = await this.identityCardModel
-      .find(query)
-      .sort({ updatedAt: -1 })
-      .exec();
+    const identityCards = await this.identityCardModel.find(query).sort({ updatedAt: -1 }).exec();
 
     // Get all unique user IDs from the cards
     const userIds = [
@@ -203,9 +200,8 @@ export class IdentityCardService {
     ] as string[];
 
     // Fetch all users at once
-    const users = userIds.length > 0
-      ? await this.userModel.find({ id: { $in: userIds } }).exec()
-      : [];
+    const users =
+      userIds.length > 0 ? await this.userModel.find({ id: { $in: userIds } }).exec() : [];
 
     // Create a map of user ID to user data for quick lookup
     const userMap = users.reduce(
@@ -280,11 +276,13 @@ export class IdentityCardService {
       }
 
       // Update the identity card using Mongoose findOneAndUpdate
-      const updatedCard = await this.identityCardModel.findOneAndUpdate(
-        { id: companyId },
-        { $set: updateObj },
-        { new: true } // Return the updated document
-      ).exec();
+      const updatedCard = await this.identityCardModel
+        .findOneAndUpdate(
+          { id: companyId },
+          { $set: updateObj },
+          { new: true }, // Return the updated document
+        )
+        .exec();
 
       if (!updatedCard) {
         throw new NotFoundException(`Identity card with ID ${companyId} not found after update`);
@@ -412,7 +410,7 @@ export class IdentityCardService {
         provider = adapterNames[0]; // Use first available adapter
       } else {
         // Fallback to mock if no providers are available
-        this.logger.warn('No LLM providers available, using mock data');
+        this.logger.warn('No LLM providers available');
         throw new Error('No LLM providers available');
       }
 
@@ -492,45 +490,63 @@ export class IdentityCardService {
         // First, get all batch executions for this company
         const batchExecutionModel = mongoose.model('BatchExecution');
         const batchExecutions = await batchExecutionModel.find({ companyId }).exec();
-        const batchExecutionIds = batchExecutions.map(be => be.id);
+        const batchExecutionIds = batchExecutions.map((be) => be.id);
 
         // Delete raw responses that belong to these batch executions
         if (batchExecutionIds.length > 0) {
           const rawResponseModel = mongoose.model('RawResponse');
-          await rawResponseModel.deleteMany({ 
-            batchExecutionId: { $in: batchExecutionIds } 
-          }).session(session).exec();
+          await rawResponseModel
+            .deleteMany({
+              batchExecutionId: { $in: batchExecutionIds },
+            })
+            .session(session)
+            .exec();
         }
 
         // Delete batch results that belong to these batch executions
         if (batchExecutionIds.length > 0) {
           const batchResultModel = mongoose.model('BatchResult');
-          await batchResultModel.deleteMany({ 
-            batchExecutionId: { $in: batchExecutionIds } 
-          }).session(session).exec();
+          await batchResultModel
+            .deleteMany({
+              batchExecutionId: { $in: batchExecutionIds },
+            })
+            .session(session)
+            .exec();
         }
 
         // Delete all batch executions for this company
-        await batchExecutionModel.deleteMany({ 
-          companyId 
-        }).session(session).exec();
+        await batchExecutionModel
+          .deleteMany({
+            companyId,
+          })
+          .session(session)
+          .exec();
 
         // Delete all weekly reports for this company
         const weeklyReportModel = mongoose.model('WeeklyBrandReport');
-        await weeklyReportModel.deleteMany({ 
-          companyId 
-        }).session(session).exec();
+        await weeklyReportModel
+          .deleteMany({
+            companyId,
+          })
+          .session(session)
+          .exec();
 
         // Delete prompt sets if they exist
         const promptSetModel = mongoose.model('PromptSet');
-        await promptSetModel.deleteMany({ 
-          companyId 
-        }).session(session).exec();
+        await promptSetModel
+          .deleteMany({
+            companyId,
+          })
+          .session(session)
+          .exec();
 
         // Finally, delete the identity card itself
-        await this.identityCardModel.deleteOne({ 
-          id: companyId 
-        }).session(session).exec();
+        await this.identityCardModel
+          .deleteOne({
+            id: companyId,
+          })
+          .session(session)
+          .exec();
 
         // Commit the transaction
         await session.commitTransaction();
