@@ -5,6 +5,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { WinstonModule } from 'nest-winston';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { MongooseModule } from '@nestjs/mongoose';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { join } from 'path';
 
 import { AppController } from './controllers/app.controller';
@@ -15,6 +16,7 @@ import { ReportModule } from './modules/report/report.module';
 import { BatchModule } from './modules/batch/batch.module';
 import { HealthModule } from './modules/health/health.module';
 import { UserModule } from './modules/user/user.module';
+import { AuthModule } from './modules/auth/auth.module';
 import { getWinstonConfig } from './utils/logger.config';
 
 @Module({
@@ -30,6 +32,7 @@ import { getWinstonConfig } from './utils/logger.config';
         return getWinstonConfig(environment, 'brand-insights');
       },
     }),
+    ThrottlerModule.forRoot(), // Default configuration
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -65,6 +68,7 @@ import { getWinstonConfig } from './utils/logger.config';
     ReportModule,
     BatchModule,
     HealthModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [],

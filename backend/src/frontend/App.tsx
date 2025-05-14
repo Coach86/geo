@@ -2,6 +2,9 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Box } from '@mui/material';
 import Layout from './components/Layout';
+import ProtectedRoute from './components/ProtectedRoute';
+import Login from './pages/Login';
+import Unauthorized from './pages/Unauthorized';
 import CompanyList from './pages/CompanyList';
 import CompanyDetail from './pages/CompanyDetail';
 import CompanyCreation from './pages/CompanyCreation';
@@ -14,7 +17,17 @@ const App: React.FC = () => {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Routes>
-        <Route path="/" element={<Layout />}>
+        <Route path="/login" element={<Login />} />
+        <Route path="/unauthorized" element={<Unauthorized />} />
+        
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<Navigate to="/companies" replace />} />
           <Route path="companies" element={<CompanyList />} />
           <Route path="companies/:id" element={<CompanyDetail />} />
