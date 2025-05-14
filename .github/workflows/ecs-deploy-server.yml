@@ -30,7 +30,7 @@ on:
   push:
     branches: [ "main" ]
     paths:
-      - '/**'
+      - 'backend/**'
 env:
   AWS_REGION: "eu-west-1"                   # set this to your preferred AWS region, e.g. us-west-1
   ECR_REPOSITORY: "brandinsight/server"           # set this to your Amazon ECR repository name
