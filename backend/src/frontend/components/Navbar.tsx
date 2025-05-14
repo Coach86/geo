@@ -15,10 +15,17 @@ import BusinessIcon from '@mui/icons-material/Business';
 import AddIcon from '@mui/icons-material/Add';
 import PeopleIcon from '@mui/icons-material/People';
 import EmailIcon from '@mui/icons-material/Email';
+import LogoutIcon from '@mui/icons-material/Logout';
+import { logout } from '../utils/auth';
 
 const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
+
+  const handleLogout = () => {
+    logout();
+    // Navigation will be handled by the logout function which redirects to login
+  };
 
   return (
     <AppBar
@@ -123,6 +130,20 @@ const Navbar: React.FC = () => {
               }}
             >
               Email Preview
+            </Button>
+
+            {/* Logout Button */}
+            <Button
+              color="error"
+              variant="outlined"
+              startIcon={<LogoutIcon />}
+              onClick={handleLogout}
+              sx={{
+                ml: 2,
+                px: 2,
+              }}
+            >
+              Logout
             </Button>
           </Box>
         </Toolbar>
