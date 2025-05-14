@@ -13,7 +13,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - MONGODB_URI=mongodb://mongo:27017/geo
+      - DB_HOST=mongodb://mongo:27027/geo
       - NODE_ENV=development
       - PORT=3000
       - BATCH_ENABLED=true
