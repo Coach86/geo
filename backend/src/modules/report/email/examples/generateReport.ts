@@ -8,6 +8,7 @@ import { BrandIntelligenceReportData } from '../utils/types';
  * @param reportData - The report data
  * @returns The rendered HTML
  */
+/*
 export const generateReportHtml = (reportData?: BrandIntelligenceReportData): string => {
   // Create example report data if none is provided
   const data = reportData || {
@@ -280,4 +281,4 @@ export const generateReportHtml = (reportData?: BrandIntelligenceReportData): st
  * // });
  */
 
-export default generateReportHtml;
+//export default generateReportHtml;
