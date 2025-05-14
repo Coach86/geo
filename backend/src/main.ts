@@ -76,6 +76,13 @@ async function bootstrap() {
   });
 
   const port = process.env.PORT || 3000;
+
+  console.log('API Keys at startup:');
+  console.log('  OPENAI_API_KEY:      ', process.env.OPENAI_API_KEY);
+  console.log('  ANTHROPIC_API_KEY:   ', process.env.ANTHROPIC_API_KEY);
+  console.log('  PERPLEXITY_API_KEY:  ', process.env.PERPLEXITY_API_KEY);
+  console.log('  MISTRAL_API_KEY:     ', process.env.MISTRAL_API_KEY);
+
   await app.listen(port);
   console.log(`Application is running on: http://localhost:${port}`);
 }
