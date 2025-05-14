@@ -1,6 +1,6 @@
 /**
  * Brand Intelligence Email Report
- * 
+ *
  * This module exports components for creating brand intelligence reports
  * using the ReactEmail library for consistent, responsive email rendering.
  */
@@ -8,9 +8,6 @@
 // Export main templates
 export { default as BrandIntelligenceReport } from './templates/BrandIntelligenceReport';
 export { default as ReportAccessEmail } from './templates/ReportAccessEmail';
-
-// Export utility for generating report HTML
-export { default as generateReportHtml } from './examples/generateReport';
 
 // Export individual components
 export { default as Layout } from './components/Layout';
