@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
-import { Typography, Box, Card, CardContent, Tabs, Tab, Paper, Button, Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText, CircularProgress } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Typography, Box, Card, CardContent, Tabs, Tab, Paper, Button, Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText, CircularProgress, IconButton, Tooltip, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import { PromptSet } from '../../utils/types';
+import CodeIcon from '@mui/icons-material/Code';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import { PromptSet, PromptTemplates } from '../../utils/types';
 import EditablePrompts from './EditablePrompts';
-import { regeneratePromptSet } from '../../utils/api';
+import { regeneratePromptSet, getPromptTemplates } from '../../utils/api';
 
 interface PromptsTabProps {
   promptSet: PromptSet;
@@ -23,6 +26,9 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [regeneratedPromptSet, setRegeneratedPromptSet] = useState<PromptSet | null>(null);
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+  const [promptTemplates, setPromptTemplates] = useState<PromptTemplates | null>(null);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
 
   // Handle both direct arrays and JSON strings
   const [directPrompts, setDirectPrompts] = useState<string[]>(
@@ -40,6 +46,25 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
       ? promptSet.comparison 
       : JSON.parse(promptSet.comparison || '[]')
   );
+  
+  // Fetch prompt templates
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      if (templateDialogOpen && !promptTemplates) {
+        try {
+          setIsLoadingTemplates(true);
+          const templates = await getPromptTemplates(promptSet.companyId);
+          setPromptTemplates(templates);
+        } catch (error) {
+          console.error("Failed to fetch prompt templates:", error);
+        } finally {
+          setIsLoadingTemplates(false);
+        }
+      }
+    };
+    
+    fetchTemplates();
+  }, [templateDialogOpen, promptSet.companyId, promptTemplates]);
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: PromptTabValue) => {
     setCurrentTab(newValue);
@@ -78,10 +103,37 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
           ? result.comparison 
           : JSON.parse(result.comparison || '[]')
       );
+      
+      // Clear the templates cache so they'll be refreshed next time
+      setPromptTemplates(null);
     } catch (error) {
       console.error('Failed to regenerate prompts:', error);
     } finally {
       setIsRegenerating(false);
+    }
+  };
+  
+  const handleOpenTemplateDialog = () => {
+    setTemplateDialogOpen(true);
+  };
+  
+  const handleCloseTemplateDialog = () => {
+    setTemplateDialogOpen(false);
+  };
+  
+  // Helper to get the current template based on the active tab
+  const getCurrentTemplate = () => {
+    if (!promptTemplates) return null;
+    
+    switch (currentTab) {
+      case PromptTabValue.DIRECT:
+        return promptTemplates.direct;
+      case PromptTabValue.SPONTANEOUS:
+        return promptTemplates.spontaneous;
+      case PromptTabValue.COMPARISON:
+        return promptTemplates.comparison;
+      default:
+        return null;
     }
   };
 
@@ -115,6 +167,79 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
         </DialogActions>
       </Dialog>
 
+      {/* Template View Dialog */}
+      <Dialog
+        open={templateDialogOpen}
+        onClose={handleCloseTemplateDialog}
+        maxWidth="lg"
+        fullWidth
+        aria-labelledby="template-dialog-title"
+      >
+        <DialogTitle id="template-dialog-title">
+          LLM Prompt Templates
+          <IconButton
+            aria-label="close"
+            onClick={handleCloseTemplateDialog}
+            sx={{ position: 'absolute', right: 8, top: 8 }}
+          >
+            <RefreshIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          {isLoadingTemplates ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : promptTemplates ? (
+            <Box>
+              <Typography variant="subtitle1" gutterBottom>
+                These are the base prompt templates used to generate the prompts for {currentTab} analysis.
+              </Typography>
+              
+              <Accordion defaultExpanded sx={{ mb: 2 }}>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Typography variant="subtitle1">System Prompt</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Paper 
+                    variant="outlined" 
+                    sx={{ 
+                      p: 2, 
+                      fontFamily: 'monospace', 
+                      whiteSpace: 'pre-wrap', 
+                      backgroundColor: 'rgba(0, 0, 0, 0.04)' 
+                    }}
+                  >
+                    {getCurrentTemplate()?.systemPrompt || 'No system prompt available'}
+                  </Paper>
+                </AccordionDetails>
+              </Accordion>
+              
+              <Accordion defaultExpanded>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Typography variant="subtitle1">User Prompt</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Paper 
+                    variant="outlined" 
+                    sx={{ 
+                      p: 2, 
+                      fontFamily: 'monospace', 
+                      whiteSpace: 'pre-wrap', 
+                      backgroundColor: 'rgba(0, 0, 0, 0.04)' 
+                    }}
+                  >
+                    {getCurrentTemplate()?.userPrompt || 'No user prompt available'}
+                  </Paper>
+                </AccordionDetails>
+              </Accordion>
+            </Box>
+          ) : (
+            <Typography>Failed to load prompt templates</Typography>
+          )}
+        </DialogContent>
+      </Dialog>
+
       <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box>
           <Typography variant="h6" gutterBottom>
@@ -126,15 +251,28 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
           </Typography>
         </Box>
         
-        <Button
-          variant="outlined"
-          color="primary"
-          startIcon={isRegenerating ? <CircularProgress size={20} /> : <RefreshIcon />}
-          onClick={handleOpenConfirmDialog}
-          disabled={isRegenerating}
-        >
-          {isRegenerating ? 'Regenerating...' : 'Regenerate Prompts'}
-        </Button>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Tooltip title="View template prompts used to generate these prompts">
+            <Button
+              variant="outlined"
+              color="secondary"
+              startIcon={<CodeIcon />}
+              onClick={handleOpenTemplateDialog}
+            >
+              View Templates
+            </Button>
+          </Tooltip>
+          
+          <Button
+            variant="outlined"
+            color="primary"
+            startIcon={isRegenerating ? <CircularProgress size={20} /> : <RefreshIcon />}
+            onClick={handleOpenConfirmDialog}
+            disabled={isRegenerating}
+          >
+            {isRegenerating ? 'Regenerating...' : 'Regenerate Prompts'}
+          </Button>
+        </Box>
       </Box>
 
       <Paper sx={{ width: '100%', mb: 3 }}>

@@ -23,6 +23,14 @@
       },
       "environment": [
         {
+          "name": "NODE_ENV",
+          "value": "production"
+        },
+        {
+          "name": "PORT",
+          "value": "3000"
+        },
+        {
           "name": "PERPLEXITY_API_KEY",
           "value": "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"
         },
