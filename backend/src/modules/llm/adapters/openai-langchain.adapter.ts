@@ -34,6 +34,8 @@ export class OpenAILangChainAdapter implements LlmAdapter {
       // Default model is GPT-4o
       const model = options?.model || 'gpt-4o';
 
+      this.logger.log(`Calling OpenAI API with model: ${model} and key: ${this.apiKey}`);
+
       const chatModel = new ChatOpenAI({
         openAIApiKey: this.apiKey,
         modelName: model,
@@ -101,6 +103,7 @@ export class OpenAILangChainAdapter implements LlmAdapter {
       // Enhanced prompt with schema instructions
       const enhancedPrompt = `${prompt}\n\n${formatInstructions}\n\nYour response must conform to the schema defined above. Respond with just the JSON object, no additional text or explanations.`;
 
+      this.logger.log(`Calling OpenAI API with model: ${model} and key: ${this.apiKey}`);
       // Create the chat model with response format JSON
       const chatModel = new ChatOpenAI({
         openAIApiKey: this.apiKey,

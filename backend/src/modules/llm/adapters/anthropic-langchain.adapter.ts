@@ -102,6 +102,8 @@ export class AnthropicLangChainAdapter implements LlmAdapter {
       // Enhanced prompt with schema instructions
       const enhancedPrompt = `${prompt}\n\n${formatInstructions}\n\nYour response must conform to the schema defined above. Respond with just the JSON object, no additional text or explanations.`;
 
+      this.logger.log(`Calling Anthropic API with model: ${model} and key: ${this.apiKey}`);
+
       // Create the chat model
       const chatModel = new ChatAnthropic({
         anthropicApiKey: this.apiKey,
