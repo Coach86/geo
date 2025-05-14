@@ -1,0 +1,104 @@
+{
+  "containerDefinitions": [
+    {
+      "name": "brandinsight-server",
+      "image": "767828741433.dkr.ecr.eu-west-1.amazonaws.com/brandinsight/server",
+      "cpu": 0,
+      "portMappings": [
+        {
+          "name": "3000",
+          "containerPort": 3000,
+          "hostPort": 3000,
+          "protocol": "tcp",
+          "appProtocol": "http"
+        }
+      ],
+      "essential": true,
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 0"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      },
+      "environment": [
+        {
+          "name": "PERPLEXITY_API_KEY",
+          "value": "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"
+        },
+        {
+          "name": "RESEND_API_KEY",
+          "value": "re_Cn3dF47M_L5kW48f2yqUXUn7sAWCSRmMB"
+        },
+        {
+          "name": "MISTRAL_API_KEY",
+          "value": "cNKNg05IGNFHZwpJZtwsF878iAoSWblG"
+        },
+        {
+          "name": "DB_USER_PWD",
+          "value": "yomastudio"
+        },
+        {
+          "name": "DB_PORT",
+          "value": "27017"
+        },
+        {
+          "name": "LANGCHAIN_API_KEY",
+          "value": "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"
+        },
+        {
+          "name": "DB_USER",
+          "value": "yomastudio"
+        },
+        {
+          "name": "DB_NAME",
+          "value": "brandinsight"
+        },
+        {
+          "name": "DB_HOST",
+          "value": "docdb-coach.cds46gwgiksw.eu-west-1.docdb.amazonaws.com"
+        },
+        {
+          "name": "OPENAI_API_KEY",
+          "value": "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"
+        },
+        {
+          "name": "ANTHROPIC_API_KEY",
+          "value": "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"
+        }
+      ],
+      "environmentFiles": [],
+      "mountPoints": [],
+      "volumesFrom": [],
+      "ulimits": [],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/digest-server-task-def",
+          "mode": "non-blocking",
+          "awslogs-create-group": "true",
+          "max-buffer-size": "25m",
+          "awslogs-region": "eu-west-1",
+          "awslogs-stream-prefix": "ecs"
+        },
+        "secretOptions": []
+      },
+      "systemControls": []
+    }
+  ],
+  "family": "digest-server-task-def",
+  "executionRoleArn": "arn:aws:iam::767828741433:role/ecsTaskExecutionRole",
+  "networkMode": "awsvpc",
+  "volumes": [],
+  "placementConstraints": [],
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "1024",
+  "memory": "3072",
+  "runtimePlatform": {
+    "cpuArchitecture": "X86_64",
+    "operatingSystemFamily": "LINUX"
+  },
+  "tags": []
+}

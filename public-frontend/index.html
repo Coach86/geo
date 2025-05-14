@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contexte.ai — Brand Intelligence Report</title>
+  <style>
+    /* Base styles */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background-color: #f9f9f9;
+      font-size: 16px;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: #222;
+    }
+    
+    h2 {
+      font-size: 24px;
+      font-weight: 600;
+      margin: 30px 0 15px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #eee;
+      color: #333;
+    }
+    
+    p {
+      margin-bottom: 15px;
+    }
+    
+    /* Metadata badges */
+    .metadata {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 25px;
+    }
+    
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 12px;
+      background-color: #f3f3f3;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #555;
+    }
+    
+    .badge i {
+      margin-right: 5px;
+      font-size: 14px;
+    }
+    
+    /* KPI Dashboard */
+    .kpi-dashboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+    
+    .kpi-tile {
+      padding: 15px;
+      background-color: #f9f9f9;
+      border-radius: 8px;
+      border: 1px solid #eee;
+      position: relative;
+    }
+    
+    .kpi-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #666;
+      margin-bottom: 8px;
+    }
+    
+    .kpi-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #222;
+      margin-bottom: 5px;
+    }
+    
+    .sparkline {
+      height: 20px;
+      width: 100%;
+      background-color: #f0f0f0;
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .sparkline-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #e0e0e0 0%, #ccc 100%);
+      width: 70%;
+    }
+    
+    /* Traffic light colors */
+    .green {
+      color: #2e7d32;
+    }
+    
+    .yellow {
+      color: #f9a825;
+    }
+    
+    .red {
+      color: #c62828;
+    }
+    
+    .bg-green {
+      background-color: #e8f5e9;
+      border-left: 4px solid #2e7d32;
+    }
+    
+    .bg-yellow {
+      background-color: #fffde7;
+      border-left: 4px solid #f9a825;
+    }
+    
+    .bg-red {
+      background-color: #ffebee;
+      border-left: 4px solid #c62828;
+    }
+    
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 25px;
+      font-size: 15px;
+    }
+    
+    th {
+      text-align: left;
+      padding: 10px;
+      background-color: #f5f5f5;
+      font-weight: 600;
+      color: #444;
+      border-bottom: 2px solid #ddd;
+    }
+    
+    td {
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+      vertical-align: middle;
+    }
+    
+    /* Charts */
+    .chart {
+      width: 100%;
+      height: 250px;
+      background-color: #f9f9f9;
+      border: 1px solid #eee;
+      border-radius: 8px;
+      margin-bottom: 25px;
+      padding: 15px;
+      position: relative;
+    }
+    
+    .bar-chart {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      justify-content: space-around;
+    }
+    
+    .bar-container {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    
+    .bar-label {
+      width: 120px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    
+    .bar-wrapper {
+      flex-grow: 1;
+      height: 25px;
+      background-color: #f0f0f0;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-right: 15px;
+    }
+    
+    .bar {
+      height: 100%;
+      background: linear-gradient(90deg, #e0e0e0 0%, #ccc 100%);
+    }
+    
+    .bar-value {
+      width: 40px;
+      font-size: 14px;
+      font-weight: 600;
+      text-align: right;
+    }
+    
+    /* Bubble chart */
+    .bubble-chart {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      height: 100%;
+    }
+    
+    .bubble {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background-color: #e0e0e0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 14px;
+      position: relative;
+    }
+    
+    .bubble-lg {
+      width: 100px;
+      height: 100px;
+    }
+    
+    .bubble-md {
+      width: 80px;
+      height: 80px;
+    }
+    
+    .bubble-sm {
+      width: 60px;
+      height: 60px;
+    }
+    
+    .bubble-positive {
+      background-color: rgba(46, 125, 50, 0.2);
+      border: 2px solid rgba(46, 125, 50, 0.5);
+    }
+    
+    .bubble-neutral {
+      background-color: rgba(249, 168, 37, 0.2);
+      border: 2px solid rgba(249, 168, 37, 0.5);
+    }
+    
+    .bubble-negative {
+      background-color: rgba(198, 40, 40, 0.2);
+      border: 2px solid rgba(198, 40, 40, 0.5);
+    }
+    
+    /* Stacked bar chart */
+    .stacked-bar {
+      height: 40px;
+      width: 100%;
+      display: flex;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 15px;
+    }
+    
+    .stacked-segment {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    
+    /* Tooltips */
+    .tooltip {
+      position: relative;
+      display: inline-block;
+      cursor: help;
+    }
+    
+    .tooltip .tooltip-text {
+      visibility: hidden;
+      width: 200px;
+      background-color: #555;
+      color: #fff;
+      text-align: center;
+      border-radius: 6px;
+      padding: 8px;
+      position: absolute;
+      z-index: 1;
+      bottom: 125%;
+      left: 50%;
+      transform: translateX(-50%);
+      opacity: 0;
+      transition: opacity 0.3s;
+      font-size: 14px;
+      font-weight: normal;
+    }
+    
+    .tooltip:hover .tooltip-text {
+      visibility: visible;
+      opacity: 1;
+    }
+    
+    /* Recommendations */
+    .recommendation {
+      padding: 15px;
+      background-color: #f9f9f9;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      border-left: 4px solid #1976d2;
+    }
+    
+    .recommendation-title {
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+    
+    .recommendation-meta {
+      display: flex;
+      gap: 15px;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+    
+    .recommendation-priority,
+    .recommendation-effort {
+      display: flex;
+      align-items: center;
+    }
+    
+    .priority-high {
+      color: #c62828;
+    }
+    
+    .priority-medium {
+      color: #f9a825;
+    }
+    
+    .effort-easy {
+      color: #2e7d32;
+    }
+    
+    .effort-hard {
+      color: #c62828;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .container {
+        padding: 15px;
+      }
+      
+      .metadata {
+        flex-direction: column;
+        gap: 8px;
+      }
+      
+      .kpi-dashboard {
+        grid-template-columns: 1fr;
+      }
+      
+      table {
+        font-size: 14px;
+      }
+      
+      th, td {
+        padding: 8px 5px;
+      }
+      
+      .bar-label {
+        width: 90px;
+      }
+      
+      .bubble-chart {
+        flex-wrap: wrap;
+      }
+      
+      .bubble {
+        margin: 5px;
+      }
+    }
+    
+    /* Print styles */
+    @media print {
+      body {
+        background-color: #fff;
+      }
+      
+      .container {
+        box-shadow: none;
+        max-width: 100%;
+      }
+      
+      .page-break {
+        page-break-before: always;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 1. Report Header -->
+    <h1>Contexte.ai — {brand}.com Report</h1>
+    
+    <div class="metadata">
+      <div class="badge">
+        <i>🌐</i> brand.com
+      </div>
+      <div class="badge">
+        <i>🇺🇸</i> US Market / English
+      </div>
+      <div class="badge">
+        <i>🏢</i> Competitors: Competitor A, Competitor B, Competitor C
+      </div>
+      <div class="badge">
+        <i>📅</i> 2025-05-09
+      </div>
+      <div class="badge">
+        <i>🤖</i> Models: ChatGPT‑4o, Claude 3 Sonnet, Gemini 1.5 Pro, Mistral Le Chat Large
+      </div>
+    </div>
+    
+    <!-- 2. Executive Summary (KPI Dashboard) -->
+    <h2>Executive Summary</h2>
+    
+    <div class="kpi-dashboard">
+      <div class="kpi-tile">
+        <div class="kpi-title tooltip">
+          Pulse
+          <span class="tooltip-text">Global Visibility Score across all tested models</span>
+        </div>
+        <div class="kpi-value">56%</div>
+        <div class="sparkline">
+          <div class="sparkline-bar"></div>
+        </div>
+      </div>
+      
+      <div class="kpi-tile bg-green">
+        <div class="kpi-title tooltip">
+          Tone
+          <span class="tooltip-text">Overall sentiment score across all models</span>
+        </div>
+        <div class="kpi-value green">+0.20</div>
+        <div class="sparkline">
+          <div class="sparkline-bar"></div>
+        </div>
+      </div>
+      
+      <div class="kpi-tile bg-yellow">
+        <div class="kpi-title tooltip">
+          Accord
+          <span class="tooltip-text">Brand compliance with provided attributes</span>
+        </div>
+        <div class="kpi-value">6.2/10</div>
+        <div class="sparkline">
+          <div class="sparkline-bar"></div>
+        </div>
+      </div>
+      
+      <div class="kpi-tile">
+        <div class="kpi-title tooltip">
+          Arena
+          <span class="tooltip-text">Top competitors mentioned by AI models</span>
+        </div>
+        <div class="kpi-value" style="font-size: 16px;">
+          1. Back Market<br>
+          2. Amazon Renewed<br>
+          3. Swappie
+        </div>
+      </div>
+    </div>
+    
+    <!-- 3. Pulse — Brand Visibility -->
+    <h2>Pulse — Brand Visibility</h2>
+    <p>Brand visibility measures how often your brand is mentioned in response to relevant industry prompts.</p>
+    <p><strong>Prompts Tested:</strong> 15</p>
+    
+    <div class="chart">
+      <div class="bar-chart">
+        <div class="bar-container">
+          <div class="bar-label">Claude 3</div>
+          <div class="bar-wrapper">
+            <div class="bar" style="width: 70%;"></div>
+          </div>
+          <div class="bar-value">70%</div>
+        </div>
+        
+        <div class="bar-container">
+          <div class="bar-label">ChatGPT‑4o</div>
+          <div class="bar-wrapper">
+            <div class="bar" style="width: 68%;"></div>
+          </div>
+          <div class="bar-value">68%</div>
+        </div>
+        
+        <div class="bar-container">
+          <div class="bar-label">Mistral Large</div>
+          <div class="bar-wrapper">
+            <div class="bar" style="width: 54%;"></div>
+          </div>
+          <div class="bar-value">54%</div>
+        </div>
+        
+        <div class="bar-container">
+          <div class="bar-label">Gemini 1.5 Pro</div>
+          <div class="bar-wrapper">
+            <div class="bar" style="width: 32%;"></div>
+          </div>
+          <div class="bar-value">32%</div>
+        </div>
+        
+        <div class="bar-container">
+          <div class="bar-label"><strong>Global Avg</strong></div>
+          <div class="bar-wrapper">
+            <div class="bar" style="width: 56%; background: linear-gradient(90deg, #1976d2 0%, #64b5f6 100%);"></div>
+          </div>
+          <div class="bar-value"><strong>56%</strong></div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 4. Tone — Brand Perception -->
+    <h2>Tone — Brand Perception</h2>
+    <p>Questions asked: "What do you think of …?", "Key pros/cons?", "Why choose …?"</p>
+    
+    <table>
+      <thead>
+        <tr>
+          <th>Model</th>
+          <th>Sentiment</th>
+          <th>Status</th>
+          <th>Top Positive</th>
+          <th>Top Negative</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>ChatGPT‑4o</td>
+          <td class="green">+0.35</td>
+          <td>🟢</td>
+          <td>affordable, eco</td>
+          <td>limited warranty</td>
+        </tr>
+        <tr>
+          <td>Claude 3</td>
+          <td class="yellow">+0.18</td>
+          <td>🟡</td>
+          <td>reliable, fast ship</td>
+          <td>pricey</td>
+        </tr>
+        <tr>
+          <td>Gemini</td>
+          <td class="yellow">+0.05</td>
+          <td>🟡</td>
+          <td>cheap, easy buy</td>
+          <td>quality doubts</td>
+        </tr>
+        <tr>
+          <td><strong>Global Avg</strong></td>
+          <td class="green"><strong>+0.20</strong></td>
+          <td>🟢</td>
+          <td>—</td>
+          <td>—</td>
+        </tr>
+      </tbody>
+    </table>
+    
+    <!-- 5. Accord — Brand Compliance -->
+    <h2>Accord — Brand Compliance</h2>
+    <p>Client-provided attributes and their mention rate across all models:</p>
+    
+    <table>
+      <thead>
+        <tr>
+          <th>Attribute</th>
+          <th>Mention Rate</th>
+          <th>Alignment</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Sustainability</td>
+          <td>64%</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>Affordability</td>
+          <td>42%</td>
+          <td>⚠️</td>
+        </tr>
+        <tr>
+          <td>Trust</td>
+          <td>78%</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>Circular Economy</td>
+          <td>35%</td>
+          <td>❌</td>
+        </tr>
+        <tr>
+          <td>Warranty</td>
+          <td>28%</td>
+          <td>❌</td>
+        </tr>
+      </tbody>
+    </table>
+    
+    <div class="kpi-tile bg-yellow" style="margin-bottom: 30px;">
+      <div class="kpi-title">Final Compliance Score</div>
+      <div class="kpi-value">6.2/10</div>
+    </div>
+    
+    <!-- 6. Arena — Competitive Landscape -->
+    <h2>Arena — Competitive Landscape</h2>
+    
+    <div class="chart">
+      <div class="bubble-chart">
+        <div class="bubble bubble-lg bubble-positive">
+          Back Market
+        </div>
+        <div class="bubble bubble-lg bubble-positive">
+          Amazon Renewed
+        </div>
+        <div class="bubble bubble-md bubble-neutral">
+          Swappie
+        </div>
+        <div class="bubble bubble-sm bubble-neutral">
+          Gazelle
+        </div>
+        <div class="bubble bubble-sm bubble-negative">
+          eBay
+        </div>
+      </div>
+    </div>
+    
+    <table>
+      <thead>
+        <tr>
+          <th>Brand</th>
+          <th>ChatGPT</th>
+          <th>Claude</th>
+          <th>Mistral</th>
+          <th>Gemini</th>
+          <th>Global %</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Back Market</td>
+          <td>1</td>
+          <td>1</td>
+          <td>2</td>
+          <td>2</td>
+          <td>56%</td>
+        </tr>
+        <tr>
+          <td>Amazon Renewed</td>
+          <td>2</td>
+          <td>2</td>
+          <td>1</td>
+          <td>1</td>
+          <td>55%</td>
+        </tr>
+        <tr>
+          <td>Swappie</td>
+          <td>3</td>
+          <td>4</td>
+          <td>3</td>
+          <td>3</td>
+          <td>42%</td>
+        </tr>
+        <tr>
+          <td>Gazelle</td>
+          <td>4</td>
+          <td>3</td>
+          <td>5</td>
+          <td>4</td>
+          <td>38%</td>
+        </tr>
+        <tr>
+          <td>eBay</td>
+          <td>5</td>
+          <td>5</td>
+          <td>4</td>
+          <td>5</td>
+          <td>35%</td>
+        </tr>
+      </tbody>
+    </table>
+    
+    <!-- 7. Arena (2) — Brand Battle vs Pre‑selected Competitors -->
+    <h2>Arena (2) — Brand Battle vs Pre‑selected Competitors</h2>
+    
+    <div style="margin-bottom: 20px;">
+      <h3 style="font-size: 18px; margin-bottom: 10px;">ChatGPT‑4o</h3>
+      <div class="recommendation">
+        <div class="recommendation-title">Positives vs Competitors:</div>
+        <ul style="margin-left: 20px; margin-top: 5px;">
+          <li>lower defect rate</li>
+          <li>longer warranty</li>
+          <li>better customer service</li>
+        </ul>
+      </div>
+      <div class="recommendation">
+        <div class="recommendation-title">Negatives vs Competitors:</div>
+        <ul style="margin-left: 20px; margin-top: 5px;">
+          <li>smaller catalogue</li>
+          <li>higher price point</li>
+        </ul>
+      </div>
+    </div>
+    
+    <div style="margin-bottom: 20px;">
+      <h3 style="font-size: 18px; margin-bottom: 10px;">Claude 3</h3>
+      <div class="recommendation">
+        <div class="recommendation-title">Positives vs Competitors:</div>
+        <ul style="margin-left: 20px; margin-top: 5px;">
+          <li>more rigorous testing</li>
+          <li>eco-friendly packaging</li>
+        </ul>
+      </div>
+      <div class="recommendation">
+        <div class="recommendation-title">Negatives vs Competitors:</div>
+        <ul style="margin-left: 20px; margin-top: 5px;">
+          <li>slower shipping times</li>
+          <li>fewer payment options</li>
+        </ul>
+      </div>
+    </div>
+    
+    <!-- 8. Lift — Optimisation Recommendations -->
+    <h2>Lift — Optimisation Recommendations</h2>
+    
+    <table>
+      <thead>
+        <tr>
+          <th>Recommendation</th>
+          <th>Priority</th>
+          <th>Effort</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Submit FAQ markup to improve Gemini visibility</td>
+          <td class="priority-high">High</td>
+          <td class="effort-easy">Easy</td>
+        </tr>
+        <tr>
+          <td>Include "circular economy" keyword in homepage H1</td>
+          <td class="priority-medium">Medium</td>
+          <td class="effort-easy">Easy</td>
+        </tr>
+        <tr>
+          <td>Publish comparison vs Amazon Renewed focusing on reliability</td>
+          <td class="priority-high">High</td>
+          <td class="effort-hard">Hard</td>
+        </tr>
+      </tbody>
+    </table>
+    
+    <!-- 9. Trace — Sources Breakdown -->
+    <h2>Trace — Sources Breakdown</h2>
+    
+    <div class="stacked-bar">
+      <div class="stacked-segment" style="width: 22%; background-color: #1976d2;" title="YouTube: 22%">
+        YouTube 22%
+      </div>
+      <div class="stacked-segment" style="width: 18%; background-color: #2196f3;" title="Reddit: 18%">
+        Reddit 18%
+      </div>
+      <div class="stacked-segment" style="width: 15%; background-color: #64b5f6;" title="Official Site: 15%">
+        Official 15%
+      </div>
+      <div class="stacked-segment" style="width: 10%; background-color: #90caf9;" title="TechRadar: 10%">
+        TechRadar 10%
+      </div>
+      <div class="stacked-segment" style="width: 7%; background-color: #bbdefb;" title="Trustpilot: 7%">
+        Trustpilot 7%
+      </div>
+      <div class="stacked-segment" style="width: 6%; background-color: #e3f2fd;" title="Wikipedia: 6%">
+        Wiki 6%
+      </div>
+      <div class="stacked-segment" style="width: 22%; background-color: #ccc;" title="Other sources: 22%">
+        Other 22%
+      </div>
+    </div>
+    
+    <p style="font-size: 14px; color: #666; text-align: center;">
+      Hover over segments to see source details
+    </p>
+  </div>
+</body>
+</html>
