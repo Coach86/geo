@@ -1,0 +1,186 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+
+    --primary-dark: 222 47.4% 11.2%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --primary-dark: 213 27% 84%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply tracking-tight;
+  }
+
+  h2 {
+    @apply text-gray-900;
+  }
+}
+
+@layer components {
+  .section-title {
+    @apply flex items-center mb-6;
+  }
+
+  .section-title-bar {
+    @apply h-8 w-1 bg-primary rounded-full mr-3;
+  }
+
+  .section-title-text {
+    @apply text-2xl md:text-3xl font-bold text-gray-900;
+  }
+
+  .card-container {
+    @apply bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100;
+  }
+
+  .card-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-gray-100;
+  }
+
+  .card-cell {
+    @apply p-6 hover:bg-gray-50 transition-colors duration-200;
+  }
+}
+
+/* Custom classes for the report */
+.priority-high {
+  @apply text-rose-600;
+}
+
+.priority-medium {
+  @apply text-amber-600;
+}
+
+.priority-low {
+  @apply text-emerald-600;
+}
+
+.effort-easy {
+  @apply text-emerald-600;
+}
+
+.effort-medium {
+  @apply text-amber-600;
+}
+
+.effort-hard {
+  @apply text-rose-600;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Newsletter specific styles */
+.newsletter-container {
+  @apply max-w-4xl mx-auto bg-white;
+}
+
+.section-divider {
+  @apply my-8 border-t border-gray-200;
+}
+
+/* Print styles */
+@media print {
+  body {
+    @apply bg-white;
+  }
+
+  .container {
+    @apply max-w-full shadow-none;
+  }
+
+  .page-break {
+    page-break-before: always;
+  }
+
+  .no-print {
+    display: none;
+  }
+}

@@ -145,4 +145,9 @@ When running tests, we use specific ports to avoid conflicts:
 - `README.md`: Project overview and getting started
 - `TESTING.md`: Testing instructions
 - `LLM_TESTING.md`: Guide for testing with real LLM API keys
-- `PRD.md`: Product Requirements Document
+
+## Typescript rules
+- No implicit any authorized
+
+## Project changes
+- Always try to build the project at the end of task implementation

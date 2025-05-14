@@ -96,4 +96,16 @@
         "maxTokens": 500,
         "systemPrompt": "You are a helpful assistant."
       }
-    },*/
+    },
+        {
+      "id": "anthropic-claude3.5sonnet",
+      "provider": "Anthropic",
+      "model": "claude-3-5-sonnet-20241022",
+      "enabled": true,
+      "parameters": {
+        "temperature": 0.7,
+        "maxTokens": 500,
+        "systemPrompt": "You are Claude, a helpful AI assistant created by Anthropic."
+      }
+    },
+    */
