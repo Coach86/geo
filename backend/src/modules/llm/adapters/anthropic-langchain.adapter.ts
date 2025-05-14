@@ -33,6 +33,7 @@ export class AnthropicLangChainAdapter implements LlmAdapter {
     try {
       // Default model is Claude 3 Sonnet
       const model = options?.model || 'claude-3-7-sonnet-20250219';
+      this.logger.log(`Calling Anthropic API with model: ${model} and key: ${this.apiKey}`);
 
       const chatModel = new ChatAnthropic({
         anthropicApiKey: this.apiKey,

@@ -57,6 +57,8 @@ export class AnthropicAdapter implements LlmAdapter {
         options?.systemPrompt ||
         "To answer the user's question, search the web when you need current information.";
 
+      this.logger.log(`Calling Anthropic API with model: ${modelName} and key: ${this.apiKey}`);
+
       // Call the Anthropic API directly
       const response = await this.anthropic.messages.create({
         model: modelName,
@@ -182,11 +184,13 @@ export class AnthropicAdapter implements LlmAdapter {
 
       // Deduplicate citations by URL
       const uniqueCitations = this.deduplicateCitations(citations);
-      
+
       if (citations.length !== uniqueCitations.length) {
-        this.logger.log(`Deduplicated ${citations.length - uniqueCitations.length} duplicate citations`);
+        this.logger.log(
+          `Deduplicated ${citations.length - uniqueCitations.length} duplicate citations`,
+        );
       }
-      
+
       // Format and return the result
       return {
         text: fullText,
@@ -231,16 +235,18 @@ export class AnthropicAdapter implements LlmAdapter {
    * @param citations The array of citations to deduplicate
    * @returns A new array with duplicates removed
    */
-  private deduplicateCitations(citations: Array<{ url: string; title: string; text?: string }>): Array<{ url: string; title: string; text?: string }> {
+  private deduplicateCitations(
+    citations: Array<{ url: string; title: string; text?: string }>,
+  ): Array<{ url: string; title: string; text?: string }> {
     const uniqueUrls = new Map<string, { url: string; title: string; text?: string }>();
-    
+
     // Keep only the first occurrence of each URL
     for (const citation of citations) {
       if (citation.url && !uniqueUrls.has(citation.url)) {
         uniqueUrls.set(citation.url, citation);
       }
     }
-    
+
     return Array.from(uniqueUrls.values());
   }
 }
