@@ -88,7 +88,7 @@
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
-          "awslogs-group": "/ecs/digest-server-task-def",
+          "awslogs-group": "/ecs/brandinsight-server-task-def",
           "mode": "non-blocking",
           "awslogs-create-group": "true",
           "max-buffer-size": "25m",
@@ -100,7 +100,7 @@
       "systemControls": []
     }
   ],
-  "family": "digest-server-task-def",
+  "family": "brandinsight-server-task-def",
   "executionRoleArn": "arn:aws:iam::767828741433:role/ecsTaskExecutionRole",
   "networkMode": "awsvpc",
   "volumes": [],
