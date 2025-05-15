@@ -57,6 +57,10 @@
         {
           "name": "DB_HOST",
           "value": "docdb-coach.cds46gwgiksw.eu-west-1.docdb.amazonaws.com"
+        },
+        {
+          "name": "FRONTEND_URL",
+          "value": "https://app.yomastudio.ws"
         }
       ],
       "secrets": [
