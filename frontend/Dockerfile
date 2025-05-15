@@ -8,7 +8,7 @@ RUN npm install -g pnpm && pnpm install --frozen-lockfile
 FROM node:20-alpine AS builder
 WORKDIR /app
 ENV NODE_ENV=production
-ENV NEXT_PUBLIC_API_URL=https://brandinsight.yoma.ws
+ENV NEXT_PUBLIC_API_URL=https://brandinsight.yoma.ws/api
 RUN npm install -g pnpm
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -20,7 +20,7 @@ WORKDIR /app
 RUN npm install -g pnpm
 
 ENV NODE_ENV=production
-ENV NEXT_PUBLIC_API_URL=https://brandinsight.yoma.ws
+ENV NEXT_PUBLIC_API_URL=https://brandinsight.yoma.ws/api
 
 # Copy only the necessary files for production
 COPY --from=builder /app/next.config.mjs ./
