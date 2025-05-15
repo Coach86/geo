@@ -7,6 +7,7 @@ RUN npm install -g pnpm && pnpm install --frozen-lockfile
 # Rebuild the source code only when needed
 FROM node:20-alpine AS builder
 WORKDIR /app
+RUN npm install -g pnpm
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN pnpm build
@@ -14,6 +15,7 @@ RUN pnpm build
 # Production image, copy all the files and run next
 FROM node:20-alpine AS runner
 WORKDIR /app
+RUN npm install -g pnpm
 
 ENV NODE_ENV=production
 
