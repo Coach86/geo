@@ -16,8 +16,9 @@ export interface CompanyBatchContext {
  */
 export interface SpontaneousPipelineResult {
   llmProvider: string;
+  llmModel: string;
   promptIndex: number;
-  runIndex?: number;     // Index of the run for this model/prompt combination
+  runIndex?: number; // Index of the run for this model/prompt combination
   mentioned: boolean;
   topOfMind: string[];
   originalPrompt?: string;
@@ -37,16 +38,16 @@ export interface WebSearchSummary {
 }
 
 export interface ModelBreakdown {
-  name: string;        // Model name (e.g., "Claude 3", "ChatGPT-4o")
+  name: string; // Model name (e.g., "Claude 3", "ChatGPT-4o")
   mentionRate: number; // Percentage as decimal (e.g., 0.7 for 70%)
   promptsTested: number; // Number of prompts tested with this model (including repeats)
-  runs: number;        // Number of runs executed for this model
+  runs: number; // Number of runs executed for this model
 }
 
 export interface BrandVisibilitySummary {
-  globalMentionRate: number;  // Overall mention rate across all models
-  promptsTested: number;      // Total number of distinct prompts tested
-  totalRuns: number;          // Total runs across all models and prompts
+  globalMentionRate: number; // Overall mention rate across all models
+  promptsTested: number; // Total number of distinct prompts tested
+  totalRuns: number; // Total runs across all models and prompts
   modelBreakdown: ModelBreakdown[]; // Per-model breakdown data
 }
 
@@ -71,6 +72,7 @@ export interface SentimentAnalysisResult {
 
 export interface SentimentPipelineResult {
   llmProvider: string;
+  llmModel: string;
   promptIndex: number;
   sentiment: 'positive' | 'neutral' | 'negative';
   accuracy: number;
@@ -103,6 +105,7 @@ export interface ComparisonAnalysisResult {
 
 export interface ComparisonPipelineResult {
   llmProvider: string;
+  llmModel: string;
   promptIndex: number;
   winner: string;
   differentiators: string[];

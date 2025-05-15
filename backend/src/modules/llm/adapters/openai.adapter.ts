@@ -15,7 +15,8 @@ export class OpenAiAdapter implements LlmAdapter {
   constructor(private readonly configService: ConfigService) {
     this.apiKey = this.configService.get<string>('OPENAI_API_KEY', '');
 
-    if (this.isAvailable() && !this.isMockMode()) {
+    if (this.isAvailable()) {
+      this.logger.log(`OpenAI API key found, initializing OpenAI client...`);
       this.openai = new OpenAI({
         apiKey: this.apiKey,
       });
@@ -27,10 +28,6 @@ export class OpenAiAdapter implements LlmAdapter {
     return !!this.apiKey && this.apiKey.length > 0;
   }
 
-  private isMockMode(): boolean {
-    return this.apiKey === 'mock';
-  }
-
   async call(prompt: string, options?: LlmCallOptions): Promise<LlmResponse> {
     if (!this.isAvailable()) {
       throw new Error('OpenAI API key not configured');
@@ -39,7 +36,7 @@ export class OpenAiAdapter implements LlmAdapter {
     try {
       // Determine the model to use (default or from options)
       const modelName = options?.model || 'gpt-4o';
-      this.logger.log(`Calling OpenAI API with model: ${modelName} and key: ${this.apiKey}`);
+      this.logger.log(`Calling OpenAI API with model: ${modelName}`);
       // The OpenAI SDK expects a specific Tool type. For web_search_preview, only 'type' is required.
       const response = await this.openai.responses.create({
         model: modelName,

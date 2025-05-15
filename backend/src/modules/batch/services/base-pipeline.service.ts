@@ -136,19 +136,14 @@ export abstract class BasePipelineService implements OnModuleInit {
    * @returns The raw response from the LLM
    */
   protected async executePrompt(
-    modelName: string,
+    modelConfig: LlmModelConfig,
     prompt: string,
     batchExecutionId?: string,
     promptIndex: number = 0,
   ): Promise<any> {
-    this.logger.log(`Executing prompt with ${modelName}: "${prompt.substring(0, 50)}..."`);
-
-    // Find the model configuration
-    const modelConfig = this.config.llmModels.find((model) => model.id === modelName);
-
-    if (!modelConfig) {
-      throw new Error(`Model configuration for ${modelName} not found`);
-    }
+    this.logger.log(
+      `Executing prompt with ${modelConfig.provider}/${modelConfig.model}: "${prompt.substring(0, 50)}..."`,
+    );
 
     // Call the LLM adapter using the LlmService
     const options = {
@@ -171,16 +166,18 @@ export abstract class BasePipelineService implements OnModuleInit {
           usedWebSearch?: boolean;
           responseMetadata?: any;
         };
-        
+
         // Enhanced metadata to include web search details
         const enhancedMetadata = resultWithMeta.responseMetadata || {};
-        
+
         // Add web search results to metadata if available
         if (resultWithMeta.webSearchResults && resultWithMeta.webSearchResults.length > 0) {
           enhancedMetadata.webSearchResults = resultWithMeta.webSearchResults;
-          this.logger.log(`Found ${resultWithMeta.webSearchResults.length} web search results to store`);
+          this.logger.log(
+            `Found ${resultWithMeta.webSearchResults.length} web search results to store`,
+          );
         }
-        
+
         await this.rawResponseService.storeRawResponse(
           batchExecutionId,
           modelConfig.provider,
@@ -233,11 +230,11 @@ export abstract class BasePipelineService implements OnModuleInit {
         annotations: result.annotations || [],
         toolUsage: result.toolUsage || [],
         usedWebSearch: result.usedWebSearch || false,
-        responseMetadata: result.responseMetadata || {}
+        responseMetadata: result.responseMetadata || {},
       },
       // Include the original result object for accessing provider-specific metadata
       // in a standardized way across all providers
-      llmResponseObj: result
+      llmResponseObj: result,
     };
   }
 
@@ -245,8 +242,8 @@ export abstract class BasePipelineService implements OnModuleInit {
    * Get the enabled LLM model IDs from configuration
    * @returns Array of enabled model IDs
    */
-  protected getEnabledModels(): string[] {
-    return this.config.llmModels.filter((model) => model.enabled).map((model) => model.id);
+  protected getEnabledModels(): LlmModelConfig[] {
+    return this.config.llmModels.filter((model) => model.enabled);
   }
 
   /**

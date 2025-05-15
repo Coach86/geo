@@ -16,7 +16,7 @@ import { UserResponseDto } from '../dto/user-response.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
 
 @ApiTags('users')
-@Controller('users')
+@Controller('admin/users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 

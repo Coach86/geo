@@ -17,14 +17,12 @@ import {
 // Types for token validation
 interface TokenValidationResult {
   valid: boolean;
-  reportId?: string;
-  companyId?: string;
+  userId?: string;
 }
 
 // Types for resending token
 interface ResendTokenRequest {
-  reportId: string;
-  companyId: string;
+  userId: string;
 }
 
 function ReportAccess() {
@@ -56,9 +54,25 @@ function ReportAccess() {
       }
 
       try {
-        const response = await fetch(
-          `${apiBaseUrl}/reports/access/validate?token=${token}`
+        // First try the new endpoint
+        console.log(`Trying to validate token with new endpoint: ${apiBaseUrl}/tokens/validate?token=${token.substring(0, 8)}...`);
+        let response = await fetch(
+          `${apiBaseUrl}/tokens/validate?token=${token}`
         );
+
+        // Log detailed info about the response
+        console.log(`Token validation response status: ${response.status}`);
+        if (!response.ok) {
+          const errorText = await response.text().catch(e => "Could not read error response");
+          console.error(`Token validation failed with status ${response.status}: ${errorText}`);
+          
+          // If the new endpoint fails with 401, try the legacy endpoint
+          console.log("New token endpoint failed, trying legacy endpoint...");
+          response = await fetch(
+            `${apiBaseUrl}/reports/access/validate?token=${token}`
+          );
+          console.log(`Legacy endpoint response status: ${response.status}`);
+        }
 
         if (!response.ok) {
           throw new Error("Failed to validate token");
@@ -68,10 +82,18 @@ function ReportAccess() {
         setTokenResult(result);
 
         // If token is valid, redirect to the report page
-        if (result.valid && result.reportId) {
+        if (result.valid) {
+          // Get reportId from search params if available
+          const reportId = searchParams.get("reportId");
+
           // Redirect to the report page with the token as a query parameter
           // This will allow the report page to fetch the data using the token
-          router.push(`/report?token=${token}`);
+          if (reportId) {
+            router.push(`/report?token=${token}&reportId=${reportId}`);
+          } else {
+            // If no reportId specified, go to reports list
+            router.push(`/reports?token=${token}`);
+          }
         }
       } catch (err) {
         console.error("Error validating token:", err);
@@ -86,22 +108,20 @@ function ReportAccess() {
 
   // Handle requesting a new token
   const handleRequestNewToken = async () => {
-    if (!tokenResult || !tokenResult.reportId || !tokenResult.companyId) {
-      setError(
-        "Cannot request new token: missing report or company information"
-      );
+    if (!tokenResult || !tokenResult.userId) {
+      setError("Cannot request new token: missing user information");
       return;
     }
 
     setResendStatus("loading");
 
     const requestBody: ResendTokenRequest = {
-      reportId: tokenResult.reportId,
-      companyId: tokenResult.companyId,
+      userId: tokenResult.userId,
     };
 
     try {
-      const response = await fetch(`${apiBaseUrl}/reports/access/resend`, {
+      // First try the new endpoint
+      let response = await fetch(`${apiBaseUrl}/tokens/generate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -180,8 +200,8 @@ function ReportAccess() {
     );
   }
 
-  // Token is invalid but we have report/company info to request a new one
-  if (tokenResult && !tokenResult.valid) {
+  // Token is invalid but we have user info to request a new one
+  if (tokenResult && !tokenResult.valid && tokenResult.userId) {
     return (
       <div className="container mx-auto max-w-3xl py-12">
         <Card>

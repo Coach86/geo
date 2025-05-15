@@ -21,10 +21,6 @@ export class AnthropicLangChainAdapter implements LlmAdapter {
     return !!this.apiKey && this.apiKey.length > 0;
   }
 
-  private isMockMode(): boolean {
-    return this.apiKey === 'mock';
-  }
-
   async call(prompt: string, options?: LlmCallOptions): Promise<LlmResponse> {
     if (!this.isAvailable()) {
       throw new Error('Anthropic API key not configured');
@@ -33,7 +29,7 @@ export class AnthropicLangChainAdapter implements LlmAdapter {
     try {
       // Default model is Claude 3 Sonnet
       const model = options?.model || 'claude-3-7-sonnet-20250219';
-      this.logger.log(`Calling Anthropic API with model: ${model} and key: ${this.apiKey}`);
+      this.logger.log(`Calling Anthropic API with model: ${model}`);
 
       const chatModel = new ChatAnthropic({
         anthropicApiKey: this.apiKey,
@@ -80,7 +76,7 @@ export class AnthropicLangChainAdapter implements LlmAdapter {
     schema: ZodSchema<T>,
     options?: LlmCallOptions,
   ): Promise<T> {
-    if (!this.isAvailable() || this.isMockMode()) {
+    if (!this.isAvailable()) {
       throw new Error('Anthropic API not available for structured output');
     }
 
@@ -102,7 +98,7 @@ export class AnthropicLangChainAdapter implements LlmAdapter {
       // Enhanced prompt with schema instructions
       const enhancedPrompt = `${prompt}\n\n${formatInstructions}\n\nYour response must conform to the schema defined above. Respond with just the JSON object, no additional text or explanations.`;
 
-      this.logger.log(`Calling Anthropic API with model: ${model} and key: ${this.apiKey}`);
+      this.logger.log(`Calling Anthropic API with model: ${model}`);
 
       // Create the chat model
       const chatModel = new ChatAnthropic({

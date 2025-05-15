@@ -4,11 +4,15 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import pLimit from 'p-limit';
 import { IdentityCardService } from '../../identity-card/services/identity-card.service';
-import { IdentityCard, IdentityCardDocument } from '../../identity-card/schemas/identity-card.schema';
+import {
+  IdentityCard,
+  IdentityCardDocument,
+} from '../../identity-card/schemas/identity-card.schema';
 import { PromptService } from '../../prompt/services/prompt.service';
 import { PromptSet, PromptSetDocument } from '../../prompt/schemas/prompt-set.schema';
 import { LlmService } from '../../llm/services/llm.service';
 import { ReportService } from '../../report/services/report.service';
+import { BatchReportInput } from '../../report/interfaces/report-input.interfaces';
 import { RawResponseService } from '../../report/services/raw-response.service';
 import { SpontaneousPipelineService } from './spontaneous-pipeline.service';
 import { SentimentPipelineService } from './sentiment-pipeline.service';
@@ -26,10 +30,7 @@ export class BatchService {
     private readonly configService: ConfigService,
     @InjectModel(IdentityCard.name) private identityCardModel: Model<IdentityCardDocument>,
     @InjectModel(PromptSet.name) private promptSetModel: Model<PromptSetDocument>,
-    private readonly identityCardService: IdentityCardService,
-    private readonly llmService: LlmService,
     private readonly reportService: ReportService,
-    private readonly rawResponseService: RawResponseService,
     private readonly batchExecutionService: BatchExecutionService,
     private readonly spontaneousPipelineService: SpontaneousPipelineService,
     private readonly sentimentPipelineService: SentimentPipelineService,
@@ -41,7 +42,7 @@ export class BatchService {
     const concurrencyLimit = Math.max(1, parseInt(String(configLimit), 10) || 30);
 
     this.limiter = pLimit(concurrencyLimit);
-    
+
     this.logger.log(`Batch service initialized with concurrency limit: ${concurrencyLimit}`);
 
     // Check if batch processing is enabled
@@ -63,15 +64,18 @@ export class BatchService {
 
       // Get all companies with their prompt sets
       const companies = await this.identityCardModel.find().lean().exec();
-      
+
       // Get all prompt sets
       const promptSets = await this.promptSetModel.find().lean().exec();
-      
+
       // Create a map of prompt sets by company ID
-      const promptSetsByCompany: Record<string, any> = promptSets.reduce((map: Record<string, any>, promptSet) => {
-        map[promptSet.companyId] = promptSet;
-        return map;
-      }, {});
+      const promptSetsByCompany: Record<string, any> = promptSets.reduce(
+        (map: Record<string, any>, promptSet) => {
+          map[promptSet.companyId] = promptSet;
+          return map;
+        },
+        {},
+      );
 
       this.logger.log(`Found ${companies.length} companies to process`);
 
@@ -83,7 +87,7 @@ export class BatchService {
         this.limiter(async () => {
           try {
             const promptSet = promptSetsByCompany[company.id];
-            
+
             if (!promptSet) {
               this.logger.warn(`Company ${company.id} has no prompt sets. Skipping.`);
               return;
@@ -143,11 +147,9 @@ export class BatchService {
 
       // Current week's start date (Monday 00:00:00 UTC)
       const weekStart = this.getCurrentWeekStart();
-      
+
       // Add batchExecutionId to context if provided
-      const contextWithBatchId = batchExecutionId 
-        ? { ...company, batchExecutionId }
-        : company;
+      const contextWithBatchId = batchExecutionId ? { ...company, batchExecutionId } : company;
 
       // Process the company
       const result = await this.processCompanyInternal(contextWithBatchId, weekStart);
@@ -247,10 +249,14 @@ export class BatchService {
 
     try {
       // Create a new batch execution
-      const batchExecution = await this.batchExecutionService.createBatchExecution(context.companyId);
+      const batchExecution = await this.batchExecutionService.createBatchExecution(
+        context.companyId,
+      );
       const batchExecutionId = batchExecution.id;
 
-      this.logger.log(`Created batch execution ${batchExecutionId} for company ${context.companyId}`);
+      this.logger.log(
+        `Created batch execution ${batchExecutionId} for company ${context.companyId}`,
+      );
 
       // Inject the batchExecutionId into the context
       const contextWithBatchExecId = { ...context, batchExecutionId };
@@ -274,22 +280,18 @@ export class BatchService {
         this.batchExecutionService.saveBatchResult(
           batchExecutionId,
           'spontaneous',
-          spontaneousResults
+          spontaneousResults,
         ),
-        this.batchExecutionService.saveBatchResult(
-          batchExecutionId,
-          'sentiment',
-          sentimentResults
-        ),
+        this.batchExecutionService.saveBatchResult(batchExecutionId, 'sentiment', sentimentResults),
         this.batchExecutionService.saveBatchResult(
           batchExecutionId,
           'comparison',
-          comparisonResults
-        )
+          comparisonResults,
+        ),
       ]);
 
-      // Create the weekly report for backward compatibility
-      const report = {
+      // Create the weekly report with proper typing
+      const batchReportInput: BatchReportInput = {
         companyId: context.companyId,
         weekStart,
         spontaneous: spontaneousResults,
@@ -299,8 +301,8 @@ export class BatchService {
         generatedAt: new Date(),
       };
 
-      // Save the report
-      await this.reportService.saveReport(report as any);
+      // Save the report using the properly typed method
+      await this.reportService.saveReportFromBatch(batchReportInput);
 
       // Mark the batch execution as completed
       await this.batchExecutionService.updateBatchExecutionStatus(batchExecutionId, 'completed');
@@ -312,8 +314,8 @@ export class BatchService {
         results: {
           spontaneous: spontaneousResults,
           sentiment: sentimentResults,
-          comparison: comparisonResults
-        }
+          comparison: comparisonResults,
+        },
       };
     } catch (error) {
       this.logger.error(
@@ -325,7 +327,7 @@ export class BatchService {
       if (context.batchExecutionId) {
         await this.batchExecutionService.updateBatchExecutionStatus(
           context.batchExecutionId,
-          'failed'
+          'failed',
         );
       }
 
@@ -392,7 +394,7 @@ export class BatchService {
    */
   async createBatchExecution(companyId: string): Promise<any> {
     this.logger.log(`Creating batch execution for company ${companyId}`);
-    
+
     try {
       return await this.batchExecutionService.createBatchExecution(companyId);
     } catch (error) {
@@ -409,7 +411,7 @@ export class BatchService {
    */
   async completeBatchExecution(batchExecutionId: string, result: any): Promise<any> {
     this.logger.log(`Completing batch execution ${batchExecutionId}`);
-    
+
     try {
       // If the result contains results for different pipelines, save them individually
       if (result && result.results) {
@@ -418,34 +420,40 @@ export class BatchService {
           await this.batchExecutionService.saveBatchResult(
             batchExecutionId,
             'spontaneous',
-            result.results.spontaneous
+            result.results.spontaneous,
           );
         }
-        
+
         if (result.results.sentiment) {
           await this.batchExecutionService.saveBatchResult(
             batchExecutionId,
             'sentiment',
-            result.results.sentiment
+            result.results.sentiment,
           );
         }
-        
+
         if (result.results.comparison) {
           await this.batchExecutionService.saveBatchResult(
             batchExecutionId,
             'comparison',
-            result.results.comparison
+            result.results.comparison,
           );
         }
       }
-      
+
       // Update the batch execution status to completed
-      return await this.batchExecutionService.updateBatchExecutionStatus(batchExecutionId, 'completed');
+      return await this.batchExecutionService.updateBatchExecutionStatus(
+        batchExecutionId,
+        'completed',
+      );
     } catch (error) {
       this.logger.error(`Failed to complete batch execution: ${error.message}`, error.stack);
-      
+
       // If saving results fails, mark the batch execution as failed
-      await this.failBatchExecution(batchExecutionId, error.message || 'Unknown error during completion');
+      await this.failBatchExecution(
+        batchExecutionId,
+        error.message || 'Unknown error during completion',
+      );
       throw error;
     }
   }
@@ -458,9 +466,12 @@ export class BatchService {
    */
   async failBatchExecution(batchExecutionId: string, errorMessage: string): Promise<any> {
     this.logger.error(`Marking batch execution ${batchExecutionId} as failed: ${errorMessage}`);
-    
+
     try {
-      return await this.batchExecutionService.updateBatchExecutionStatus(batchExecutionId, 'failed');
+      return await this.batchExecutionService.updateBatchExecutionStatus(
+        batchExecutionId,
+        'failed',
+      );
     } catch (error) {
       this.logger.error(`Failed to mark batch execution as failed: ${error.message}`, error.stack);
       throw error;
@@ -477,7 +488,9 @@ export class BatchService {
     companyId: string,
     pipelineType: 'spontaneous' | 'sentiment' | 'comparison',
   ): Promise<any> {
-    this.logger.log(`Creating batch execution for ${pipelineType} pipeline for company ${companyId}`);
+    this.logger.log(
+      `Creating batch execution for ${pipelineType} pipeline for company ${companyId}`,
+    );
 
     try {
       // Create a new batch execution using the batch execution service
@@ -521,10 +534,7 @@ export class BatchService {
 
       return batchResult;
     } catch (error) {
-      this.logger.error(
-        `Failed to save ${pipelineType} result: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Failed to save ${pipelineType} result: ${error.message}`, error.stack);
       throw error;
     }
   }
@@ -562,7 +572,10 @@ export class BatchService {
    * @param errorMessage The error message
    * @returns The updated batch execution
    */
-  async failSinglePipelineBatchExecution(batchExecutionId: string, errorMessage: string): Promise<any> {
+  async failSinglePipelineBatchExecution(
+    batchExecutionId: string,
+    errorMessage: string,
+  ): Promise<any> {
     this.logger.error(`Marking batch execution ${batchExecutionId} as failed: ${errorMessage}`);
 
     try {
@@ -576,10 +589,7 @@ export class BatchService {
 
       return batchExecution;
     } catch (error) {
-      this.logger.error(
-        `Failed to mark batch execution as failed: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Failed to mark batch execution as failed: ${error.message}`, error.stack);
       throw error;
     }
   }

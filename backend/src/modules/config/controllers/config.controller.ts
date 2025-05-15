@@ -2,7 +2,7 @@ import { Controller, Get } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 
-@Controller('config')
+@Controller('admin/config')
 export class ConfigController {
   @Get()
   getConfig() {

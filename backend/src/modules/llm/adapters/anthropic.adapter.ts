@@ -18,7 +18,7 @@ export class AnthropicAdapter implements LlmAdapter {
   constructor(private readonly configService: ConfigService) {
     this.apiKey = this.configService.get<string>('ANTHROPIC_API_KEY', '');
 
-    if (this.isAvailable() && !this.isMockMode()) {
+    if (this.isAvailable()) {
       this.anthropic = new Anthropic({
         apiKey: this.apiKey,
       });
@@ -28,10 +28,6 @@ export class AnthropicAdapter implements LlmAdapter {
   isAvailable(): boolean {
     // Only consider available if the API key is provided and not empty
     return !!this.apiKey && this.apiKey.length > 0;
-  }
-
-  private isMockMode(): boolean {
-    return this.apiKey === 'mock';
   }
 
   async call(prompt: string, options?: LlmCallOptions): Promise<LlmResponse> {
@@ -57,7 +53,7 @@ export class AnthropicAdapter implements LlmAdapter {
         options?.systemPrompt ||
         "To answer the user's question, search the web when you need current information.";
 
-      this.logger.log(`Calling Anthropic API with model: ${modelName} and key: ${this.apiKey}`);
+      this.logger.log(`Calling Anthropic API with model: ${modelName}`);
 
       // Call the Anthropic API directly
       const response = await this.anthropic.messages.create({

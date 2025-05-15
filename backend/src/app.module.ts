@@ -7,6 +7,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { join } from 'path';
+import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 
 import { AppController } from './controllers/app.controller';
 import { IdentityCardModule } from './modules/identity-card/identity-card.module';
@@ -73,6 +74,12 @@ import { getWinstonConfig } from './utils/logger.config';
     AppConfigModule,
   ],
   controllers: [AppController],
-  providers: [],
+  providers: [
+    // Register global JWT guard to protect all routes by default
+    {
+      provide: 'APP_GUARD',
+      useClass: JwtAuthGuard,
+    },
+  ],
 })
 export class AppModule {}

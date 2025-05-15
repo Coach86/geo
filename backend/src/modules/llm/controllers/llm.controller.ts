@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { IsArray, IsOptional, IsString } from 'class-validator';
 import { LlmService } from '../services/llm.service';
-
+import { LlmProvider } from '../interfaces/llm-provider.enum';
 class DirectTestDto {
   @IsString()
   prompt: string;
@@ -13,7 +13,7 @@ class DirectTestDto {
 }
 
 @ApiTags('llm')
-@Controller('llm')
+@Controller('admin/llm')
 export class LlmController {
   constructor(private readonly llmService: LlmService) {}
 
@@ -27,7 +27,7 @@ export class LlmController {
     const adapters = this.llmService.getAvailableAdapters();
     return {
       available: adapters.length,
-      adapters: adapters.map(adapter => adapter.name),
+      adapters: adapters.map((adapter) => adapter.name),
     };
   }
 
@@ -43,13 +43,13 @@ export class LlmController {
     if (!directTestDto.providers || directTestDto.providers.length === 0) {
       // If no providers specified, use all available
       const availableAdapters = this.llmService.getAvailableAdapters();
-      directTestDto.providers = availableAdapters.map(adapter => adapter.name);
+      directTestDto.providers = availableAdapters.map((adapter) => adapter.name);
     }
 
     // Call each provider one by one
     for (const provider of directTestDto.providers) {
       try {
-        const response = await this.llmService.call(provider, directTestDto.prompt);
+        const response = await this.llmService.call(provider as LlmProvider, directTestDto.prompt);
         results[provider] = response;
       } catch (error) {
         results[provider] = { error: error.message };

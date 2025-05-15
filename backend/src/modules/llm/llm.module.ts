@@ -12,7 +12,20 @@ import { MistralAdapter } from './adapters/mistral.adapter';
 import { PerplexityAdapter } from './adapters/perplexity.adapter';
 import { OpenAILangChainAdapter } from './adapters/openai-langchain.adapter';
 import { AnthropicLangChainAdapter } from './adapters/anthropic-langchain.adapter';
+import { LlmProvider } from './interfaces/llm-provider.enum';
 
+/*
+  Anthropic = 'Anthropic',
+  OpenAI = 'OpenAI',
+  Perplexity = 'Perplexity',
+  Google = 'Google',
+  Mistral = 'Mistral',
+  Llama = 'Llama',
+  Grok = 'Grok',
+  DeepSeek = 'DeepSeek',
+  OpenAILangChain = 'OpenAILangChain',
+  AnthropicLangChain = 'AnthropicLangChain',
+*/
 @Module({
   imports: [ConfigModule],
   controllers: [LlmController],
@@ -21,27 +34,27 @@ import { AnthropicLangChainAdapter } from './adapters/anthropic-langchain.adapte
     {
       provide: 'LLM_ADAPTERS',
       useFactory: (
-        openAi: OpenAiAdapter,
-        anthropic: AnthropicAdapter,
-        google: GoogleAdapter,
-        deepSeek: DeepSeekAdapter,
-        grok: GrokAdapter,
-        llama: LlamaAdapter,
-        mistral: MistralAdapter,
-        perplexity: PerplexityAdapter,
-        openAiLangChain: OpenAILangChainAdapter,
-        anthropicLangChain: AnthropicLangChainAdapter,
+        OpenAI: OpenAiAdapter,
+        Anthropic: AnthropicAdapter,
+        Google: GoogleAdapter,
+        DeepSeek: DeepSeekAdapter,
+        Grok: GrokAdapter,
+        Llama: LlamaAdapter,
+        Mistral: MistralAdapter,
+        Perplexity: PerplexityAdapter,
+        OpenAILangChain: OpenAILangChainAdapter,
+        AnthropicLangChain: AnthropicLangChainAdapter,
       ) => ({
-        openAi,
-        anthropic,
-        google,
-        deepSeek,
-        grok,
-        llama,
-        mistral,
-        perplexity,
-        openAiLangChain,
-        anthropicLangChain,
+        OpenAI,
+        Anthropic,
+        Google,
+        DeepSeek,
+        Grok,
+        Llama,
+        Mistral,
+        Perplexity,
+        OpenAILangChain,
+        AnthropicLangChain,
       }),
       inject: [
         OpenAiAdapter,

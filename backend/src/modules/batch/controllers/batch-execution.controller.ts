@@ -3,7 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/
 import { BatchExecutionService } from '../services/batch-execution.service';
 
 @ApiTags('batch-executions')
-@Controller('batch-executions')
+@Controller('admin/batch-executions')
 export class BatchExecutionController {
   constructor(private readonly batchExecutionService: BatchExecutionService) {}
 
@@ -47,7 +47,7 @@ export class BatchExecutionController {
     if (!companyId) {
       throw new NotFoundException('Company ID is required');
     }
-    
+
     try {
       return await this.batchExecutionService.getBatchExecutionsByCompany(companyId);
     } catch (error) {

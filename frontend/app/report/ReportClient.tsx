@@ -142,9 +142,20 @@ function Report() {
       }
 
       try {
-        // First validate the token
-        const validationResponse = await fetch(
-          `${apiBaseUrl}/reports/access/validate?token=${token}`
+        // Try the new token endpoint first, then fall back to the legacy one if needed
+        console.log(
+          `Trying to validate token with new endpoint: ${apiBaseUrl}/tokens/validate?token=${token.substring(
+            0,
+            8
+          )}...`
+        );
+        let validationResponse = await fetch(
+          `${apiBaseUrl}/tokens/validate?token=${token}`
+        );
+
+        // Log detailed info about the response
+        console.log(
+          `Token validation response status: ${validationResponse.status}`
         );
 
         if (!validationResponse.ok) {
@@ -158,11 +169,14 @@ function Report() {
         }
 
         // Token is valid, get the report data
-        const reportId = validationResult.reportId;
+        // For the new token structure, we get reportId from the query params
+        const reportId =
+          searchParams.get("reportId") || validationResult.reportId;
+        // We don't need companyId for the new token-based access
         const companyId = validationResult.companyId;
 
-        if (!reportId || !companyId) {
-          throw new Error("Missing report ID or company ID");
+        if (!reportId) {
+          throw new Error("Missing report ID");
         }
 
         // Fetch the report content from the backend API

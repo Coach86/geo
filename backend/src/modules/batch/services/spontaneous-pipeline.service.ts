@@ -14,6 +14,7 @@ import {
 import { AnalyzerConfig, LlmModelConfig } from '../interfaces/llm.interfaces';
 import { BasePipelineService } from './base-pipeline.service';
 import { SystemPrompts, PromptTemplates, formatPrompt } from '../prompts/prompts';
+import { LlmProvider } from 'src/modules/llm/interfaces/llm-provider.enum';
 
 @Injectable()
 export class SpontaneousPipelineService extends BasePipelineService {
@@ -84,7 +85,7 @@ export class SpontaneousPipelineService extends BasePipelineService {
 
                   // Step 1: Execute the prompt with this model
                   const llmResponse = await this.executePrompt(
-                    modelConfig.id,
+                    modelConfig,
                     prompts[i],
                     context.batchExecutionId, // Pass batch execution ID for storing raw responses
                     i, // Pass prompt index
@@ -105,7 +106,8 @@ export class SpontaneousPipelineService extends BasePipelineService {
                     error.stack,
                   );
                   return {
-                    llmProvider: `${modelConfig.provider}/${modelConfig.model}`,
+                    llmProvider: modelConfig.provider,
+                    llmModel: modelConfig.model,
                     promptIndex: i,
                     runIndex: runIndex,
                     mentioned: false,
@@ -224,15 +226,14 @@ export class SpontaneousPipelineService extends BasePipelineService {
 
       // Safe access to topOfMind with fallback to empty array
       const topOfMind = result.topOfMind || [];
-      
+
       if (!mentioned && topOfMind.length > 0) {
-        mentioned = topOfMind.some((brand) =>
-          brand.toLowerCase().includes(normalizedBrandName),
-        );
+        mentioned = topOfMind.some((brand) => brand.toLowerCase().includes(normalizedBrandName));
       }
 
       return {
-        llmProvider: `${modelConfig.provider}/${modelConfig.model}`,
+        llmProvider: modelConfig.provider,
+        llmModel: modelConfig.model,
         promptIndex,
         runIndex, // Include the run index in the result
         mentioned,
@@ -289,7 +290,7 @@ export class SpontaneousPipelineService extends BasePipelineService {
 
       // Extract websites based on LLM provider format
       // Anthropic: Look for web_search_tool_result in content blocks
-      if (result.llmProvider.includes('Anthropic')) {
+      if (result.llmProvider === LlmProvider.Anthropic) {
         // Check if we have the full response object with content blocks
         const content = metadata.responseMetadata?.content || metadata.content || [];
         for (const block of content) {
@@ -310,7 +311,7 @@ export class SpontaneousPipelineService extends BasePipelineService {
       }
 
       // OpenAI: Check for webSearchResults in responseMetadata
-      if (result.llmProvider.includes('OpenAI')) {
+      if (result.llmProvider === LlmProvider.OpenAI) {
         const webSearchResults = metadata.webSearchResults || [];
         for (const webResult of webSearchResults) {
           if (webResult.url) {
@@ -325,7 +326,7 @@ export class SpontaneousPipelineService extends BasePipelineService {
       }
 
       // Perplexity: Always uses web search, check for webSearchResults in metadata
-      if (result.llmProvider.includes('Perplexity')) {
+      if (result.llmProvider === LlmProvider.Perplexity) {
         const webSearchResults = metadata.webSearchResults || [];
         for (const webResult of webSearchResults) {
           if (webResult.url) {

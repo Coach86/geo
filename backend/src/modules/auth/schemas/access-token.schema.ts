@@ -1,18 +1,15 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
-export type ReportAccessTokenDocument = ReportAccessToken & Document;
+export type AccessTokenDocument = AccessToken & Document;
 
 @Schema()
-export class ReportAccessToken {
+export class AccessToken {
   @Prop({ required: true })
   token: string;
 
   @Prop({ required: true })
-  reportId: string;
-
-  @Prop({ required: true })
-  companyId: string;
+  userId: string;
 
   @Prop({ required: true })
   expiresAt: Date;
@@ -24,4 +21,4 @@ export class ReportAccessToken {
   createdAt: Date;
 }
 
-export const ReportAccessTokenSchema = SchemaFactory.createForClass(ReportAccessToken);
+export const AccessTokenSchema = SchemaFactory.createForClass(AccessToken);

@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class CompanyIdentityCard {
   @ApiProperty({ description: 'Unique identifier for the company' })
@@ -33,15 +33,6 @@ export class CompanyIdentityCard {
   @ApiProperty({ description: 'Last update timestamp' })
   updatedAt: Date;
 
-  @ApiPropertyOptional({ description: 'ID of the user who owns this company', nullable: true })
-  userId?: string | null;
-
-  @ApiPropertyOptional({ description: 'Email of the user who owns this company', nullable: true })
-  userEmail?: string | null;
-
-  @ApiPropertyOptional({
-    description: 'Language preference of the user who owns this company',
-    nullable: true,
-  })
-  userLanguage?: string | null;
+  @ApiProperty({ description: 'ID of the user who owns this company', nullable: true })
+  userId: string;
 }

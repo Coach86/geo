@@ -1,6 +1,14 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsUrl, IsOptional, ValidateNested, IsString, IsArray, MinLength, MaxLength } from 'class-validator';
+import {
+  IsUrl,
+  IsOptional,
+  ValidateNested,
+  IsString,
+  IsArray,
+  MinLength,
+  MaxLength,
+} from 'class-validator';
 
 export class IdentityCardDataDto {
   @ApiPropertyOptional({ description: 'Company brand name' })
@@ -21,8 +29,10 @@ export class IdentityCardDataDto {
   @MinLength(1)
   @MaxLength(100)
   industry?: string;
-  
-  @ApiPropertyOptional({ description: 'Geographical market the company operates in (e.g., "US", "Europe", "Global")' })
+
+  @ApiPropertyOptional({
+    description: 'Geographical market the company operates in (e.g., "US", "Europe", "Global")',
+  })
   @IsOptional()
   @IsString()
   @MinLength(1)
@@ -42,7 +52,10 @@ export class IdentityCardDataDto {
   @MinLength(1)
   fullDescription?: string;
 
-  @ApiPropertyOptional({ description: 'List of key features or offerings of the company', type: [String] })
+  @ApiPropertyOptional({
+    description: 'List of key features or offerings of the company',
+    type: [String],
+  })
   @IsOptional()
   @IsArray()
   keyFeatures?: string[];
@@ -69,7 +82,6 @@ export class CreateIdentityCardDto {
   data?: IdentityCardDataDto;
 
   @ApiPropertyOptional({ description: 'User ID to associate this company with' })
-  @IsOptional()
   @IsString()
-  userId?: string;
+  userId: string;
 }
