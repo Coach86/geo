@@ -86,10 +86,10 @@ export class PromptSetController {
       const spontaneousTemplate = {
         systemPrompt: spontaneousSystemPrompt,
         userPrompt: spontaneousUserPrompt({
-          market: company.market || 'US Market / English',
-          websiteUrl: company.website || 'example.com',
-          industry: company.industry || 'Technology',
-          brandName: company.brandName || 'Example Brand',
+          market: company.market,
+          websiteUrl: company.website,
+          industry: company.industry,
+          brandName: company.brandName,
           count: spontPromptCount,
         }),
       };
@@ -97,10 +97,8 @@ export class PromptSetController {
       const directTemplate = {
         systemPrompt: directSystemPrompt,
         userPrompt: directUserPrompt({
-          market: company.market || 'US Market / English',
-          brandName: company.brandName || 'Example Brand',
-          industry: company.industry || 'Technology',
-          keyFeatures: company.keyFeatures || ['Feature 1', 'Feature 2'],
+          market: company.market,
+          brandName: company.brandName,
           count: directPromptCount,
         }),
       };
@@ -108,11 +106,11 @@ export class PromptSetController {
       const comparisonTemplate = {
         systemPrompt: comparisonSystemPrompt,
         userPrompt: comparisonUserPrompt({
-          market: company.market || 'US Market / English',
-          brandName: company.brandName || 'Example Brand',
-          competitors: company.competitors || ['Competitor 1', 'Competitor 2'],
-          industry: company.industry || 'Technology',
-          keyFeatures: company.keyFeatures || ['Feature 1', 'Feature 2'],
+          market: company.market,
+          brandName: company.brandName,
+          competitors: company.competitors,
+          industry: company.industry,
+          keyFeatures: company.keyFeatures,
           count: comparisonPromptCount,
         }),
       };

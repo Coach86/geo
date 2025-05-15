@@ -23,7 +23,7 @@ interface LlmSummaryResult {
   competitors: string[];
 }
 
-const LLM_PROVIDER = LlmProvider.AnthropicLangChain;
+const LLM_PROVIDER = LlmProvider.Anthropic;
 
 @Injectable()
 export class IdentityCardService {
@@ -197,24 +197,6 @@ export class IdentityCardService {
 
     // Use Mongoose to query with filter and sort by updatedAt in descending order
     const identityCards = await this.identityCardModel.find(query).sort({ updatedAt: -1 }).exec();
-
-    // Get all unique user IDs from the cards
-    const userIds = [
-      ...new Set(identityCards.filter((card) => card.userId).map((card) => card.userId)),
-    ] as string[];
-
-    // Fetch all users at once
-    const users =
-      userIds.length > 0 ? await this.userModel.find({ id: { $in: userIds } }).exec() : [];
-
-    // Create a map of user ID to user data for quick lookup
-    const userMap = users.reduce(
-      (map, user) => {
-        map[user.id] = user;
-        return map;
-      },
-      {} as Record<string, any>,
-    );
 
     return identityCards.map((card) => ({
       companyId: card.id,
