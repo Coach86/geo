@@ -6,47 +6,47 @@ export type WeeklyBrandReportDocument = WeeklyBrandReport & Document;
 
 @Schema({
   collection: 'weekly_reports',
-  timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' }, 
+  timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' },
 })
 export class WeeklyBrandReport {
-  @Prop({ 
-    type: String, 
+  @Prop({
+    type: String,
     default: () => uuidv4(),
     index: true,
   })
   id: string;
 
-  @Prop({ 
-    type: String, 
-    required: true, 
-    index: true 
+  @Prop({
+    type: String,
+    required: true,
+    index: true,
   })
   companyId: string;
 
-  @Prop({ 
-    type: Date, 
-    required: true, 
-    index: true 
+  @Prop({
+    type: Date,
+    required: true,
+    index: true,
   })
   weekStart: Date;
 
-  @Prop({ 
-    type: Date, 
-    required: true, 
-    default: Date.now 
+  @Prop({
+    type: Date,
+    required: true,
+    default: Date.now,
   })
   generatedAt: Date;
 
-  @Prop({ 
-    type: String, 
+  @Prop({
+    type: String,
     required: false,
   })
   brand: string;
 
-  @Prop({ 
-    type: Object, 
+  @Prop({
+    type: Object,
     required: false,
-    default: {} 
+    default: {},
   })
   metadata: {
     url: string;
@@ -57,10 +57,10 @@ export class WeeklyBrandReport {
     models: string;
   };
 
-  @Prop({ 
-    type: Object, 
+  @Prop({
+    type: Object,
     required: false,
-    default: {} 
+    default: {},
   })
   kpi: {
     pulse: {
@@ -83,10 +83,10 @@ export class WeeklyBrandReport {
     };
   };
 
-  @Prop({ 
-    type: Object, 
+  @Prop({
+    type: Object,
     required: false,
-    default: {} 
+    default: {},
   })
   pulse: {
     promptsTested: number;
@@ -97,10 +97,10 @@ export class WeeklyBrandReport {
     }>;
   };
 
-  @Prop({ 
-    type: Object, 
+  @Prop({
+    type: Object,
     required: false,
-    default: {} 
+    default: {},
   })
   tone: {
     sentiments: Array<{
@@ -122,10 +122,10 @@ export class WeeklyBrandReport {
     }>;
   };
 
-  @Prop({ 
-    type: Object, 
+  @Prop({
+    type: Object,
     required: false,
-    default: {} 
+    default: {},
   })
   accord: {
     attributes: Array<{
@@ -139,10 +139,10 @@ export class WeeklyBrandReport {
     };
   };
 
-  @Prop({ 
-    type: Object, 
+  @Prop({
+    type: Object,
     required: false,
-    default: {} 
+    default: {},
   })
   arena: {
     competitors: Array<{
@@ -176,42 +176,39 @@ export class WeeklyBrandReport {
   };
 
   // Original data fields for backward compatibility
-  @Prop({ 
-    type: Object, 
+  @Prop({
+    type: Object,
     required: true,
-    default: {} 
+    default: {},
   })
   spontaneous: any;
 
-  @Prop({ 
-    type: Object, 
+  @Prop({
+    type: Object,
     required: true,
-    default: {} 
+    default: {},
   })
   sentiment: any;
 
-  @Prop({ 
-    type: Object, 
+  @Prop({
+    type: Object,
     required: true,
-    default: {} 
+    default: {},
   })
   comparison: any;
 
-  @Prop({ 
-    type: Object, 
+  @Prop({
+    type: Object,
     required: true,
-    default: {} 
+    default: {},
   })
   llmVersions: Record<string, string>;
-  
+
   @Prop({ type: Date })
   createdAt: Date;
-  
+
   @Prop({ type: Date })
   updatedAt: Date;
 }
 
 export const WeeklyBrandReportSchema = SchemaFactory.createForClass(WeeklyBrandReport);
-
-// Create a unique compound index for companyId and weekStart
-WeeklyBrandReportSchema.index({ companyId: 1, weekStart: 1 }, { unique: true });

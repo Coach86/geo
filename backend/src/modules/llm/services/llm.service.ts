@@ -121,6 +121,10 @@ export class LlmService {
         return this.adapters[LlmProvider.AnthropicLangChain];
       case LlmProvider.OpenAI:
         return this.adapters[LlmProvider.OpenAILangChain];
+      case LlmProvider.OpenAILangChain:
+        return this.adapters[LlmProvider.OpenAILangChain];
+      case LlmProvider.AnthropicLangChain:
+        return this.adapters[LlmProvider.AnthropicLangChain];
       default:
         throw new Error(`Unsupported provider for structured output: ${provider}`);
     }

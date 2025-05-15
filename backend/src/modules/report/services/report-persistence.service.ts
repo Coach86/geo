@@ -7,6 +7,7 @@ import {
   WeeklyBrandReportDocument,
 } from '../schemas/weekly-brand-report.schema';
 import { TokenService } from '@/modules/auth/services/token.service';
+import { CompanyIdentityCard } from '@/modules/identity-card/entities/company-identity-card.entity';
 /**
  * Service responsible for saving and persisting report data
  */
@@ -27,7 +28,7 @@ export class ReportPersistenceService {
     report: WeeklyBrandReportEntity,
     transformToEntityFormat: (
       report: WeeklyBrandReportDocument,
-      identityCard?: any,
+      identityCard?: CompanyIdentityCard,
     ) => Promise<WeeklyBrandReportEntity>,
     sendReportAccessEmail: (reportId: string, companyId: string, token: string) => Promise<void>,
   ): Promise<WeeklyBrandReportEntity> {

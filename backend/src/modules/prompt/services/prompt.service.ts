@@ -111,7 +111,6 @@ export class PromptService implements OnModuleInit {
     const industry = company.industry;
     const competitors = company.competitors;
     const keyFeatures = company.keyFeatures;
-    const shortDescription = company.shortDescription;
     const websiteUrl = company.website;
     const market = company.market;
     // Generate all prompts using LLM
@@ -123,13 +122,7 @@ export class PromptService implements OnModuleInit {
         market,
         this.spontPromptCount,
       ),
-      this.generateDirectBrandPrompts(
-        brandName,
-        industry,
-        keyFeatures,
-        market,
-        this.directPromptCount,
-      ),
+      this.generateDirectBrandPrompts(brandName, market, this.directPromptCount),
       this.generateComparisonPrompts(
         brandName,
         competitors,
@@ -157,7 +150,7 @@ export class PromptService implements OnModuleInit {
 
     // Call LLM with structured output processing
     const result = await this.llmService.getStructuredOutput(
-      LlmProvider.OpenAILangChain,
+      LlmProvider.OpenAI,
       spontaneousUserPrompt({ market, websiteUrl, industry, brandName, count }),
       promptsSchema,
       { systemPrompt: spontaneousSystemPrompt },
@@ -168,8 +161,6 @@ export class PromptService implements OnModuleInit {
 
   private async generateDirectBrandPrompts(
     brandName: string,
-    industry: string,
-    keyFeatures: string[],
     market: string,
     count: number,
   ): Promise<string[]> {
@@ -180,8 +171,8 @@ export class PromptService implements OnModuleInit {
 
     // Call LLM with structured output processing
     const result = await this.llmService.getStructuredOutput(
-      LlmProvider.OpenAILangChain,
-      directUserPrompt({ market, brandName, industry, keyFeatures, count }),
+      LlmProvider.OpenAI,
+      directUserPrompt({ market, brandName, count }),
       promptsSchema,
       { systemPrompt: directSystemPrompt },
     );
@@ -208,7 +199,7 @@ export class PromptService implements OnModuleInit {
 
     // Call LLM with structured output processing
     const result = await this.llmService.getStructuredOutput(
-      LlmProvider.OpenAILangChain,
+      LlmProvider.OpenAI,
       comparisonUserPrompt({
         market,
         brandName,
