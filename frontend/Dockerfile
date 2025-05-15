@@ -7,6 +7,8 @@ RUN npm install -g pnpm && pnpm install --frozen-lockfile
 # Rebuild the source code only when needed
 FROM node:20-alpine AS builder
 WORKDIR /app
+ENV NODE_ENV=production
+ENV NEXT_PUBLIC_API_URL=https://brandinsight.yoma.ws
 RUN npm install -g pnpm
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -18,6 +20,7 @@ WORKDIR /app
 RUN npm install -g pnpm
 
 ENV NODE_ENV=production
+ENV NEXT_PUBLIC_API_URL=https://brandinsight.yoma.ws
 
 # Copy only the necessary files for production
 COPY --from=builder /app/next.config.mjs ./
