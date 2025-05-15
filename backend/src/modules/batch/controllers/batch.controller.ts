@@ -12,7 +12,7 @@ class BatchRunDto {
 }
 
 @ApiTags('batch')
-@Controller('batch')
+@Controller('admin/batch')
 export class BatchController {
   constructor(
     private readonly batchService: BatchService,
@@ -52,16 +52,17 @@ export class BatchController {
   async processCompany(@Param('companyId') companyId: string) {
     // Create a new batch execution record first
     const batchExecution = await this.batchService.createBatchExecution(companyId);
-    
+
     // Start the batch processing in the background (don't await)
-    this.batchService.processCompany(companyId, batchExecution.id)
-      .then(result => {
+    this.batchService
+      .processCompany(companyId, batchExecution.id)
+      .then((result) => {
         this.batchService.completeBatchExecution(batchExecution.id, result);
       })
-      .catch(error => {
+      .catch((error) => {
         this.batchService.failBatchExecution(batchExecution.id, error.message || 'Unknown error');
       });
-    
+
     // Return immediately with the batch execution ID
     return {
       success: true,
@@ -69,9 +70,11 @@ export class BatchController {
       batchExecutionId: batchExecution.id,
     };
   }
-  
+
   @Post('orchestrate/:companyId')
-  @ApiOperation({ summary: 'Orchestrate all batches for a company and generate report with email notification' })
+  @ApiOperation({
+    summary: 'Orchestrate all batches for a company and generate report with email notification',
+  })
   @ApiParam({ name: 'companyId', description: 'The ID of the company to process' })
   @ApiResponse({
     status: 200,
@@ -101,12 +104,15 @@ export class BatchController {
     }
 
     // Create batch execution record
-    const batchExecution = await this.batchService.createSinglePipelineBatchExecution(companyId, 'spontaneous');
+    const batchExecution = await this.batchService.createSinglePipelineBatchExecution(
+      companyId,
+      'spontaneous',
+    );
     const batchExecutionId = batchExecution.id;
 
     // Process in background
     this.processSpontaneousPipeline(companyContext, batchExecutionId);
-    
+
     // Return immediately with the batch execution ID
     return {
       success: true,
@@ -114,7 +120,7 @@ export class BatchController {
       batchExecutionId,
     };
   }
-  
+
   // Background processing method for spontaneous pipeline
   private async processSpontaneousPipeline(companyContext: any, batchExecutionId: string) {
     // Add batch execution ID to context
@@ -150,12 +156,15 @@ export class BatchController {
     }
 
     // Create batch execution record
-    const batchExecution = await this.batchService.createSinglePipelineBatchExecution(companyId, 'sentiment');
+    const batchExecution = await this.batchService.createSinglePipelineBatchExecution(
+      companyId,
+      'sentiment',
+    );
     const batchExecutionId = batchExecution.id;
 
     // Process in background
     this.processSentimentPipeline(companyContext, batchExecutionId);
-    
+
     // Return immediately with the batch execution ID
     return {
       success: true,
@@ -163,7 +172,7 @@ export class BatchController {
       batchExecutionId,
     };
   }
-  
+
   // Background processing method for sentiment pipeline
   private async processSentimentPipeline(companyContext: any, batchExecutionId: string) {
     // Add batch execution ID to context
@@ -199,12 +208,15 @@ export class BatchController {
     }
 
     // Create batch execution record
-    const batchExecution = await this.batchService.createSinglePipelineBatchExecution(companyId, 'comparison');
+    const batchExecution = await this.batchService.createSinglePipelineBatchExecution(
+      companyId,
+      'comparison',
+    );
     const batchExecutionId = batchExecution.id;
 
     // Process in background
     this.processComparisonPipeline(companyContext, batchExecutionId);
-    
+
     // Return immediately with the batch execution ID
     return {
       success: true,
@@ -212,7 +224,7 @@ export class BatchController {
       batchExecutionId,
     };
   }
-  
+
   // Background processing method for comparison pipeline
   private async processComparisonPipeline(companyContext: any, batchExecutionId: string) {
     // Add batch execution ID to context

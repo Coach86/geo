@@ -14,7 +14,6 @@ export class CompanyBatchOrchestratorService {
   private readonly logger = new Logger(CompanyBatchOrchestratorService.name);
 
   constructor(
-    private readonly configService: ConfigService,
     private readonly batchService: BatchService,
     private readonly batchExecutionService: BatchExecutionService,
     private readonly reportService: ReportService,
@@ -33,9 +32,11 @@ export class CompanyBatchOrchestratorService {
     try {
       // Get the company context
       const companyContext = await this.batchService.getCompanyBatchContext(companyId);
-      
+
       if (!companyContext) {
-        throw new Error(`Company ${companyId} not found or has insufficient data for batch processing`);
+        throw new Error(
+          `Company ${companyId} not found or has insufficient data for batch processing`,
+        );
       }
 
       // Get the current week's start date
@@ -44,7 +45,10 @@ export class CompanyBatchOrchestratorService {
       // Process the company and create a report
       return await this.orchestrateCompanyBatchesInternal(companyContext, weekStart);
     } catch (error) {
-      this.logger.error(`Failed to orchestrate batches for company ${companyId}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to orchestrate batches for company ${companyId}: ${error.message}`,
+        error.stack,
+      );
       return {
         success: false,
         companyId,
@@ -64,10 +68,14 @@ export class CompanyBatchOrchestratorService {
 
     try {
       // Create a new batch execution
-      const batchExecution = await this.batchExecutionService.createBatchExecution(context.companyId);
+      const batchExecution = await this.batchExecutionService.createBatchExecution(
+        context.companyId,
+      );
       const batchExecutionId = batchExecution.id;
 
-      this.logger.log(`Created batch execution ${batchExecutionId} for company ${context.companyId}`);
+      this.logger.log(
+        `Created batch execution ${batchExecutionId} for company ${context.companyId}`,
+      );
 
       // Inject the batchExecutionId into the context
       const contextWithBatchExecId = { ...context, batchExecutionId };
@@ -91,18 +99,14 @@ export class CompanyBatchOrchestratorService {
         this.batchExecutionService.saveBatchResult(
           batchExecutionId,
           'spontaneous',
-          spontaneousResults
+          spontaneousResults,
         ),
-        this.batchExecutionService.saveBatchResult(
-          batchExecutionId,
-          'sentiment',
-          sentimentResults
-        ),
+        this.batchExecutionService.saveBatchResult(batchExecutionId, 'sentiment', sentimentResults),
         this.batchExecutionService.saveBatchResult(
           batchExecutionId,
           'comparison',
-          comparisonResults
-        )
+          comparisonResults,
+        ),
       ]);
 
       // Create the weekly report
@@ -122,7 +126,9 @@ export class CompanyBatchOrchestratorService {
       // Mark the batch execution as completed
       await this.batchExecutionService.updateBatchExecutionStatus(batchExecutionId, 'completed');
 
-      this.logger.log(`Successfully processed company ${context.companyId} and created report ${savedReport.id}`);
+      this.logger.log(
+        `Successfully processed company ${context.companyId} and created report ${savedReport.id}`,
+      );
 
       return {
         success: true,
@@ -141,7 +147,7 @@ export class CompanyBatchOrchestratorService {
       if (context.batchExecutionId) {
         await this.batchExecutionService.updateBatchExecutionStatus(
           context.batchExecutionId,
-          'failed'
+          'failed',
         );
       }
 
@@ -159,7 +165,7 @@ export class CompanyBatchOrchestratorService {
     try {
       // Get all companies using the identity card model (available through batch service)
       const companies = await this.batchService['identityCardModel'].find().lean().exec();
-      
+
       this.logger.log(`Found ${companies.length} companies to process`);
 
       const results = [];
@@ -170,7 +176,10 @@ export class CompanyBatchOrchestratorService {
           const result = await this.orchestrateCompanyBatches(company.id);
           results.push(result);
         } catch (error) {
-          this.logger.error(`Failed to process company ${company.id}: ${error.message}`, error.stack);
+          this.logger.error(
+            `Failed to process company ${company.id}: ${error.message}`,
+            error.stack,
+          );
           results.push({
             success: false,
             companyId: company.id,

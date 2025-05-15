@@ -6,20 +6,16 @@ import { Model } from 'mongoose';
 import { CompanyCreatedEvent } from '../../identity-card/events/company-created.event';
 import { LlmService } from '../../llm/services/llm.service';
 import { z } from 'zod';
-import {
-  spontaneousSystemPrompt,
-  spontaneousUserPrompt,
-  directSystemPrompt,
-  directUserPrompt,
-  comparisonSystemPrompt,
-  comparisonUserPrompt,
-} from './prompt-templates';
+import { spontaneousSystemPrompt, spontaneousUserPrompt } from './spontaneous-prompts';
+import { directSystemPrompt, directUserPrompt } from './direct-prompts';
+import { comparisonSystemPrompt, comparisonUserPrompt } from './comparison-prompts';
 import { CompanyIdentityCard } from '../../identity-card/entities/company-identity-card.entity';
 import { PromptSet, PromptSetDocument } from '../schemas/prompt-set.schema';
 import {
   IdentityCard,
   IdentityCardDocument,
 } from '../../identity-card/schemas/identity-card.schema';
+import { LlmProvider } from '@/modules/llm/interfaces/llm-provider.enum';
 
 @Injectable()
 export class PromptService implements OnModuleInit {
@@ -86,9 +82,7 @@ export class PromptService implements OnModuleInit {
         keyFeatures: companyRaw.keyFeatures,
         competitors: companyRaw.competitors,
         updatedAt: companyRaw.updatedAt instanceof Date ? companyRaw.updatedAt : new Date(),
-        userId: companyRaw.userId || null,
-        userEmail: undefined, // Not available here
-        userLanguage: undefined, // Not available here
+        userId: companyRaw.userId,
         market: companyRaw.market,
       };
 
@@ -163,7 +157,7 @@ export class PromptService implements OnModuleInit {
 
     // Call LLM with structured output processing
     const result = await this.llmService.getStructuredOutput(
-      'OpenAI',
+      LlmProvider.OpenAILangChain,
       spontaneousUserPrompt({ market, websiteUrl, industry, brandName, count }),
       promptsSchema,
       { systemPrompt: spontaneousSystemPrompt },
@@ -186,7 +180,7 @@ export class PromptService implements OnModuleInit {
 
     // Call LLM with structured output processing
     const result = await this.llmService.getStructuredOutput(
-      'OpenAI',
+      LlmProvider.OpenAILangChain,
       directUserPrompt({ market, brandName, industry, keyFeatures, count }),
       promptsSchema,
       { systemPrompt: directSystemPrompt },
@@ -214,7 +208,7 @@ export class PromptService implements OnModuleInit {
 
     // Call LLM with structured output processing
     const result = await this.llmService.getStructuredOutput(
-      'OpenAI',
+      LlmProvider.OpenAILangChain,
       comparisonUserPrompt({
         market,
         brandName,
@@ -346,9 +340,7 @@ export class PromptService implements OnModuleInit {
         keyFeatures: companyRaw.keyFeatures,
         competitors: companyRaw.competitors,
         updatedAt: companyRaw.updatedAt instanceof Date ? companyRaw.updatedAt : new Date(),
-        userId: companyRaw.userId || null,
-        userEmail: undefined, // Not available here
-        userLanguage: undefined, // Not available here
+        userId: companyRaw.userId,
         market: companyRaw.market,
       };
 

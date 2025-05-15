@@ -151,3 +151,6 @@ When running tests, we use specific ports to avoid conflicts:
 
 ## Project changes
 - Always try to build the project at the end of task implementation
+
+## CODE GUIDELINES
+- **Files should not have more than 300 lines, consider breaking it into multiple files**

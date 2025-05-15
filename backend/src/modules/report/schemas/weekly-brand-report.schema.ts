@@ -6,7 +6,7 @@ export type WeeklyBrandReportDocument = WeeklyBrandReport & Document;
 
 @Schema({
   collection: 'weekly_reports',
-  timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' }, // Explicitly name timestamp fields
+  timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' }, 
 })
 export class WeeklyBrandReport {
   @Prop({ 
@@ -30,6 +30,152 @@ export class WeeklyBrandReport {
   })
   weekStart: Date;
 
+  @Prop({ 
+    type: Date, 
+    required: true, 
+    default: Date.now 
+  })
+  generatedAt: Date;
+
+  @Prop({ 
+    type: String, 
+    required: false,
+  })
+  brand: string;
+
+  @Prop({ 
+    type: Object, 
+    required: false,
+    default: {} 
+  })
+  metadata: {
+    url: string;
+    market: string;
+    flag: string;
+    competitors: string;
+    date: string;
+    models: string;
+  };
+
+  @Prop({ 
+    type: Object, 
+    required: false,
+    default: {} 
+  })
+  kpi: {
+    pulse: {
+      value: string;
+      description: string;
+    };
+    tone: {
+      value: string;
+      status: string;
+      description: string;
+    };
+    accord: {
+      value: string;
+      status: string;
+      description: string;
+    };
+    arena: {
+      competitors: string[];
+      description: string;
+    };
+  };
+
+  @Prop({ 
+    type: Object, 
+    required: false,
+    default: {} 
+  })
+  pulse: {
+    promptsTested: number;
+    modelVisibility: Array<{
+      model: string;
+      value: number;
+      isAverage?: boolean;
+    }>;
+  };
+
+  @Prop({ 
+    type: Object, 
+    required: false,
+    default: {} 
+  })
+  tone: {
+    sentiments: Array<{
+      model: string;
+      sentiment: string;
+      status: string;
+      positives: string;
+      negatives: string;
+      isAverage?: boolean;
+    }>;
+    questions: Array<{
+      question: string;
+      results: Array<{
+        model: string;
+        sentiment: string;
+        status: string;
+        keywords: string;
+      }>;
+    }>;
+  };
+
+  @Prop({ 
+    type: Object, 
+    required: false,
+    default: {} 
+  })
+  accord: {
+    attributes: Array<{
+      name: string;
+      rate: string;
+      alignment: string;
+    }>;
+    score: {
+      value: string;
+      status: string;
+    };
+  };
+
+  @Prop({ 
+    type: Object, 
+    required: false,
+    default: {} 
+  })
+  arena: {
+    competitors: Array<{
+      name: string;
+      chatgpt: number;
+      claude: number;
+      mistral: number;
+      gemini: number;
+      global: string;
+      size: string;
+      sentiment: string;
+    }>;
+    battle: {
+      competitors: Array<{
+        name: string;
+        comparisons: Array<{
+          model: string;
+          positives: string[];
+          negatives: string[];
+        }>;
+      }>;
+      chatgpt?: {
+        positives: string[];
+        negatives: string[];
+      };
+      claude?: {
+        positives: string[];
+        negatives: string[];
+      };
+    };
+  };
+
+  // Original data fields for backward compatibility
   @Prop({ 
     type: Object, 
     required: true,
@@ -57,13 +203,6 @@ export class WeeklyBrandReport {
     default: {} 
   })
   llmVersions: Record<string, string>;
-
-  @Prop({ 
-    type: Date, 
-    required: true, 
-    default: Date.now 
-  })
-  generatedAt: Date;
   
   @Prop({ type: Date })
   createdAt: Date;

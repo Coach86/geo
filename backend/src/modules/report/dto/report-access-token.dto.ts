@@ -4,19 +4,13 @@ export class ValidateTokenResponseDto {
   @ApiProperty({ description: 'Indicates if the token is valid', example: true })
   valid: boolean;
 
-  @ApiProperty({ description: 'ID of the report associated with this token', example: '60d21b4667d0d8992e610c85', required: false })
-  reportId?: string;
-  
-  @ApiProperty({ description: 'ID of the company associated with this token', example: '60d21b4667d0d8992e610c80', required: false })
-  companyId?: string;
+  @ApiProperty({ description: 'ID of the user associated with this token', example: '60d21b4667d0d8992e610c85', required: false })
+  userId?: string;
 }
 
 export class ResendTokenRequestDto {
-  @ApiProperty({ description: 'ID of the report to resend access for', example: '60d21b4667d0d8992e610c85' })
-  reportId: string;
-  
-  @ApiProperty({ description: 'ID of the company the report belongs to', example: '60d21b4667d0d8992e610c80' })
-  companyId: string;
+  @ApiProperty({ description: 'ID of the user to generate token for', example: '60d21b4667d0d8992e610c85' })
+  userId: string;
 }
 
 export class ResendTokenResponseDto {

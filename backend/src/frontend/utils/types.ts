@@ -105,6 +105,7 @@ export interface RawResponse {
 // Batch process result interfaces
 export interface SpontaneousPipelineResult {
   llmProvider: string;
+  llmModel: string;
   promptIndex: number;
   mentioned: boolean;
   topOfMind: string[];

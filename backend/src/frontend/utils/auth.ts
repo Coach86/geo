@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE = '/api';
+const API_BASE = '/api/admin';
 
 const authApi = axios.create({
   baseURL: API_BASE,
@@ -20,7 +20,7 @@ authApi.interceptors.request.use(
   },
   (error) => {
     return Promise.reject(error);
-  }
+  },
 );
 
 // Intercept 401 responses and redirect to login
@@ -33,18 +33,18 @@ authApi.interceptors.response.use(
       window.location.href = '/login';
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 export const login = async (email: string, password: string) => {
   try {
     const response = await authApi.post('/auth/login', { email, password });
     const { access_token, admin } = response.data;
-    
+
     // Store token in localStorage
     localStorage.setItem('auth_token', access_token);
     localStorage.setItem('admin_data', JSON.stringify(admin));
-    
+
     return admin;
   } catch (error) {
     console.error('Login failed:', error);
@@ -62,10 +62,10 @@ export const refreshToken = async () => {
   try {
     const response = await authApi.post('/auth/refresh');
     const { access_token } = response.data;
-    
+
     // Update token in localStorage
     localStorage.setItem('auth_token', access_token);
-    
+
     return true;
   } catch (error) {
     console.error('Token refresh failed:', error);

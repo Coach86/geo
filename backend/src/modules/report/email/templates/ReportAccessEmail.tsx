@@ -1,30 +1,30 @@
-import { 
-  Body, 
-  Container, 
-  Head, 
-  Heading, 
-  Html, 
-  Link, 
-  Preview, 
-  Section, 
-  Text, 
+import {
+  Body,
+  Container,
+  Head,
+  Heading,
+  Html,
+  Link,
+  Preview,
+  Section,
+  Text,
   Button,
   Hr,
-  Img
+  Img,
 } from '@react-email/components';
 import * as React from 'react';
 import { colors } from '../utils/colors';
 
 interface ReportAccessEmailProps {
-  companyName: string;
   reportDate: string;
   accessUrl: string;
+  companyName: string;
 }
 
 export const ReportAccessEmail: React.FC<ReportAccessEmailProps> = ({
-  companyName,
   reportDate,
   accessUrl,
+  companyName,
 }) => {
   return (
     <Html>
@@ -44,7 +44,8 @@ export const ReportAccessEmail: React.FC<ReportAccessEmailProps> = ({
           <Section style={content}>
             <Heading style={h1}>Your Brand Report is Ready</Heading>
             <Text style={text}>
-              The weekly Brand Intelligence Report for <strong>{companyName}</strong> ({reportDate}) is now available to view.
+              The weekly Brand Intelligence Report for <strong>{companyName}</strong> ({reportDate})
+              is now available to view.
             </Text>
             <Text style={text}>
               Click the button below to access your report. This link will expire in 24 hours.
@@ -55,7 +56,8 @@ export const ReportAccessEmail: React.FC<ReportAccessEmailProps> = ({
               </Button>
             </Section>
             <Text style={text}>
-              If the button above doesn't work, you can also copy and paste this URL into your browser:
+              If the button above doesn't work, you can also copy and paste this URL into your
+              browser:
             </Text>
             <Text style={linkText}>
               <Link href={accessUrl} style={link}>

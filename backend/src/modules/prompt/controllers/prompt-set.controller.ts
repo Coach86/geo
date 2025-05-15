@@ -5,22 +5,17 @@ import { Model } from 'mongoose';
 import { PromptService } from '../services/prompt.service';
 import { UpdatePromptSetDto } from '../dto/update-prompt-set.dto';
 import { PromptSet, PromptSetDocument } from '../schemas/prompt-set.schema';
-import {
-  spontaneousSystemPrompt,
-  spontaneousUserPrompt,
-  directSystemPrompt,
-  directUserPrompt,
-  comparisonSystemPrompt,
-  comparisonUserPrompt,
-} from '../services/prompt-templates';
+import { spontaneousSystemPrompt, spontaneousUserPrompt } from '../services/spontaneous-prompts';
+import { directSystemPrompt, directUserPrompt } from '../services/direct-prompts';
+import { comparisonSystemPrompt, comparisonUserPrompt } from '../services/comparison-prompts';
 
 @ApiTags('prompt-sets')
-@Controller('prompt-set')
+@Controller('admin/prompt-set')
 export class PromptSetController {
   constructor(
     @InjectModel(PromptSet.name) private promptSetModel: Model<PromptSetDocument>,
     private readonly promptService: PromptService,
-    @InjectModel('IdentityCard') private identityCardModel: Model<any>
+    @InjectModel('IdentityCard') private identityCardModel: Model<any>,
   ) {}
 
   @Get(':companyId')
@@ -30,11 +25,11 @@ export class PromptSetController {
   @ApiResponse({ status: 404, description: 'Prompt set not found' })
   async getPromptSet(@Param('companyId') companyId: string) {
     const promptSet = await this.promptSetModel.findOne({ companyId }).exec();
-    
+
     if (!promptSet) {
       throw new NotFoundException('Prompt set not found');
     }
-    
+
     return {
       id: promptSet.id,
       companyId: promptSet.companyId,
@@ -53,7 +48,7 @@ export class PromptSetController {
   @ApiResponse({ status: 404, description: 'Prompt set not found' })
   async updatePromptSet(
     @Param('companyId') companyId: string,
-    @Body() updatePromptSetDto: UpdatePromptSetDto
+    @Body() updatePromptSetDto: UpdatePromptSetDto,
   ) {
     return this.promptService.updatePromptSet(companyId, updatePromptSetDto);
   }
@@ -76,7 +71,7 @@ export class PromptSetController {
     try {
       // Get the company identity card to extract information needed for templates
       const company = await this.identityCardModel.findOne({ id: companyId }).exec();
-      
+
       if (!company) {
         throw new NotFoundException(`Company with ID ${companyId} not found`);
       }
@@ -86,7 +81,7 @@ export class PromptSetController {
       const spontPromptCount = promptSet?.spontaneous?.length || 15;
       const directPromptCount = promptSet?.direct?.length || 3;
       const comparisonPromptCount = promptSet?.comparison?.length || 5;
-      
+
       // Get the example prompt templates filled with this company's data
       const spontaneousTemplate = {
         systemPrompt: spontaneousSystemPrompt,
@@ -95,10 +90,10 @@ export class PromptSetController {
           websiteUrl: company.website || 'example.com',
           industry: company.industry || 'Technology',
           brandName: company.brandName || 'Example Brand',
-          count: spontPromptCount
-        })
+          count: spontPromptCount,
+        }),
       };
-      
+
       const directTemplate = {
         systemPrompt: directSystemPrompt,
         userPrompt: directUserPrompt({
@@ -106,10 +101,10 @@ export class PromptSetController {
           brandName: company.brandName || 'Example Brand',
           industry: company.industry || 'Technology',
           keyFeatures: company.keyFeatures || ['Feature 1', 'Feature 2'],
-          count: directPromptCount
-        })
+          count: directPromptCount,
+        }),
       };
-      
+
       const comparisonTemplate = {
         systemPrompt: comparisonSystemPrompt,
         userPrompt: comparisonUserPrompt({
@@ -118,14 +113,14 @@ export class PromptSetController {
           competitors: company.competitors || ['Competitor 1', 'Competitor 2'],
           industry: company.industry || 'Technology',
           keyFeatures: company.keyFeatures || ['Feature 1', 'Feature 2'],
-          count: comparisonPromptCount
-        })
+          count: comparisonPromptCount,
+        }),
       };
-      
+
       return {
         spontaneous: spontaneousTemplate,
         direct: directTemplate,
-        comparison: comparisonTemplate
+        comparison: comparisonTemplate,
       };
     } catch (error) {
       if (error instanceof NotFoundException) {

@@ -12,6 +12,7 @@ import { LlmService } from '../../llm/services/llm.service';
 import { z } from 'zod';
 import { IdentityCard, IdentityCardDocument } from '../schemas/identity-card.schema';
 import { User, UserDocument } from '../../user/schemas/user.schema';
+import { LlmProvider } from '@/modules/llm/interfaces/llm-provider.enum';
 
 interface LlmSummaryResult {
   brandName: string;
@@ -21,6 +22,8 @@ interface LlmSummaryResult {
   keyFeatures: string[];
   competitors: string[];
 }
+
+const LLM_PROVIDER = LlmProvider.AnthropicLangChain;
 
 @Injectable()
 export class IdentityCardService {
@@ -70,6 +73,7 @@ export class IdentityCardService {
           scrapedData,
           createIdentityCardDto.url,
           createIdentityCardDto.data.market, // Pass the market (we've verified it exists)
+          createIdentityCardDto.userId,
         );
       } else if (createIdentityCardDto.data) {
         // Check if market is provided in the data
@@ -88,6 +92,7 @@ export class IdentityCardService {
           fullDescription: createIdentityCardDto.data.fullDescription || '',
           keyFeatures: createIdentityCardDto.data.keyFeatures || [],
           competitors: createIdentityCardDto.data.competitors || [],
+          userId: createIdentityCardDto.userId,
           updatedAt: new Date(),
         };
       } else {
@@ -138,6 +143,7 @@ export class IdentityCardService {
         fullDescription: saved.fullDescription,
         keyFeatures: saved.keyFeatures,
         competitors: saved.competitors,
+        userId: saved.userId,
         updatedAt: new Date(),
       };
     } catch (error) {
@@ -176,9 +182,7 @@ export class IdentityCardService {
       keyFeatures: identityCard.keyFeatures,
       competitors: identityCard.competitors,
       updatedAt: identityCard.updatedAt instanceof Date ? identityCard.updatedAt : new Date(),
-      userId: identityCard.userId || null,
-      userEmail: userEmail,
-      userLanguage: userLanguage,
+      userId: identityCard.userId,
     };
   }
 
@@ -223,9 +227,7 @@ export class IdentityCardService {
       keyFeatures: card.keyFeatures,
       competitors: card.competitors,
       updatedAt: card.updatedAt instanceof Date ? card.updatedAt : new Date(),
-      userId: card.userId || null,
-      userEmail: card.userId ? userMap[card.userId]?.email || null : null,
-      userLanguage: card.userId ? userMap[card.userId]?.language || null : null,
+      userId: card.userId,
     }));
   }
 
@@ -264,7 +266,6 @@ export class IdentityCardService {
           if (!user) {
             throw new NotFoundException(`User with ID ${updateData.userId} not found`);
           }
-
           // Update user association
           updateObj.userId = updateData.userId;
         }
@@ -312,9 +313,7 @@ export class IdentityCardService {
         keyFeatures: updatedCard.keyFeatures,
         competitors: updatedCard.competitors,
         updatedAt: updatedCard.updatedAt instanceof Date ? updatedCard.updatedAt : new Date(),
-        userId: updatedCard.userId || null,
-        userEmail: userEmail,
-        userLanguage: userLanguage,
+        userId: updatedCard.userId,
       };
     } catch (error) {
       this.logger.error(`Failed to update identity card: ${error.message}`, error.stack);
@@ -329,6 +328,7 @@ export class IdentityCardService {
     scrapedData: ScrapedWebsite, // ScrapedWebsite is always provided, even if empty
     url: string,
     market: string, // Mandatory market parameter from the request
+    userId: string,
   ): Promise<CompanyIdentityCard> {
     try {
       // Format the prompt to prioritize web search but also include scraped data if available
@@ -390,36 +390,12 @@ export class IdentityCardService {
         competitors: z.array(z.string()),
       });
 
-      // Prioritize providers with good search capabilities for this task
-      // Default priority: Perplexity > OpenAI > Anthropic > Others
-      let provider = 'OpenAI';
-
-      // Get available adapters from LlmService
-      const availableAdapters = this.llmService.getAvailableAdapters();
-      const adapterNames = availableAdapters.map((adapter) => adapter.name);
-
-      // First check if Perplexity is available (best for web search)
-      if (adapterNames.includes('Anthropic')) {
-        provider = 'Anthropic';
-      } else if (adapterNames.includes('Perplexity')) {
-        provider = 'Perplexity';
-        this.logger.log('Using Perplexity for web search-based identity card generation');
-      } else if (adapterNames.includes('OpenAI')) {
-        provider = 'OpenAI';
-      } else if (adapterNames.length > 0) {
-        provider = adapterNames[0]; // Use first available adapter
-      } else {
-        // Fallback to mock if no providers are available
-        this.logger.warn('No LLM providers available');
-        throw new Error('No LLM providers available');
-      }
-
       // Call the LLM with structured output
       const systemPrompt =
         'You are a business analyst specializing in company analysis with access to web search capability. Your primary task is to search the web for company information and then analyze it. Use the scraped website data as supplementary information only if needed.';
       let result: LlmSummaryResult;
       try {
-        result = await this.llmService.getStructuredOutput(provider, prompt, summarySchema, {
+        result = await this.llmService.getStructuredOutput(LLM_PROVIDER, prompt, summarySchema, {
           systemPrompt,
         });
       } catch (error) {
@@ -439,6 +415,7 @@ export class IdentityCardService {
         fullDescription: result.fullDescription,
         keyFeatures: result.keyFeatures,
         competitors: result.competitors,
+        userId: userId,
         updatedAt: new Date(),
       };
     } catch (error) {

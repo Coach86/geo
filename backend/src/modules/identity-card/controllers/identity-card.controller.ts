@@ -19,7 +19,7 @@ import { UpdateIdentityCardDto } from '../dto/update-identity-card.dto';
 import { IdentityCardResponseDto } from '../dto/identity-card-response.dto';
 
 @ApiTags('identity-cards')
-@Controller('identity-card')
+@Controller('admin/identity-card')
 @UseInterceptors(ClassSerializerInterceptor)
 export class IdentityCardController {
   constructor(private readonly identityCardService: IdentityCardService) {}
@@ -56,12 +56,12 @@ export class IdentityCardController {
     if (body.userId) {
       createDto.userId = body.userId;
     }
-    
+
     // Market is required
     if (!body.market) {
       throw new BadRequestException('Market is required');
     }
-    
+
     if (!createDto.data) {
       createDto.data = {};
     }

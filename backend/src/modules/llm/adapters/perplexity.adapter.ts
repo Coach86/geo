@@ -27,7 +27,7 @@ export class PerplexityAdapter implements LlmAdapter {
     try {
       // Default model is Sonar-Medium-Online
       const model = options?.model || 'sonar-medium-online';
-      this.logger.log(`Calling Perplexity API with model: ${model} and key: ${this.apiKey}`);
+      this.logger.log(`Calling Perplexity API with model: ${model}`);
       const chatModel = new ChatPerplexity({
         apiKey: this.apiKey,
         model: model,

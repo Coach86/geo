@@ -1,13 +1,19 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuthService } from './services/auth.service';
+import { TokenService } from './services/token.service';
 import { LocalStrategy } from './strategies/local.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { AuthController } from './controllers/auth.controller';
+import { TokenController } from './controllers/token.controller';
+import { TokenAuthGuard } from './guards/token-auth.guard';
 import { Admin, AdminSchema } from './schemas/admin.schema';
+import { AccessToken, AccessTokenSchema } from './schemas/access-token.schema';
+import { ReportModule } from '../report/report.module';
+import { UserModule } from '../user/user.module';
 
 @Module({
   imports: [
@@ -20,10 +26,15 @@ import { Admin, AdminSchema } from './schemas/admin.schema';
       }),
       inject: [ConfigService],
     }),
-    MongooseModule.forFeature([{ name: Admin.name, schema: AdminSchema }]),
+    MongooseModule.forFeature([
+      { name: Admin.name, schema: AdminSchema },
+      { name: AccessToken.name, schema: AccessTokenSchema },
+    ]),
+    forwardRef(() => ReportModule),
+    UserModule,
   ],
-  providers: [AuthService, LocalStrategy, JwtStrategy],
-  controllers: [AuthController],
-  exports: [AuthService],
+  providers: [AuthService, TokenService, LocalStrategy, JwtStrategy, TokenAuthGuard],
+  controllers: [AuthController, TokenController],
+  exports: [AuthService, TokenService, TokenAuthGuard],
 })
 export class AuthModule {}
