@@ -61,6 +61,10 @@
         {
           "name": "FRONTEND_URL",
           "value": "https://app.yoma.ws"
+        },
+        {
+          "name": "ALLOWED_ORIGINS",
+          "value": "https://app.yoma.ws"
         }
       ],
       "secrets": [
