@@ -60,7 +60,7 @@
         },
         {
           "name": "FRONTEND_URL",
-          "value": "https://app.yomastudio.ws"
+          "value": "https://app.yoma.ws"
         }
       ],
       "secrets": [
