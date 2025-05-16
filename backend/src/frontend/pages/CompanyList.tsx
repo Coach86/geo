@@ -26,7 +26,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  SelectChangeEvent
+  SelectChangeEvent,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
@@ -86,7 +86,7 @@ const CompanyList: React.FC = () => {
   useEffect(() => {
     fetchData();
   }, []);
-  
+
   // Handle company deletion
   const handleCompanyDeleted = () => {
     fetchData(); // Refresh data
@@ -102,23 +102,23 @@ const CompanyList: React.FC = () => {
 
     // Apply user filter if selected
     if (selectedUserId) {
-      filtered = filtered.filter(company => company.userId === selectedUserId);
+      filtered = filtered.filter((company) => company.userId === selectedUserId);
     }
 
     // Apply search term filter
     if (searchTerm.trim() !== '') {
       const searchTermLower = searchTerm.toLowerCase();
-      filtered = filtered.filter(company => {
+      filtered = filtered.filter((company) => {
         return (
           company.brandName.toLowerCase().includes(searchTermLower) ||
           company.industry.toLowerCase().includes(searchTermLower) ||
           company.shortDescription.toLowerCase().includes(searchTermLower) ||
           (company.userEmail && company.userEmail.toLowerCase().includes(searchTermLower)) ||
-          company.keyFeatures.some(feature =>
-            feature.toLowerCase().includes(searchTermLower)
+          company.keyBrandAttributes?.some((feature) =>
+            feature.toLowerCase().includes(searchTermLower),
           ) ||
-          company.competitors.some(competitor =>
-            competitor.toLowerCase().includes(searchTermLower)
+          company.competitors?.some((competitor) =>
+            competitor.toLowerCase().includes(searchTermLower),
           )
         );
       });
@@ -141,7 +141,7 @@ const CompanyList: React.FC = () => {
 
   const countCompaniesByIndustry = () => {
     const industries: Record<string, number> = {};
-    companies.forEach(company => {
+    companies.forEach((company) => {
       industries[company.industry] = (industries[company.industry] || 0) + 1;
     });
     return industries;
@@ -174,7 +174,7 @@ const CompanyList: React.FC = () => {
           flexDirection: { xs: 'column', md: 'row' },
           justifyContent: 'space-between',
           alignItems: { xs: 'flex-start', md: 'center' },
-          mb: 4
+          mb: 4,
         }}
       >
         <Box sx={{ mb: { xs: 2, md: 0 } }}>
@@ -184,7 +184,7 @@ const CompanyList: React.FC = () => {
             sx={{
               fontWeight: 700,
               display: 'flex',
-              alignItems: 'center'
+              alignItems: 'center',
             }}
           >
             <CompaniesIcon sx={{ mr: 1, color: theme.palette.primary.main }} />
@@ -205,8 +205,8 @@ const CompanyList: React.FC = () => {
             boxShadow: 2,
             backgroundColor: theme.palette.primary.main,
             '&:hover': {
-              backgroundColor: theme.palette.primary.dark
-            }
+              backgroundColor: theme.palette.primary.dark,
+            },
           }}
         >
           Add Company
@@ -214,14 +214,21 @@ const CompanyList: React.FC = () => {
       </Box>
 
       {/* Dashboard Stats */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr 1fr' }, gap: 3, mb: 4 }}>
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr 1fr' },
+          gap: 3,
+          mb: 4,
+        }}
+      >
         <Card
           sx={{
             borderRadius: 2,
             p: 1,
             height: '100%',
             backgroundImage: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.primary.dark, 0.1)} 100%)`,
-            border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`
+            border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
           }}
         >
           <CardContent sx={{ p: 2 }}>
@@ -241,7 +248,7 @@ const CompanyList: React.FC = () => {
             p: 1,
             height: '100%',
             backgroundImage: `linear-gradient(135deg, ${alpha(theme.palette.secondary.main, 0.1)} 0%, ${alpha(theme.palette.secondary.dark, 0.1)} 100%)`,
-            border: `1px solid ${alpha(theme.palette.secondary.main, 0.2)}`
+            border: `1px solid ${alpha(theme.palette.secondary.main, 0.2)}`,
           }}
         >
           <CardContent sx={{ p: 2 }}>
@@ -261,7 +268,7 @@ const CompanyList: React.FC = () => {
             p: 1,
             height: '100%',
             backgroundImage: `linear-gradient(135deg, ${alpha(theme.palette.info.main, 0.1)} 0%, ${alpha(theme.palette.info.dark, 0.1)} 100%)`,
-            border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`
+            border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
           }}
         >
           <CardContent sx={{ p: 2 }}>
@@ -281,7 +288,7 @@ const CompanyList: React.FC = () => {
             p: 1,
             height: '100%',
             backgroundImage: `linear-gradient(135deg, ${alpha(theme.palette.success.main, 0.1)} 0%, ${alpha(theme.palette.success.dark, 0.1)} 100%)`,
-            border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`
+            border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`,
           }}
         >
           <CardContent sx={{ p: 2 }}>
@@ -301,29 +308,31 @@ const CompanyList: React.FC = () => {
             p: 1,
             height: '100%',
             backgroundImage: `linear-gradient(135deg, ${alpha(theme.palette.warning.main, 0.1)} 0%, ${alpha(theme.palette.warning.dark, 0.1)} 100%)`,
-            border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`
+            border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
           }}
         >
           <CardContent sx={{ p: 2 }}>
             <AssessmentIcon sx={{ color: theme.palette.warning.main, mb: 1, fontSize: 32 }} />
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              {companies.reduce((acc, company) => acc + company.keyFeatures.length, 0)}
+              {companies.reduce((acc, company) => acc + company.keyBrandAttributes.length, 0)}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Key Features
+              Key Brand Attributes
             </Typography>
           </CardContent>
         </Card>
       </Box>
 
       <Paper sx={{ mb: 3, borderRadius: 2, overflow: 'hidden' }}>
-        <Box sx={{
-          p: 2,
-          display: 'flex',
-          flexDirection: { xs: 'column', sm: 'row' },
-          alignItems: { xs: 'stretch', sm: 'center' },
-          gap: 2
-        }}>
+        <Box
+          sx={{
+            p: 2,
+            display: 'flex',
+            flexDirection: { xs: 'column', sm: 'row' },
+            alignItems: { xs: 'stretch', sm: 'center' },
+            gap: 2,
+          }}
+        >
           <TextField
             placeholder="Search companies..."
             size="small"
@@ -346,11 +355,7 @@ const CompanyList: React.FC = () => {
             }}
           />
 
-          <FormControl
-            size="small"
-            sx={{ minWidth: 180 }}
-            disabled={loadingUsers}
-          >
+          <FormControl size="small" sx={{ minWidth: 180 }} disabled={loadingUsers}>
             <InputLabel id="user-filter-label">
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 <PersonIcon fontSize="small" sx={{ mr: 0.5 }} />
@@ -367,7 +372,7 @@ const CompanyList: React.FC = () => {
               <MenuItem value="">
                 <em>All Users</em>
               </MenuItem>
-              {users.map(user => (
+              {users.map((user) => (
                 <MenuItem key={user.id} value={user.id}>
                   {user.email} ({user.language})
                 </MenuItem>
@@ -375,13 +380,15 @@ const CompanyList: React.FC = () => {
             </Select>
           </FormControl>
 
-          <Box sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-            justifyContent: { xs: 'space-between', sm: 'flex-end' },
-            width: { xs: '100%', sm: 'auto' }
-          }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              justifyContent: { xs: 'space-between', sm: 'flex-end' },
+              width: { xs: '100%', sm: 'auto' },
+            }}
+          >
             <Tooltip title="Refresh">
               <IconButton size="small" onClick={fetchData}>
                 <RefreshIcon fontSize="small" />
@@ -400,7 +407,11 @@ const CompanyList: React.FC = () => {
               </IconButton>
             </Tooltip>
 
-            <Divider orientation="vertical" flexItem sx={{ mx: 1, display: { xs: 'none', sm: 'block' } }} />
+            <Divider
+              orientation="vertical"
+              flexItem
+              sx={{ mx: 1, display: { xs: 'none', sm: 'block' } }}
+            />
 
             <Tabs
               value={currentView}
@@ -418,8 +429,8 @@ const CompanyList: React.FC = () => {
                     borderRadius: 1,
                     mr: 0.5,
                     '&.Mui-selected': {
-                      bgcolor: alpha(theme.palette.primary.main, 0.1)
-                    }
+                      bgcolor: alpha(theme.palette.primary.main, 0.1),
+                    },
                   }}
                 />
               </Tooltip>
@@ -432,8 +443,8 @@ const CompanyList: React.FC = () => {
                     p: 1,
                     borderRadius: 1,
                     '&.Mui-selected': {
-                      bgcolor: alpha(theme.palette.primary.main, 0.1)
-                    }
+                      bgcolor: alpha(theme.palette.primary.main, 0.1),
+                    },
                   }}
                 />
               </Tooltip>
@@ -448,15 +459,10 @@ const CompanyList: React.FC = () => {
             direction="row"
             spacing={1}
             sx={{
-              minWidth: { xs: 'max-content', md: '100%' }
+              minWidth: { xs: 'max-content', md: '100%' },
             }}
           >
-            <Chip
-              label="All Industries"
-              color="primary"
-              variant="filled"
-              size="small"
-            />
+            <Chip label="All Industries" color="primary" variant="filled" size="small" />
             {Object.entries(industryStats)
               .sort((a, b) => b[1] - a[1])
               .slice(0, 7)
@@ -490,11 +496,13 @@ const CompanyList: React.FC = () => {
           </Button>
         </Card>
       ) : (
-        <Box sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' },
-          gap: 3
-        }}>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' },
+            gap: 3,
+          }}
+        >
           {filteredCompanies.map((company) => (
             <Box key={company.id}>
               <CompanyCard company={company} onDelete={handleCompanyDeleted} />

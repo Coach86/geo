@@ -15,8 +15,10 @@ export class IdentityCardResponseDto {
 
   @ApiProperty({ description: 'Industry the company operates in' })
   industry: string;
-  
-  @ApiProperty({ description: 'Geographical market the company operates in (e.g., "US", "Europe", "Global")' })
+
+  @ApiProperty({
+    description: 'Geographical market the company operates in (e.g., "US", "Europe", "Global")',
+  })
   market: string;
 
   @ApiProperty({ description: 'Short description of the company' })
@@ -25,11 +27,14 @@ export class IdentityCardResponseDto {
   @ApiProperty({ description: 'Full detailed description of the company' })
   fullDescription: string;
 
-  @ApiProperty({ description: 'Full detailed description of the company (alias for frontend)', required: false })
+  @ApiProperty({
+    description: 'Full detailed description of the company (alias for frontend)',
+    required: false,
+  })
   longDescription?: string;
 
   @ApiProperty({ description: 'List of key features or offerings of the company', type: [String] })
-  keyFeatures: string[];
+  keyBrandAttributes: string[];
 
   @ApiProperty({ description: 'List of competitors', type: [String] })
   competitors: string[];
@@ -49,6 +54,9 @@ export class IdentityCardResponseDto {
   @ApiPropertyOptional({ description: 'Email of the user who owns this company', nullable: true })
   userEmail?: string | null;
 
-  @ApiPropertyOptional({ description: 'Language preference of the user who owns this company', nullable: true })
+  @ApiPropertyOptional({
+    description: 'Language preference of the user who owns this company',
+    nullable: true,
+  })
   userLanguage?: string | null;
 }

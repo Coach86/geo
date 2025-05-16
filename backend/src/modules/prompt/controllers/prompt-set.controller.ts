@@ -110,7 +110,7 @@ export class PromptSetController {
           brandName: company.brandName,
           competitors: company.competitors,
           industry: company.industry,
-          keyFeatures: company.keyFeatures,
+          keyBrandAttributes: company.keyBrandAttributes,
           count: comparisonPromptCount,
         }),
       };

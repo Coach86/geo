@@ -58,7 +58,7 @@ export class IdentityCardDataDto {
   })
   @IsOptional()
   @IsArray()
-  keyFeatures?: string[];
+  keyBrandAttributes?: string[];
 
   @ApiPropertyOptional({ description: 'List of competitors', type: [String] })
   @IsOptional()

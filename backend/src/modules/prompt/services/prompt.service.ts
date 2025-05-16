@@ -79,7 +79,7 @@ export class PromptService implements OnModuleInit {
         industry: companyRaw.industry,
         shortDescription: companyRaw.shortDescription,
         fullDescription: companyRaw.fullDescription,
-        keyFeatures: companyRaw.keyFeatures,
+        keyBrandAttributes: companyRaw.keyBrandAttributes,
         competitors: companyRaw.competitors,
         updatedAt: companyRaw.updatedAt instanceof Date ? companyRaw.updatedAt : new Date(),
         userId: companyRaw.userId,
@@ -105,12 +105,19 @@ export class PromptService implements OnModuleInit {
     }
   }
 
+  @OnEvent('company.deleted')
+  async handleCompanyDeleted(event: { companyId: string }) {
+    const { companyId } = event;
+    await this.promptSetModel.deleteMany({ companyId }).exec();
+    this.logger.log(`Cleaned up prompt sets for deleted company ${companyId}`);
+  }
+
   private async generatePromptSet(company: CompanyIdentityCard) {
     // Parse company info to ensure we have all fields
     const brandName = company.brandName;
     const industry = company.industry;
     const competitors = company.competitors;
-    const keyFeatures = company.keyFeatures;
+    const keyBrandAttributes = company.keyBrandAttributes;
     const websiteUrl = company.website;
     const market = company.market;
     // Generate all prompts using LLM
@@ -127,7 +134,7 @@ export class PromptService implements OnModuleInit {
         brandName,
         competitors,
         industry,
-        keyFeatures,
+        keyBrandAttributes,
         market,
         this.comparisonPromptCount,
       ),
@@ -145,7 +152,7 @@ export class PromptService implements OnModuleInit {
   ): Promise<string[]> {
     // Define our schema for the LLM output
     const promptsSchema = z.object({
-      prompts: z.array(z.string()).min(count).max(count),
+      prompts: z.array(z.string()),
     });
 
     // Call LLM with structured output processing
@@ -166,7 +173,7 @@ export class PromptService implements OnModuleInit {
   ): Promise<string[]> {
     // Define our schema for the LLM output
     const promptsSchema = z.object({
-      prompts: z.array(z.string()).min(count).max(count),
+      prompts: z.array(z.string()),
     });
 
     // Call LLM with structured output processing
@@ -184,7 +191,7 @@ export class PromptService implements OnModuleInit {
     brandName: string,
     competitors: string[],
     industry: string,
-    keyFeatures: string[],
+    keyBrandAttributes: string[],
     market: string,
     count: number,
   ): Promise<string[]> {
@@ -194,7 +201,7 @@ export class PromptService implements OnModuleInit {
 
     // Define our schema for the LLM output
     const promptsSchema = z.object({
-      prompts: z.array(z.string()).min(count).max(count),
+      prompts: z.array(z.string()),
     });
 
     // Call LLM with structured output processing
@@ -205,7 +212,7 @@ export class PromptService implements OnModuleInit {
         brandName,
         competitors: competitorList,
         industry,
-        keyFeatures,
+        keyBrandAttributes,
         count,
       }),
       promptsSchema,
@@ -328,7 +335,7 @@ export class PromptService implements OnModuleInit {
         industry: companyRaw.industry,
         shortDescription: companyRaw.shortDescription,
         fullDescription: companyRaw.fullDescription,
-        keyFeatures: companyRaw.keyFeatures,
+        keyBrandAttributes: companyRaw.keyBrandAttributes,
         competitors: companyRaw.competitors,
         updatedAt: companyRaw.updatedAt instanceof Date ? companyRaw.updatedAt : new Date(),
         userId: companyRaw.userId,

@@ -101,7 +101,9 @@ export class OpenAILangChainAdapter implements LlmAdapter {
         'You are a helpful assistant that always responds with structured data.';
 
       // Enhanced prompt with schema instructions
-      const enhancedPrompt = `${prompt}\n\n${formatInstructions}\n\nYour response must conform to the schema defined above. Respond with just the JSON object, no additional text or explanations.`;
+      const enhancedPrompt = `${prompt}
+      ${formatInstructions}
+      Your response must conform to the schema defined above. Respond with just the JSON object, no additional text or explanations.`;
 
       this.logger.log(`Calling OpenAI API with model: ${model}`);
       // Create the chat model with response format JSON
@@ -110,42 +112,20 @@ export class OpenAILangChainAdapter implements LlmAdapter {
         modelName: model,
         temperature: options?.temperature ?? 0.2, // Lower temperature for structured output
         maxTokens: options?.maxTokens ?? 2000,
-        modelKwargs: {
-          response_format: { type: 'json_object' },
-        },
       });
 
       // Prepare messages
       const messages = [new SystemMessage(systemMessage), new HumanMessage(enhancedPrompt)];
 
       // Get the response
-      const response = await chatModel.invoke(messages);
-
-      // Parse the response to extract the JSON object
-      const jsonText = response.content.toString();
 
       try {
         // Use the output parser to parse and validate the response
-        const result = await outputParser.parse(jsonText);
-        return result;
-      } catch (parseError) {
-        this.logger.error(`Failed to parse JSON response: ${parseError.message}`);
-
-        // Try to fix common JSON errors by making a second request
-        const fixingPrompt = `The following JSON is invalid or doesn't match the required schema. Please fix it and return a valid JSON object:\n\n${jsonText}\n\nThe schema is:\n${formatInstructions}`;
-
-        const fixingMessages = [
-          new SystemMessage(
-            'You are a helpful assistant that corrects JSON to match a given schema. Only respond with valid JSON.',
-          ),
-          new HumanMessage(fixingPrompt),
-        ];
-
-        const fixingResponse = await chatModel.invoke(fixingMessages);
-
-        // Try parsing the fixed JSON
-        const fixedJsonText = fixingResponse.content.toString();
-        return await outputParser.parse(fixedJsonText);
+        const result = await chatModel.withStructuredOutput(schema).invoke(messages);
+        return result as T;
+      } catch (error) {
+        this.logger.error(error, `Failed to get structured output: ${error.message}`);
+        throw error;
       }
     } catch (error) {
       this.logger.error(`Error getting structured output: ${error.message}`);

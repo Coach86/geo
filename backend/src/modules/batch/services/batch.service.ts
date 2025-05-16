@@ -19,6 +19,11 @@ import { SentimentPipelineService } from './sentiment-pipeline.service';
 import { ComparisonPipelineService } from './comparison-pipeline.service';
 import { BatchExecutionService } from './batch-execution.service';
 import { CompanyBatchContext } from '../interfaces/batch.interfaces';
+import { CompanyIdentityCard } from '../../identity-card/entities/company-identity-card.entity';
+import { OnEvent } from '@nestjs/event-emitter';
+import { BatchExecution, BatchExecutionDocument } from '../schemas/batch-execution.schema';
+import { RawResponse, RawResponseDocument } from '../../report/schemas/raw-response.schema';
+import { BatchResult, BatchResultDocument } from '../schemas/batch-result.schema';
 
 @Injectable()
 export class BatchService {
@@ -35,6 +40,9 @@ export class BatchService {
     private readonly spontaneousPipelineService: SpontaneousPipelineService,
     private readonly sentimentPipelineService: SentimentPipelineService,
     private readonly comparisonPipelineService: ComparisonPipelineService,
+    @InjectModel(BatchExecution.name) private batchExecutionModel: Model<BatchExecutionDocument>,
+    @InjectModel(RawResponse.name) private rawResponseModel: Model<RawResponseDocument>,
+    @InjectModel(BatchResult.name) private batchResultModel: Model<BatchResultDocument>,
   ) {
     // Initialize the concurrency limiter with high parallelism
     // Ensure concurrencyLimit is a number and at least 1
@@ -96,7 +104,7 @@ export class BatchService {
             const context: CompanyBatchContext = {
               companyId: company.id,
               brandName: company.brandName,
-              keyFeatures: company.keyFeatures,
+              keyBrandAttributes: company.keyBrandAttributes,
               competitors: company.competitors,
               promptSet,
             };
@@ -381,7 +389,7 @@ export class BatchService {
     return {
       companyId: company.id,
       brandName: company.brandName,
-      keyFeatures: company.keyFeatures,
+      keyBrandAttributes: company.keyBrandAttributes,
       competitors: company.competitors,
       promptSet,
     };
@@ -592,5 +600,25 @@ export class BatchService {
       this.logger.error(`Failed to mark batch execution as failed: ${error.message}`, error.stack);
       throw error;
     }
+  }
+
+  @OnEvent('company.deleted')
+  async handleCompanyDeleted(event: { companyId: string }) {
+    const { companyId } = event;
+    // Delete all batch executions for this company
+    await this.batchExecutionModel.deleteMany({ companyId }).exec();
+    // Delete all raw responses for this company's batch executions
+    const batchExecutions = await this.batchExecutionModel.find({ companyId }).exec();
+    const batchExecutionIds = batchExecutions.map((be) => be.id);
+    if (batchExecutionIds.length > 0) {
+      await this.rawResponseModel
+        .deleteMany({ batchExecutionId: { $in: batchExecutionIds } })
+        .exec();
+      await this.batchResultModel
+        .deleteMany({ batchExecutionId: { $in: batchExecutionIds } })
+        .exec();
+    }
+    // Optionally, log the cleanup
+    this.logger.log(`Cleaned up batch data for deleted company ${companyId}`);
   }
 }

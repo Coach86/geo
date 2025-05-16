@@ -42,7 +42,7 @@ export const createCompanyFromUrl = async (
 export const updateCompanyDetails = async (
   id: string,
   data: {
-    keyFeatures?: string[];
+    keyBrandAttributes?: string[];
     competitors?: string[];
   },
 ): Promise<CompanyIdentityCard> => {
