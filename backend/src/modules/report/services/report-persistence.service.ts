@@ -62,6 +62,7 @@ export class ReportPersistenceService {
           summary: { winRate: 0, keyDifferentiators: [] },
         },
         llmVersions: report.llmVersions || {},
+        userId: report.userId,
       });
 
       const saved = await newReport.save();

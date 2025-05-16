@@ -91,6 +91,7 @@ export class PromptSetController {
           industry: company.industry,
           brandName: company.brandName,
           count: spontPromptCount,
+          competitors: company.competitors,
         }),
       };
 
