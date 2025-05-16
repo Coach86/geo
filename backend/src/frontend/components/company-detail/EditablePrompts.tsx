@@ -31,7 +31,7 @@ interface EditablePromptsProps {
   title: string;
   icon: React.ReactNode;
   prompts: string[];
-  promptType: 'direct' | 'spontaneous' | 'comparison';
+  promptType: 'direct' | 'spontaneous' | 'comparison' | 'accuracy';
   description: string;
   onUpdate: (newPrompts: string[]) => void;
 }

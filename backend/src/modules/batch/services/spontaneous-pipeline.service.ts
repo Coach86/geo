@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { z } from 'zod';
 import { LlmService } from '../../llm/services/llm.service';
-import { RawResponseService } from '../../report/services/raw-response.service';
+import { RawResponseService } from './raw-response.service';
 import {
   BrandVisibilitySummary,
   CompanyBatchContext,
@@ -11,7 +11,7 @@ import {
   SpontaneousResults,
   WebSearchSummary,
 } from '../interfaces/batch.interfaces';
-import { AnalyzerConfig, LlmModelConfig } from '../interfaces/llm.interfaces';
+import { AnalyzerConfig, LlmModelConfig, PipelineType, PromptType } from '../interfaces/llm.interfaces';
 import { BasePipelineService } from './base-pipeline.service';
 import { SystemPrompts, PromptTemplates, formatPrompt } from '../prompts/prompts';
 import { LlmProvider } from 'src/modules/llm/interfaces/llm-provider.enum';
@@ -27,7 +27,7 @@ export class SpontaneousPipelineService extends BasePipelineService {
       configService,
       llmService,
       SpontaneousPipelineService.name,
-      'spontaneous',
+      PipelineType.SPONTANEOUS,
       rawResponseService,
     );
   }
@@ -218,6 +218,12 @@ export class SpontaneousPipelineService extends BasePipelineService {
         userPrompt,
         schema,
         SystemPrompts.SPONTANEOUS_ANALYSIS,
+        llmResponseObj.batchExecutionId, // Pass the batch execution ID if available
+        promptIndex, // Pass the prompt index
+        PromptType.SPONTANEOUS, // Pass the prompt type
+        prompt, // Pass the original prompt
+        llmResponse, // Pass the original LLM response
+        modelConfig.model, // Pass the original LLM model
       );
 
       // Check if the brand name is mentioned in the top-of-mind list as a backup

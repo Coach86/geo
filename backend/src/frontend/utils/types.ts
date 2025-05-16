@@ -34,6 +34,7 @@ export interface PromptSet {
   direct: string[] | string; // Either direct string[] or for backward compatibility string JSON
   comparison: string[] | string; // Either direct string[] or for backward compatibility string JSON
   spontaneous: string[] | string; // Either direct string[] or for backward compatibility string JSON
+  accuracy?: string[] | string; // Either direct string[] or for backward compatibility string JSON
   createdAt: string;
   updatedAt: string;
 }
@@ -48,6 +49,7 @@ export interface PromptTemplates {
   spontaneous: PromptTemplate;
   direct: PromptTemplate;
   comparison: PromptTemplate;
+  accuracy: PromptTemplate;
 }
 
 // Batch Execution interfaces
@@ -63,7 +65,7 @@ export interface BatchExecution {
 export interface BatchResult {
   id: string;
   batchExecutionId: string;
-  resultType: 'spontaneous' | 'sentiment' | 'comparison';
+  resultType: 'spontaneous' | 'sentiment' | 'comparison' | 'accuracy';
   result: string | any; // Either JSON string or direct object
   createdAt: string;
 
@@ -91,15 +93,16 @@ export interface ToolUseInfo {
 export interface RawResponse {
   id: string;
   batchExecutionId: string;
-  llmProvider: string;
-  promptType: 'spontaneous' | 'direct' | 'comparison';
+  promptType: 'spontaneous' | 'direct' | 'comparison' | 'accuracy';
   promptIndex: number;
-  response: string;
+  originalPrompt: string;
+  llmResponse: string;
+  llmResponseModel: string;
+  analyzerPrompt?: string;
+  analyzerResponse?: any;
+  analyzerResponseModel?: string;
   createdAt: string;
-  citations?: string | SourceCitation[]; // Either JSON string or direct array of citations
-  toolUsage?: string | ToolUseInfo[]; // Either JSON string or direct array of tool usage
-  usedWebSearch?: boolean;
-  responseMetadata?: string | any; // Either JSON string or direct object
+  updatedAt: string;
 }
 
 // Batch process result interfaces
@@ -150,7 +153,6 @@ export interface SentimentPipelineResult {
   llmProvider: string;
   promptIndex: number;
   sentiment: 'positive' | 'neutral' | 'negative';
-  accuracy: number;
   extractedFacts: string[];
   originalPrompt?: string;
   llmResponse?: string;
@@ -166,7 +168,6 @@ export interface SentimentResults {
   results: SentimentPipelineResult[];
   summary: {
     overallSentiment: 'positive' | 'neutral' | 'negative';
-    averageAccuracy: number;
   };
   webSearchSummary?: WebSearchSummary;
 }
@@ -195,10 +196,35 @@ export interface ComparisonResults {
   webSearchSummary?: WebSearchSummary;
 }
 
+export interface AccuracyPipelineResult {
+  llmProvider: string;
+  promptIndex: number;
+  accuracy: number;
+  factualInformation: string[];
+  originalPrompt?: string;
+  llmResponse?: string;
+  error?: string;
+  // Web search related fields
+  usedWebSearch?: boolean;
+  citations?: SourceCitation[];
+  toolUsage?: ToolUseInfo[];
+  webSearchQueries?: WebSearchQuery[];
+}
+
+export interface AccuracyResults {
+  results: AccuracyPipelineResult[];
+  summary: {
+    averageAccuracy: number;
+    factualHighlights: string[];
+  };
+  webSearchSummary?: WebSearchSummary;
+}
+
 export interface BatchProcessResults {
   spontaneous?: SpontaneousResults;
   sentiment?: SentimentResults;
   comparison?: ComparisonResults;
+  accuracy?: AccuracyResults;
 }
 
 // User interface

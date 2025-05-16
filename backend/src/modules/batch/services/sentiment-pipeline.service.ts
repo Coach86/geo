@@ -2,14 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { z } from 'zod';
 import { LlmService } from '../../llm/services/llm.service';
-import { RawResponseService } from '../../report/services/raw-response.service';
+import { RawResponseService } from './raw-response.service';
 import {
   CompanyBatchContext,
   SentimentPipelineResult,
   SentimentResults,
   WebSearchSummary,
 } from '../interfaces/batch.interfaces';
-import { AnalyzerConfig, LlmModelConfig } from '../interfaces/llm.interfaces';
+import { AnalyzerConfig, LlmModelConfig, PipelineType, PromptType } from '../interfaces/llm.interfaces';
 import { BasePipelineService } from './base-pipeline.service';
 import { SystemPrompts, PromptTemplates, formatPrompt } from '../prompts/prompts';
 
@@ -24,7 +24,7 @@ export class SentimentPipelineService extends BasePipelineService {
       configService,
       llmService,
       SentimentPipelineService.name,
-      'sentiment',
+      PipelineType.SENTIMENT,
       rawResponseService,
     );
   }
@@ -115,7 +115,7 @@ export class SentimentPipelineService extends BasePipelineService {
       // Run all tasks
       const results = await Promise.all(tasks);
 
-      // Analyze and summarize results
+      // Analyze and summarize results - only for sentiment, not accuracy
       const summary = this.analyzeSentimentResults(results);
 
       // Generate web search summary
@@ -174,12 +174,11 @@ export class SentimentPipelineService extends BasePipelineService {
     // Extract metadata if available
     const metadata = llmResponseObj.metadata || {};
 
-    // Define the schema for structured output
+    // Define the schema for structured output - removed accuracy
     const schema = z.object({
       sentiment: z
         .enum(['positive', 'neutral', 'negative'])
         .describe('Overall sentiment towards the brand'),
-      accuracy: z.number().describe('Confidence score for the sentiment analysis'),
       extractedFacts: z
         .array(z.string())
         .describe('Key facts or opinions extracted from the response'),
@@ -198,6 +197,12 @@ export class SentimentPipelineService extends BasePipelineService {
         userPrompt,
         schema,
         SystemPrompts.SENTIMENT_ANALYSIS,
+        llmResponseObj.batchExecutionId, // Pass the batch execution ID if available
+        promptIndex, // Pass the prompt index
+        PromptType.DIRECT, // Pass the prompt type using enum
+        prompt, // Pass the original prompt
+        llmResponse, // Pass the original LLM response
+        modelConfig.model, // Pass the original LLM model
       );
 
       return {
@@ -205,7 +210,7 @@ export class SentimentPipelineService extends BasePipelineService {
         llmModel: modelConfig.model,
         promptIndex,
         sentiment: result.sentiment,
-        accuracy: result.accuracy,
+        accuracy: 0, // Set default accuracy to 0, will be filled by accuracy pipeline
         extractedFacts: result.extractedFacts,
         originalPrompt: prompt,
         llmResponse,
@@ -290,7 +295,7 @@ export class SentimentPipelineService extends BasePipelineService {
   /**
    * Analyze and summarize the results of the sentiment pipeline
    * @param results Array of pipeline results
-   * @returns Summary statistics
+   * @returns Summary statistics for sentiment only (not accuracy)
    */
   private analyzeSentimentResults(results: SentimentPipelineResult[]): SentimentResults['summary'] {
     // Filter out results with errors
@@ -299,22 +304,19 @@ export class SentimentPipelineService extends BasePipelineService {
     if (validResults.length === 0) {
       return {
         overallSentiment: 'neutral',
-        averageAccuracy: 0,
+        averageAccuracy: 0, // Will be filled by accuracy pipeline
       };
     }
 
-    // Count sentiment occurrences and calculate average accuracy
+    // Count sentiment occurrences
     let positiveCount = 0;
     let neutralCount = 0;
     let negativeCount = 0;
-    let totalAccuracy = 0;
 
     for (const result of validResults) {
       if (result.sentiment === 'positive') positiveCount++;
       else if (result.sentiment === 'neutral') neutralCount++;
       else if (result.sentiment === 'negative') negativeCount++;
-
-      totalAccuracy += result.accuracy;
     }
 
     // Determine overall sentiment
@@ -327,12 +329,9 @@ export class SentimentPipelineService extends BasePipelineService {
       overallSentiment = 'neutral';
     }
 
-    // Calculate average accuracy
-    const averageAccuracy = totalAccuracy / validResults.length;
-
     return {
       overallSentiment,
-      averageAccuracy,
+      averageAccuracy: 0, // Will be filled by accuracy pipeline
     };
   }
 }

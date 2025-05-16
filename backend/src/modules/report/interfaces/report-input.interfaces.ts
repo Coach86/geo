@@ -6,7 +6,8 @@
 import { 
   SpontaneousResults, 
   SentimentResults, 
-  ComparisonResults 
+  ComparisonResults,
+  AccuracyResults
 } from '../../batch/interfaces/batch.interfaces';
 
 /**
@@ -26,6 +27,9 @@ export interface BatchReportInput {
   
   /** Sentiment analysis results from the sentiment pipeline */
   sentimentAccuracy: SentimentResults;
+  
+  /** Accuracy analysis results from the accuracy pipeline */
+  accuracy?: AccuracyResults;
   
   /** Comparison results from the comparison pipeline */
   comparison: ComparisonResults;

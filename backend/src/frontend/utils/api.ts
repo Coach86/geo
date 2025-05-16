@@ -116,6 +116,7 @@ export const updatePromptSet = async (
     spontaneous?: string[];
     direct?: string[];
     comparison?: string[];
+    accuracy?: string[];
   },
 ): Promise<PromptSet> => {
   const response = await authApi.patch(`/prompt-set/${companyId}`, data);
@@ -285,6 +286,7 @@ export const getPromptTemplates = async (
   spontaneous: { systemPrompt: string; userPrompt: string };
   direct: { systemPrompt: string; userPrompt: string };
   comparison: { systemPrompt: string; userPrompt: string };
+  accuracy: { systemPrompt: string; userPrompt: string };
 }> => {
   try {
     const response = await authApi.get(`/prompt-set/templates/${companyId}`);

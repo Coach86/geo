@@ -44,6 +44,7 @@ import {
   runSpontaneousPipeline,
   runSentimentPipeline,
   runComparisonPipeline,
+  runAccuracyPipeline,
   getBatchExecution,
 } from '../utils/api-batch';
 import authApi from '../utils/auth';
@@ -54,6 +55,7 @@ import {
   SpontaneousResults,
   SentimentResults,
   ComparisonResults,
+  AccuracyResults,
 } from '../utils/types';
 
 // Components for each tab
@@ -62,6 +64,7 @@ import PromptsTab from '../components/company-detail/PromptsTab';
 import SpontaneousTab from '../components/company-detail/SpontaneousTab';
 import SentimentTab from '../components/company-detail/SentimentTab';
 import ComparisonTab from '../components/company-detail/ComparisonTab';
+import AccuracyTab from '../components/company-detail/AccuracyTab';
 import BatchesTab from '../components/company-detail/BatchesTab';
 import ReportsTab from '../components/company-detail/ReportsTab';
 
@@ -73,6 +76,7 @@ enum TabValue {
   SPONTANEOUS = 'spontaneous',
   SENTIMENT = 'sentiment',
   COMPARISON = 'comparison',
+  ACCURACY = 'accuracy',
 }
 
 const CompanyDetail: React.FC = () => {
@@ -91,6 +95,7 @@ const CompanyDetail: React.FC = () => {
   const [spontaneousResults, setSpontaneousResults] = useState<SpontaneousResults | null>(null);
   const [sentimentResults, setSentimentResults] = useState<SentimentResults | null>(null);
   const [comparisonResults, setComparisonResults] = useState<ComparisonResults | null>(null);
+  const [accuracyResults, setAccuracyResults] = useState<AccuracyResults | null>(null);
 
   // Batch processing states
   const [batchProcessing, setBatchProcessing] = useState(false);
@@ -99,7 +104,7 @@ const CompanyDetail: React.FC = () => {
   const [batchError, setBatchError] = useState<string | undefined>(undefined);
 
   // Add batchType state
-  const [batchType, setBatchType] = useState<'full' | 'spontaneous' | 'sentiment' | 'comparison'>(
+  const [batchType, setBatchType] = useState<'full' | 'spontaneous' | 'sentiment' | 'comparison' | 'accuracy'>(
     'full',
   );
 
@@ -219,6 +224,13 @@ const CompanyDetail: React.FC = () => {
                   throw new Error('Sentiment analysis failed.');
                 } else if (batchType === 'comparison' && !comparisonResult) {
                   throw new Error('Comparison analysis failed.');
+                } else if (batchType === 'accuracy') {
+                  const accuracyResult = batchExecution.finalResults.find(
+                    (r: any) => r.resultType === 'accuracy',
+                  );
+                  if (!accuracyResult) {
+                    throw new Error('Accuracy analysis failed.');
+                  }
                 }
 
                 // Only parse and set results if present
@@ -230,6 +242,13 @@ const CompanyDetail: React.FC = () => {
                 }
                 if (comparisonResult) {
                   setComparisonResults(JSON.parse(comparisonResult.result));
+                }
+                // Add the accuracy result handling
+                const accuracyResult = batchExecution.finalResults.find(
+                  (r: any) => r.resultType === 'accuracy',
+                );
+                if (accuracyResult) {
+                  setAccuracyResults(JSON.parse(accuracyResult.result));
                 }
 
                 // Finalize
@@ -357,7 +376,7 @@ const CompanyDetail: React.FC = () => {
     }
   };
 
-  const handleRunSingleBatch = async (type: 'spontaneous' | 'sentiment' | 'comparison') => {
+  const handleRunSingleBatch = async (type: 'spontaneous' | 'sentiment' | 'comparison' | 'accuracy') => {
     if (!id) return;
     setBatchType(type); // Set batch type
 
@@ -399,6 +418,10 @@ const CompanyDetail: React.FC = () => {
             case 'comparison':
               result = await runComparisonPipeline(id);
               setComparisonResults(result);
+              break;
+            case 'accuracy':
+              result = await runAccuracyPipeline(id);
+              setAccuracyResults(result);
               break;
           }
 
@@ -680,6 +703,13 @@ const CompanyDetail: React.FC = () => {
           {currentTab === TabValue.COMPARISON &&
             (comparisonResults ? (
               <ComparisonTab results={comparisonResults} company={company} />
+            ) : (
+              renderAnalysisButtons()
+            ))}
+            
+          {currentTab === TabValue.ACCURACY &&
+            (accuracyResults ? (
+              <AccuracyTab results={accuracyResults} />
             ) : (
               renderAnalysisButtons()
             ))}

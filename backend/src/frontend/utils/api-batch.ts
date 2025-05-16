@@ -3,6 +3,7 @@ import {
   SpontaneousResults,
   SentimentResults,
   ComparisonResults,
+  AccuracyResults,
   BatchExecution,
   BatchResult,
   RawResponse,
@@ -94,6 +95,31 @@ export const runComparisonPipeline = async (companyId: string): Promise<Comparis
   return JSON.parse(comparisonResult.result);
 };
 
+export const runAccuracyPipeline = async (companyId: string): Promise<AccuracyResults> => {
+  // Start the pipeline and get batch execution ID
+  const response = await authApi.post(`/batch/pipeline/accuracy/${companyId}`);
+
+  if (!response.data.success) {
+    throw new Error(response.data.error || 'Failed to start accuracy pipeline');
+  }
+
+  const batchExecutionId = response.data.batchExecutionId;
+
+  // Poll for completion
+  const batchExecution = await pollBatchExecution(batchExecutionId);
+
+  // Find the accuracy result
+  const accuracyResult = batchExecution.finalResults.find(
+    (r: BatchResult) => r.resultType === 'accuracy',
+  );
+
+  if (!accuracyResult) {
+    throw new Error('Accuracy pipeline results not found');
+  }
+
+  return JSON.parse(accuracyResult.result);
+};
+
 // Full Batch Processing API with polling mechanism
 export const runFullBatchAnalysis = async (
   companyId: string,
@@ -103,6 +129,7 @@ export const runFullBatchAnalysis = async (
     spontaneous: SpontaneousResults;
     sentiment: SentimentResults;
     comparison: ComparisonResults;
+    accuracy?: AccuracyResults;
   };
 }> => {
   // Start the batch analysis process
@@ -127,16 +154,29 @@ export const runFullBatchAnalysis = async (
   const comparisonResult = batchExecution.finalResults.find(
     (r: BatchResult) => r.resultType === 'comparison',
   );
+  const accuracyResult = batchExecution.finalResults.find(
+    (r: BatchResult) => r.resultType === 'accuracy',
+  );
 
   if (!spontaneousResult || !sentimentResult || !comparisonResult) {
     throw new Error('Missing batch results. Not all pipeline results are available.');
   }
 
-  const results = {
+  const results: {
+    spontaneous: SpontaneousResults;
+    sentiment: SentimentResults;
+    comparison: ComparisonResults;
+    accuracy?: AccuracyResults;
+  } = {
     spontaneous: JSON.parse(spontaneousResult.result),
     sentiment: JSON.parse(sentimentResult.result),
     comparison: JSON.parse(comparisonResult.result),
   };
+  
+  // Accuracy results are optional
+  if (accuracyResult) {
+    results.accuracy = JSON.parse(accuracyResult.result);
+  }
 
   return {
     batchExecutionId,
@@ -170,6 +210,7 @@ export const pollBatchExecution = async (
 
 // Batch Execution API
 export const getBatchExecution = async (batchExecutionId: string): Promise<BatchExecution> => {
+  // authApi already includes the /api/admin prefix
   const response = await authApi.get(`/batch-executions/${batchExecutionId}`);
   return response.data;
 };
@@ -177,11 +218,13 @@ export const getBatchExecution = async (batchExecutionId: string): Promise<Batch
 export const getBatchExecutionRawResponses = async (
   batchExecutionId: string,
 ): Promise<RawResponse[]> => {
-  const response = await authApi.get(`/batch-executions/${batchExecutionId}/raw-responses`);
+  // authApi already includes the /api/admin prefix
+  const response = await authApi.get(`/raw-responses/batch-execution/${batchExecutionId}`);
   return response.data;
 };
 
 export const getBatchExecutionsByCompany = async (companyId: string): Promise<BatchExecution[]> => {
+  // authApi already includes the /api/admin prefix
   const response = await authApi.get(`/batch-executions?companyId=${companyId}`);
   return response.data;
 };

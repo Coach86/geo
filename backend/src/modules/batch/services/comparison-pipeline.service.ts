@@ -2,14 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { z } from 'zod';
 import { LlmService } from '../../llm/services/llm.service';
-import { RawResponseService } from '../../report/services/raw-response.service';
+import { RawResponseService } from './raw-response.service';
 import {
   CompanyBatchContext,
   ComparisonPipelineResult,
   ComparisonResults,
   WebSearchSummary,
 } from '../interfaces/batch.interfaces';
-import { AnalyzerConfig, LlmModelConfig } from '../interfaces/llm.interfaces';
+import { AnalyzerConfig, LlmModelConfig, PipelineType, PromptType } from '../interfaces/llm.interfaces';
 import { BasePipelineService } from './base-pipeline.service';
 import { SystemPrompts, PromptTemplates, formatPrompt } from '../prompts/prompts';
 
@@ -24,7 +24,7 @@ export class ComparisonPipelineService extends BasePipelineService {
       configService,
       llmService,
       ComparisonPipelineService.name,
-      'comparison',
+      PipelineType.COMPARISON,
       rawResponseService,
     );
   }
@@ -208,6 +208,12 @@ export class ComparisonPipelineService extends BasePipelineService {
         userPrompt,
         schema,
         SystemPrompts.COMPARISON_ANALYSIS,
+        llmResponseObj.batchExecutionId, // Pass the batch execution ID if available
+        promptIndex, // Pass the prompt index
+        PromptType.COMPARISON, // Pass the prompt type
+        prompt, // Pass the original prompt
+        llmResponse, // Pass the original LLM response
+        modelConfig.model, // Pass the original LLM model
       );
 
       return {

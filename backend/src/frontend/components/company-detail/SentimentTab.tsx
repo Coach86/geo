@@ -12,7 +12,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  LinearProgress,
   Accordion,
   AccordionSummary,
   AccordionDetails,
@@ -22,7 +21,6 @@ import {
   ListItemText
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import FactCheckIcon from '@mui/icons-material/FactCheck';
 import SentimentSatisfiedAltIcon from '@mui/icons-material/SentimentSatisfiedAlt';
 import SentimentNeutralIcon from '@mui/icons-material/SentimentNeutral';
 import SentimentVeryDissatisfiedIcon from '@mui/icons-material/SentimentVeryDissatisfied';
@@ -69,7 +67,7 @@ const SentimentTab: React.FC<SentimentTabProps> = ({ results }) => {
     <>
       <Box sx={{ mb: 3 }}>
         <Typography variant="h5" gutterBottom>
-          <FactCheckIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+          <SentimentSatisfiedAltIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
           Sentiment Analysis
         </Typography>
         <Typography variant="body2" color="text.secondary">
@@ -78,7 +76,7 @@ const SentimentTab: React.FC<SentimentTabProps> = ({ results }) => {
       </Box>
 
       <Grid container spacing={3}>
-        <Grid size={{ xs: 12, md: 6 }}>
+        <Grid size={{ xs: 12 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -105,29 +103,6 @@ const SentimentTab: React.FC<SentimentTabProps> = ({ results }) => {
           </Card>
         </Grid>
 
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Accuracy
-              </Typography>
-              <Typography variant="h3" color="primary" sx={{ mb: 2 }}>
-                {(summary.averageAccuracy * 100).toFixed(1)}%
-              </Typography>
-              <Typography variant="body2" color="text.secondary" paragraph>
-                This represents the average confidence level in sentiment detection.
-              </Typography>
-              <Box sx={{ width: '100%', mt: 1 }}>
-                <LinearProgress 
-                  variant="determinate" 
-                  value={summary.averageAccuracy * 100} 
-                  sx={{ height: 10, borderRadius: 5 }}
-                />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
         <Grid size={{ xs: 12 }}>
           <Card>
             <CardContent>
@@ -141,7 +116,6 @@ const SentimentTab: React.FC<SentimentTabProps> = ({ results }) => {
                       <TableCell>LLM</TableCell>
                       <TableCell>Prompt #</TableCell>
                       <TableCell align="center">Sentiment</TableCell>
-                      <TableCell align="center">Accuracy</TableCell>
                       <TableCell>Key Facts</TableCell>
                     </TableRow>
                   </TableHead>
@@ -163,9 +137,6 @@ const SentimentTab: React.FC<SentimentTabProps> = ({ results }) => {
                               {result.sentiment}
                             </Typography>
                           </Box>
-                        </TableCell>
-                        <TableCell align="center">
-                          {(result.accuracy * 100).toFixed(1)}%
                         </TableCell>
                         <TableCell>
                           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>

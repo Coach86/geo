@@ -32,12 +32,13 @@ import PendingIcon from '@mui/icons-material/Pending';
 import ModeCommentIcon from '@mui/icons-material/ModeComment';
 import SentimentSatisfiedIcon from '@mui/icons-material/SentimentSatisfied';
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
+import FactCheckIcon from '@mui/icons-material/FactCheck';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 
 interface BatchesTabProps {
   companyId: string;
   onRunNewBatch: () => void;
-  onRunSingleBatch: (batchType: 'spontaneous' | 'sentiment' | 'comparison') => void;
+  onRunSingleBatch: (batchType: 'spontaneous' | 'sentiment' | 'accuracy' | 'comparison') => void;
 }
 
 const BatchesTab: React.FC<BatchesTabProps> = ({ companyId, onRunNewBatch, onRunSingleBatch }) => {
@@ -56,7 +57,7 @@ const BatchesTab: React.FC<BatchesTabProps> = ({ companyId, onRunNewBatch, onRun
     setMenuAnchorEl(null);
   };
 
-  const handleRunSingleBatchType = (type: 'spontaneous' | 'sentiment' | 'comparison') => {
+  const handleRunSingleBatchType = (type: 'spontaneous' | 'sentiment' | 'accuracy' | 'comparison') => {
     onRunSingleBatch(type);
     handleMenuClose();
   };
@@ -177,6 +178,12 @@ const BatchesTab: React.FC<BatchesTabProps> = ({ companyId, onRunNewBatch, onRun
               </ListItemIcon>
               <ListItemText>Sentiment Analysis</ListItemText>
             </MenuItem>
+            <MenuItem onClick={() => handleRunSingleBatchType('accuracy')}>
+              <ListItemIcon>
+                <FactCheckIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>Accuracy Analysis</ListItemText>
+            </MenuItem>
             <MenuItem onClick={() => handleRunSingleBatchType('comparison')}>
               <ListItemIcon>
                 <CompareArrowsIcon fontSize="small" />
@@ -253,6 +260,15 @@ const BatchesTab: React.FC<BatchesTabProps> = ({ companyId, onRunNewBatch, onRun
                             label={`Sentiment: ${resultTypes.sentiment}`}
                             variant="outlined"
                             color="success"
+                            sx={{ mr: 1 }}
+                          />
+                        )}
+                        {resultTypes.accuracy && (
+                          <Chip
+                            size="small"
+                            label={`Accuracy: ${resultTypes.accuracy}`}
+                            variant="outlined"
+                            color="secondary"
                             sx={{ mr: 1 }}
                           />
                         )}
