@@ -3,11 +3,11 @@ import { ZodSchema } from 'zod';
 // Define standard tool types as constants to ensure consistency
 export const TOOL_TYPES = {
   WEB_SEARCH: 'web_search', // Standard web search tool type
-  
+
   // Provider-specific tool types (will be normalized when stored)
   ANTHROPIC_WEB_SEARCH: 'web_search_20250305',
   OPENAI_WEB_SEARCH: 'web_search',
-  PERPLEXITY_WEB_SEARCH: 'web_search_preview'
+  PERPLEXITY_WEB_SEARCH: 'web_search_preview',
 };
 
 export interface LlmCallOptions {
@@ -22,12 +22,12 @@ export interface LlmCallOptions {
 
 /**
  * Standardized citation interface that all LLM adapters should use
- * Minimal structure with only essential fields 
+ * Minimal structure with only essential fields
  */
 export interface SourceCitation {
-  url: string;               // URL of the cited source - the only required field
-  title?: string;            // Title of the source (optional, default 'Web Source')
-  text?: string;             // Extracted text from the source that was cited (if available)
+  url: string; // URL of the cited source - the only required field
+  title?: string; // Title of the source (optional, default 'Web Source')
+  text?: string; // Extracted text from the source that was cited (if available)
 }
 
 /**
@@ -35,15 +35,17 @@ export interface SourceCitation {
  * Contains only necessary information about tool usage
  */
 export interface ToolUseInfo {
-  id: string;                // Unique ID for the tool use
-  type: string;              // Standardized tool type from TOOL_TYPES (e.g., 'web_search')
-  parameters?: {             // Tool parameters (optional)
-    query?: string;          // Query used for search (if applicable)
-    [key: string]: any;      // Other parameters
+  id: string; // Unique ID for the tool use
+  type: string; // Standardized tool type from TOOL_TYPES (e.g., 'web_search')
+  parameters?: {
+    // Tool parameters (optional)
+    query?: string; // Query used for search (if applicable)
+    [key: string]: any; // Other parameters
   };
-  execution_details?: {      // Execution metadata (optional)
-    status: string;          // Status (e.g., 'completed', 'error')
-    timestamp: string;       // Execution timestamp
+  execution_details?: {
+    // Execution metadata (optional)
+    status: string; // Status (e.g., 'completed', 'error')
+    timestamp: string; // Execution timestamp
   };
   // No provider-specific fields should be added here
 }
@@ -69,10 +71,10 @@ export interface LlmResponse {
 export interface LlmAdapter {
   /** Unique provider name */
   name: string;
-  
+
   /** Primary method to call the LLM with a prompt */
   call(prompt: string, options?: LlmCallOptions): Promise<LlmResponse>;
-  
+
   /** Check if the LLM is available (e.g., API key is set) */
   isAvailable(): boolean;
 
@@ -80,5 +82,9 @@ export interface LlmAdapter {
    * Get structured output conforming to a schema
    * Optional but recommended for adapters that support it
    */
-  getStructuredOutput?<T>(prompt: string, schema: ZodSchema<T>, options?: LlmCallOptions): Promise<T>;
+  getStructuredOutput?<T>(
+    prompt: string,
+    schema: ZodSchema<T>,
+    options?: LlmCallOptions,
+  ): Promise<T>;
 }

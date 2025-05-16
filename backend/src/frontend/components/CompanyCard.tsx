@@ -21,7 +21,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  DialogContentText
+  DialogContentText,
 } from '@mui/material';
 import { CompanyIdentityCard } from '../utils/types';
 import BusinessIcon from '@mui/icons-material/Business';
@@ -50,7 +50,7 @@ const CompanyCard: React.FC<CompanyCardProps> = ({ company, onDelete }) => {
   const handleCardClick = () => {
     navigate(`/companies/${company.id}`);
   };
-  
+
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     event.stopPropagation();
     setMenuAnchorEl(event.currentTarget);
@@ -93,39 +93,39 @@ const CompanyCard: React.FC<CompanyCardProps> = ({ company, onDelete }) => {
       theme.palette.secondary.main,
       theme.palette.info.main,
       theme.palette.success.main,
-      theme.palette.warning.main
+      theme.palette.warning.main,
     ];
 
     return colorOptions[Math.abs(hash) % colorOptions.length];
   };
 
   const companyColor = getCompanyColor(company.brandName);
-  
+
   // Helper function to get flag emoji for market
   const getMarketWithFlag = (market: string): string => {
     const marketFlags: Record<string, string> = {
       'United States': '🇺🇸',
       'United Kingdom': '🇬🇧',
-      'Canada': '🇨🇦',
-      'Australia': '🇦🇺',
-      'France': '🇫🇷',
-      'Germany': '🇩🇪',
-      'Japan': '🇯🇵',
-      'China': '🇨🇳',
-      'India': '🇮🇳',
-      'Brazil': '🇧🇷',
-      'Mexico': '🇲🇽',
-      'Spain': '🇪🇸',
-      'Italy': '🇮🇹',
-      'Netherlands': '🇳🇱',
-      'Sweden': '🇸🇪',
-      'Switzerland': '🇨🇭',
-      'Singapore': '🇸🇬',
+      Canada: '🇨🇦',
+      Australia: '🇦🇺',
+      France: '🇫🇷',
+      Germany: '🇩🇪',
+      Japan: '🇯🇵',
+      China: '🇨🇳',
+      India: '🇮🇳',
+      Brazil: '🇧🇷',
+      Mexico: '🇲🇽',
+      Spain: '🇪🇸',
+      Italy: '🇮🇹',
+      Netherlands: '🇳🇱',
+      Sweden: '🇸🇪',
+      Switzerland: '🇨🇭',
+      Singapore: '🇸🇬',
       'South Korea': '🇰🇷',
-      'Russia': '🇷🇺',
-      'South Africa': '🇿🇦'
+      Russia: '🇷🇺',
+      'South Africa': '🇿🇦',
     };
-    
+
     const flag = marketFlags[market] || '🇺🇸';
     return `${flag} ${market}`;
   };
@@ -141,8 +141,8 @@ const CompanyCard: React.FC<CompanyCardProps> = ({ company, onDelete }) => {
         '&:hover': {
           boxShadow: `0 8px 24px 0 ${alpha(theme.palette.primary.main, 0.2)}`,
           transform: 'translateY(-4px)',
-          transition: 'all 0.3s ease-in-out'
-        }
+          transition: 'all 0.3s ease-in-out',
+        },
       }}
     >
       <Box
@@ -157,7 +157,7 @@ const CompanyCard: React.FC<CompanyCardProps> = ({ company, onDelete }) => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          boxShadow: theme.shadows[2]
+          boxShadow: theme.shadows[2],
         }}
       >
         <BusinessIcon sx={{ fontSize: 14, color: 'white' }} />
@@ -165,9 +165,9 @@ const CompanyCard: React.FC<CompanyCardProps> = ({ company, onDelete }) => {
 
       <CardHeader
         action={
-          <IconButton 
-            aria-label="settings" 
-            size="small" 
+          <IconButton
+            aria-label="settings"
+            size="small"
             onClick={handleMenuOpen}
             aria-controls="company-menu"
             aria-haspopup="true"
@@ -182,8 +182,8 @@ const CompanyCard: React.FC<CompanyCardProps> = ({ company, onDelete }) => {
               fontWeight: 600,
               cursor: 'pointer',
               '&:hover': {
-                color: theme.palette.primary.main
-              }
+                color: theme.palette.primary.main,
+              },
             }}
             onClick={handleCardClick}
           >
@@ -196,7 +196,7 @@ const CompanyCard: React.FC<CompanyCardProps> = ({ company, onDelete }) => {
           </Box>
         }
       />
-      
+
       {/* Company Menu */}
       <Menu
         id="company-menu"
@@ -210,7 +210,7 @@ const CompanyCard: React.FC<CompanyCardProps> = ({ company, onDelete }) => {
           Delete
         </MenuItem>
       </Menu>
-      
+
       {/* Delete Confirmation Dialog */}
       <Dialog
         open={deleteDialogOpen}
@@ -220,21 +220,17 @@ const CompanyCard: React.FC<CompanyCardProps> = ({ company, onDelete }) => {
         <DialogTitle id="delete-company-dialog-title">Delete {company.brandName}?</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to delete {company.brandName}? This action cannot be undone 
-            and will remove all associated data including batch results, reports, and prompt sets.
+            Are you sure you want to delete {company.brandName}? This action cannot be undone and
+            will remove all associated data including batch results, reports, and prompt sets.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button 
-            onClick={() => setDeleteDialogOpen(false)} 
-            color="primary"
-            disabled={isDeleting}
-          >
+          <Button onClick={() => setDeleteDialogOpen(false)} color="primary" disabled={isDeleting}>
             Cancel
           </Button>
-          <Button 
-            onClick={handleDeleteConfirm} 
-            color="error" 
+          <Button
+            onClick={handleDeleteConfirm}
+            color="error"
             variant="contained"
             startIcon={<DeleteIcon />}
             disabled={isDeleting}
@@ -253,19 +249,19 @@ const CompanyCard: React.FC<CompanyCardProps> = ({ company, onDelete }) => {
           </Typography>
 
           <Box sx={{ mb: 2, minHeight: 32 }}>
-            {company.keyFeatures.slice(0, 2).map((feature, index) => (
+            {company.keyBrandAttributes.slice(0, 2).map((feature, index) => (
               <Chip
                 key={index}
                 label={feature}
                 size="small"
-                color={index === 0 ? "primary" : "default"}
-                variant={index === 0 ? "filled" : "outlined"}
+                color={index === 0 ? 'primary' : 'default'}
+                variant={index === 0 ? 'filled' : 'outlined'}
                 sx={{ mr: 0.5, mb: 0.5 }}
               />
             ))}
-            {company.keyFeatures.length > 2 && (
+            {company.keyBrandAttributes.length > 2 && (
               <Chip
-                label={`+${company.keyFeatures.length - 2} more`}
+                label={`+${company.keyBrandAttributes.length - 2} more`}
                 size="small"
                 sx={{ mr: 0.5, mb: 0.5 }}
                 variant="outlined"
@@ -281,7 +277,7 @@ const CompanyCard: React.FC<CompanyCardProps> = ({ company, onDelete }) => {
               sx={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 0.5
+                gap: 0.5,
               }}
             >
               <ShowChartIcon fontSize="inherit" />
@@ -296,7 +292,7 @@ const CompanyCard: React.FC<CompanyCardProps> = ({ company, onDelete }) => {
                 sx={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 0.5
+                  gap: 0.5,
                 }}
               >
                 <Tooltip title="Owner">
@@ -312,7 +308,11 @@ const CompanyCard: React.FC<CompanyCardProps> = ({ company, onDelete }) => {
                     label={company.userLanguage}
                     size="small"
                     variant="outlined"
-                    sx={{ ml: 0.5, height: 20, '& .MuiChip-label': { px: 0.5, fontSize: '0.7rem' } }}
+                    sx={{
+                      ml: 0.5,
+                      height: 20,
+                      '& .MuiChip-label': { px: 0.5, fontSize: '0.7rem' },
+                    }}
                   />
                 )}
               </Typography>

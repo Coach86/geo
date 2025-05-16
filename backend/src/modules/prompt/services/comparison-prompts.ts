@@ -6,7 +6,7 @@ type ComparisonUserPromptParams = {
   brandName: string;
   competitors: string[];
   industry: string;
-  keyFeatures: string[];
+  keyBrandAttributes: string[];
   count: number;
 };
 export function comparisonUserPrompt({
@@ -14,7 +14,7 @@ export function comparisonUserPrompt({
   brandName,
   competitors,
   industry,
-  keyFeatures,
+  keyBrandAttributes,
   count,
 }: ComparisonUserPromptParams): string {
   return `
@@ -22,8 +22,8 @@ export function comparisonUserPrompt({
       
       ### Context:
       - Current date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-      - Company Key Features:
-      ${keyFeatures.map((f) => `- ${f}`).join('\n')}
+      - Company Key Brand Attributes:
+      ${keyBrandAttributes.map((f) => `- ${f}`).join('\n')}
       ### Competitors:
       ${competitors.map((c) => `- ${c}`).join('\n')}
             

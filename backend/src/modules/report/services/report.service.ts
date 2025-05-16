@@ -21,6 +21,7 @@ import { ReportRetrievalService } from './report-retrieval.service';
 import { ReportConverterService } from './report-converter.service';
 import { UserService } from '../../user/services/user.service';
 import { CompanyIdentityCard } from '@/modules/identity-card/entities/company-identity-card.entity';
+import { OnEvent } from '@nestjs/event-emitter';
 /**
  * Main report service that serves as a facade for specialized services
  */
@@ -324,5 +325,12 @@ export class ReportService implements OnModuleInit {
 
   async getConfig() {
     return this.integrationService.getConfig();
+  }
+
+  @OnEvent('company.deleted')
+  async handleCompanyDeleted(event: { companyId: string }) {
+    const { companyId } = event;
+    await this.weeklyReportModel.deleteMany({ companyId }).exec();
+    this.logger.log(`Cleaned up weekly reports for deleted company ${companyId}`);
   }
 }

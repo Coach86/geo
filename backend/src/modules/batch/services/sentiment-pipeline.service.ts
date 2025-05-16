@@ -179,7 +179,7 @@ export class SentimentPipelineService extends BasePipelineService {
       sentiment: z
         .enum(['positive', 'neutral', 'negative'])
         .describe('Overall sentiment towards the brand'),
-      accuracy: z.number().min(0).max(1).describe('Confidence score for the sentiment analysis'),
+      accuracy: z.number().describe('Confidence score for the sentiment analysis'),
       extractedFacts: z
         .array(z.string())
         .describe('Key facts or opinions extracted from the response'),

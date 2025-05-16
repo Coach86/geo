@@ -19,7 +19,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  FormHelperText
+  FormHelperText,
 } from '@mui/material';
 import BusinessIcon from '@mui/icons-material/Business';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -31,7 +31,6 @@ import { User } from '../utils/types';
 import { getUsers } from '../utils/api';
 
 const steps = ['Enter URL', 'Generate Identity Card', 'Generate Prompts', 'Complete'];
-
 
 const CompanyCreation: React.FC = () => {
   const navigate = useNavigate();
@@ -48,32 +47,32 @@ const CompanyCreation: React.FC = () => {
   const [userError, setUserError] = useState<string | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
-  
+
   // Helper function to get flag emoji for market
   const getMarketWithFlag = (market: string): string => {
     const marketFlags: Record<string, string> = {
       'United States': '🇺🇸',
       'United Kingdom': '🇬🇧',
-      'Canada': '🇨🇦',
-      'Australia': '🇦🇺',
-      'France': '🇫🇷',
-      'Germany': '🇩🇪',
-      'Japan': '🇯🇵',
-      'China': '🇨🇳',
-      'India': '🇮🇳',
-      'Brazil': '🇧🇷',
-      'Mexico': '🇲🇽',
-      'Spain': '🇪🇸',
-      'Italy': '🇮🇹',
-      'Netherlands': '🇳🇱',
-      'Sweden': '🇸🇪',
-      'Switzerland': '🇨🇭',
-      'Singapore': '🇸🇬',
+      Canada: '🇨🇦',
+      Australia: '🇦🇺',
+      France: '🇫🇷',
+      Germany: '🇩🇪',
+      Japan: '🇯🇵',
+      China: '🇨🇳',
+      India: '🇮🇳',
+      Brazil: '🇧🇷',
+      Mexico: '🇲🇽',
+      Spain: '🇪🇸',
+      Italy: '🇮🇹',
+      Netherlands: '🇳🇱',
+      Sweden: '🇸🇪',
+      Switzerland: '🇨🇭',
+      Singapore: '🇸🇬',
       'South Korea': '🇰🇷',
-      'Russia': '🇷🇺',
-      'South Africa': '🇿🇦'
+      Russia: '🇷🇺',
+      'South Africa': '🇿🇦',
     };
-    
+
     const flag = marketFlags[market] || '🇺🇸';
     return `${flag} ${market}`;
   };
@@ -87,7 +86,9 @@ const CompanyCreation: React.FC = () => {
         setUsers(data);
       } catch (err) {
         console.error('Failed to fetch users:', err);
-        setError('Failed to load users. You might not be able to associate this company with a user.');
+        setError(
+          'Failed to load users. You might not be able to associate this company with a user.',
+        );
       } finally {
         setLoadingUsers(false);
       }
@@ -108,10 +109,15 @@ const CompanyCreation: React.FC = () => {
     }
 
     try {
-      new URL(url);
+      // If no protocol, add https:// for validation
+      const urlToValidate = (!url.startsWith('http://') && !url.startsWith('https://')) 
+        ? `https://${url}` 
+        : url;
+      
+      new URL(urlToValidate);
       return true;
     } catch (e) {
-      setUrlError('Please enter a valid URL (including http:// or https://)');
+      setUrlError('Please enter a valid URL');
       return false;
     }
   };
@@ -123,7 +129,7 @@ const CompanyCreation: React.FC = () => {
     }
     return true;
   };
-  
+
   const validateMarket = (): boolean => {
     if (!market) {
       setMarketError('Please select a market');
@@ -153,7 +159,9 @@ const CompanyCreation: React.FC = () => {
         setPromptSet(newPromptSet);
         setActiveStep(3);
       } else {
-        setError('Prompt generation timed out. You can still view the company details but may need to wait for prompt generation to complete.');
+        setError(
+          'Prompt generation timed out. You can still view the company details but may need to wait for prompt generation to complete.',
+        );
         setActiveStep(3);
       }
     } catch (err) {
@@ -227,16 +235,11 @@ const CompanyCreation: React.FC = () => {
               value={url}
               onChange={handleUrlChange}
               error={!!urlError}
-              helperText={urlError}
+              helperText={urlError || "Enter the company website URL (e.g., example.com)"}
               sx={{ mb: 2 }}
               disabled={loading}
             />
-            <FormControl 
-              fullWidth 
-              sx={{ mb: 3 }}
-              error={!!marketError}
-              required
-            >
+            <FormControl fullWidth sx={{ mb: 3 }} error={!!marketError} required>
               <InputLabel id="market-select-label">Market</InputLabel>
               <Select
                 labelId="market-select-label"
@@ -270,7 +273,9 @@ const CompanyCreation: React.FC = () => {
                 <MenuItem value="Russia">🇷🇺 Russia</MenuItem>
                 <MenuItem value="South Africa">🇿🇦 South Africa</MenuItem>
               </Select>
-              <FormHelperText>{marketError || "Select the primary geographical market for this company"}</FormHelperText>
+              <FormHelperText>
+                {marketError || 'Select the primary geographical market for this company'}
+              </FormHelperText>
             </FormControl>
 
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -297,16 +302,14 @@ const CompanyCreation: React.FC = () => {
             </Box>
           </Box>
         );
-      
+
       case 1:
       case 2:
         return (
           <Box sx={{ mt: 4, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <CircularProgress size={60} />
             <Typography variant="h6" sx={{ mt: 2 }}>
-              {activeStep === 1 
-                ? 'Creating Company Identity Card...' 
-                : 'Generating Prompt Set...'}
+              {activeStep === 1 ? 'Creating Company Identity Card...' : 'Generating Prompt Set...'}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
               {activeStep === 1
@@ -320,15 +323,11 @@ const CompanyCreation: React.FC = () => {
             )}
           </Box>
         );
-      
+
       case 3:
         return (
           <Box sx={{ mt: 3 }}>
-            <Alert 
-              icon={<CheckCircleIcon fontSize="inherit" />} 
-              severity="success"
-              sx={{ mb: 3 }}
-            >
+            <Alert icon={<CheckCircleIcon fontSize="inherit" />} severity="success" sx={{ mb: 3 }}>
               Company identity card has been created successfully!
             </Alert>
 
@@ -354,25 +353,25 @@ const CompanyCreation: React.FC = () => {
                   <Typography variant="body1" paragraph>
                     {company.shortDescription}
                   </Typography>
-                  
+
                   <Typography variant="subtitle2" gutterBottom>
-                    Key Features:
+                    Key Brand Attributes:
                   </Typography>
                   <Box component="ul" sx={{ pl: 2 }}>
-                    {company.keyFeatures.map((feature, idx) => (
+                    {company.keyBrandAttributes?.map((feature, idx) => (
                       <Typography component="li" key={idx} variant="body2">
                         {feature}
                       </Typography>
                     ))}
                   </Box>
-                  
+
                   {company.competitors.length > 0 && (
                     <>
                       <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
                         Competitors:
                       </Typography>
                       <Box component="ul" sx={{ pl: 2 }}>
-                        {company.competitors.map((competitor, idx) => (
+                        {company.competitors?.map((competitor, idx) => (
                           <Typography component="li" key={idx} variant="body2">
                             {competitor}
                           </Typography>
@@ -385,13 +384,10 @@ const CompanyCreation: React.FC = () => {
             )}
 
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
-              <Button 
-                variant="outlined" 
-                onClick={() => navigate('/companies')}
-              >
+              <Button variant="outlined" onClick={() => navigate('/companies')}>
                 Back to Companies
               </Button>
-              
+
               <Button
                 variant="contained"
                 color="primary"
@@ -403,7 +399,7 @@ const CompanyCreation: React.FC = () => {
             </Box>
           </Box>
         );
-      
+
       default:
         return null;
     }
@@ -414,7 +410,7 @@ const CompanyCreation: React.FC = () => {
       <Typography variant="h4" component="h1" gutterBottom>
         Create New Company
       </Typography>
-      
+
       <Paper elevation={3} sx={{ p: 3, mb: 4 }}>
         <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
           {steps.map((label) => (
@@ -423,10 +419,10 @@ const CompanyCreation: React.FC = () => {
             </Step>
           ))}
         </Stepper>
-        
+
         {renderStep()}
       </Paper>
-      
+
       <Box sx={{ mt: 4 }}>
         <Typography variant="subtitle2" gutterBottom>
           How it works:

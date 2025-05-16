@@ -6,7 +6,7 @@ export interface CompanyIdentityCard {
   market: string;
   shortDescription: string;
   longDescription?: string;
-  keyFeatures: string[];
+  keyBrandAttributes: string[];
   competitors: string[];
   url?: string;
   logo?: string;

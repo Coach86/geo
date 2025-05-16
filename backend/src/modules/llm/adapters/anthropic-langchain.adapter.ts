@@ -96,7 +96,10 @@ export class AnthropicLangChainAdapter implements LlmAdapter {
         'You are a helpful assistant that always responds with structured data.';
 
       // Enhanced prompt with schema instructions
-      const enhancedPrompt = `${prompt}\n\n${formatInstructions}\n\nYour response must conform to the schema defined above. Respond with just the JSON object, no additional text or explanations.`;
+      const enhancedPrompt = `${prompt}
+      ${formatInstructions}
+      ---
+      Your response:`;
 
       this.logger.log(`Calling Anthropic API with model: ${model}`);
 
@@ -112,33 +115,13 @@ export class AnthropicLangChainAdapter implements LlmAdapter {
       const messages = [new SystemMessage(systemMessage), new HumanMessage(enhancedPrompt)];
 
       // Get the response
-      const response = await chatModel.invoke(messages);
-
-      // Parse the response to extract the JSON object
-      const jsonText = response.content.toString();
 
       try {
-        // Use the output parser to parse and validate the response
-        const result = await outputParser.parse(jsonText);
-        return result;
-      } catch (parseError) {
-        this.logger.error(`Failed to parse JSON response: ${parseError.message}`);
-
-        // Try to fix common JSON errors by making a second request
-        const fixingPrompt = `The following JSON is invalid or doesn't match the required schema. Please fix it and return a valid JSON object:\n\n${jsonText}\n\nThe schema is:\n${formatInstructions}`;
-
-        const fixingMessages = [
-          new SystemMessage(
-            'You are a helpful assistant that corrects JSON to match a given schema. Only respond with valid JSON.',
-          ),
-          new HumanMessage(fixingPrompt),
-        ];
-
-        const fixingResponse = await chatModel.invoke(fixingMessages);
-
-        // Try parsing the fixed JSON
-        const fixedJsonText = fixingResponse.content.toString();
-        return await outputParser.parse(fixedJsonText);
+        const response = await chatModel.withStructuredOutput(schema).invoke(messages);
+        return response as T;
+      } catch (error) {
+        this.logger.error(error, `Failed to get structured output: ${error.message}`);
+        throw error;
       }
     } catch (error) {
       this.logger.error(`Error getting structured output: ${error.message}`);

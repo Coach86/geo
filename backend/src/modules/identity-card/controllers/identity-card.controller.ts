@@ -111,9 +111,6 @@ export class IdentityCardController {
     @Param('companyId') companyId: string,
     @Body() updateIdentityCardDto: UpdateIdentityCardDto,
   ): Promise<IdentityCardResponseDto> {
-    if (!updateIdentityCardDto.userId || updateIdentityCardDto.userId === null) {
-      throw new BadRequestException('userId is required');
-    }
     const identityCard = await this.identityCardService.update(companyId, updateIdentityCardDto);
     return this.mapToResponseDto(identityCard);
   }
@@ -143,7 +140,7 @@ export class IdentityCardController {
     response.shortDescription = identityCard.shortDescription;
     response.fullDescription = identityCard.fullDescription;
     response.longDescription = identityCard.fullDescription; // Alias for frontend
-    response.keyFeatures = identityCard.keyFeatures;
+    response.keyBrandAttributes = identityCard.keyBrandAttributes;
     response.competitors = identityCard.competitors;
     response.createdAt = identityCard.updatedAt; // Using updatedAt as createdAt for now
     response.updatedAt = identityCard.updatedAt;

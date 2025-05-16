@@ -3,6 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { ChatPerplexity } from '@langchain/community/chat_models/perplexity';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { LlmAdapter, LlmCallOptions, LlmResponse } from '../interfaces/llm-adapter.interface';
+import { StructuredOutputParser, OutputFixingParser } from 'langchain/output_parsers';
+import { ZodSchema } from 'zod';
 
 @Injectable()
 export class PerplexityAdapter implements LlmAdapter {
@@ -174,6 +176,79 @@ export class PerplexityAdapter implements LlmAdapter {
     } catch (error) {
       this.logger.error(`Error calling Perplexity API: ${error.message}`);
       throw new Error(`Failed to call Perplexity API: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get structured output using a schema
+   * @param prompt The prompt to send
+   * @param schema The zod schema to validate against
+   * @param options Additional options for the call
+   * @returns Structured output conforming to the schema
+   */
+  async getStructuredOutput<T>(
+    prompt: string,
+    schema: ZodSchema<T>,
+    options?: LlmCallOptions,
+  ): Promise<T> {
+    if (!this.isAvailable()) {
+      throw new Error('Perplexity API not available for structured output');
+    }
+
+    try {
+      // Determine the model to use (default or from options)
+      const model = options?.model || 'sonar-pro';
+
+      // Configure Perplexity client with updated options
+      const client = new ChatPerplexity({
+        apiKey: this.apiKey,
+        model: model,
+        temperature: options?.temperature ?? 0.2, // Lower temperature for structured output
+        maxTokens: options?.maxTokens ?? 1000,
+        // topP: options?.topP,
+      });
+
+      // Create a parser based on the schema
+      const parser = StructuredOutputParser.fromZodSchema(schema);
+
+      // Get format instructions
+      const formatInstructions = parser.getFormatInstructions();
+
+      // Create messages array
+      const messages = [];
+
+      // Add system message if provided
+      if (options?.systemPrompt) {
+        messages.push(new SystemMessage(options.systemPrompt));
+      } else {
+        // Default system message for structured output
+        messages.push(
+          new SystemMessage(
+            'You are a helpful assistant that always responds with structured data.',
+          ),
+        );
+      }
+
+      // Add user message with format instructions
+      const userPrompt = `${prompt}
+      ${formatInstructions}
+
+      ---
+      
+      Your response:`;
+      messages.push(new HumanMessage(userPrompt));
+
+      try {
+        const result = await client.withStructuredOutput(schema).invoke(messages);
+        return result as T;
+      } catch (error) {
+        // If parsing fails, try to fix the output
+        this.logger.warn(`Failed to parse structured output, attempting to fix: ${error.message}`);
+        throw error;
+      }
+    } catch (error) {
+      this.logger.error(`Error getting structured output: ${error.message}`);
+      throw new Error(`Failed to get structured output: ${error.message}`);
     }
   }
 

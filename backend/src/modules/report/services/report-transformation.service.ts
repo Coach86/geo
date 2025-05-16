@@ -219,15 +219,15 @@ export class ReportTransformationService {
     }>;
   } {
     // Convert string status to type-safe status
-    const safeSentiments = toneData.sentiments.map(sentiment => ({
+    const safeSentiments = toneData.sentiments.map((sentiment) => ({
       ...sentiment,
       status: this.safeStatusColor(sentiment.status),
     }));
 
     // Convert string status in question results to type-safe status
-    const safeQuestions = toneData.questions.map(question => ({
+    const safeQuestions = toneData.questions.map((question) => ({
       ...question,
-      results: question.results.map(result => ({
+      results: question.results.map((result) => ({
         ...result,
         status: this.safeStatusColor(result.status),
       })),
@@ -289,9 +289,8 @@ export class ReportTransformationService {
         if (r.winner) competitorSet.add(r.winner);
       });
     }
-    const competitorNames = competitorSet.size > 0 
-      ? Array.from(competitorSet) 
-      : (competitors || []).slice(0, 3);
+    const competitorNames =
+      competitorSet.size > 0 ? Array.from(competitorSet) : (competitors || []).slice(0, 3);
 
     if (!competitorNames || competitorNames.length === 0) {
       return {
@@ -307,9 +306,10 @@ export class ReportTransformationService {
         if (r.llmProvider) llmProviderSet.add(r.llmProvider);
       });
     }
-    const llmProviders = llmProviderSet.size > 0 
-      ? Array.from(llmProviderSet) 
-      : ['OpenAI', 'Anthropic', 'Mistral', 'Gemini'];
+    const llmProviders =
+      llmProviderSet.size > 0
+        ? Array.from(llmProviderSet)
+        : ['OpenAI', 'Anthropic', 'Mistral', 'Gemini'];
 
     // Create competitors for arena section
     const formattedCompetitors = competitorNames.map((name, index) => {
@@ -426,8 +426,10 @@ export class ReportTransformationService {
   /**
    * Type safe version of attributes
    */
-  typeSafeAttributes(attributes: Array<{ name: string; rate: string; alignment: string; }>): Array<{ name: string; rate: string; alignment: '✅' | '⚠️' | '❌'; }> {
-    return attributes.map(attr => ({
+  typeSafeAttributes(
+    attributes: Array<{ name: string; rate: string; alignment: string }>,
+  ): Array<{ name: string; rate: string; alignment: '✅' | '⚠️' | '❌' }> {
+    return attributes.map((attr) => ({
       ...attr,
       alignment: this.safeAlignmentIcon(attr.alignment),
     }));
@@ -496,7 +498,7 @@ export class ReportTransformationService {
     };
   } {
     // Convert string size and sentiment to type-safe values
-    const safeCompetitors = arenaData.competitors.map(competitor => ({
+    const safeCompetitors = arenaData.competitors.map((competitor) => ({
       ...competitor,
       size: this.safeSizeValue(competitor.size),
       sentiment: this.safeSentimentValue(competitor.sentiment),
@@ -569,23 +571,26 @@ export class ReportTransformationService {
     if (comparison?.summary?.keyDifferentiators?.length > 0) {
       return comparison.summary.keyDifferentiators.slice(0, 3);
     }
-    
+
     if (defaultCompetitors && defaultCompetitors.length > 0) {
       return defaultCompetitors.slice(0, 3);
     }
-    
+
     return ['Competitor A', 'Competitor B', 'Competitor C'];
   }
 
   /**
    * Helper to generate attributes list for accord section
    */
-  generateAttributesList(sentimentData: any, identityCard?: any): Array<{ name: string; rate: string; alignment: string }> {
+  generateAttributesList(
+    sentimentData: any,
+    identityCard?: any,
+  ): Array<{ name: string; rate: string; alignment: string }> {
     // If we have brand attributes from identity card, use those
-    if (identityCard?.keyFeatures && identityCard.keyFeatures.length > 0) {
-      return identityCard.keyFeatures.map((feature: string, index: number) => {
+    if (identityCard?.keyBrandAttributes && identityCard.keyBrandAttributes.length > 0) {
+      return identityCard.keyBrandAttributes.map((feature: string, index: number) => {
         // Generate a fake score based on index (higher for first features)
-        const score = Math.round(80 - (index * 10));
+        const score = Math.round(80 - index * 10);
         return {
           name: feature,
           rate: `${score}%`,
@@ -593,7 +598,7 @@ export class ReportTransformationService {
         };
       });
     }
-    
+
     // Otherwise, create default attributes
     return [
       { name: 'Innovation', rate: '82%', alignment: '✅' },

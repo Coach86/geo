@@ -11,7 +11,7 @@ import {
   ListItemIcon,
   ListItemText,
   Divider,
-  Grid
+  Grid,
 } from '@mui/material';
 import StarIcon from '@mui/icons-material/Star';
 import GroupIcon from '@mui/icons-material/Group';
@@ -24,34 +24,36 @@ interface OverviewTabProps {
 }
 
 const OverviewTab: React.FC<OverviewTabProps> = ({ company }) => {
-  const [keyFeatures, setKeyFeatures] = useState<string[]>(company.keyFeatures);
+  const [keyBrandAttributes, setKeyBrandAttributes] = useState<string[]>(
+    company.keyBrandAttributes,
+  );
   const [competitors, setCompetitors] = useState<string[]>(company.competitors);
-  
+
   // Helper function to get flag emoji for market
   const getMarketWithFlag = (market: string): string => {
     const marketFlags: Record<string, string> = {
       'United States': '🇺🇸',
       'United Kingdom': '🇬🇧',
-      'Canada': '🇨🇦',
-      'Australia': '🇦🇺',
-      'France': '🇫🇷',
-      'Germany': '🇩🇪',
-      'Japan': '🇯🇵',
-      'China': '🇨🇳',
-      'India': '🇮🇳',
-      'Brazil': '🇧🇷',
-      'Mexico': '🇲🇽',
-      'Spain': '🇪🇸',
-      'Italy': '🇮🇹',
-      'Netherlands': '🇳🇱',
-      'Sweden': '🇸🇪',
-      'Switzerland': '🇨🇭',
-      'Singapore': '🇸🇬',
+      Canada: '🇨🇦',
+      Australia: '🇦🇺',
+      France: '🇫🇷',
+      Germany: '🇩🇪',
+      Japan: '🇯🇵',
+      China: '🇨🇳',
+      India: '🇮🇳',
+      Brazil: '🇧🇷',
+      Mexico: '🇲🇽',
+      Spain: '🇪🇸',
+      Italy: '🇮🇹',
+      Netherlands: '🇳🇱',
+      Sweden: '🇸🇪',
+      Switzerland: '🇨🇭',
+      Singapore: '🇸🇬',
       'South Korea': '🇰🇷',
-      'Russia': '🇷🇺',
-      'South Africa': '🇿🇦'
+      Russia: '🇷🇺',
+      'South Africa': '🇿🇦',
     };
-    
+
     const flag = marketFlags[market] || '🇺🇸';
     return `${flag} ${market}`;
   };
@@ -63,11 +65,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ company }) => {
             <Typography variant="h6" gutterBottom>
               Description
             </Typography>
-            <Chip 
-              label={getMarketWithFlag(company.market)} 
-              variant="outlined" 
-              size="small" 
-            />
+            <Chip label={getMarketWithFlag(company.market)} variant="outlined" size="small" />
           </Box>
           <Typography variant="body1" paragraph>
             {company.longDescription || company.shortDescription}
@@ -80,8 +78,8 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ company }) => {
           <CardContent>
             <EditableKeyFeatures
               companyId={company.id}
-              keyFeatures={keyFeatures}
-              onUpdate={setKeyFeatures}
+              keyBrandAttributes={keyBrandAttributes}
+              onUpdate={setKeyBrandAttributes}
             />
           </CardContent>
         </Card>

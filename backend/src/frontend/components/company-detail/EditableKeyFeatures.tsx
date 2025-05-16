@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Tooltip
+  Tooltip,
 } from '@mui/material';
 import StarIcon from '@mui/icons-material/Star';
 import EditIcon from '@mui/icons-material/Edit';
@@ -25,46 +25,48 @@ import { updateCompanyDetails } from '../../utils/api';
 
 interface EditableKeyFeaturesProps {
   companyId: string;
-  keyFeatures: string[];
+  keyBrandAttributes?: string[];
   onUpdate: (newKeyFeatures: string[]) => void;
 }
 
-const EditableKeyFeatures: React.FC<EditableKeyFeaturesProps> = ({ 
-  companyId, 
-  keyFeatures, 
-  onUpdate 
+const EditableKeyFeatures: React.FC<EditableKeyFeaturesProps> = ({
+  companyId,
+  keyBrandAttributes,
+  onUpdate,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [editedFeatures, setEditedFeatures] = useState<string[]>([...keyFeatures]);
+  const [editedFeatures, setEditedFeatures] = useState<string[]>(
+    keyBrandAttributes ? [...keyBrandAttributes] : [],
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const handleStartEdit = () => {
-    setEditedFeatures([...keyFeatures]);
+    setEditedFeatures(keyBrandAttributes ? [...keyBrandAttributes] : []);
     setIsEditing(true);
   };
-  
+
   const handleCancel = () => {
     setIsEditing(false);
     setError(null);
   };
-  
+
   const handleSave = async () => {
     try {
       setSaving(true);
       setError(null);
-      
+
       // Filter out empty features
-      const filteredFeatures = editedFeatures.filter(f => f.trim() !== '');
-      
+      const filteredFeatures = editedFeatures.filter((f) => f.trim() !== '');
+
       // Update the company details
       const updatedCompany = await updateCompanyDetails(companyId, {
-        keyFeatures: filteredFeatures
+        keyBrandAttributes: filteredFeatures,
       });
-      
+
       // Call the onUpdate callback with the new features
-      onUpdate(updatedCompany.keyFeatures);
-      
+      onUpdate(updatedCompany.keyBrandAttributes);
+
       // Exit edit mode
       setIsEditing(false);
     } catch (err) {
@@ -74,23 +76,23 @@ const EditableKeyFeatures: React.FC<EditableKeyFeaturesProps> = ({
       setSaving(false);
     }
   };
-  
+
   const handleChange = (index: number, value: string) => {
     const newFeatures = [...editedFeatures];
     newFeatures[index] = value;
     setEditedFeatures(newFeatures);
   };
-  
+
   const handleDelete = (index: number) => {
     const newFeatures = [...editedFeatures];
     newFeatures.splice(index, 1);
     setEditedFeatures(newFeatures);
   };
-  
+
   const handleAddNew = () => {
     setEditedFeatures([...editedFeatures, '']);
   };
-  
+
   // Render the view mode
   if (!isEditing) {
     return (
@@ -98,9 +100,9 @@ const EditableKeyFeatures: React.FC<EditableKeyFeaturesProps> = ({
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
           <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}>
             <StarIcon color="primary" sx={{ mr: 1 }} />
-            Key Features
+            Key Brand Attributes
           </Typography>
-          <Tooltip title="Edit key features">
+          <Tooltip title="Edit key brand attributes">
             <IconButton onClick={handleStartEdit} color="primary" size="small">
               <EditIcon />
             </IconButton>
@@ -108,7 +110,7 @@ const EditableKeyFeatures: React.FC<EditableKeyFeaturesProps> = ({
         </Box>
         <Divider sx={{ mb: 2 }} />
         <List>
-          {keyFeatures.map((feature, index) => (
+          {keyBrandAttributes?.map((feature, index) => (
             <ListItem key={index} disablePadding sx={{ py: 0.5 }}>
               <ListItemIcon sx={{ minWidth: 36 }}>
                 <StarIcon fontSize="small" color="primary" />
@@ -117,7 +119,7 @@ const EditableKeyFeatures: React.FC<EditableKeyFeaturesProps> = ({
             </ListItem>
           ))}
         </List>
-        {keyFeatures.length === 0 && (
+        {keyBrandAttributes?.length === 0 && (
           <Typography variant="body2" color="text.secondary">
             No key features specified. Click the edit button to add features.
           </Typography>
@@ -125,13 +127,11 @@ const EditableKeyFeatures: React.FC<EditableKeyFeaturesProps> = ({
       </>
     );
   }
-  
+
   // Render the edit mode
   return (
     <Dialog open={isEditing} onClose={handleCancel} fullWidth maxWidth="sm">
-      <DialogTitle>
-        Edit Key Features
-      </DialogTitle>
+      <DialogTitle>Edit Key Features</DialogTitle>
       <DialogContent>
         {error && (
           <Typography color="error" variant="body2" sx={{ mb: 2 }}>
@@ -158,12 +158,7 @@ const EditableKeyFeatures: React.FC<EditableKeyFeaturesProps> = ({
             </ListItem>
           ))}
         </List>
-        <Button 
-          startIcon={<AddIcon />} 
-          onClick={handleAddNew} 
-          color="primary" 
-          sx={{ mt: 1 }}
-        >
+        <Button startIcon={<AddIcon />} onClick={handleAddNew} color="primary" sx={{ mt: 1 }}>
           Add Feature
         </Button>
       </DialogContent>
@@ -171,12 +166,7 @@ const EditableKeyFeatures: React.FC<EditableKeyFeaturesProps> = ({
         <Button onClick={handleCancel} disabled={saving}>
           Cancel
         </Button>
-        <Button 
-          onClick={handleSave} 
-          color="primary" 
-          startIcon={<SaveIcon />} 
-          disabled={saving}
-        >
+        <Button onClick={handleSave} color="primary" startIcon={<SaveIcon />} disabled={saving}>
           {saving ? 'Saving...' : 'Save Changes'}
         </Button>
       </DialogActions>

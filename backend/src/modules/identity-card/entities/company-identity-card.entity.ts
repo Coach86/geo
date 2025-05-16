@@ -25,7 +25,7 @@ export class CompanyIdentityCard {
   fullDescription: string;
 
   @ApiProperty({ description: 'List of key features or offerings of the company', type: [String] })
-  keyFeatures: string[];
+  keyBrandAttributes: string[];
 
   @ApiProperty({ description: 'List of competitors', type: [String] })
   competitors: string[];

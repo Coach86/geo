@@ -10,7 +10,7 @@ export class UpdateIdentityCardDto {
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
-  keyFeatures?: string[];
+  keyBrandAttributes?: string[];
 
   @ApiProperty({
     description: 'Competitors of the company',
@@ -21,7 +21,7 @@ export class UpdateIdentityCardDto {
   @IsString({ each: true })
   @IsOptional()
   competitors?: string[];
-  
+
   @ApiProperty({
     description: 'Geographical market the company operates in',
     example: 'US',
@@ -30,14 +30,4 @@ export class UpdateIdentityCardDto {
   @IsString()
   @IsOptional()
   market?: string;
-
-  @ApiPropertyOptional({
-    description: 'ID of the user who owns this company. Use null to remove user association.',
-    example: 'user-uuid-1234',
-    nullable: true,
-    required: false,
-  })
-  @IsString()
-  @IsOptional()
-  userId?: string;
 }

@@ -10,8 +10,8 @@ export type IdentityCardDocument = IdentityCard & Document;
   timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' }, // Explicitly name timestamp fields
 })
 export class IdentityCard {
-  @Prop({ 
-    type: String, 
+  @Prop({
+    type: String,
     default: () => uuidv4(),
     index: true,
   })
@@ -38,29 +38,29 @@ export class IdentityCard {
   @Prop({
     type: [String],
     required: true,
-    default: []
+    default: [],
   })
-  keyFeatures: string[];
+  keyBrandAttributes: string[];
 
   @Prop({
     type: [String],
     required: true,
-    default: []
+    default: [],
   })
   competitors: string[];
 
-  @Prop({ 
-    type: Object, 
-    default: {} 
+  @Prop({
+    type: Object,
+    default: {},
   })
   data: Record<string, any>;
 
   @Prop({ type: MongooseSchema.Types.String, ref: 'User' })
   userId: string;
-  
+
   @Prop({ type: Date })
   createdAt: Date;
-  
+
   @Prop({ type: Date })
   updatedAt: Date;
 }
