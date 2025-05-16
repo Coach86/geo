@@ -41,7 +41,7 @@ export const competitorsSummarySchema = z.object({
 /**
  * Default LLM provider to use for identity card analysis
  */
-export const DEFAULT_IDENTITY_CARD_LLM_PROVIDER = LlmProvider.Anthropic;
+export const DEFAULT_IDENTITY_CARD_LLM_PROVIDER = LlmProvider.Perplexity;
 
 /**
  * Default LLM provider to use for competitors analysis

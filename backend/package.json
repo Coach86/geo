@@ -42,6 +42,7 @@
     "@langchain/community": "^0.3.43",
     "@langchain/core": "^0.3.56",
     "@langchain/google-genai": "^0.2.9",
+    "@langchain/langgraph": "^0.2.72",
     "@langchain/mistralai": "^0.2.0",
     "@langchain/openai": "^0.5.10",
     "@mui/icons-material": "^7.1.0",
