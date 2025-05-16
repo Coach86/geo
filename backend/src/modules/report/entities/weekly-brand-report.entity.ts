@@ -184,7 +184,4 @@ export class WeeklyBrandReport {
 
   @ApiProperty({ description: 'Model identifiers for each LLM used' })
   llmVersions?: Record<string, string>;
-
-  @ApiProperty({ description: 'User ID who generated the report' })
-  userId: string;
 }

@@ -33,8 +33,19 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import HistoryIcon from '@mui/icons-material/History';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EmailIcon from '@mui/icons-material/Email';
-import { getCompanyById, getPromptSet, runFullBatchAnalysis, deleteCompany, runBatchWithEmailNotification } from '../utils/api';
-import { runSpontaneousPipeline, runSentimentPipeline, runComparisonPipeline, getBatchExecution } from '../utils/api-batch';
+import {
+  getCompanyById,
+  getPromptSet,
+  runFullBatchAnalysis,
+  deleteCompany,
+  runBatchWithEmailNotification,
+} from '../utils/api';
+import {
+  runSpontaneousPipeline,
+  runSentimentPipeline,
+  runComparisonPipeline,
+  getBatchExecution,
+} from '../utils/api-batch';
 import authApi from '../utils/auth';
 import BatchProcessingOverlay, { BatchProcessStage } from '../components/BatchProcessingOverlay';
 import {
@@ -87,6 +98,11 @@ const CompanyDetail: React.FC = () => {
   const [batchProgress, setBatchProgress] = useState(0);
   const [batchError, setBatchError] = useState<string | undefined>(undefined);
 
+  // Add batchType state
+  const [batchType, setBatchType] = useState<'full' | 'spontaneous' | 'sentiment' | 'comparison'>(
+    'full',
+  );
+
   // Initialize tab from URL search params
   useEffect(() => {
     const tab = searchParams.get('tab');
@@ -132,6 +148,7 @@ const CompanyDetail: React.FC = () => {
 
   const handleRunBatchAnalysis = async () => {
     if (!id) return;
+    setBatchType('full'); // Set batch type
 
     try {
       // Initialize batch processing
@@ -147,67 +164,89 @@ const CompanyDetail: React.FC = () => {
 
         // Start the batch process and get the batch ID
         const response = await authApi.post(`/batch/process/${id}`);
-        
+
         if (!response.data.success) {
           throw new Error(response.data.error || 'Failed to run batch analysis');
         }
-        
+
         const batchExecutionId = response.data.batchExecutionId;
-        
+
         // Set progress to show we're polling
         setBatchProgress(30);
-        
+
         // Poll for completion with progress updates
         let pollCount = 0;
         const maxPolls = 30; // 5 minutes with 10-second interval
         const pollInterval = 10000; // 10 seconds
-        
+
         const pollForResults = async () => {
           const intervalId = setInterval(async () => {
             try {
               // Update progress to show polling activity
               setBatchProgress(30 + Math.min(50 * (pollCount / maxPolls), 50)); // Progress from 30% to 80%
-              
+
               // Get batch execution status
               const batchExecution = await getBatchExecution(batchExecutionId);
-              
+
               // If completed or failed, clear interval and proceed
               if (batchExecution.status === 'completed' || batchExecution.status === 'failed') {
                 clearInterval(intervalId);
-                
+
                 if (batchExecution.status === 'failed') {
                   throw new Error('Batch execution failed');
                 }
-                
+
                 // Parse the results
-                const spontaneousResult = batchExecution.finalResults.find((r: any) => r.resultType === 'spontaneous');
-                const sentimentResult = batchExecution.finalResults.find((r: any) => r.resultType === 'sentiment');
-                const comparisonResult = batchExecution.finalResults.find((r: any) => r.resultType === 'comparison');
-                
-                if (!spontaneousResult || !sentimentResult || !comparisonResult) {
-                  throw new Error('Missing batch results. Not all pipeline results are available.');
+                const spontaneousResult = batchExecution.finalResults.find(
+                  (r: any) => r.resultType === 'spontaneous',
+                );
+                const sentimentResult = batchExecution.finalResults.find(
+                  (r: any) => r.resultType === 'sentiment',
+                );
+                const comparisonResult = batchExecution.finalResults.find(
+                  (r: any) => r.resultType === 'comparison',
+                );
+
+                if (batchType === 'full') {
+                  if (!spontaneousResult || !sentimentResult || !comparisonResult) {
+                    throw new Error(
+                      'Missing batch results. Not all pipeline results are available.',
+                    );
+                  }
+                } else if (batchType === 'spontaneous' && !spontaneousResult) {
+                  throw new Error('Spontaneous analysis failed.');
+                } else if (batchType === 'sentiment' && !sentimentResult) {
+                  throw new Error('Sentiment analysis failed.');
+                } else if (batchType === 'comparison' && !comparisonResult) {
+                  throw new Error('Comparison analysis failed.');
                 }
-                
-                // Update UI state with results
-                setSpontaneousResults(JSON.parse(spontaneousResult.result));
-                setSentimentResults(JSON.parse(sentimentResult.result));
-                setComparisonResults(JSON.parse(comparisonResult.result));
-                
+
+                // Only parse and set results if present
+                if (spontaneousResult) {
+                  setSpontaneousResults(JSON.parse(spontaneousResult.result));
+                }
+                if (sentimentResult) {
+                  setSentimentResults(JSON.parse(sentimentResult.result));
+                }
+                if (comparisonResult) {
+                  setComparisonResults(JSON.parse(comparisonResult.result));
+                }
+
                 // Finalize
                 setBatchStage('finalizing');
                 setBatchProgress(90);
-                
+
                 // Complete
                 setTimeout(() => {
                   setBatchStage('completed');
                   setBatchProgress(100);
-                  
+
                   // Switch to batches tab after completion
                   setCurrentTab(TabValue.BATCHES);
                   setSearchParams({ tab: TabValue.BATCHES });
                 }, 500);
               }
-              
+
               pollCount++;
               if (pollCount >= maxPolls) {
                 clearInterval(intervalId);
@@ -217,14 +256,15 @@ const CompanyDetail: React.FC = () => {
               clearInterval(intervalId);
               console.error('Polling error:', error);
               setBatchStage('error');
-              setBatchError('Failed to complete the batch analysis. Please check the batch status later.');
+              setBatchError(
+                'Failed to complete the batch analysis. Please check the batch status later.',
+              );
             }
           }, pollInterval);
         };
-        
+
         // Start polling
         pollForResults();
-        
       } catch (error) {
         console.error('Failed to run batch analysis:', error);
         setBatchStage('error');
@@ -236,9 +276,10 @@ const CompanyDetail: React.FC = () => {
       setBatchError('Failed to complete the batch analysis. Please try again later.');
     }
   };
-  
+
   const handleRunBatchWithEmail = async () => {
     if (!id) return;
+    setBatchType('full'); // Set batch type
 
     try {
       // Initialize batch processing
@@ -251,10 +292,10 @@ const CompanyDetail: React.FC = () => {
         // Run orchestrated batch with email notification
         setBatchStage('email-notification');
         setBatchProgress(30);
-        
+
         // This call runs all pipelines, creates a report, and sends an email notification
         const result = await runBatchWithEmailNotification(id);
-        
+
         if (!result.success) {
           throw new Error(result.message || 'Failed to complete the batch process');
         }
@@ -294,14 +335,14 @@ const CompanyDetail: React.FC = () => {
     setCurrentTab(TabValue.BATCHES);
     setSearchParams({ tab: TabValue.BATCHES });
   };
-  
+
   const handleDeleteClick = () => {
     setDeleteDialogOpen(true);
   };
-  
+
   const handleDeleteConfirm = async () => {
     if (!id) return;
-    
+
     try {
       setIsDeleting(true);
       await deleteCompany(id);
@@ -316,8 +357,9 @@ const CompanyDetail: React.FC = () => {
     }
   };
 
-  const handleRunSingleBatch = async (batchType: 'spontaneous' | 'sentiment' | 'comparison') => {
+  const handleRunSingleBatch = async (type: 'spontaneous' | 'sentiment' | 'comparison') => {
     if (!id) return;
+    setBatchType(type); // Set batch type
 
     try {
       // Initialize batch processing
@@ -330,11 +372,11 @@ const CompanyDetail: React.FC = () => {
         // Indicate we're starting the pipeline
         setBatchStage('processing');
         setBatchProgress(20);
-        
+
         // Start the appropriate pipeline (will poll internally)
         // The frontend API functions now handle the polling internally
         let result;
-        
+
         // Show polling progress while waiting
         // Create a progress interval for visual feedback
         const progressInterval = setInterval(() => {
@@ -343,9 +385,9 @@ const CompanyDetail: React.FC = () => {
             return prev < 80 ? prev + 1 : prev;
           });
         }, 1000); // Update every second
-        
+
         try {
-          switch (batchType) {
+          switch (type) {
             case 'spontaneous':
               result = await runSpontaneousPipeline(id);
               setSpontaneousResults(result);
@@ -359,19 +401,19 @@ const CompanyDetail: React.FC = () => {
               setComparisonResults(result);
               break;
           }
-          
+
           // Clear the progress interval
           clearInterval(progressInterval);
-          
+
           // Finalize
           setBatchStage('finalizing');
           setBatchProgress(90);
-  
+
           // Complete
           setTimeout(() => {
             setBatchStage('completed');
             setBatchProgress(100);
-  
+
             // Switch to batches tab after completion
             setCurrentTab(TabValue.BATCHES);
             setSearchParams({ tab: TabValue.BATCHES });
@@ -382,14 +424,14 @@ const CompanyDetail: React.FC = () => {
           throw error;
         }
       } catch (error) {
-        console.error(`Failed to run ${batchType} batch:`, error);
+        console.error(`Failed to run ${type} batch:`, error);
         setBatchStage('error');
-        setBatchError(`Failed to complete the ${batchType} analysis. Please try again later.`);
+        setBatchError(`Failed to complete the ${type} analysis. Please try again later.`);
       }
     } catch (err) {
-      console.error(`Failed to run ${batchType} batch:`, err);
+      console.error(`Failed to run ${type} batch:`, err);
       setBatchStage('error');
-      setBatchError(`Failed to complete the ${batchType} analysis. Please try again later.`);
+      setBatchError(`Failed to complete the ${type} analysis. Please try again later.`);
     }
   };
 
@@ -474,7 +516,7 @@ const CompanyDetail: React.FC = () => {
               >
                 {hasAllResults ? 'Refresh Analysis' : 'Run Analysis'}
               </Button>
-              
+
               <Button
                 variant="contained"
                 color="secondary"
@@ -502,7 +544,7 @@ const CompanyDetail: React.FC = () => {
         error={batchError}
         onClose={handleBatchCompleted}
       />
-      
+
       {/* Delete Confirmation Dialog */}
       <Dialog
         open={deleteDialogOpen}
@@ -512,21 +554,17 @@ const CompanyDetail: React.FC = () => {
         <DialogTitle id="delete-company-dialog-title">Delete {company.brandName}?</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to delete {company.brandName}? This action cannot be undone 
-            and will remove all associated data including batch results, reports, and prompt sets.
+            Are you sure you want to delete {company.brandName}? This action cannot be undone and
+            will remove all associated data including batch results, reports, and prompt sets.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button 
-            onClick={() => setDeleteDialogOpen(false)} 
-            color="primary"
-            disabled={isDeleting}
-          >
+          <Button onClick={() => setDeleteDialogOpen(false)} color="primary" disabled={isDeleting}>
             Cancel
           </Button>
-          <Button 
-            onClick={handleDeleteConfirm} 
-            color="error" 
+          <Button
+            onClick={handleDeleteConfirm}
+            color="error"
             variant="contained"
             startIcon={<DeleteIcon />}
             disabled={isDeleting}
@@ -540,25 +578,16 @@ const CompanyDetail: React.FC = () => {
         <Typography variant="h4" component="h1" gutterBottom>
           {company.brandName}
         </Typography>
-        
+
         <Tooltip title="Delete company">
-          <IconButton 
-            color="error" 
-            onClick={handleDeleteClick}
-            aria-label="delete company"
-          >
+          <IconButton color="error" onClick={handleDeleteClick} aria-label="delete company">
             <DeleteIcon />
           </IconButton>
         </Tooltip>
       </Box>
 
       <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-        <Chip
-          icon={<CategoryIcon />}
-          label={company.industry}
-          color="primary"
-          variant="outlined"
-        />
+        <Chip icon={<CategoryIcon />} label={company.industry} color="primary" variant="outlined" />
         {company.competitors.length > 0 && (
           <Chip
             icon={<GroupIcon />}
@@ -629,12 +658,9 @@ const CompanyDetail: React.FC = () => {
               onRunSingleBatch={handleRunSingleBatch}
             />
           )}
-          
+
           {currentTab === TabValue.REPORTS && id && (
-            <ReportsTab
-              companyId={id}
-              userEmail={company?.userEmail}
-            />
+            <ReportsTab companyId={id} userEmail={company?.userEmail} />
           )}
 
           {currentTab === TabValue.SPONTANEOUS &&

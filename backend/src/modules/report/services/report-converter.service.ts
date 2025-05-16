@@ -80,7 +80,6 @@ export class ReportConverterService {
     return {
       // Base fields
       id: '', // This will be set by the persistence layer
-      userId: identityCard.userId,
       companyId: input.companyId,
       weekStart: input.weekStart,
       generatedAt: input.generatedAt || new Date(),
