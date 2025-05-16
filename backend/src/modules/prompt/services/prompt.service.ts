@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { spontaneousSystemPrompt, spontaneousUserPrompt } from './spontaneous-prompts';
 import { directSystemPrompt, directUserPrompt } from './direct-prompts';
 import { comparisonSystemPrompt, comparisonUserPrompt } from './comparison-prompts';
+import { accuracySystemPrompt, accuracyUserPrompt } from './accuracy-prompts';
 import { CompanyIdentityCard } from '../../identity-card/entities/company-identity-card.entity';
 import { PromptSet, PromptSetDocument } from '../schemas/prompt-set.schema';
 import {
@@ -23,6 +24,7 @@ export class PromptService implements OnModuleInit {
   private spontPromptCount: number;
   private directPromptCount: number;
   private comparisonPromptCount: number;
+  private accuracyPromptCount: number;
 
   constructor(
     @InjectModel(PromptSet.name) private promptSetModel: Model<PromptSetDocument>,
@@ -36,9 +38,11 @@ export class PromptService implements OnModuleInit {
     this.spontPromptCount = this.configService.get<number>('SPONT_PROMPTS', 15);
     this.directPromptCount = this.configService.get<number>('DIRECT_PROMPTS', 3);
     this.comparisonPromptCount = this.configService.get<number>('COMP_PROMPTS', 5);
+    this.accuracyPromptCount = this.configService.get<number>('ACCURACY_PROMPTS', 3);
 
     this.logger.log(
-      `Initialized with ${this.spontPromptCount} spontaneous prompts, ${this.directPromptCount} direct prompts, ${this.comparisonPromptCount} comparison prompts`,
+      `Initialized with ${this.spontPromptCount} spontaneous prompts, ${this.directPromptCount} direct prompts, ` +
+      `${this.comparisonPromptCount} comparison prompts, ${this.accuracyPromptCount} accuracy prompts`,
     );
   }
 
@@ -95,6 +99,7 @@ export class PromptService implements OnModuleInit {
         spontaneous: promptSet.spontaneous,
         direct: promptSet.direct,
         comparison: promptSet.comparison,
+        accuracy: promptSet.accuracy,
       });
 
       await newPromptSet.save();
@@ -121,7 +126,7 @@ export class PromptService implements OnModuleInit {
     const websiteUrl = company.website;
     const market = company.market;
     // Generate all prompts using LLM
-    const [spontaneous, direct, comparison] = await Promise.all([
+    const [spontaneous, direct, comparison, accuracy] = await Promise.all([
       this.generateSpontaneousPrompts(
         websiteUrl,
         industry,
@@ -139,9 +144,10 @@ export class PromptService implements OnModuleInit {
         market,
         this.comparisonPromptCount,
       ),
+      this.generateAccuracyPrompts(brandName, market, this.accuracyPromptCount),
     ]);
 
-    return { spontaneous, direct, comparison };
+    return { spontaneous, direct, comparison, accuracy };
   }
 
   private async generateSpontaneousPrompts(
@@ -225,6 +231,38 @@ export class PromptService implements OnModuleInit {
   }
 
   /**
+   * Generate accuracy evaluation prompts for a brand
+   * @param brandName Company brand name
+   * @param market Market where the company operates
+   * @param count Number of prompts to generate
+   * @returns Array of accuracy evaluation prompts
+   */
+  private async generateAccuracyPrompts(
+    brandName: string,
+    market: string,
+    count: number,
+  ): Promise<string[]> {
+    // Define our schema for the LLM output
+    const promptsSchema = z.object({
+      prompts: z.array(z.string()),
+    });
+
+    // Call LLM with structured output processing
+    const result = await this.llmService.getStructuredOutput(
+      LlmProvider.OpenAI,
+      accuracyUserPrompt({
+        market,
+        brandName,
+        count,
+      }),
+      promptsSchema,
+      { systemPrompt: accuracySystemPrompt },
+    );
+
+    return result.prompts;
+  }
+
+  /**
    * Update prompt set for a company
    * @param companyId - ID of the company
    * @param updatedPrompts - Object containing the updated prompts
@@ -236,6 +274,7 @@ export class PromptService implements OnModuleInit {
       spontaneous?: string[];
       direct?: string[];
       comparison?: string[];
+      accuracy?: string[];
     },
   ) {
     this.logger.log(`Updating prompts for company: ${companyId}`);
@@ -264,6 +303,10 @@ export class PromptService implements OnModuleInit {
         updateData.comparison = updatedPrompts.comparison;
       }
 
+      if (updatedPrompts.accuracy !== undefined) {
+        updateData.accuracy = updatedPrompts.accuracy;
+      }
+
       // Only update if there are changes
       if (Object.keys(updateData).length === 0) {
         return {
@@ -272,6 +315,7 @@ export class PromptService implements OnModuleInit {
           spontaneous: existingPromptSet.spontaneous,
           direct: existingPromptSet.direct,
           comparison: existingPromptSet.comparison,
+          accuracy: existingPromptSet.accuracy,
           updatedAt:
             existingPromptSet.updatedAt instanceof Date ? existingPromptSet.updatedAt : new Date(),
           createdAt:
@@ -301,6 +345,7 @@ export class PromptService implements OnModuleInit {
         spontaneous: updatedPromptSet.spontaneous,
         direct: updatedPromptSet.direct,
         comparison: updatedPromptSet.comparison,
+        accuracy: updatedPromptSet.accuracy,
         updatedAt:
           updatedPromptSet.updatedAt instanceof Date ? updatedPromptSet.updatedAt : new Date(),
         createdAt:
@@ -362,6 +407,7 @@ export class PromptService implements OnModuleInit {
                 spontaneous: promptSet.spontaneous,
                 direct: promptSet.direct,
                 comparison: promptSet.comparison,
+                accuracy: promptSet.accuracy,
               },
             },
             { new: true }, // Return the updated document
@@ -381,6 +427,7 @@ export class PromptService implements OnModuleInit {
           spontaneous: promptSet.spontaneous,
           direct: promptSet.direct,
           comparison: promptSet.comparison,
+          accuracy: promptSet.accuracy,
         });
 
         result = await newPromptSet.save();
@@ -393,6 +440,7 @@ export class PromptService implements OnModuleInit {
         spontaneous: result.spontaneous,
         direct: result.direct,
         comparison: result.comparison,
+        accuracy: result.accuracy,
         updatedAt: result.updatedAt instanceof Date ? result.updatedAt : new Date(),
         createdAt: result.createdAt instanceof Date ? result.createdAt : new Date(),
       };

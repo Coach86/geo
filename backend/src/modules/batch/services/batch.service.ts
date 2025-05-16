@@ -13,16 +13,17 @@ import { PromptSet, PromptSetDocument } from '../../prompt/schemas/prompt-set.sc
 import { LlmService } from '../../llm/services/llm.service';
 import { ReportService } from '../../report/services/report.service';
 import { BatchReportInput } from '../../report/interfaces/report-input.interfaces';
-import { RawResponseService } from '../../report/services/raw-response.service';
+import { RawResponseService } from './raw-response.service';
 import { SpontaneousPipelineService } from './spontaneous-pipeline.service';
 import { SentimentPipelineService } from './sentiment-pipeline.service';
+import { AccuracyPipelineService } from './accuracy-pipeline.service';
 import { ComparisonPipelineService } from './comparison-pipeline.service';
 import { BatchExecutionService } from './batch-execution.service';
 import { CompanyBatchContext } from '../interfaces/batch.interfaces';
 import { CompanyIdentityCard } from '../../identity-card/entities/company-identity-card.entity';
 import { OnEvent } from '@nestjs/event-emitter';
 import { BatchExecution, BatchExecutionDocument } from '../schemas/batch-execution.schema';
-import { RawResponse, RawResponseDocument } from '../../report/schemas/raw-response.schema';
+import { RawResponse, RawResponseDocument } from '../schemas/raw-response.schema';
 import { BatchResult, BatchResultDocument } from '../schemas/batch-result.schema';
 
 @Injectable()
@@ -39,6 +40,7 @@ export class BatchService {
     private readonly batchExecutionService: BatchExecutionService,
     private readonly spontaneousPipelineService: SpontaneousPipelineService,
     private readonly sentimentPipelineService: SentimentPipelineService,
+    private readonly accuracyPipelineService: AccuracyPipelineService,
     private readonly comparisonPipelineService: ComparisonPipelineService,
     @InjectModel(BatchExecution.name) private batchExecutionModel: Model<BatchExecutionDocument>,
     @InjectModel(RawResponse.name) private rawResponseModel: Model<RawResponseDocument>,
@@ -184,7 +186,7 @@ export class BatchService {
    * @param context Company context
    */
   async runPipeline(
-    pipelineType: 'spontaneous' | 'sentiment' | 'comparison',
+    pipelineType: 'spontaneous' | 'sentiment' | 'accuracy' | 'comparison',
     context: CompanyBatchContext,
   ) {
     this.logger.log(
@@ -201,6 +203,9 @@ export class BatchService {
           break;
         case 'sentiment':
           result = await this.sentimentPipelineService.run(context);
+          break;
+        case 'accuracy':
+          result = await this.accuracyPipelineService.run(context);
           break;
         case 'comparison':
           result = await this.comparisonPipelineService.run(context);
@@ -238,6 +243,15 @@ export class BatchService {
   }
 
   /**
+   * Run the accuracy pipeline for a company
+   * @param context Company batch context
+   * @returns Pipeline results
+   */
+  async runAccuracyPipeline(context: CompanyBatchContext) {
+    return this.runPipeline('accuracy', context);
+  }
+
+  /**
    * Run the comparison pipeline for a company
    * @param context Company batch context
    * @returns Pipeline results
@@ -269,10 +283,11 @@ export class BatchService {
       // Inject the batchExecutionId into the context
       const contextWithBatchExecId = { ...context, batchExecutionId };
 
-      // Run the three pipelines in parallel
-      const [spontaneousResults, sentimentResults, comparisonResults] = await Promise.all([
+      // Run all four pipelines in parallel
+      const [spontaneousResults, sentimentResults, accuracyResults, comparisonResults] = await Promise.all([
         this.spontaneousPipelineService.run(contextWithBatchExecId),
         this.sentimentPipelineService.run(contextWithBatchExecId),
+        this.accuracyPipelineService.run(contextWithBatchExecId),
         this.comparisonPipelineService.run(contextWithBatchExecId),
       ]);
 
@@ -280,6 +295,7 @@ export class BatchService {
       const llmVersions = this.getLlmVersions([
         ...spontaneousResults.results,
         ...sentimentResults.results,
+        ...accuracyResults.results,
         ...comparisonResults.results,
       ]);
 
@@ -291,6 +307,7 @@ export class BatchService {
           spontaneousResults,
         ),
         this.batchExecutionService.saveBatchResult(batchExecutionId, 'sentiment', sentimentResults),
+        this.batchExecutionService.saveBatchResult(batchExecutionId, 'accuracy', accuracyResults),
         this.batchExecutionService.saveBatchResult(
           batchExecutionId,
           'comparison',
@@ -298,12 +315,13 @@ export class BatchService {
         ),
       ]);
 
-      // Create the weekly report with proper typing
+      // Create the weekly report with proper typing including the new accuracy results
       const batchReportInput: BatchReportInput = {
         companyId: context.companyId,
         weekStart,
         spontaneous: spontaneousResults,
         sentimentAccuracy: sentimentResults,
+        accuracy: accuracyResults,
         comparison: comparisonResults,
         llmVersions,
         generatedAt: new Date(),
@@ -322,6 +340,7 @@ export class BatchService {
         results: {
           spontaneous: spontaneousResults,
           sentiment: sentimentResults,
+          accuracy: accuracyResults,
           comparison: comparisonResults,
         },
       };
@@ -440,6 +459,14 @@ export class BatchService {
           );
         }
 
+        if (result.results.accuracy) {
+          await this.batchExecutionService.saveBatchResult(
+            batchExecutionId,
+            'accuracy',
+            result.results.accuracy,
+          );
+        }
+
         if (result.results.comparison) {
           await this.batchExecutionService.saveBatchResult(
             batchExecutionId,
@@ -494,7 +521,7 @@ export class BatchService {
    */
   async createSinglePipelineBatchExecution(
     companyId: string,
-    pipelineType: 'spontaneous' | 'sentiment' | 'comparison',
+    pipelineType: 'spontaneous' | 'sentiment' | 'accuracy' | 'comparison',
   ): Promise<any> {
     this.logger.log(
       `Creating batch execution for ${pipelineType} pipeline for company ${companyId}`,
@@ -525,7 +552,7 @@ export class BatchService {
    */
   async saveSinglePipelineResult(
     batchExecutionId: string,
-    pipelineType: 'spontaneous' | 'sentiment' | 'comparison',
+    pipelineType: 'spontaneous' | 'sentiment' | 'accuracy' | 'comparison',
     result: any,
   ): Promise<any> {
     this.logger.log(`Saving ${pipelineType} result for batch execution ${batchExecutionId}`);

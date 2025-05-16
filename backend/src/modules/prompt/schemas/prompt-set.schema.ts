@@ -43,6 +43,13 @@ export class PromptSet {
     default: [] 
   })
   comparison: string[];
+
+  @Prop({ 
+    type: [String], 
+    required: false, 
+    default: [] 
+  })
+  accuracy: string[];
   
   @Prop({ type: Date })
   createdAt: Date;

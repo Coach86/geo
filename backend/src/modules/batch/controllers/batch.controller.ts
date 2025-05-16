@@ -244,4 +244,56 @@ export class BatchController {
       await this.batchService.failSinglePipelineBatchExecution(batchExecutionId, error.message);
     }
   }
+
+  @Post('pipeline/accuracy/:companyId')
+  @ApiOperation({ summary: 'Run accuracy analysis pipeline for a company' })
+  @ApiParam({ name: 'companyId', description: 'The ID of the company' })
+  @ApiResponse({
+    status: 202,
+    description: 'Accuracy analysis pipeline started',
+  })
+  async runAccuracyPipeline(@Param('companyId') companyId: string) {
+    // Get company data
+    const companyContext = await this.batchService.getCompanyBatchContext(companyId);
+    if (!companyContext) {
+      throw new NotFoundException(`Company context not found for ID: ${companyId}`);
+    }
+
+    // Create batch execution record
+    const batchExecution = await this.batchService.createSinglePipelineBatchExecution(
+      companyId,
+      'accuracy',
+    );
+    const batchExecutionId = batchExecution.id;
+
+    // Process in background
+    this.processAccuracyPipeline(companyContext, batchExecutionId);
+
+    // Return immediately with the batch execution ID
+    return {
+      success: true,
+      message: `Accuracy pipeline for company ${companyId} started`,
+      batchExecutionId,
+    };
+  }
+
+  // Background processing method for accuracy pipeline
+  private async processAccuracyPipeline(companyContext: any, batchExecutionId: string) {
+    // Add batch execution ID to context
+    const contextWithExecId = { ...companyContext, batchExecutionId };
+
+    try {
+      // Run pipeline
+      const result = await this.batchService.runAccuracyPipeline(contextWithExecId);
+
+      // Save result to batch_results
+      await this.batchService.saveSinglePipelineResult(batchExecutionId, 'accuracy', result);
+
+      // Mark batch execution as completed
+      await this.batchService.completeSinglePipelineBatchExecution(batchExecutionId);
+    } catch (error) {
+      // Mark batch execution as failed
+      await this.batchService.failSinglePipelineBatchExecution(batchExecutionId, error.message);
+    }
+  }
 }

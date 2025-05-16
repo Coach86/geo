@@ -31,4 +31,14 @@ export class UpdatePromptSetDto {
   @IsString({ each: true })
   @IsOptional()
   comparison?: string[];
+
+  @ApiProperty({ 
+    description: 'Accuracy evaluation prompts',
+    example: ['What are the key products or services of {COMPANY}?'],
+    required: false
+  })
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  accuracy?: string[];
 }

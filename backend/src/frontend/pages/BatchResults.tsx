@@ -30,12 +30,14 @@ import ShoppingBasketIcon from '@mui/icons-material/ShoppingBasket';
 import DescriptionIcon from '@mui/icons-material/Description';
 import SearchIcon from '@mui/icons-material/Search';
 import LinkIcon from '@mui/icons-material/Link';
+import FactCheckIcon from '@mui/icons-material/FactCheck';
 import {
   getBatchExecution,
   getBatchExecutionRawResponses
 } from '../utils/api-batch';
 import SpontaneousTab from '../components/company-detail/SpontaneousTab';
 import SentimentTab from '../components/company-detail/SentimentTab';
+import AccuracyTab from '../components/company-detail/AccuracyTab';
 import ComparisonTab from '../components/company-detail/ComparisonTab';
 import {
   BatchExecution,
@@ -43,6 +45,7 @@ import {
   RawResponse,
   SpontaneousResults,
   SentimentResults,
+  AccuracyResults,
   ComparisonResults,
   SourceCitation,
   ToolUseInfo
@@ -52,6 +55,7 @@ enum TabValue {
   SUMMARY = 'summary',
   SPONTANEOUS = 'spontaneous',
   SENTIMENT = 'sentiment',
+  ACCURACY = 'accuracy',
   COMPARISON = 'comparison',
   RAW_RESPONSES = 'raw-responses',
 }
@@ -67,6 +71,7 @@ const BatchResults: React.FC = () => {
 
   const [spontaneousResults, setSpontaneousResults] = useState<SpontaneousResults | null>(null);
   const [sentimentResults, setSentimentResults] = useState<SentimentResults | null>(null);
+  const [accuracyResults, setAccuracyResults] = useState<AccuracyResults | null>(null);
   const [comparisonResults, setComparisonResults] = useState<ComparisonResults | null>(null);
 
   useEffect(() => {
@@ -87,6 +92,9 @@ const BatchResults: React.FC = () => {
         const sentimentResult = batchExecutionData.finalResults.find(
           (r: BatchResult) => r.resultType === 'sentiment'
         );
+        const accuracyResult = batchExecutionData.finalResults.find(
+          (r: BatchResult) => r.resultType === 'accuracy'
+        );
         const comparisonResult = batchExecutionData.finalResults.find(
           (r: BatchResult) => r.resultType === 'comparison'
         );
@@ -105,6 +113,14 @@ const BatchResults: React.FC = () => {
             ? JSON.parse(sentimentResult.result)
             : sentimentResult.result;
           setSentimentResults(parsedResult);
+        }
+
+        if (accuracyResult) {
+          // Handle result that could be either an object or a JSON string
+          const parsedResult = typeof accuracyResult.result === 'string'
+            ? JSON.parse(accuracyResult.result)
+            : accuracyResult.result;
+          setAccuracyResults(parsedResult);
         }
 
         if (comparisonResult) {
@@ -167,19 +183,15 @@ const BatchResults: React.FC = () => {
     );
   }
   
-  // Group raw responses by type and provider
-  const groupedResponses: Record<string, Record<string, RawResponse[]>> = {};
+  // Group raw responses by type only
+  const groupedResponses: Record<string, RawResponse[]> = {};
 
   rawResponses.forEach(response => {
     if (!groupedResponses[response.promptType]) {
-      groupedResponses[response.promptType] = {};
+      groupedResponses[response.promptType] = [];
     }
 
-    if (!groupedResponses[response.promptType][response.llmProvider]) {
-      groupedResponses[response.promptType][response.llmProvider] = [];
-    }
-
-    groupedResponses[response.promptType][response.llmProvider].push(response);
+    groupedResponses[response.promptType].push(response);
   });
   
   const getPromptTypeIcon = (type: string) => {
@@ -188,6 +200,8 @@ const BatchResults: React.FC = () => {
         return <ChatBubbleOutlineIcon />;
       case 'spontaneous':
         return <QuestionAnswerIcon />;
+      case 'accuracy':
+        return <FactCheckIcon />;
       case 'comparison':
         return <CompareArrowsIcon />;
       default:
@@ -258,6 +272,13 @@ const BatchResults: React.FC = () => {
               disabled={!sentimentResults}
             />
             <Tab 
+              label="Accuracy" 
+              value={TabValue.ACCURACY}
+              icon={<FactCheckIcon />} 
+              iconPosition="start"
+              disabled={!accuracyResults}
+            />
+            <Tab 
               label="Comparison" 
               value={TabValue.COMPARISON}
               icon={<CompareArrowsIcon />} 
@@ -304,7 +325,15 @@ const BatchResults: React.FC = () => {
                         <ListItem>
                           <ListItemText 
                             primary="Sentiment Analysis" 
-                            secondary={`Overall sentiment: ${sentimentResults.summary.overallSentiment}, Accuracy: ${(sentimentResults.summary.averageAccuracy * 100).toFixed(1)}%`} 
+                            secondary={`Overall sentiment: ${sentimentResults.summary.overallSentiment}`} 
+                          />
+                        </ListItem>
+                      )}
+                      {accuracyResults && (
+                        <ListItem>
+                          <ListItemText 
+                            primary="Accuracy Analysis" 
+                            secondary={`Average accuracy: ${(accuracyResults.summary.averageAccuracy * 100).toFixed(1)}%`} 
                           />
                         </ListItem>
                       )}
@@ -334,8 +363,7 @@ const BatchResults: React.FC = () => {
                         <ListItem key={promptType}>
                           <ListItemText 
                             primary={`${promptType.charAt(0).toUpperCase() + promptType.slice(1)} Type`} 
-                            secondary={`${Object.values(groupedResponses[promptType])
-                              .reduce((acc, curr) => acc + curr.length, 0)} responses`} 
+                            secondary={`${groupedResponses[promptType].length} responses`} 
                           />
                         </ListItem>
                       ))}
@@ -352,6 +380,10 @@ const BatchResults: React.FC = () => {
           
           {currentTab === TabValue.SENTIMENT && sentimentResults && (
             <SentimentTab results={sentimentResults} />
+          )}
+          
+          {currentTab === TabValue.ACCURACY && accuracyResults && (
+            <AccuracyTab results={accuracyResults} />
           )}
           
           {currentTab === TabValue.COMPARISON && comparisonResults && batchExecution?.identityCard && (
@@ -372,193 +404,128 @@ const BatchResults: React.FC = () => {
                       </Typography>
                       <Divider sx={{ mb: 2 }} />
                       
-                      {Object.keys(groupedResponses[promptType]).map(provider => (
-                        <Box key={provider} sx={{ mb: 2 }}>
-                          <Typography variant="subtitle1" gutterBottom>
-                            {provider}
-                          </Typography>
-                          
-                          {groupedResponses[promptType][provider].map((response, index) => (
-                            <Accordion key={response.id} sx={{ mb: 1 }}>
-                              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                                  <Typography>
-                                    Prompt #{response.promptIndex + 1}
+                      {groupedResponses[promptType].map((response, index) => (
+                        <Accordion key={response.id} sx={{ mb: 1 }}>
+                          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                              <Typography>
+                                Prompt #{response.promptIndex + 1}
+                              </Typography>
+                              <Box>
+                                {response.analyzerResponse && (
+                                  <Chip
+                                    icon={<FactCheckIcon />}
+                                    label="Analysis Complete"
+                                    size="small"
+                                    color="success"
+                                    variant="outlined"
+                                    sx={{ mr: 1 }}
+                                  />
+                                )}
+                              </Box>
+                            </Box>
+                          </AccordionSummary>
+                          <AccordionDetails>
+                            <Box>
+                              {/* Original Prompt Section */}
+                              <Box sx={{ mb: 3 }}>
+                                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                                  Original Prompt:
+                                </Typography>
+                                <Typography 
+                                  variant="body1" 
+                                  sx={{ 
+                                    whiteSpace: 'pre-wrap',
+                                    backgroundColor: 'background.paper',
+                                    p: 2,
+                                    borderRadius: 1,
+                                    border: '1px solid',
+                                    borderColor: 'divider',
+                                    mb: 2
+                                  }}
+                                >
+                                  {response.originalPrompt}
+                                </Typography>
+                                
+                                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                                  LLM Response ({response.llmResponseModel || 'Unknown Model'}):
+                                </Typography>
+                                <Typography 
+                                  variant="body1"
+                                  sx={{
+                                    whiteSpace: 'pre-wrap',
+                                    backgroundColor: 'background.paper',
+                                    p: 2,
+                                    borderRadius: 1,
+                                    border: '1px solid',
+                                    borderColor: 'divider',
+                                    mb: 2,
+                                    maxHeight: 'none',
+                                    overflow: 'visible'
+                                  }}
+                                >
+                                  {response.llmResponse}
+                                </Typography>
+                              </Box>
+                              
+                              {/* Analyzer Section */}
+                              {response.analyzerPrompt && (
+                                <Box sx={{ mb: 3 }}>
+                                  <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                                    Analyzer Prompt{response.analyzerResponseModel ? ` (for ${response.analyzerResponseModel})` : ''}:
                                   </Typography>
-                                  <Box>
-                                    {response.usedWebSearch && (
-                                      <Chip
-                                        icon={<SearchIcon />}
-                                        label="Web Search"
-                                        size="small"
-                                        color="primary"
-                                        variant="outlined"
-                                        sx={{ mr: 1 }}
-                                      />
-                                    )}
-                                    {response.citations && (
-                                      <Chip
-                                        icon={<LinkIcon />}
-                                        label={`${Array.isArray(response.citations) 
-                                          ? response.citations.length 
-                                          : JSON.parse(typeof response.citations === 'string' ? response.citations : '[]').length} Citations`}
-                                        size="small"
-                                        color="secondary"
-                                        variant="outlined"
-                                      />
-                                    )}
-                                  </Box>
+                                  <Typography 
+                                    variant="body1" 
+                                    sx={{ 
+                                      whiteSpace: 'pre-wrap',
+                                      backgroundColor: 'background.paper',
+                                      p: 2,
+                                      borderRadius: 1,
+                                      border: '1px solid',
+                                      borderColor: 'divider',
+                                      mb: 2
+                                    }}
+                                  >
+                                    {response.analyzerPrompt}
+                                  </Typography>
                                 </Box>
-                              </AccordionSummary>
-                              <AccordionDetails>
-                                <Box>
-                                  {/* Question/Answer Section */}
-                                  <Box sx={{ mb: 3 }}>
-                                    <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                                      Question:
-                                    </Typography>
-                                    <Typography 
-                                      variant="body1" 
-                                      sx={{ 
-                                        backgroundColor: 'background.paper',
-                                        p: 2,
-                                        borderRadius: 1,
-                                        border: '1px solid',
-                                        borderColor: 'divider',
-                                        mb: 2
-                                      }}
-                                    >
-                                      {/* We need to create a display for the question without accessing promptSet directly */}
-                                      {response.promptType === 'spontaneous' ? 
-                                        `Spontaneous prompt #${response.promptIndex + 1}` : 
-                                        response.promptType === 'direct' ?
-                                          `Direct sentiment prompt #${response.promptIndex + 1}` :
-                                          `Comparison prompt #${response.promptIndex + 1}`
-                                      }
-                                    </Typography>
-                                    
-                                    <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                                      Answer:
-                                    </Typography>
-                                    <Typography 
-                                      variant="body1"
-                                      sx={{
-                                        whiteSpace: 'pre-wrap',
-                                        backgroundColor: 'background.paper',
-                                        p: 2,
-                                        borderRadius: 1,
-                                        border: '1px solid',
-                                        borderColor: 'divider',
-                                        mb: 2,
-                                        maxHeight: 'none',
-                                        overflow: 'visible'
-                                      }}
-                                    >
-                                      {response.response}
-                                    </Typography>
-                                  </Box>
-                                  
-                                  {/* Citations Section - Now displayed immediately after Answer */}
-                                  {response.citations && (
-                                    <Box sx={{ mb: 3 }}>
-                                      <Typography variant="subtitle1" fontWeight="bold" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                                        <LinkIcon fontSize="small" sx={{ mr: 1 }} />
-                                        Citations:
-                                      </Typography>
-                                      <Card variant="outlined">
-                                        <List dense disablePadding>
-                                          {(Array.isArray(response.citations) 
-                                            ? response.citations
-                                            : JSON.parse(typeof response.citations === 'string' ? response.citations : '[]'))
-                                            .map((citation: SourceCitation, i: number) => (
-                                              <ListItem key={i} divider={i < (Array.isArray(response.citations) 
-                                                ? response.citations.length 
-                                                : JSON.parse(typeof response.citations === 'string' ? response.citations : '[]').length) - 1}>
-                                                <ListItemText
-                                                  primary={citation.title || 'Untitled Source'}
-                                                  secondary={
-                                                    <>
-                                                      <a
-                                                        href={citation.url}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        style={{ color: 'inherit', wordBreak: 'break-all' }}
-                                                      >
-                                                        {citation.url}
-                                                      </a>
-                                                      {citation.text && (
-                                                        <Box sx={{ mt: 1, fontSize: '0.85rem', fontStyle: 'italic', color: 'text.secondary' }}>
-                                                          "{citation.text}"
-                                                        </Box>
-                                                      )}
-                                                    </>
-                                                  }
-                                                />
-                                              </ListItem>
-                                            ))
-                                          }
-                                          
-                                        </List>
-                                      </Card>
-                                    </Box>
-                                  )}
-
-                                  {/* Web Search Queries Section - Show if either flag or tool usage data exists */}
-                                  {response.toolUsage && (
-                                    <Box sx={{ mb: 3 }}>
-                                      <Typography variant="subtitle1" fontWeight="bold" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                                        <SearchIcon fontSize="small" sx={{ mr: 1 }} />
-                                        Web Search Queries:
-                                      </Typography>
-                                      {/* Web search queries information */}
-                                      
-                                      <Card variant="outlined">
-                                        <List dense disablePadding>
-                                          {(() => {
-                                            try {
-                                              const toolUsageData = Array.isArray(response.toolUsage) 
-                                                ? response.toolUsage
-                                                : JSON.parse(typeof response.toolUsage === 'string' ? response.toolUsage : '[]');
-                                              
-                                              const webSearchTools = toolUsageData.filter((tool: ToolUseInfo) => 
-                                                tool.type === 'web_search' || 
-                                                tool.type === 'search' || 
-                                                tool.type?.includes('search'));
-                                              
-                                              if (webSearchTools.length === 0) {
-                                                return (
-                                                  <ListItem>
-                                                    <ListItemText primary="No web search queries found" />
-                                                  </ListItem>
-                                                );
-                                              }
-                                              
-                                              return webSearchTools.map((tool: ToolUseInfo, i: number) => (
-                                                <ListItem key={i} divider={i < webSearchTools.length - 1}>
-                                                  <ListItemText
-                                                    primary={`Query: ${tool.parameters?.query || tool.parameters?.q || 'Unknown query'}`}
-                                                    secondary={`Status: ${tool.execution_details?.status || 'Unknown status'}`}
-                                                  />
-                                                </ListItem>
-                                              ));
-                                            } catch (err: any) {
-                                              const errorMessage = err?.message || 'Unknown error';
-                                              return (
-                                                <ListItem>
-                                                  <ListItemText primary={`Error parsing tool usage data: ${errorMessage}`} />
-                                                </ListItem>
-                                              );
-                                            }
-                                          })()}
-                                        </List>
-                                      </Card>
-                                    </Box>
-                                  )}
+                              )}
+                              
+                              {/* Show warning if analyzer data is missing */}
+                              {!response.analyzerPrompt && !response.analyzerResponse && (
+                                <Box sx={{ mb: 3 }}>
+                                  <Alert severity="info">
+                                    No analyzer data available for this response. This could be because the response was generated before the analyzer feature was added.
+                                  </Alert>
                                 </Box>
-                              </AccordionDetails>
-                            </Accordion>
-                          ))}
-                        </Box>
+                              )}
+                              
+                              {/* Analyzer Response Section */}
+                              {response.analyzerResponse && (
+                                <Box sx={{ mb: 3 }}>
+                                  <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                                    Analyzer Response ({response.analyzerResponseModel || 'Structured'}):
+                                  </Typography>
+                                  <Typography 
+                                    variant="body1" 
+                                    sx={{ 
+                                      whiteSpace: 'pre-wrap',
+                                      backgroundColor: 'background.paper',
+                                      p: 2,
+                                      borderRadius: 1,
+                                      border: '1px solid',
+                                      borderColor: 'divider',
+                                      mb: 2,
+                                      fontFamily: 'monospace'
+                                    }}
+                                  >
+                                    {JSON.stringify(response.analyzerResponse, null, 2)}
+                                  </Typography>
+                                </Box>
+                              )}
+                            </Box>
+                          </AccordionDetails>
+                        </Accordion>
                       ))}
                     </CardContent>
                   </Card>

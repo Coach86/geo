@@ -9,6 +9,13 @@ export const SystemPrompts = {
   and determine the overall sentiment (positive, neutral, or negative) along with supporting facts.
   `,
 
+  // Accuracy analysis (new)
+  ACCURACY_ANALYSIS: `
+  You are an accuracy analysis expert. Your task is to analyze responses to questions about specific brands
+  and determine how accurate the facts presented are, along with extracting key statements.
+  Focus on verifiability, consistency, and plausibility of facts presented about the brand.
+  `,
+
   // Comparison analysis
   COMPARISON_ANALYSIS: `
   You are a brand comparison expert. Your task is to analyze responses comparing different brands
@@ -30,6 +37,24 @@ export const PromptTemplates = {
   
   Determine if the sentiment towards "{brandName}" is positive, neutral, or negative.
   Also extract key facts or opinions about the brand.
+  
+  Response: {llmResponse}
+  `,
+
+  // Accuracy analysis template (new)
+  ACCURACY_ANALYSIS: `
+  Analyze the accuracy of information in the following response to the question: "{originalPrompt}"
+  
+  The known key attributes of "{brandName}" are: {keyBrandAttributes}
+  
+  Evaluate how accurate the information presented about "{brandName}" appears to be compared to these key attributes.
+  Rate the accuracy on a scale from 0 to 1, where:
+  - 0 means completely inaccurate (contradicts the key attributes or contains false information)
+  - 0.5 means partially accurate (contains a mix of accurate and questionable information)
+  - 1 means highly accurate (aligns with the key attributes and contains verifiable information)
+  
+  Also extract key facts or statements from the response that influenced your accuracy rating,
+  highlighting where the response correctly or incorrectly represents the brand attributes.
   
   Response: {llmResponse}
   `,

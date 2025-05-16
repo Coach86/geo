@@ -5,9 +5,9 @@ import * as path from 'path';
 import pLimit from 'p-limit';
 import { z } from 'zod';
 import { LlmService } from '../../llm/services/llm.service';
-import { RawResponseService } from '../../report/services/raw-response.service';
+import { RawResponseService } from './raw-response.service';
 import { CompanyBatchContext } from '../interfaces/batch.interfaces';
-import { LlmModelConfig, PipelineConfig, AnalyzerConfig } from '../interfaces/llm.interfaces';
+import { LlmModelConfig, PipelineConfig, AnalyzerConfig, PipelineType, PromptType } from '../interfaces/llm.interfaces';
 
 // Default concurrency limits for different pipeline types
 const DEFAULT_CONCURRENCY = 100; // Very high concurrency for batch processing
@@ -15,6 +15,7 @@ const DEFAULT_PIPELINE_LIMITS = {
   spontaneous: 150, // Higher since these are typically simpler prompts
   sentiment: 100, // Medium complexity analysis
   comparison: 80, // More complex comparisons that may require more resources
+  accuracy: 100, // Medium complexity analysis similar to sentiment
 };
 
 /**
@@ -31,7 +32,7 @@ export abstract class BasePipelineService implements OnModuleInit {
     protected readonly configService: ConfigService,
     protected readonly llmService: LlmService,
     protected readonly serviceName: string,
-    protected readonly pipelineType: 'spontaneous' | 'sentiment' | 'comparison',
+    protected readonly pipelineType: PipelineType,
     protected readonly rawResponseService?: RawResponseService,
   ) {
     this.logger = new Logger(serviceName);
@@ -156,76 +157,14 @@ export abstract class BasePipelineService implements OnModuleInit {
     // Call the LLM adapter using the LlmService
     const result = await this.llmService.call(modelConfig.provider, prompt, options);
 
-    // Store the raw response if batchExecutionId is provided and rawResponseService is available
-    if (batchExecutionId && this.rawResponseService) {
-      try {
-        const resultWithMeta = result as typeof result & {
-          annotations?: any[];
-          toolUsage?: any[];
-          webSearchResults?: any[];
-          usedWebSearch?: boolean;
-          responseMetadata?: any;
-        };
-
-        // Enhanced metadata to include web search details
-        const enhancedMetadata = resultWithMeta.responseMetadata || {};
-
-        // Add web search results to metadata if available
-        if (resultWithMeta.webSearchResults && resultWithMeta.webSearchResults.length > 0) {
-          enhancedMetadata.webSearchResults = resultWithMeta.webSearchResults;
-          this.logger.log(
-            `Found ${resultWithMeta.webSearchResults.length} web search results to store`,
-          );
-        }
-
-        await this.rawResponseService.storeRawResponse(
-          batchExecutionId,
-          modelConfig.provider,
-          this.pipelineType === 'sentiment' ? 'direct' : this.pipelineType, // Map 'sentiment' to 'direct' for DB consistency
-          promptIndex,
-          result.text,
-          {
-            citations: resultWithMeta.annotations?.length ? resultWithMeta.annotations : undefined,
-            toolUsage: resultWithMeta.toolUsage?.length ? resultWithMeta.toolUsage : undefined,
-            usedWebSearch: resultWithMeta.usedWebSearch,
-            responseMetadata: enhancedMetadata,
-          },
-        );
-
-        // Log based on what data we're storing
-        const logParts: string[] = [];
-
-        if (resultWithMeta.annotations && resultWithMeta.annotations.length > 0) {
-          logParts.push(`${resultWithMeta.annotations.length} citations`);
-        }
-
-        if (resultWithMeta.toolUsage && resultWithMeta.toolUsage.length > 0) {
-          logParts.push(`${resultWithMeta.toolUsage.length} tool usages`);
-        }
-
-        if (resultWithMeta.usedWebSearch) {
-          logParts.push(`web search usage`);
-        }
-
-        if (logParts.length > 0) {
-          this.logger.log(
-            `Stored raw response with ${logParts.join(', ')} for ${modelConfig.provider} in batch execution ${batchExecutionId}`,
-          );
-        } else {
-          this.logger.log(
-            `Stored raw response for ${modelConfig.provider} in batch execution ${batchExecutionId}`,
-          );
-        }
-      } catch (error) {
-        this.logger.error(`Failed to store raw response: ${error.message}`);
-        // Don't throw the error, just log it and continue
-      }
-    }
+    // Don't store the raw response here - we'll store it once in getStructuredAnalysis
+    // when we have both the LLM response and the analyzer response
 
     // Return the full result object, not just the text, so that other methods can access metadata
     // This includes the complete response with all metadata for downstream processing
     return {
       text: result.text,
+      batchExecutionId, // Pass along the batchExecutionId for analyzer storage
       metadata: {
         annotations: result.annotations || [],
         toolUsage: result.toolUsage || [],
@@ -251,20 +190,36 @@ export abstract class BasePipelineService implements OnModuleInit {
    * @param userPrompt The prompt to send to the LLM
    * @param schema The Zod schema for validation
    * @param systemPrompt Optional system prompt
+   * @param batchExecutionId Optional batch execution ID for storing the analyzer prompt and response
+   * @param promptIndex Optional prompt index for associating with the original prompt
+   * @param promptType Optional prompt type for storing in the database
+   * @param originalPrompt Optional original prompt to store with the analyzer data
+   * @param originalLlmResponse Optional original LLM response to store with the analyzer data
+   * @param originalLlmModel Optional original LLM model to store with the analyzer data
    * @returns The structured output
    */
   protected async getStructuredAnalysis<T>(
     userPrompt: string,
     schema: z.ZodType<T>,
     systemPrompt: string,
+    batchExecutionId?: string,
+    promptIndex: number = 0,
+    promptType?: PromptType,
+    originalPrompt?: string,
+    originalLlmResponse?: string,
+    originalLlmModel?: string,
   ): Promise<T> {
+    let structuredResult: T;
+    let analyzerResponseText: string;
+    
     try {
       // Try with primary analyzer
       this.logger.log(
         `Using ${this.analyzerConfig.primary.provider}/${this.analyzerConfig.primary.model} for analysis`,
       );
 
-      return await this.llmService.getStructuredOutput(
+      // Get the structured output
+      structuredResult = await this.llmService.getStructuredOutput(
         this.analyzerConfig.primary.provider,
         userPrompt,
         schema,
@@ -274,6 +229,9 @@ export abstract class BasePipelineService implements OnModuleInit {
           temperature: 0.2,
         },
       );
+      
+      // If successful, store the analyzer prompt and response if rawResponseService is available
+      analyzerResponseText = JSON.stringify(structuredResult);
     } catch (error) {
       this.logger.error(
         `Error analyzing with ${this.analyzerConfig.primary.provider}/${this.analyzerConfig.primary.model}, trying fallback: ${error.message}`,
@@ -285,7 +243,8 @@ export abstract class BasePipelineService implements OnModuleInit {
           `Using fallback analyzer ${this.analyzerConfig.fallback.provider}/${this.analyzerConfig.fallback.model}`,
         );
 
-        return await this.llmService.getStructuredOutput(
+        // Get the structured output from the fallback analyzer
+        structuredResult = await this.llmService.getStructuredOutput(
           this.analyzerConfig.fallback.provider,
           userPrompt,
           schema,
@@ -295,10 +254,52 @@ export abstract class BasePipelineService implements OnModuleInit {
             temperature: 0.2,
           },
         );
+        
+        // If successful, store the analyzer prompt and response
+        analyzerResponseText = JSON.stringify(structuredResult);
       } catch (fallbackError) {
         this.logger.error(`Fallback analyzer also failed: ${fallbackError.message}`);
         throw fallbackError;
       }
     }
+    
+    // Now store the COMPLETE raw response with both LLM and analyzer data
+    if (batchExecutionId && this.rawResponseService && promptType && originalLlmModel) {
+      try {
+        // Determine which analyzer model was used (primary or fallback)
+        const analyzerModel = this.analyzerConfig.primary.model;
+        
+        // Validate promptType
+        if (!promptType) {
+          throw new Error(`No valid promptType provided for response storage. Pipeline: ${this.pipelineType}`);
+        }
+        
+        // Create a modelIdentifier to ensure each model gets its own raw response entry
+        const modelIdentifier = `${originalLlmModel}`;
+        
+        // Store all data in a single document - this is now the ONLY place we store raw responses
+        await this.rawResponseService.storeRawResponse(
+          batchExecutionId,
+          promptType,
+          promptIndex,
+          originalPrompt || "Original prompt not available",
+          originalLlmResponse || "Original LLM response not available",
+          originalLlmModel || "Unknown",
+          userPrompt, // The analyzer prompt
+          structuredResult, // The structured analyzer response
+          analyzerModel, // The model used for analysis
+          modelIdentifier // Add model identifier to ensure uniqueness
+        );
+        
+        this.logger.log(
+          `Stored complete raw response (original + analyzer) for ${promptType} prompt #${promptIndex} in batch execution ${batchExecutionId}`,
+        );
+      } catch (error) {
+        this.logger.error(`Failed to store raw response: ${error.message}`);
+        // Don't throw the error, just log it and continue
+      }
+    }
+    
+    return structuredResult;
   }
 }

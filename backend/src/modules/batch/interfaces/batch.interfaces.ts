@@ -96,6 +96,33 @@ export interface SentimentResults {
 }
 
 /**
+ * Accuracy Pipeline Interfaces
+ */
+export interface AccuracyPipelineResult {
+  llmProvider: string;
+  llmModel: string;
+  promptIndex: number;
+  accuracy: number;
+  factualInformation: string[];
+  originalPrompt?: string;
+  llmResponse?: string;
+  error?: string;
+  // Added fields for web search and citations
+  usedWebSearch?: boolean;
+  citations?: any[];
+  toolUsage?: any[];
+}
+
+export interface AccuracyResults {
+  results: AccuracyPipelineResult[];
+  summary: {
+    averageAccuracy: number;
+    factualHighlights: string[];
+  };
+  webSearchSummary: WebSearchSummary;
+}
+
+/**
  * Comparison Pipeline Interfaces
  */
 export interface ComparisonAnalysisResult {
@@ -135,6 +162,7 @@ export interface WeeklyBrandReport {
   weekStart: Date; // Monday 00-00-00Z
   spontaneous: SpontaneousResults;
   sentimentAccuracy: SentimentResults;
+  accuracy?: AccuracyResults; // New field for accuracy results
   comparison: ComparisonResults;
   llmVersions: Record<string, string>; // model identifiers
   generatedAt: Date;

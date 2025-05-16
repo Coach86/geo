@@ -4,7 +4,7 @@ import { Model } from 'mongoose';
 import { BatchExecution, BatchExecutionDocument } from '../schemas/batch-execution.schema';
 import { BatchResult, BatchResultDocument } from '../schemas/batch-result.schema';
 import { IdentityCard, IdentityCardDocument } from '../../identity-card/schemas/identity-card.schema';
-import { RawResponse, RawResponseDocument } from '../../report/schemas/raw-response.schema';
+import { RawResponse, RawResponseDocument } from '../schemas/raw-response.schema';
 
 @Injectable()
 export class BatchExecutionService {
@@ -51,13 +51,13 @@ export class BatchExecutionService {
   /**
    * Save a batch result
    * @param batchExecutionId The ID of the batch execution
-   * @param resultType The type of result ('spontaneous', 'sentiment', 'comparison')
+   * @param resultType The type of result ('spontaneous', 'sentiment', 'comparison', 'accuracy')
    * @param result The result to save
    * @returns The created batch result
    */
   async saveBatchResult(
     batchExecutionId: string,
-    resultType: 'spontaneous' | 'sentiment' | 'comparison',
+    resultType: 'spontaneous' | 'sentiment' | 'comparison' | 'accuracy',
     result: any,
   ): Promise<any> {
     try {

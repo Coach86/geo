@@ -26,7 +26,7 @@ export class BatchResult {
   @Prop({ 
     type: String, 
     required: true,
-    enum: ['spontaneous', 'sentiment', 'comparison'], 
+    enum: ['spontaneous', 'sentiment', 'comparison', 'accuracy'], 
   })
   resultType: string;
 

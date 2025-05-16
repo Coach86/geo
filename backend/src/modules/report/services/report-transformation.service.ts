@@ -424,6 +424,47 @@ export class ReportTransformationService {
   }
 
   /**
+   * Format accord data using the new accuracy pipeline results
+   */
+  formatAccordData(
+    accuracyData: any,
+    sentimentData: any,
+    identityCard?: any,
+  ): {
+    attributes: Array<{ name: string; rate: string; alignment: string }>;
+    score: {
+      value: string;
+      status: string;
+    };
+  } {
+    // Generate attributes from identity card or default values
+    const attributes = this.generateAttributesList(sentimentData, identityCard);
+
+    // Calculate accuracy score from accuracyData if available, otherwise use sentimentData
+    const averageAccuracy = accuracyData?.summary?.averageAccuracy || 
+                           sentimentData?.summary?.averageAccuracy || 0.5;
+    
+    // Format as percentage
+    const scoreValue = `${Math.round(averageAccuracy * 100)}%`;
+    
+    // Determine status based on accuracy score
+    let status = 'yellow';
+    if (averageAccuracy >= 0.75) {
+      status = 'green';
+    } else if (averageAccuracy < 0.4) {
+      status = 'red';
+    }
+
+    return {
+      attributes,
+      score: {
+        value: scoreValue,
+        status
+      }
+    };
+  }
+
+  /**
    * Type safe version of attributes
    */
   typeSafeAttributes(
@@ -507,6 +548,31 @@ export class ReportTransformationService {
     return {
       competitors: safeCompetitors,
       battle: arenaData.battle,
+    };
+  }
+
+  /**
+   * Type safe version of accord data
+   */
+  typeSafeAccordData(accordData: {
+    attributes: Array<{ name: string; rate: string; alignment: string }>;
+    score: {
+      value: string;
+      status: string;
+    };
+  }): {
+    attributes: Array<{ name: string; rate: string; alignment: '✅' | '⚠️' | '❌' }>;
+    score: {
+      value: string;
+      status: 'green' | 'yellow' | 'red';
+    };
+  } {
+    return {
+      attributes: this.typeSafeAttributes(accordData.attributes),
+      score: {
+        value: accordData.score.value,
+        status: this.safeStatusColor(accordData.score.status)
+      }
     };
   }
 

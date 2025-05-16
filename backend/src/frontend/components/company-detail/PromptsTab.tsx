@@ -3,6 +3,7 @@ import { Typography, Box, Card, CardContent, Tabs, Tab, Paper, Button, Dialog, D
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
+import FactCheckIcon from '@mui/icons-material/FactCheck';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import CodeIcon from '@mui/icons-material/Code';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
@@ -19,6 +20,7 @@ enum PromptTabValue {
   DIRECT = 'direct',
   SPONTANEOUS = 'spontaneous',
   COMPARISON = 'comparison',
+  ACCURACY = 'accuracy',
 }
 
 const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
@@ -45,6 +47,11 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
     Array.isArray(promptSet.comparison) 
       ? promptSet.comparison 
       : JSON.parse(promptSet.comparison || '[]')
+  );
+  const [accuracyPrompts, setAccuracyPrompts] = useState<string[]>(
+    Array.isArray(promptSet.accuracy) 
+      ? promptSet.accuracy 
+      : JSON.parse(promptSet.accuracy || '[]')
   );
   
   // Fetch prompt templates
@@ -103,6 +110,11 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
           ? result.comparison 
           : JSON.parse(result.comparison || '[]')
       );
+      setAccuracyPrompts(
+        Array.isArray(result.accuracy) 
+          ? result.accuracy 
+          : JSON.parse(result.accuracy || '[]')
+      );
       
       // Clear the templates cache so they'll be refreshed next time
       setPromptTemplates(null);
@@ -132,6 +144,8 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
         return promptTemplates.spontaneous;
       case PromptTabValue.COMPARISON:
         return promptTemplates.comparison;
+      case PromptTabValue.ACCURACY:
+        return promptTemplates.accuracy;
       default:
         return null;
     }
@@ -300,6 +314,12 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
             icon={<CompareArrowsIcon />}
             iconPosition="start"
           />
+          <Tab
+            label={`Accuracy (${accuracyPrompts.length})`}
+            value={PromptTabValue.ACCURACY}
+            icon={<FactCheckIcon />}
+            iconPosition="start"
+          />
         </Tabs>
       </Paper>
 
@@ -346,6 +366,18 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
                 promptType="comparison"
                 description="These prompts compare the company with its competitors."
                 onUpdate={setComparisonPrompts}
+              />
+            )}
+
+            {currentTab === PromptTabValue.ACCURACY && (
+              <EditablePrompts
+                companyId={promptSet.companyId}
+                title="Accuracy Evaluation Prompts"
+                icon={<FactCheckIcon color="primary" sx={{ mr: 1 }} />}
+                prompts={accuracyPrompts}
+                promptType="accuracy"
+                description="These prompts evaluate the factual accuracy of information about the company."
+                onUpdate={setAccuracyPrompts}
               />
             )}
           </CardContent>

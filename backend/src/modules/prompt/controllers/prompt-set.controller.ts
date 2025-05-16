@@ -8,6 +8,7 @@ import { PromptSet, PromptSetDocument } from '../schemas/prompt-set.schema';
 import { spontaneousSystemPrompt, spontaneousUserPrompt } from '../services/spontaneous-prompts';
 import { directSystemPrompt, directUserPrompt } from '../services/direct-prompts';
 import { comparisonSystemPrompt, comparisonUserPrompt } from '../services/comparison-prompts';
+import { accuracySystemPrompt, accuracyUserPrompt } from '../services/accuracy-prompts';
 
 @ApiTags('prompt-sets')
 @Controller('admin/prompt-set')
@@ -36,6 +37,7 @@ export class PromptSetController {
       spontaneous: promptSet.spontaneous,
       direct: promptSet.direct,
       comparison: promptSet.comparison,
+      accuracy: promptSet.accuracy,
       updatedAt: promptSet.updatedAt instanceof Date ? promptSet.updatedAt : new Date(),
       createdAt: promptSet.createdAt instanceof Date ? promptSet.createdAt : new Date(),
     };
@@ -81,6 +83,7 @@ export class PromptSetController {
       const spontPromptCount = promptSet?.spontaneous?.length || 15;
       const directPromptCount = promptSet?.direct?.length || 3;
       const comparisonPromptCount = promptSet?.comparison?.length || 5;
+      const accuracyPromptCount = promptSet?.accuracy?.length || 3;
 
       // Get the example prompt templates filled with this company's data
       const spontaneousTemplate = {
@@ -116,10 +119,20 @@ export class PromptSetController {
         }),
       };
 
+      const accuracyTemplate = {
+        systemPrompt: accuracySystemPrompt,
+        userPrompt: accuracyUserPrompt({
+          market: company.market,
+          brandName: company.brandName,
+          count: accuracyPromptCount,
+        }),
+      };
+
       return {
         spontaneous: spontaneousTemplate,
         direct: directTemplate,
         comparison: comparisonTemplate,
+        accuracy: accuracyTemplate,
       };
     } catch (error) {
       if (error instanceof NotFoundException) {
