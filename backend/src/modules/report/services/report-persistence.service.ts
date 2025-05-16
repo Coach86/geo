@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { WeeklyBrandReport as WeeklyBrandReportEntity } from '../entities/weekly-brand-report.entity';
@@ -8,6 +8,7 @@ import {
 } from '../schemas/weekly-brand-report.schema';
 import { TokenService } from '@/modules/auth/services/token.service';
 import { CompanyIdentityCard } from '@/modules/identity-card/entities/company-identity-card.entity';
+import { IdentityCardService } from '@/modules/identity-card/services/identity-card.service';
 /**
  * Service responsible for saving and persisting report data
  */
@@ -19,6 +20,7 @@ export class ReportPersistenceService {
     @InjectModel(WeeklyBrandReport.name)
     private weeklyReportModel: Model<WeeklyBrandReportDocument>,
     private readonly tokenService: TokenService,
+    private readonly identityCardService: IdentityCardService,
   ) {}
 
   /**
@@ -62,13 +64,16 @@ export class ReportPersistenceService {
           summary: { winRate: 0, keyDifferentiators: [] },
         },
         llmVersions: report.llmVersions || {},
-        userId: report.userId,
       });
 
       const saved = await newReport.save();
 
+      const company = await this.identityCardService.findById(report.companyId);
+      if (!company) {
+        throw new NotFoundException(`Company not found for report ${report.id}`);
+      }
       // Generate an access token and send email notification
-      const token = await this.tokenService.generateAccessToken(report.userId);
+      const token = await this.tokenService.generateAccessToken(company.userId);
       await sendReportAccessEmail(saved.id, report.companyId, token);
 
       // Return the saved report in the new entity format

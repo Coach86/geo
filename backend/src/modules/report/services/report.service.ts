@@ -58,7 +58,6 @@ export class ReportService implements OnModuleInit {
     if (report.brand && report.metadata && report.kpi) {
       return {
         id: report.id,
-        userId: identityCard.userId,
         companyId: report.companyId,
         weekStart: report.weekStart,
         generatedAt: report.generatedAt,
