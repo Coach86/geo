@@ -8,6 +8,7 @@ type SpontaneousUserPromptParams = {
   industry: string;
   brandName: string;
   count: number;
+  competitors: string[];
 };
 export function spontaneousUserPrompt({
   market,
@@ -15,6 +16,7 @@ export function spontaneousUserPrompt({
   industry,
   brandName,
   count,
+  competitors,
 }: SpontaneousUserPromptParams): string {
   return `
       ## USER
@@ -23,7 +25,7 @@ export function spontaneousUserPrompt({
       - Company/Brandname: ${brandName} in the ${industry} industry.
       - Language to generate prompts in: ${market}
       - Current date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-      
+      - Competitors: ${competitors.join(', ')}
       GOAL:
       1. Think step-by-step (do NOT reveal this reasoning in the final answer):
         a) Identify the main industry and 1-2 sub-segments.
@@ -41,6 +43,7 @@ export function spontaneousUserPrompt({
         • Avoid duplicate meanings.
         • *Use a very casual, almost familiar and conversational tone, like most users talk to a LLM.*
         • *Use questions that force the LLM to list brands, companies, or products.*
+        • *Without never mentionning any brand names, company names, use the competitors of the target brand to tailor the prompts.*
 
       Example output for a Spanish online bike store (illustrative only, do NOT reuse):
         1. ¿Mejor marca bici eléctrica ciudad 2025?
