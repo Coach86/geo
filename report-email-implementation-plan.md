@@ -976,7 +976,7 @@ Update the environment configuration to include the necessary variables:
 
 ```dotenv
 # .env additions
-FRONTEND_URL=http://localhost:3000
+FRONTEND_URL=http://localhost:3001
 RESEND_API_KEY=your_resend_api_key
 REPORT_TOKEN_EXPIRY_HOURS=24
 ```

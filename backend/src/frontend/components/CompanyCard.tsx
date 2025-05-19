@@ -28,6 +28,7 @@ import BusinessIcon from '@mui/icons-material/Business';
 import FactCheckIcon from '@mui/icons-material/FactCheck';
 import CompareIcon from '@mui/icons-material/Compare';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
+import { getFormattedMarket } from '../utils/constants';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import PersonIcon from '@mui/icons-material/Person';
 import EmailIcon from '@mui/icons-material/Email';
@@ -101,34 +102,7 @@ const CompanyCard: React.FC<CompanyCardProps> = ({ company, onDelete }) => {
 
   const companyColor = getCompanyColor(company.brandName);
 
-  // Helper function to get flag emoji for market
-  const getMarketWithFlag = (market: string): string => {
-    const marketFlags: Record<string, string> = {
-      'United States': '🇺🇸',
-      'United Kingdom': '🇬🇧',
-      Canada: '🇨🇦',
-      Australia: '🇦🇺',
-      France: '🇫🇷',
-      Germany: '🇩🇪',
-      Japan: '🇯🇵',
-      China: '🇨🇳',
-      India: '🇮🇳',
-      Brazil: '🇧🇷',
-      Mexico: '🇲🇽',
-      Spain: '🇪🇸',
-      Italy: '🇮🇹',
-      Netherlands: '🇳🇱',
-      Sweden: '🇸🇪',
-      Switzerland: '🇨🇭',
-      Singapore: '🇸🇬',
-      'South Korea': '🇰🇷',
-      Russia: '🇷🇺',
-      'South Africa': '🇿🇦',
-    };
-
-    const flag = marketFlags[market] || '🇺🇸';
-    return `${flag} ${market}`;
-  };
+  // Using shared constants for market flags
 
   return (
     <Card
@@ -192,7 +166,7 @@ const CompanyCard: React.FC<CompanyCardProps> = ({ company, onDelete }) => {
         }
         subheader={
           <Box component="span">
-            {company.industry} • {getMarketWithFlag(company.market)}
+            {company.industry} • {getFormattedMarket(company.market)}
           </Box>
         }
       />

@@ -28,6 +28,7 @@ import PersonIcon from '@mui/icons-material/Person';
 import { createCompanyFromUrl, waitForPromptSet } from '../utils/api';
 import { CompanyIdentityCard, PromptSet } from '../utils/types';
 import { User } from '../utils/types';
+import { MARKETS, getFormattedMarket } from '../utils/constants';
 import { getUsers } from '../utils/api';
 
 const steps = ['Enter URL', 'Generate Identity Card', 'Generate Prompts', 'Complete'];
@@ -252,26 +253,11 @@ const CompanyCreation: React.FC = () => {
                 label="Market"
                 disabled={loading}
               >
-                <MenuItem value="United States">🇺🇸 United States</MenuItem>
-                <MenuItem value="United Kingdom">🇬🇧 United Kingdom</MenuItem>
-                <MenuItem value="Canada">🇨🇦 Canada</MenuItem>
-                <MenuItem value="Australia">🇦🇺 Australia</MenuItem>
-                <MenuItem value="France">🇫🇷 France</MenuItem>
-                <MenuItem value="Germany">🇩🇪 Germany</MenuItem>
-                <MenuItem value="Japan">🇯🇵 Japan</MenuItem>
-                <MenuItem value="China">🇨🇳 China</MenuItem>
-                <MenuItem value="India">🇮🇳 India</MenuItem>
-                <MenuItem value="Brazil">🇧🇷 Brazil</MenuItem>
-                <MenuItem value="Mexico">🇲🇽 Mexico</MenuItem>
-                <MenuItem value="Spain">🇪🇸 Spain</MenuItem>
-                <MenuItem value="Italy">🇮🇹 Italy</MenuItem>
-                <MenuItem value="Netherlands">🇳🇱 Netherlands</MenuItem>
-                <MenuItem value="Sweden">🇸🇪 Sweden</MenuItem>
-                <MenuItem value="Switzerland">🇨🇭 Switzerland</MenuItem>
-                <MenuItem value="Singapore">🇸🇬 Singapore</MenuItem>
-                <MenuItem value="South Korea">🇰🇷 South Korea</MenuItem>
-                <MenuItem value="Russia">🇷🇺 Russia</MenuItem>
-                <MenuItem value="South Africa">🇿🇦 South Africa</MenuItem>
+                {Object.keys(MARKETS).map((marketName) => (
+                  <MenuItem key={marketName} value={marketName}>
+                    {getFormattedMarket(marketName)}
+                  </MenuItem>
+                ))}
               </Select>
               <FormHelperText>
                 {marketError || 'Select the primary geographical market for this company'}

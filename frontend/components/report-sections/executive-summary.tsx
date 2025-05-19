@@ -1,28 +1,28 @@
-"use client"
+"use client";
 
-import { InfoIcon } from "lucide-react"
+import { InfoIcon } from "lucide-react";
 
 interface ExecutiveSummaryProps {
   kpi: {
     pulse: {
-      value: string
-      description: string
-    }
+      value: string;
+      description: string;
+    };
     tone: {
-      value: string
-      status: string
-      description: string
-    }
+      value: string;
+      status: string;
+      description: string;
+    };
     accord: {
-      value: string
-      status: string
-      description: string
-    }
+      value: string;
+      status: string;
+      description: string;
+    };
     arena: {
-      competitors: string[]
-      description: string
-    }
-  }
+      competitors: string[];
+      description: string;
+    };
+  };
 }
 
 export default function ExecutiveSummary({ kpi }: ExecutiveSummaryProps) {
@@ -35,16 +35,56 @@ export default function ExecutiveSummary({ kpi }: ExecutiveSummaryProps) {
       border: "#1976D2",
     },
     tone: {
-      primary: kpi.tone.status === "green" ? "#0D47A1" : kpi.tone.status === "yellow" ? "#4527A0" : "#AD1457",
-      secondary: kpi.tone.status === "green" ? "#2196F3" : kpi.tone.status === "yellow" ? "#673AB7" : "#C2185B",
-      bg: kpi.tone.status === "green" ? "#E3F2FD" : kpi.tone.status === "yellow" ? "#EDE7F6" : "#FCE4EC",
-      border: kpi.tone.status === "green" ? "#90CAF9" : kpi.tone.status === "yellow" ? "#B39DDB" : "#F48FB1",
+      primary:
+        kpi.tone.status === "green"
+          ? "#0D47A1"
+          : kpi.tone.status === "yellow"
+          ? "#4527A0"
+          : "#AD1457",
+      secondary:
+        kpi.tone.status === "green"
+          ? "#2196F3"
+          : kpi.tone.status === "yellow"
+          ? "#673AB7"
+          : "#C2185B",
+      bg:
+        kpi.tone.status === "green"
+          ? "#E3F2FD"
+          : kpi.tone.status === "yellow"
+          ? "#EDE7F6"
+          : "#FCE4EC",
+      border:
+        kpi.tone.status === "green"
+          ? "#90CAF9"
+          : kpi.tone.status === "yellow"
+          ? "#B39DDB"
+          : "#F48FB1",
     },
     accord: {
-      primary: kpi.accord.status === "green" ? "#0D47A1" : kpi.accord.status === "yellow" ? "#4527A0" : "#AD1457",
-      secondary: kpi.accord.status === "green" ? "#2196F3" : kpi.tone.status === "yellow" ? "#673AB7" : "#C2185B",
-      bg: kpi.accord.status === "green" ? "#E3F2FD" : kpi.tone.status === "yellow" ? "#EDE7F6" : "#FCE4EC",
-      border: kpi.accord.status === "green" ? "#90CAF9" : kpi.tone.status === "yellow" ? "#B39DDB" : "#F48FB1",
+      primary:
+        kpi.accord.status === "green"
+          ? "#0D47A1"
+          : kpi.accord.status === "yellow"
+          ? "#4527A0"
+          : "#AD1457",
+      secondary:
+        kpi.accord.status === "green"
+          ? "#2196F3"
+          : kpi.tone.status === "yellow"
+          ? "#673AB7"
+          : "#C2185B",
+      bg:
+        kpi.accord.status === "green"
+          ? "#E3F2FD"
+          : kpi.tone.status === "yellow"
+          ? "#EDE7F6"
+          : "#FCE4EC",
+      border:
+        kpi.accord.status === "green"
+          ? "#90CAF9"
+          : kpi.tone.status === "yellow"
+          ? "#B39DDB"
+          : "#F48FB1",
     },
     arena: {
       primary: "#00796B",
@@ -52,28 +92,28 @@ export default function ExecutiveSummary({ kpi }: ExecutiveSummaryProps) {
       bg: "#E0F2F1",
       border: "#80CBC4",
     },
-  }
+  };
 
   // Fonction pour extraire la valeur numérique du KPI
   const getNumericValue = (value: string) => {
-    return Number.parseFloat(value.replace(/[^0-9.]/g, ""))
-  }
+    return Number.parseFloat(value.replace(/[^0-9.]/g, ""));
+  };
 
   // Calculer les pourcentages pour les barres de progression
-  const pulsePercentage = getNumericValue(kpi.pulse.value)
+  const pulsePercentage = getNumericValue(kpi.pulse.value);
 
   // Convertir la valeur du tone de -1.0 à +1.0 en pourcentage de 0 à 100%
   // Si la valeur contient un +, on considère qu'elle est positive
   const toneValue = kpi.tone.value.includes("+")
     ? getNumericValue(kpi.tone.value)
     : kpi.tone.value.includes("-")
-      ? -getNumericValue(kpi.tone.value)
-      : 0
+    ? -getNumericValue(kpi.tone.value)
+    : 0;
 
   // Convertir de l'échelle -1 à +1 à l'échelle 0 à 100%
-  const tonePercentage = Math.round((toneValue + 1) * 50)
+  const tonePercentage = Math.round((toneValue + 1) * 50);
 
-  const accordPercentage = getNumericValue(kpi.accord.value) * 10 // Supposant que c'est sur 10
+  const accordPercentage = getNumericValue(kpi.accord.value) * 10; // Supposant que c'est sur 10
 
   return (
     <div className="mb-16 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -98,7 +138,9 @@ export default function ExecutiveSummary({ kpi }: ExecutiveSummaryProps) {
             </div>
 
             <div className="flex items-baseline mb-3">
-              <div className="text-3xl font-bold text-gray-900">{kpi.pulse.value}</div>
+              <div className="text-3xl font-bold text-gray-900">
+                {kpi.pulse.value}
+              </div>
               <div className="ml-2 text-sm text-gray-500">visibility score</div>
             </div>
 
@@ -119,7 +161,9 @@ export default function ExecutiveSummary({ kpi }: ExecutiveSummaryProps) {
             </div>
 
             <div className="mt-4 pt-4 border-t border-gray-200">
-              <p className="text-sm text-gray-600">Brand organic visibility across all tested models</p>
+              <p className="text-sm text-gray-600">
+                Brand organic visibility across all tested models
+              </p>
             </div>
           </div>
 
@@ -143,7 +187,10 @@ export default function ExecutiveSummary({ kpi }: ExecutiveSummaryProps) {
             </div>
 
             <div className="flex items-baseline mb-3">
-              <div className="text-3xl font-bold" style={{ color: colors.tone.primary }}>
+              <div
+                className="text-3xl font-bold"
+                style={{ color: colors.tone.primary }}
+              >
                 {tonePercentage}%
               </div>
               <div className="ml-2 text-sm text-gray-500">sentiment score</div>
@@ -170,7 +217,9 @@ export default function ExecutiveSummary({ kpi }: ExecutiveSummaryProps) {
             </div>
 
             <div className="mt-4 pt-4 border-t border-gray-200">
-              <p className="text-sm text-gray-600">Overall sentiment across all tested models</p>
+              <p className="text-sm text-gray-600">
+                Overall sentiment across all tested models
+              </p>
             </div>
           </div>
 
@@ -186,7 +235,9 @@ export default function ExecutiveSummary({ kpi }: ExecutiveSummaryProps) {
 
             <div className="flex items-center justify-between mb-4 mt-2">
               <div className="flex items-center">
-                <span className="text-sm font-bold text-gray-800">Brand Compliance score</span>
+                <span className="text-sm font-bold text-gray-800">
+                  Brand Compliance score
+                </span>
                 <a href="/glossary" className="ml-1.5">
                   <InfoIcon className="h-4 w-4 text-gray-400 hover:text-primary transition-colors" />
                 </a>
@@ -194,7 +245,10 @@ export default function ExecutiveSummary({ kpi }: ExecutiveSummaryProps) {
             </div>
 
             <div className="flex items-baseline mb-3">
-              <div className="text-3xl font-bold" style={{ color: colors.accord.primary }}>
+              <div
+                className="text-3xl font-bold"
+                style={{ color: colors.accord.primary }}
+              >
                 {kpi.accord.value}
               </div>
               <div className="ml-2 text-sm text-gray-500">compliance score</div>
@@ -221,7 +275,9 @@ export default function ExecutiveSummary({ kpi }: ExecutiveSummaryProps) {
             </div>
 
             <div className="mt-4 pt-4 border-t border-gray-200">
-              <p className="text-sm text-gray-600">Tested models' alignement with expected brand attributes</p>
+              <p className="text-sm text-gray-600">
+                Tested models' alignement with expected brand attributes
+              </p>
             </div>
           </div>
 
@@ -232,7 +288,9 @@ export default function ExecutiveSummary({ kpi }: ExecutiveSummaryProps) {
 
             <div className="flex items-center justify-between mb-4 mt-2">
               <div className="flex items-center">
-                <span className="text-sm font-bold text-gray-800">Competition Arena</span>
+                <span className="text-sm font-bold text-gray-800">
+                  Competition Arena
+                </span>
                 <a href="/glossary" className="ml-1.5">
                   <InfoIcon className="h-4 w-4 text-gray-400 hover:text-primary transition-colors" />
                 </a>
@@ -248,17 +306,21 @@ export default function ExecutiveSummary({ kpi }: ExecutiveSummaryProps) {
                     </div>
                     <span className="text-sm font-medium">{competitor}</span>
                   </div>
-                  <span className="text-sm font-bold text-[#805AD5]">{56 - index * 5}%</span>
+                  <span className="text-sm font-bold text-[#805AD5]">
+                    {56 - index * 5}%
+                  </span>
                 </div>
               ))}
             </div>
 
             <div className="mt-4 pt-4 border-t border-gray-200">
-              <p className="text-sm text-gray-600">Global organic visibility assessment within your market</p>
+              <p className="text-sm text-gray-600">
+                Global organic visibility assessment within your market
+              </p>
             </div>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }

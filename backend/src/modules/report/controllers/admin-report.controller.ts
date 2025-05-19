@@ -11,10 +11,16 @@ import {
   BadRequestException,
   Inject,
   UseGuards,
+  Logger,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBody } from '@nestjs/swagger';
 import { ReportService } from '../services/report.service';
 import { WeeklyReportResponseDto } from '../dto/weekly-report-response.dto';
+import { ConfigService } from '@nestjs/config';
+import { TokenService } from '../../auth/services/token.service';
+import { UserService } from '../../user/services/user.service';
+import { IdentityCardService } from '../../identity-card/services/identity-card.service';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import {
   ValidateTokenResponseDto,
   ResendTokenRequestDto,
@@ -22,61 +28,21 @@ import {
   TokenDebugResponseDto,
 } from '../dto/report-access-token.dto';
 import { ReportEmailDto, CompanyReportsResponseDto } from '../dto/report-email.dto';
-import { UserService } from '../../user/services/user.service';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
 @ApiTags('admin-reports')
 @Controller('admin/reports')
 @UseInterceptors(ClassSerializerInterceptor)
 @UseGuards(JwtAuthGuard) // Protect all admin endpoints with JWT auth
 export class AdminReportController {
+  private readonly logger = new Logger(AdminReportController.name);
+
   constructor(
     private readonly reportService: ReportService,
     @Inject(UserService) private readonly userService: UserService,
+    @Inject(TokenService) private readonly tokenService: TokenService,
+    @Inject(IdentityCardService) private readonly identityCardService: IdentityCardService,
+    private readonly configService: ConfigService,
   ) {}
-
-  @Get(':companyId/latest')
-  @ApiOperation({ summary: 'Get the latest weekly report for a company' })
-  @ApiParam({ name: 'companyId', description: 'The ID of the company' })
-  @ApiResponse({
-    status: 200,
-    description: 'The latest weekly report has been successfully retrieved.',
-    type: WeeklyReportResponseDto,
-  })
-  @ApiResponse({ status: 404, description: 'No reports found for the company.' })
-  async getLatestReport(@Param('companyId') companyId: string): Promise<WeeklyReportResponseDto> {
-    try {
-      const report = await this.reportService.getLatestReport(companyId);
-
-      // Map to DTO
-      const response = new WeeklyReportResponseDto();
-      response.companyId = report.companyId;
-      response.weekStart = report.weekStart || new Date();
-
-      // Map new fields if they exist, otherwise use legacy fields
-      response.spontaneous = report.spontaneous || {
-        results: [],
-        summary: { mentionRate: 0, topMentions: [] },
-      };
-      response.sentimentAccuracy = report.sentimentAccuracy || {
-        results: [],
-        summary: { overallSentiment: 'neutral', averageAccuracy: 0 },
-      };
-      response.comparison = report.comparison || {
-        results: [],
-        summary: { winRate: 0, keyDifferentiators: [] },
-      };
-      response.llmVersions = report.llmVersions || {};
-      response.generatedAt = report.generatedAt || new Date();
-
-      return response;
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      throw new Error(`Failed to retrieve report: ${error.message}`);
-    }
-  }
 
   @Get(':companyId/all')
   @ApiOperation({ summary: 'Get all reports for a company' })
@@ -130,6 +96,60 @@ export class AdminReportController {
         throw error;
       }
       throw new BadRequestException(`Failed to send email: ${error.message}`);
+    }
+  }
+
+  @Post('generate-token/:reportId')
+  @ApiOperation({ summary: 'Generate a token for a specific report - Admin view' })
+  @ApiParam({ name: 'reportId', description: 'The ID of the report' })
+  @ApiResponse({
+    status: 200,
+    description: 'Token generated successfully',
+    type: TokenDebugResponseDto,
+  })
+  @ApiResponse({ status: 400, description: 'Invalid request' })
+  @ApiResponse({ status: 404, description: 'Report not found' })
+  async generateReportToken(@Param('reportId') reportId: string): Promise<TokenDebugResponseDto> {
+    try {
+      this.logger.log(`Admin generating token for report ${reportId}`);
+
+      // 1. Get the report to find the company ID
+      const report = await this.reportService.getReportById(reportId);
+      if (!report) {
+        throw new NotFoundException(`Report not found with ID ${reportId}`);
+      }
+
+      const companyId = report.companyId;
+      this.logger.log(`Report ${reportId} belongs to company ${companyId}`);
+
+      // 2. Find the identity card to get the owner's user ID
+      const identityCard = await this.identityCardService.findById(companyId);
+      if (!identityCard || !identityCard.userId) {
+        throw new BadRequestException(`No user associated with company ${companyId}`);
+      }
+
+      const userId = identityCard.userId;
+      this.logger.log(`Company ${companyId} is owned by user ${userId}`);
+
+      // 3. Generate token for this user
+      const token = await this.tokenService.generateAccessToken(userId);
+
+      // 4. Construct the access URL
+      const baseUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001';
+      const accessUrl = `${baseUrl}/report-access?token=${token}&reportId=${reportId}`;
+
+      this.logger.log(`Generated token for report ${reportId}: ${token.substring(0, 8)}...`);
+
+      return {
+        token,
+        accessUrl,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to generate report token: ${error.message}`, error.stack);
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException(`Failed to generate token: ${error.message}`);
     }
   }
 }

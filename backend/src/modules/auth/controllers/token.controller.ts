@@ -18,11 +18,39 @@ import { UserService } from '../../user/services/user.service';
 import { TokenService } from '../services/token.service';
 import {
   ValidateTokenResponseDto,
-  GenerateTokenRequestDto, 
+  GenerateTokenRequestDto,
   GenerateTokenResponseDto,
   TokenDebugResponseDto,
 } from '../dto/token.dto';
 import { PublicRoute } from '../decorators/public-route.decorator';
+
+// Define interfaces for debug-request endpoint
+interface RequestHeaders {
+  authorization?: string;
+  'user-agent': string;
+  [key: string]: string | undefined;
+}
+
+interface TokenRequest {
+  path: string;
+  method: string;
+  params: Record<string, string>;
+  query: Record<string, string>;
+  body: Record<string, unknown>;
+  userId?: string;
+  token?: string;
+  headers: {
+    authorization?: string;
+    'user-agent'?: string;
+  };
+}
+
+interface DebugRequestResponse {
+  message: string;
+  requestInfo: TokenRequest;
+  tokenValidation: { valid: boolean; userId?: string } | null;
+  timestamp: string;
+}
 
 @ApiTags('tokens')
 @Controller('tokens')
@@ -46,8 +74,10 @@ export class TokenController {
   })
   @ApiResponse({ status: 400, description: 'Invalid request.' })
   async validateToken(@Query('token') token: string): Promise<ValidateTokenResponseDto> {
-    this.logger.log(`Token validation attempt - Token: ${token ? token.substring(0, 8) + '...' : 'undefined'}`);
-    
+    this.logger.log(
+      `Token validation attempt - Token: ${token ? token.substring(0, 8) + '...' : 'undefined'}`,
+    );
+
     try {
       if (!token) {
         this.logger.warn('Token validation failed: Token is required');
@@ -55,7 +85,9 @@ export class TokenController {
       }
 
       const result = await this.tokenService.validateAccessToken(token);
-      this.logger.log(`Token validation result - Valid: ${result.valid}, UserId: ${result.userId ? result.userId : 'none'}`);
+      this.logger.log(
+        `Token validation result - Valid: ${result.valid}, UserId: ${result.userId ? result.userId : 'none'}`,
+      );
       return result;
     } catch (error) {
       this.logger.error(`Token validation error: ${error.message}`, error.stack);
@@ -76,7 +108,7 @@ export class TokenController {
   @ApiResponse({ status: 404, description: 'User not found.' })
   async generateToken(@Body() request: GenerateTokenRequestDto): Promise<GenerateTokenResponseDto> {
     this.logger.log(`Token generation request for userId: ${request.userId}`);
-    
+
     try {
       if (!request.userId) {
         this.logger.warn('Token generation failed: userId is required');
@@ -141,7 +173,7 @@ export class TokenController {
       const token = await this.tokenService.generateAccessToken(userId);
 
       // Construct the access URL
-      const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
       const accessUrl = `${baseUrl}/report-access?token=${token}`;
 
       return {
@@ -155,24 +187,26 @@ export class TokenController {
       throw new BadRequestException(`Failed to generate debug token: ${error.message}`);
     }
   }
-  
+
   @Get('debug-request')
   @PublicRoute()
   @ApiOperation({ summary: 'Debug token request details (non-production only)' })
   @ApiQuery({ name: 'token', description: 'The access token to debug', required: false })
   async debugRequest(
     @Query('token') token: string,
-    @Headers() headers: any,
-    @Req() request: any
-  ): Promise<any> {
+    @Headers() headers: RequestHeaders,
+    @Req() request: Record<string, any>,
+  ): Promise<DebugRequestResponse> {
     // Only allow in development mode
     const environment = process.env.NODE_ENV || 'development';
     if (environment !== 'development') {
       throw new BadRequestException('Debug endpoint only available in development mode');
     }
-    
-    this.logger.log(`Debug request called with token: ${token ? token.substring(0, 8) + '...' : 'none'}`);
-    
+
+    this.logger.log(
+      `Debug request called with token: ${token ? token.substring(0, 8) + '...' : 'none'}`,
+    );
+
     // Information about the request
     const requestInfo = {
       path: request.path,
@@ -183,18 +217,20 @@ export class TokenController {
       userId: request.userId,
       token: request.token,
       headers: {
-        authorization: headers.authorization ? `${headers.authorization.substring(0, 10)}...` : undefined,
+        authorization: headers.authorization
+          ? `${headers.authorization.substring(0, 10)}...`
+          : undefined,
         'user-agent': headers['user-agent'],
       },
     };
-    
+
     // If token is provided, validate it
     let tokenValidation = null;
     if (token) {
       tokenValidation = await this.tokenService.validateAccessToken(token);
       this.logger.log(`Token validation result: ${JSON.stringify(tokenValidation)}`);
     }
-    
+
     return {
       message: 'Debug information for token request',
       requestInfo,

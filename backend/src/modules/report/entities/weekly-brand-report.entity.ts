@@ -102,6 +102,7 @@ export class WeeklyBrandReport {
   pulse: {
     promptsTested: number;
     modelVisibility: ModelVisibility[];
+    globalAverage: number;
   };
 
   @ApiProperty({ description: 'Tone section data' })
@@ -132,53 +133,6 @@ export class WeeklyBrandReport {
         positives: string[];
         negatives: string[];
       };
-    };
-  };
-
-  // Original data fields (for backward compatibility and data processing)
-  @ApiProperty({ description: 'Start of the week (Monday 00:00:00 UTC)' })
-  weekStart: Date;
-
-  @ApiProperty({ description: 'Spontaneous mention results' })
-  spontaneous?: {
-    results: {
-      llmProvider: string;
-      promptIndex: number;
-      mentioned: boolean;
-      topOfMind: string[];
-    }[];
-    summary: {
-      mentionRate: number;
-      topMentions: string[];
-    };
-  };
-
-  @ApiProperty({ description: 'Sentiment and accuracy results' })
-  sentimentAccuracy?: {
-    results: {
-      llmProvider: string;
-      promptIndex: number;
-      sentiment: 'positive' | 'neutral' | 'negative';
-      accuracy: number;
-      extractedFacts: string[];
-    }[];
-    summary: {
-      overallSentiment: 'positive' | 'neutral' | 'negative';
-      averageAccuracy: number;
-    };
-  };
-
-  @ApiProperty({ description: 'Comparison results' })
-  comparison?: {
-    results: {
-      llmProvider: string;
-      promptIndex: number;
-      winner: string;
-      differentiators: string[];
-    }[];
-    summary: {
-      winRate: number;
-      keyDifferentiators: string[];
     };
   };
 

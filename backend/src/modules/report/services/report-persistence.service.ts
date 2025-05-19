@@ -38,7 +38,6 @@ export class ReportPersistenceService {
       // Create new report with both new and legacy structures
       const newReport = new this.weeklyReportModel({
         companyId: report.companyId,
-        weekStart: report.weekStart,
         generatedAt: report.generatedAt || new Date(),
 
         // New structure fields
@@ -50,19 +49,6 @@ export class ReportPersistenceService {
         accord: report.accord,
         arena: report.arena,
 
-        // Legacy fields for backward compatibility
-        spontaneous: report.spontaneous || {
-          results: [],
-          summary: { mentionRate: 0, topMentions: [] },
-        },
-        sentiment: report.sentimentAccuracy || {
-          results: [],
-          summary: { overallSentiment: 'neutral', averageAccuracy: 0 },
-        },
-        comparison: report.comparison || {
-          results: [],
-          summary: { winRate: 0, keyDifferentiators: [] },
-        },
         llmVersions: report.llmVersions || {},
       });
 

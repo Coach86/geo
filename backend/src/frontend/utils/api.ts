@@ -279,6 +279,18 @@ export const sendReportEmail = async (
   return response.data;
 };
 
+// Generate a token for a specific report
+export const generateReportToken = async (
+  reportId: string
+): Promise<{ 
+  token?: string;
+  accessUrl?: string;
+}> => {
+  // Call our new admin endpoint which handles all the logic
+  const response = await authApi.post(`/reports/generate-token/${reportId}`);
+  return response.data;
+};
+
 // Get prompt templates used to generate company prompts
 export const getPromptTemplates = async (
   companyId: string,
