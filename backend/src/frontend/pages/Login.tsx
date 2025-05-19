@@ -30,7 +30,7 @@ const Login: React.FC = () => {
       <Box sx={{ mt: 8 }}>
         <Paper sx={{ p: 4 }}>
           <Typography variant="h4" component="h1" align="center" gutterBottom>
-            Admin Login
+            Brand Intelligence Login
           </Typography>
           
           {error && (
