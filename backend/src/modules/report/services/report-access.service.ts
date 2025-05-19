@@ -27,7 +27,9 @@ export class ReportAccessService {
    * @deprecated Use TokenService.generateAccessToken instead
    */
   async generateAccessToken(userId: string): Promise<string> {
-    this.logger.warn(`Using deprecated generateAccessToken method in ReportAccessService. Use TokenService instead.`);
+    this.logger.warn(
+      `Using deprecated generateAccessToken method in ReportAccessService. Use TokenService instead.`,
+    );
     return this.tokenService.generateAccessToken(userId);
   }
 
@@ -36,7 +38,9 @@ export class ReportAccessService {
    * @deprecated Use TokenService.validateAccessToken instead
    */
   async validateAccessToken(token: string): Promise<{ valid: boolean; userId?: string }> {
-    this.logger.warn(`Using deprecated validateAccessToken method in ReportAccessService. Use TokenService instead.`);
+    this.logger.warn(
+      `Using deprecated validateAccessToken method in ReportAccessService. Use TokenService instead.`,
+    );
     return this.tokenService.validateAccessToken(token);
   }
 
@@ -57,7 +61,7 @@ export class ReportAccessService {
       const formattedReportDate = format(reportDate, 'MMM dd, yyyy');
 
       // Construct the access URL based on environment
-      const baseUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+      const baseUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001';
       const accessUrl = `${baseUrl}/report-access?token=${token}&reportId=${reportId}`;
 
       // Create and send the email
@@ -114,7 +118,7 @@ export class ReportAccessService {
       const reportDateFormatted = format(reportDate, 'MMM dd, yyyy');
 
       // Construct the access URL
-      const baseUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+      const baseUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001';
       const accessUrl = `${baseUrl}/report-access?token=${token}&reportId=${reportId}`;
 
       // Check for Resend API key

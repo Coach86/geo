@@ -23,7 +23,8 @@ import {
 } from '@mui/material';
 import EmailIcon from '@mui/icons-material/Email';
 import PersonIcon from '@mui/icons-material/Person';
-import { getAllCompanyReports, sendReportEmail } from '../../utils/api';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import { getAllCompanyReports, sendReportEmail, generateReportToken } from '../../utils/api';
 
 interface ReportsTabProps {
   companyId: string;
@@ -49,6 +50,7 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ companyId, userEmail }) => {
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [generatingToken, setGeneratingToken] = useState(false);
 
   // Fetch all reports for the company
   useEffect(() => {
@@ -138,6 +140,35 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ companyId, userEmail }) => {
       setSendingEmail(false);
     }
   };
+  
+  // Handle viewing report with admin token
+  const handleViewReport = async (report: Report) => {
+    try {
+      setGeneratingToken(true);
+      
+      // Call our new API endpoint that generates a token for this specific report
+      // It will automatically look up the company and find the owner
+      const response = await generateReportToken(report.id);
+      
+      if (response.accessUrl) {
+        // Open the report in a new tab
+        window.open(response.accessUrl, '_blank');
+        
+        setSnackbarMessage('Opening report in a new tab');
+        setSnackbarSeverity('success');
+        setSnackbarOpen(true);
+      } else {
+        throw new Error('Failed to generate token or access URL');
+      }
+    } catch (err) {
+      console.error('Error generating report token:', err);
+      setSnackbarMessage(`Failed to generate report access: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    } finally {
+      setGeneratingToken(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -198,13 +229,23 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ companyId, userEmail }) => {
                 <TableCell>{formatDate(report.generatedAt)}</TableCell>
                 <TableCell align="right">
                   <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<VisibilityIcon />}
+                      onClick={() => handleViewReport(report)}
+                      disabled={generatingToken}
+                      color="secondary"
+                    >
+                      {generatingToken ? 'Loading...' : 'View Report'}
+                    </Button>
                     {userEmail && (
                       <Button
                         variant="outlined"
                         size="small"
                         startIcon={<PersonIcon />}
                         onClick={() => handleSendToOwner(report)}
-                        disabled={sendingEmail}
+                        disabled={sendingEmail || generatingToken}
                       >
                         {sendingEmail ? 'Sending...' : 'Send to Owner'}
                       </Button>
@@ -215,7 +256,7 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ companyId, userEmail }) => {
                       color="primary"
                       startIcon={<EmailIcon />}
                       onClick={() => handleOpenEmailDialog(report)}
-                      disabled={sendingEmail}
+                      disabled={sendingEmail || generatingToken}
                     >
                       Send Email
                     </Button>

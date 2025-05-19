@@ -3,7 +3,17 @@ import { ConfigService } from '@nestjs/config';
 import { BatchService } from './batch.service';
 import { BatchExecutionService } from './batch-execution.service';
 import { ReportService } from '../../report/services/report.service';
-import { CompanyBatchContext } from '../interfaces/batch.interfaces';
+import {
+  AccuracyPipelineResult,
+  AccuracyResults,
+  CompanyBatchContext,
+  ComparisonPipelineResult,
+  ComparisonResults,
+  SentimentPipelineResult,
+  SentimentResults,
+  SpontaneousPipelineResult,
+  SpontaneousResults,
+} from '../interfaces/batch.interfaces';
 
 /**
  * Service to orchestrate the execution of all batches for a company
@@ -229,12 +239,15 @@ export class CompanyBatchOrchestratorService {
    * @param results The results to extract LLM versions from
    * @returns A record of LLM provider to version
    */
-  private getLlmVersions(results: any[]): Record<string, string> {
+  private getLlmVersions(
+    results: { llmProvider: string; llmModel: string }[],
+  ): Record<string, string> {
     const versions: Record<string, string> = {};
 
     for (const result of results) {
       if (result.llmProvider && !versions[result.llmProvider]) {
-        versions[result.llmProvider] = `${result.llmProvider.toLowerCase()}-version`;
+        versions[result.llmProvider] =
+          `${result.llmProvider.toLowerCase()}-${result.llmModel?.toLowerCase() || ''}`;
       }
     }
 

@@ -1,3 +1,7 @@
+import {
+  SpontaneousPipelineResult,
+  SpontaneousResults,
+} from '@/modules/batch/interfaces/batch.interfaces';
 import { Injectable, Logger } from '@nestjs/common';
 
 /**
@@ -11,49 +15,25 @@ export class ReportTransformationService {
   /**
    * Format pulse model visibility data
    */
-  formatPulseModelVisibility(
-    spontaneousData: any,
-    llmVersions: any,
-  ): Array<{
+  formatPulseModelVisibility(spontaneousData: SpontaneousResults): Array<{
     model: string;
     value: number;
     isAverage?: boolean;
   }> {
-    if (!spontaneousData?.results) {
+    if (!spontaneousData?.brandVisibility) {
       return [];
     }
-
-    // Get unique LLM providers from the results
-    const llmProviderSet = new Set<string>();
-    if (spontaneousData?.results) {
-      spontaneousData.results.forEach((r: any) => {
-        if (r.llmProvider) llmProviderSet.add(r.llmProvider);
-      });
-    }
-    const llmProviders = Array.from(llmProviderSet);
+    this.logger.log('spontaneousData', spontaneousData);
 
     // Calculate visibility percentage for each model
-    const modelVisibility = llmProviders.map((provider) => {
-      const modelResults = spontaneousData.results.filter((r: any) => r.llmProvider === provider);
-      const totalPrompts = modelResults.length || 1;
-      const mentionedCount = modelResults.filter((r: any) => r.mentioned === true).length;
-      const mentionRate = Math.round((mentionedCount / totalPrompts) * 100);
-
+    const modelVisibility = spontaneousData.brandVisibility?.modelBreakdown.map((modelSummary) => {
       return {
-        model: provider,
-        value: mentionRate,
-        isAverage: false,
+        model: modelSummary.name,
+        value: Math.round(modelSummary.mentionRate * 100),
       };
     });
 
-    // Add global average
-    const globalAverage = {
-      model: 'Global Avg',
-      value: spontaneousData?.summary?.mentionRate || 0,
-      isAverage: true,
-    };
-
-    return [...modelVisibility, globalAverage];
+    return modelVisibility;
   }
 
   /**
@@ -441,12 +421,12 @@ export class ReportTransformationService {
     const attributes = this.generateAttributesList(sentimentData, identityCard);
 
     // Calculate accuracy score from accuracyData if available, otherwise use sentimentData
-    const averageAccuracy = accuracyData?.summary?.averageAccuracy || 
-                           sentimentData?.summary?.averageAccuracy || 0.5;
-    
+    const averageAccuracy =
+      accuracyData?.summary?.averageAccuracy || sentimentData?.summary?.averageAccuracy || 0.5;
+
     // Format as percentage
     const scoreValue = `${Math.round(averageAccuracy * 100)}%`;
-    
+
     // Determine status based on accuracy score
     let status = 'yellow';
     if (averageAccuracy >= 0.75) {
@@ -459,8 +439,8 @@ export class ReportTransformationService {
       attributes,
       score: {
         value: scoreValue,
-        status
-      }
+        status,
+      },
     };
   }
 
@@ -571,8 +551,8 @@ export class ReportTransformationService {
       attributes: this.typeSafeAttributes(accordData.attributes),
       score: {
         value: accordData.score.value,
-        status: this.safeStatusColor(accordData.score.status)
-      }
+        status: this.safeStatusColor(accordData.score.status),
+      },
     };
   }
 

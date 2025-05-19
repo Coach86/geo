@@ -18,6 +18,7 @@ import GroupIcon from '@mui/icons-material/Group';
 import { CompanyIdentityCard } from '../../utils/types';
 import EditableKeyFeatures from './EditableKeyFeatures';
 import EditableCompetitors from './EditableCompetitors';
+import { getFormattedMarket } from '../../utils/constants';
 
 interface OverviewTabProps {
   company: CompanyIdentityCard;
@@ -29,34 +30,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ company }) => {
   );
   const [competitors, setCompetitors] = useState<string[]>(company.competitors);
 
-  // Helper function to get flag emoji for market
-  const getMarketWithFlag = (market: string): string => {
-    const marketFlags: Record<string, string> = {
-      'United States': '🇺🇸',
-      'United Kingdom': '🇬🇧',
-      Canada: '🇨🇦',
-      Australia: '🇦🇺',
-      France: '🇫🇷',
-      Germany: '🇩🇪',
-      Japan: '🇯🇵',
-      China: '🇨🇳',
-      India: '🇮🇳',
-      Brazil: '🇧🇷',
-      Mexico: '🇲🇽',
-      Spain: '🇪🇸',
-      Italy: '🇮🇹',
-      Netherlands: '🇳🇱',
-      Sweden: '🇸🇪',
-      Switzerland: '🇨🇭',
-      Singapore: '🇸🇬',
-      'South Korea': '🇰🇷',
-      Russia: '🇷🇺',
-      'South Africa': '🇿🇦',
-    };
-
-    const flag = marketFlags[market] || '🇺🇸';
-    return `${flag} ${market}`;
-  };
+  // Using shared constant for market flags
   return (
     <Grid container spacing={3}>
       <Grid size={{ xs: 12 }}>
@@ -65,7 +39,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ company }) => {
             <Typography variant="h6" gutterBottom>
               Description
             </Typography>
-            <Chip label={getMarketWithFlag(company.market)} variant="outlined" size="small" />
+            <Chip label={getFormattedMarket(company.market)} variant="outlined" size="small" />
           </Box>
           <Typography variant="body1" paragraph>
             {company.longDescription || company.shortDescription}

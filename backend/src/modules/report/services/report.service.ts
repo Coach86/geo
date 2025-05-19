@@ -22,6 +22,7 @@ import { ReportConverterService } from './report-converter.service';
 import { UserService } from '../../user/services/user.service';
 import { CompanyIdentityCard } from '@/modules/identity-card/entities/company-identity-card.entity';
 import { OnEvent } from '@nestjs/event-emitter';
+import { SpontaneousResults } from '@/modules/batch/interfaces/batch.interfaces';
 /**
  * Main report service that serves as a facade for specialized services
  */
@@ -47,94 +48,56 @@ export class ReportService implements OnModuleInit {
   }
 
   /**
-   * Transform database report to entity format with the new structure
-   * This is a coordinating method that delegates to the converter service
+   * Transform raw batch data into a standardized report entity
+   *
+   * This method takes raw batch data and uses the converterService to transform it
+   * into a standardized report entity format.
    */
   private async transformToEntityFormat(
     report: WeeklyBrandReportDocument,
     identityCard: CompanyIdentityCard,
   ): Promise<WeeklyBrandReportEntity> {
-    // If the report already has the new structure, return it with type safety
-    if (report.brand && report.metadata && report.kpi) {
-      return {
-        id: report.id,
+    this.logger.debug(`Transforming report ${report.id} for company ${report.companyId}`);
+
+    try {
+      // Create a batch report input object from the document with defaults for missing data
+      const batchInput: BatchReportInput = {
         companyId: report.companyId,
         weekStart: report.weekStart,
-        generatedAt: report.generatedAt,
-        brand: report.brand,
-        metadata: report.metadata,
-        kpi: {
-          pulse: report.kpi.pulse,
-          tone: {
-            ...report.kpi.tone,
-            status: this.transformationService.safeStatusColor(report.kpi.tone.status),
-          },
-          accord: {
-            ...report.kpi.accord,
-            status: this.transformationService.safeStatusColor(report.kpi.accord.status),
-          },
-          arena: report.kpi.arena,
-        },
-        pulse: report.pulse,
-        tone: this.transformationService.typeSafeToneData(report.tone),
-        accord: {
-          attributes: this.transformationService.typeSafeAttributes(report.accord.attributes),
-          score: {
-            value: report.accord.score.value,
-            status: this.transformationService.safeStatusColor(report.accord.score.status),
-          },
-        },
-        arena: this.transformationService.typeSafeArenaData(report.arena),
-        // Keep legacy fields for compatibility
         spontaneous: report.spontaneous || {
           results: [],
           summary: { mentionRate: 0, topMentions: [] },
+          webSearchSummary: { usedWebSearch: false, webSearchCount: 0, consultedWebsites: [] },
         },
         sentimentAccuracy: report.sentiment || {
           results: [],
           summary: { overallSentiment: 'neutral', averageAccuracy: 0 },
+          webSearchSummary: { usedWebSearch: false, webSearchCount: 0, consultedWebsites: [] },
         },
         comparison: report.comparison || {
           results: [],
           summary: { winRate: 0, keyDifferentiators: [] },
+          webSearchSummary: { usedWebSearch: false, webSearchCount: 0, consultedWebsites: [] },
         },
         llmVersions: report.llmVersions || {},
+        generatedAt: report.generatedAt || new Date(),
       };
+
+      // Use the converter service to transform the data
+      const convertedEntity = this.converterService.convertBatchInputToReportEntity(
+        batchInput,
+        identityCard,
+      );
+
+      // Ensure the ID is preserved
+      convertedEntity.id = report.id;
+
+      this.logger.debug(`Successfully transformed report ${report.id}`);
+      return convertedEntity;
+    } catch (error) {
+      this.logger.error(`Error transforming report ${report.id}: ${error.message}`, error.stack);
+      throw new Error(`Failed to transform report: ${error.message}`);
     }
-
-    // Create a batch report input object from the document
-    const batchInput: BatchReportInput = {
-      companyId: report.companyId,
-      weekStart: report.weekStart,
-      spontaneous: report.spontaneous || {
-        results: [],
-        summary: { mentionRate: 0, topMentions: [] },
-        webSearchSummary: { usedWebSearch: false, webSearchCount: 0, consultedWebsites: [] },
-      },
-      sentimentAccuracy: report.sentiment || {
-        results: [],
-        summary: { overallSentiment: 'neutral', averageAccuracy: 0 },
-        webSearchSummary: { usedWebSearch: false, webSearchCount: 0, consultedWebsites: [] },
-      },
-      comparison: report.comparison || {
-        results: [],
-        summary: { winRate: 0, keyDifferentiators: [] },
-        webSearchSummary: { usedWebSearch: false, webSearchCount: 0, consultedWebsites: [] },
-      },
-      llmVersions: report.llmVersions || {},
-      generatedAt: report.generatedAt || new Date(),
-    };
-
-    // Use the converter service to transform the data
-    const convertedEntity = this.converterService.convertBatchInputToReportEntity(
-      batchInput,
-      identityCard,
-    );
-
-    // Ensure the ID is preserved
-    convertedEntity.id = report.id;
-
-    return convertedEntity;
   }
 
   /**
@@ -142,8 +105,8 @@ export class ReportService implements OnModuleInit {
    */
 
   // Expose transformation methods needed by the controller
-  formatPulseModelVisibility(spontaneousData: any, llmVersions: any) {
-    return this.transformationService.formatPulseModelVisibility(spontaneousData, llmVersions);
+  formatPulseModelVisibility(spontaneousData: SpontaneousResults) {
+    return this.transformationService.formatPulseModelVisibility(spontaneousData);
   }
 
   formatToneData(sentimentData: any) {
