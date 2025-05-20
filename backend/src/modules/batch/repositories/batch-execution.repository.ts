@@ -57,11 +57,12 @@ export class BatchExecutionRepository {
    * @param companyId The company ID
    * @returns Array of batch executions sorted by date (newest first)
    */
-  async findAllByCompanyId(companyId: string): Promise<BatchExecutionDocument[]> {
+  async findAllByCompanyId(companyId: string): Promise<Record<string, any>[]> {
     this.logger.debug(`Finding all batch executions for company: ${companyId}`);
     const batchExecutions = await this.batchExecutionModel
       .find({ companyId })
       .sort({ executedAt: -1 })
+      .lean()
       .exec();
     return batchExecutions;
   }

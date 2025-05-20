@@ -64,7 +64,7 @@ export class AccuracyPipelineService extends BasePipelineService {
 
     try {
       // Get the prompts for this pipeline - could be array or JSON string
-      const promptsRaw = context.promptSet?.direct || [];
+      const promptsRaw = context.promptSet?.accuracy || [];
       const prompts: string[] = Array.isArray(promptsRaw)
         ? promptsRaw
         : JSON.parse(typeof promptsRaw === 'string' ? promptsRaw : '[]');
@@ -92,11 +92,17 @@ export class AccuracyPipelineService extends BasePipelineService {
         for (let i = 0; i < formattedPrompts.length; i++) {
           tasks.push(
             this.limiter(async () => {
+              const prompt = `
+              ${formattedPrompts[i]}
+              <context>
+              URL: ${context.websiteUrl}
+              </context>
+              `;
               try {
                 // Step 1: Execute the prompt with this model
                 const llmResponse = await this.executePrompt(
                   modelConfig,
-                  formattedPrompts[i],
+                  prompt,
                   context.batchExecutionId, // Pass batch execution ID for storing raw responses
                   i, // Pass prompt index
                 );
