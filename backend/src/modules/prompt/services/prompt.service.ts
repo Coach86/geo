@@ -135,7 +135,7 @@ export class PromptService implements OnModuleInit {
         this.spontPromptCount,
         competitors,
       ),
-      this.generateDirectBrandPrompts(brandName, market, this.directPromptCount),
+      this.generateDirectBrandPrompts(brandName, market, this.directPromptCount, websiteUrl),
       this.generateComparisonPrompts(
         brandName,
         competitors,
@@ -178,6 +178,7 @@ export class PromptService implements OnModuleInit {
     brandName: string,
     market: string,
     count: number,
+    websiteUrl: string,
   ): Promise<string[]> {
     // Define our schema for the LLM output
     const promptsSchema = z.object({
@@ -187,7 +188,7 @@ export class PromptService implements OnModuleInit {
     // Call LLM with structured output processing
     const result = await this.llmService.getStructuredOutput(
       LlmProvider.OpenAI,
-      directUserPrompt({ market, brandName, count }),
+      directUserPrompt({ market, brandName, count, websiteUrl }),
       promptsSchema,
       { systemPrompt: directSystemPrompt },
     );
