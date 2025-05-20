@@ -5,14 +5,20 @@ type DirectUserPromptParams = {
   market: string;
   brandName: string;
   count: number;
+  websiteUrl: string;
 };
-export function directUserPrompt({ market, brandName, count }: DirectUserPromptParams): string {
+export function directUserPrompt({
+  market,
+  brandName,
+  count,
+  websiteUrl,
+}: DirectUserPromptParams): string {
   return `
       Translate the following prompts (${count}) to the language of the market: ${market}
 
       ### Prompts:
-      - What do you think of ${brandName}?
-      - What are the main strenghts and weaknesses of ${brandName}?
-      - What do clients and reviews say about ${brandName}?
+      - What do you think of ${brandName}?  (url: ${websiteUrl})
+      - What are the main strenghts and weaknesses of ${brandName}? (url: ${websiteUrl})
+      - What do clients and reviews say about ${brandName}?  (url: ${websiteUrl})
     `;
 }

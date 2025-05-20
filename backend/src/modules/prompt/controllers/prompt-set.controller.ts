@@ -104,6 +104,7 @@ export class PromptSetController {
           market: company.market,
           brandName: company.brandName,
           count: directPromptCount,
+          websiteUrl: company.website,
         }),
       };
 
