@@ -1,14 +1,12 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
 import { renderAsync } from '@react-email/render';
 import React from 'react';
 import { BrandIntelligenceReport } from '../email';
 import { IdentityCardService } from '../../identity-card/services/identity-card.service';
-import { BatchExecution, BatchExecutionDocument } from '../../batch/schemas/batch-execution.schema';
-import { BatchResult, BatchResultDocument } from '../../batch/schemas/batch-result.schema';
+import { BatchExecutionRepository } from '../../batch/repositories/batch-execution.repository';
+import { BatchResultRepository } from '../../batch/repositories/batch-result.repository';
 import { PipelineType } from '../../batch/interfaces/llm.interfaces';
 
 /**
@@ -21,8 +19,8 @@ export class ReportIntegrationService {
   constructor(
     private readonly configService: ConfigService,
     private readonly identityCardService: IdentityCardService,
-    @InjectModel(BatchExecution.name) private batchExecutionModel: Model<BatchExecutionDocument>,
-    @InjectModel(BatchResult.name) private batchResultModel: Model<BatchResultDocument>,
+    private readonly batchExecutionRepository: BatchExecutionRepository,
+    private readonly batchResultRepository: BatchResultRepository,
   ) {}
 
   /**
@@ -101,7 +99,7 @@ export class ReportIntegrationService {
    */
   async getBatchExecution(batchExecutionId: string) {
     this.logger.debug(`Getting batch execution with ID ${batchExecutionId}`);
-    const batchExecution = await this.batchExecutionModel.findOne({ id: batchExecutionId }).exec();
+    const batchExecution = await this.batchExecutionRepository.findById(batchExecutionId);
 
     if (!batchExecution) {
       this.logger.warn(`Batch execution with ID ${batchExecutionId} not found`);
@@ -120,12 +118,7 @@ export class ReportIntegrationService {
   async getBatchResultByType(batchExecutionId: string, resultType: PipelineType) {
     this.logger.debug(`Getting ${resultType} result for batch execution ${batchExecutionId}`);
 
-    const batchResult = await this.batchResultModel
-      .findOne({
-        batchExecutionId,
-        resultType,
-      })
-      .exec();
+    const batchResult = await this.batchResultRepository.findByExecutionIdAndType(batchExecutionId, resultType);
 
     if (!batchResult) {
       this.logger.warn(`No ${resultType} result found for batch execution ${batchExecutionId}`);

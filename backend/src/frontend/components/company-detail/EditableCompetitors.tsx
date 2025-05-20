@@ -14,13 +14,16 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Tooltip
+  Tooltip,
+  useTheme,
+  alpha
 } from '@mui/material';
 import GroupIcon from '@mui/icons-material/Group';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
 import AddIcon from '@mui/icons-material/Add';
+import BusinessIcon from '@mui/icons-material/Business';
 import { updateCompanyDetails } from '../../utils/api';
 
 interface EditableCompetitorsProps {
@@ -34,6 +37,7 @@ const EditableCompetitors: React.FC<EditableCompetitorsProps> = ({
   competitors, 
   onUpdate 
 }) => {
+  const theme = useTheme();
   const [isEditing, setIsEditing] = useState(false);
   const [editedCompetitors, setEditedCompetitors] = useState<string[]>([...competitors]);
   const [saving, setSaving] = useState(false);
@@ -95,32 +99,97 @@ const EditableCompetitors: React.FC<EditableCompetitorsProps> = ({
   if (!isEditing) {
     return (
       <>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-          <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}>
-            <GroupIcon color="primary" sx={{ mr: 1 }} />
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              display: 'flex', 
+              alignItems: 'center',
+              fontSize: '1rem',
+              fontWeight: 600, 
+              color: theme.palette.text.primary
+            }}
+          >
+            <BusinessIcon 
+              sx={{ 
+                mr: 1, 
+                fontSize: '1.1rem',
+                color: theme.palette.secondary.main 
+              }} 
+            />
             Competitors
           </Typography>
           <Tooltip title="Edit competitors">
-            <IconButton onClick={handleStartEdit} color="primary" size="small">
-              <EditIcon />
+            <IconButton 
+              onClick={handleStartEdit} 
+              color="secondary" 
+              size="small"
+              sx={{ 
+                width: 30,
+                height: 30,
+                backgroundColor: alpha(theme.palette.secondary.main, 0.08),
+                '&:hover': {
+                  backgroundColor: alpha(theme.palette.secondary.main, 0.12),
+                }
+              }}
+            >
+              <EditIcon sx={{ fontSize: '0.9rem' }} />
             </IconButton>
           </Tooltip>
         </Box>
         <Divider sx={{ mb: 2 }} />
-        <List>
+        <List sx={{ p: 0 }}>
           {competitors.map((competitor, index) => (
-            <ListItem key={index} disablePadding sx={{ py: 0.5 }}>
+            <ListItem 
+              key={index} 
+              disablePadding 
+              sx={{ 
+                py: 0.75,
+                borderRadius: 1,
+                '&:hover': {
+                  backgroundColor: alpha(theme.palette.secondary.light, 0.05),
+                }
+              }}
+            >
               <ListItemIcon sx={{ minWidth: 36 }}>
-                <GroupIcon fontSize="small" color="primary" />
+                <GroupIcon 
+                  fontSize="small" 
+                  sx={{ 
+                    color: theme.palette.secondary.main,
+                    fontSize: '0.9rem'
+                  }} 
+                />
               </ListItemIcon>
-              <ListItemText primary={competitor} />
+              <ListItemText 
+                primary={competitor} 
+                primaryTypographyProps={{
+                  sx: {
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                    color: theme.palette.text.primary
+                  }
+                }}
+              />
             </ListItem>
           ))}
         </List>
         {competitors.length === 0 && (
-          <Typography variant="body2" color="text.secondary">
-            No competitors specified. Click the edit button to add competitors.
-          </Typography>
+          <Box 
+            sx={{ 
+              p: 2, 
+              textAlign: 'center',
+              backgroundColor: alpha(theme.palette.grey[50], 0.8),
+              borderRadius: 1,
+            }}
+          >
+            <Typography 
+              variant="body2" 
+              color="text.secondary"
+              sx={{ fontSize: '0.875rem' }}
+            >
+              No competitors specified. Click the edit button to add competitors.
+            </Typography>
+          </Box>
         )}
       </>
     );
@@ -128,21 +197,69 @@ const EditableCompetitors: React.FC<EditableCompetitorsProps> = ({
   
   // Render the edit mode
   return (
-    <Dialog open={isEditing} onClose={handleCancel} fullWidth maxWidth="sm">
-      <DialogTitle>
+    <Dialog 
+      open={isEditing} 
+      onClose={handleCancel} 
+      fullWidth 
+      maxWidth="sm"
+      PaperProps={{
+        sx: {
+          borderRadius: 2,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.12)'
+        }
+      }}
+    >
+      <DialogTitle 
+        sx={{ 
+          pb: 1,
+          pt: 2,
+          fontWeight: 600,
+          fontSize: '1.1rem',
+        }}
+      >
         Edit Competitors
       </DialogTitle>
-      <DialogContent>
+      <DialogContent sx={{ pt: 2 }}>
         {error && (
-          <Typography color="error" variant="body2" sx={{ mb: 2 }}>
-            {error}
-          </Typography>
+          <Box
+            sx={{
+              mb: 2,
+              p: 1.5,
+              borderRadius: 1,
+              backgroundColor: alpha(theme.palette.error.light, 0.1),
+              border: `1px solid ${alpha(theme.palette.error.main, 0.2)}`,
+            }}
+          >
+            <Typography 
+              color="error" 
+              variant="body2" 
+              sx={{ 
+                fontSize: '0.875rem',
+                display: 'flex',
+                alignItems: 'center'
+              }}
+            >
+              {error}
+            </Typography>
+          </Box>
         )}
         <List>
           {editedCompetitors.map((competitor, index) => (
-            <ListItem key={index} sx={{ py: 1 }}>
+            <ListItem 
+              key={index} 
+              sx={{ 
+                py: 1,
+                px: 0.5,
+              }}
+            >
               <ListItemIcon sx={{ minWidth: 36 }}>
-                <GroupIcon fontSize="small" color="primary" />
+                <GroupIcon 
+                  fontSize="small" 
+                  sx={{ 
+                    fontSize: '1rem', 
+                    color: theme.palette.secondary.main 
+                  }} 
+                />
               </ListItemIcon>
               <TextField
                 fullWidth
@@ -151,9 +268,38 @@ const EditableCompetitors: React.FC<EditableCompetitorsProps> = ({
                 value={competitor}
                 onChange={(e) => handleChange(index, e.target.value)}
                 placeholder="Enter competitor name"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 1,
+                    fontSize: '0.875rem',
+                    backgroundColor: alpha(theme.palette.background.paper, 0.8),
+                    '&:hover': {
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderColor: alpha(theme.palette.secondary.main, 0.5),
+                      }
+                    },
+                    '&.Mui-focused': {
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderColor: theme.palette.secondary.main,
+                        borderWidth: 1,
+                      }
+                    }
+                  }
+                }}
               />
-              <IconButton onClick={() => handleDelete(index)} color="error">
-                <DeleteIcon />
+              <IconButton 
+                onClick={() => handleDelete(index)} 
+                color="error"
+                sx={{ 
+                  ml: 0.5,
+                  width: 32,
+                  height: 32,
+                  '&:hover': {
+                    backgroundColor: alpha(theme.palette.error.main, 0.08),
+                  }
+                }}
+              >
+                <DeleteIcon sx={{ fontSize: '1rem' }} />
               </IconButton>
             </ListItem>
           ))}
@@ -161,21 +307,46 @@ const EditableCompetitors: React.FC<EditableCompetitorsProps> = ({
         <Button 
           startIcon={<AddIcon />} 
           onClick={handleAddNew} 
-          color="primary" 
-          sx={{ mt: 1 }}
+          color="secondary" 
+          sx={{ 
+            mt: 1, 
+            textTransform: 'none',
+            fontWeight: 500,
+            fontSize: '0.875rem',
+            borderRadius: 1,
+          }}
         >
           Add Competitor
         </Button>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={handleCancel} disabled={saving}>
+      <DialogActions sx={{ px: 3, pb: 2.5 }}>
+        <Button 
+          onClick={handleCancel} 
+          disabled={saving}
+          sx={{ 
+            textTransform: 'none',
+            fontWeight: 500,
+            fontSize: '0.875rem',
+            color: theme.palette.text.secondary,
+            px: 2
+          }}
+        >
           Cancel
         </Button>
         <Button 
           onClick={handleSave} 
-          color="primary" 
-          startIcon={<SaveIcon />} 
+          variant="contained"
+          color="secondary" 
+          startIcon={<SaveIcon sx={{ fontSize: '1rem' }} />} 
           disabled={saving}
+          sx={{ 
+            textTransform: 'none',
+            fontWeight: 600,
+            fontSize: '0.875rem',
+            boxShadow: 1,
+            borderRadius: 1,
+            px: 2
+          }}
         >
           {saving ? 'Saving...' : 'Save Changes'}
         </Button>

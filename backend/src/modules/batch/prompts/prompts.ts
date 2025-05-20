@@ -36,7 +36,7 @@ export const PromptTemplates = {
   Analyze the sentiment in the following response to the question: "{originalPrompt}"
   
   Determine if the sentiment towards "{brandName}" is positive, neutral, or negative.
-  Also extract *the most important* key words or phrases about the brand, negative (max 3) or positive (max 3).
+  Also extract *the most important* key words (1 to 3 words) about the brand, negative (max 3) or positive (max 3).
   
   Response: {llmResponse}
   `,

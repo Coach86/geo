@@ -45,7 +45,6 @@ export class OpenAiAdapter implements LlmAdapter {
         temperature: options?.temperature ?? 0.7,
         top_p: options?.topP,
       });
-      this.logger.log(`OpenAI response: ${JSON.stringify(response)}`);
       // The OpenAI responses.create returns an array of events/objects.
       // We need to extract URLs from url_citation annotations in output_text content.
       let text = '';

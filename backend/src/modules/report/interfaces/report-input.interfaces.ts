@@ -39,4 +39,7 @@ export interface BatchReportInput {
 
   /** When the report data was generated */
   generatedAt: Date;
+  
+  /** Batch execution ID that generated this report */
+  batchExecutionId?: string;
 }

@@ -62,7 +62,7 @@ export class SentimentPipelineService extends BasePipelineService {
 
       // Format the prompts to include the company name
       const formattedPrompts = prompts.map((prompt) =>
-        prompt.replace(/{COMPANY}/g, context.brandName),
+        (prompt || '').replace(/{COMPANY}/g, context.brandName || ''),
       );
 
       // Get the enabled LLM models
@@ -77,13 +77,21 @@ export class SentimentPipelineService extends BasePipelineService {
 
       for (const modelConfig of enabledModels) {
         for (let i = 0; i < formattedPrompts.length; i++) {
+          const websiteUrl = context.websiteUrl || '';
+          const market = context.market || '';
+          const executionPrompt = `
+                ${formattedPrompts[i]} 
+                <context>
+                Company Url: ${websiteUrl}
+                Market: ${market}
+                </context>`;
           tasks.push(
             this.limiter(async () => {
               try {
                 // Step 1: Execute the prompt with this model
                 const llmResponse = await this.executePrompt(
                   modelConfig,
-                  formattedPrompts[i],
+                  executionPrompt,
                   context.batchExecutionId, // Pass batch execution ID for storing raw responses
                   i, // Pass prompt index
                 );
@@ -91,25 +99,25 @@ export class SentimentPipelineService extends BasePipelineService {
                 // Step 2: Analyze the response
                 return await this.analyzeResponse(
                   modelConfig,
-                  context.brandName,
-                  formattedPrompts[i],
+                  context.brandName || '',
+                  executionPrompt,
                   llmResponse,
                   i,
                 );
               } catch (error) {
                 this.logger.error(
-                  `Error in sentiment pipeline for ${context.brandName} with ${modelConfig.provider}/${modelConfig.model} on prompt ${i}: ${error.message}`,
+                  `Error in sentiment pipeline for ${context.brandName || ''} with ${modelConfig.provider || 'unknown'}/${modelConfig.model || 'unknown'} on prompt ${i}: ${error.message}`,
                   error.stack,
                 );
                 return {
-                  llmProvider: modelConfig.provider,
-                  llmModel: modelConfig.model,
+                  llmProvider: modelConfig.provider || 'unknown',
+                  llmModel: modelConfig.model || 'unknown',
                   promptIndex: i,
                   sentiment: 'neutral' as 'positive' | 'neutral' | 'negative',
                   accuracy: 0,
                   extractedPositiveKeywords: [],
                   extractedNegativeKeywords: [],
-                  originalPrompt: formattedPrompts[i],
+                  originalPrompt: executionPrompt,
                   error: error.message,
                 };
               }
@@ -220,8 +228,8 @@ export class SentimentPipelineService extends BasePipelineService {
         promptIndex,
         sentiment: result.sentiment,
         accuracy: 0, // Set default accuracy to 0, will be filled by accuracy pipeline
-        extractedPositiveKeywords: result.extractedPositiveKeywords,
-        extractedNegativeKeywords: result.extractedNegativeKeywords,
+        extractedPositiveKeywords: result.extractedPositiveKeywords || [],
+        extractedNegativeKeywords: result.extractedNegativeKeywords || [],
         originalPrompt: prompt,
         llmResponse,
         // Include web search and citation information if available
@@ -253,7 +261,7 @@ export class SentimentPipelineService extends BasePipelineService {
     }
 
     // Check which results used web search
-    const webSearchResults = validResults.filter((r) => r.usedWebSearch);
+    const webSearchResults = validResults.filter((r) => r?.usedWebSearch === true);
     const webSearchCount = webSearchResults.length;
     const usedWebSearch = webSearchCount > 0;
 
@@ -262,9 +270,9 @@ export class SentimentPipelineService extends BasePipelineService {
 
     for (const result of webSearchResults) {
       // Check citations
-      if (result.citations && result.citations.length > 0) {
+      if (Array.isArray(result.citations) && result.citations.length > 0) {
         for (const citation of result.citations) {
-          if (citation.url) {
+          if (citation && citation.url) {
             // Extract the domain from the URL
             try {
               const url = new URL(citation.url);
@@ -278,16 +286,20 @@ export class SentimentPipelineService extends BasePipelineService {
       }
 
       // Check tool usage
-      if (result.toolUsage && result.toolUsage.length > 0) {
+      if (Array.isArray(result.toolUsage) && result.toolUsage.length > 0) {
         for (const tool of result.toolUsage) {
-          // Check if there are execution details with URLs
-          if (tool.execution_details?.urls && Array.isArray(tool.execution_details.urls)) {
-            for (const url of tool.execution_details.urls) {
-              try {
-                const parsedUrl = new URL(url);
-                websites.add(parsedUrl.hostname);
-              } catch (e) {
-                websites.add(url);
+          if (tool && tool.execution_details) {
+            // Check if there are execution details with URLs
+            if (Array.isArray(tool.execution_details.urls) && tool.execution_details.urls.length > 0) {
+              for (const url of tool.execution_details.urls) {
+                if (url) {
+                  try {
+                    const parsedUrl = new URL(url);
+                    websites.add(parsedUrl.hostname);
+                  } catch (e) {
+                    websites.add(url);
+                  }
+                }
               }
             }
           }
@@ -325,11 +337,15 @@ export class SentimentPipelineService extends BasePipelineService {
     let overallSentimentPercentage = 0;
 
     for (const result of validResults) {
-      if (result.sentiment === 'positive') positiveCount++;
-      else if (result.sentiment === 'neutral') neutralCount++;
-      else if (result.sentiment === 'negative') negativeCount++;
+      // Handle cases where sentiment might be undefined or not matching expected values
+      const sentiment = result.sentiment || 'neutral';
+      
+      if (sentiment === 'positive') positiveCount++;
+      else if (sentiment === 'neutral') neutralCount++;
+      else if (sentiment === 'negative') negativeCount++;
+      
       overallSentimentPercentage +=
-        result.sentiment === 'positive' ? 1 : result.sentiment === 'neutral' ? 0 : -1;
+        sentiment === 'positive' ? 1 : sentiment === 'neutral' ? 0 : -1;
     }
     overallSentimentPercentage = overallSentimentPercentage / validResults.length;
 

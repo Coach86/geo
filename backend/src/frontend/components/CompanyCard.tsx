@@ -11,9 +11,8 @@ import {
   Button,
   useTheme,
   alpha,
-  CardHeader,
   IconButton,
-  Divider,
+  Stack,
   Tooltip,
   Menu,
   MenuItem,
@@ -22,6 +21,8 @@ import {
   DialogContent,
   DialogActions,
   DialogContentText,
+  Avatar,
+  Divider,
 } from '@mui/material';
 import { CompanyIdentityCard } from '../utils/types';
 import BusinessIcon from '@mui/icons-material/Business';
@@ -34,6 +35,7 @@ import PersonIcon from '@mui/icons-material/Person';
 import EmailIcon from '@mui/icons-material/Email';
 import LanguageIcon from '@mui/icons-material/Language';
 import DeleteIcon from '@mui/icons-material/Delete';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import { deleteCompany } from '../utils/api';
 
 interface CompanyCardProps {
@@ -101,8 +103,11 @@ const CompanyCard: React.FC<CompanyCardProps> = ({ company, onDelete }) => {
   };
 
   const companyColor = getCompanyColor(company.brandName);
-
-  // Using shared constants for market flags
+  const formattedDate = new Date(company.updatedAt).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
 
   return (
     <Card
@@ -111,65 +116,42 @@ const CompanyCard: React.FC<CompanyCardProps> = ({ company, onDelete }) => {
         display: 'flex',
         flexDirection: 'column',
         position: 'relative',
-        overflow: 'visible',
+        borderRadius: 1.5,
+        boxShadow: 'none',
+        border: `1px solid ${alpha(theme.palette.grey[500], 0.12)}`,
+        transition: 'all 0.2s ease-in-out',
+        overflow: 'hidden',
         '&:hover': {
-          boxShadow: `0 8px 24px 0 ${alpha(theme.palette.primary.main, 0.2)}`,
-          transform: 'translateY(-4px)',
-          transition: 'all 0.3s ease-in-out',
+          borderColor: alpha(theme.palette.primary.main, 0.3),
+          boxShadow: `0 0 0 1px ${alpha(theme.palette.primary.main, 0.15)}`,
+          transform: 'translateY(-2px)',
         },
       }}
     >
       <Box
         sx={{
           position: 'absolute',
-          top: -12,
-          left: 16,
-          height: 24,
-          width: 24,
-          borderRadius: '50%',
-          backgroundColor: companyColor,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: theme.shadows[2],
+          top: 12,
+          right: 12,
+          zIndex: 9,
         }}
       >
-        <BusinessIcon sx={{ fontSize: 14, color: 'white' }} />
+        <IconButton
+          size="small"
+          onClick={handleMenuOpen}
+          sx={{
+            backgroundColor: alpha(theme.palette.grey[500], 0.08),
+            backdropFilter: 'blur(4px)',
+            width: 28,
+            height: 28,
+            '&:hover': { 
+              backgroundColor: alpha(theme.palette.grey[500], 0.12),
+            },
+          }}
+        >
+          <MoreVertIcon sx={{ fontSize: '1rem' }} />
+        </IconButton>
       </Box>
-
-      <CardHeader
-        action={
-          <IconButton
-            aria-label="settings"
-            size="small"
-            onClick={handleMenuOpen}
-            aria-controls="company-menu"
-            aria-haspopup="true"
-          >
-            <MoreVertIcon fontSize="small" />
-          </IconButton>
-        }
-        title={
-          <Typography
-            variant="h6"
-            sx={{
-              fontWeight: 600,
-              cursor: 'pointer',
-              '&:hover': {
-                color: theme.palette.primary.main,
-              },
-            }}
-            onClick={handleCardClick}
-          >
-            {company.brandName}
-          </Typography>
-        }
-        subheader={
-          <Box component="span">
-            {company.industry} • {getFormattedMarket(company.market)}
-          </Box>
-        }
-      />
 
       {/* Company Menu */}
       <Menu
@@ -178,9 +160,15 @@ const CompanyCard: React.FC<CompanyCardProps> = ({ company, onDelete }) => {
         keepMounted
         open={Boolean(menuAnchorEl)}
         onClose={handleMenuClose}
+        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
       >
+        <MenuItem onClick={() => navigate(`/companies/${company.id}`)}>
+          <VisibilityIcon fontSize="small" sx={{ mr: 1.5 }} />
+          View
+        </MenuItem>
         <MenuItem onClick={handleDeleteClick} sx={{ color: theme.palette.error.main }}>
-          <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
+          <DeleteIcon fontSize="small" sx={{ mr: 1.5 }} />
           Delete
         </MenuItem>
       </Menu>
@@ -188,18 +176,25 @@ const CompanyCard: React.FC<CompanyCardProps> = ({ company, onDelete }) => {
       {/* Delete Confirmation Dialog */}
       <Dialog
         open={deleteDialogOpen}
-        onClose={(event, reason) => setDeleteDialogOpen(false)}
-        aria-labelledby="delete-company-dialog-title"
+        onClose={() => setDeleteDialogOpen(false)}
+        PaperProps={{
+          sx: { borderRadius: 2 }
+        }}
       >
-        <DialogTitle id="delete-company-dialog-title">Delete {company.brandName}?</DialogTitle>
+        <DialogTitle>Delete {company.brandName}?</DialogTitle>
         <DialogContent>
           <DialogContentText>
             Are you sure you want to delete {company.brandName}? This action cannot be undone and
             will remove all associated data including batch results, reports, and prompt sets.
           </DialogContentText>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)} color="primary" disabled={isDeleting}>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button 
+            onClick={() => setDeleteDialogOpen(false)} 
+            variant="outlined"
+            disabled={isDeleting}
+            sx={{ borderRadius: 1 }}
+          >
             Cancel
           </Button>
           <Button
@@ -208,21 +203,81 @@ const CompanyCard: React.FC<CompanyCardProps> = ({ company, onDelete }) => {
             variant="contained"
             startIcon={<DeleteIcon />}
             disabled={isDeleting}
+            sx={{ borderRadius: 1 }}
           >
             {isDeleting ? 'Deleting...' : 'Delete'}
           </Button>
         </DialogActions>
       </Dialog>
 
-      <Divider />
+      <Box sx={{ pt: 2, px: 2 }}>
+        <Box sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
+          <Avatar
+            sx={{
+              width: 40,
+              height: 40,
+              backgroundColor: alpha(companyColor, 0.12),
+              color: companyColor,
+              mr: 2,
+              fontWeight: 600,
+            }}
+          >
+            {company.brandName.charAt(0).toUpperCase()}
+          </Avatar>
+          <Box>
+            <Typography
+              variant="subtitle1"
+              component="h2"
+              noWrap
+              sx={{
+                fontWeight: 600,
+                color: theme.palette.text.primary,
+                transition: 'color 0.2s',
+                cursor: 'pointer',
+                fontSize: '0.95rem',
+                '&:hover': { color: theme.palette.primary.main },
+              }}
+              onClick={handleCardClick}
+            >
+              {company.brandName}
+            </Typography>
+            
+            <Typography 
+              variant="body2" 
+              color="text.secondary" 
+              noWrap
+              sx={{ 
+                fontSize: '0.8rem',
+                opacity: 0.8
+              }}
+            >
+              {company.industry} • {getFormattedMarket(company.market)}
+            </Typography>
+          </Box>
+        </Box>
+      </Box>
 
       <CardActionArea onClick={handleCardClick} sx={{ flexGrow: 1 }}>
-        <CardContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2, minHeight: 60 }}>
+        <CardContent sx={{ pt: 0 }}>
+          <Typography 
+            variant="body2" 
+            color="text.secondary"
+            sx={{
+              height: 54,
+              mb: 2,
+              overflow: 'hidden',
+              display: '-webkit-box',
+              WebkitLineClamp: 3,
+              WebkitBoxOrient: 'vertical',
+              fontSize: '0.825rem',
+              lineHeight: 1.5,
+              opacity: 0.85,
+            }}
+          >
             {company.shortDescription}
           </Typography>
 
-          <Box sx={{ mb: 2, minHeight: 32 }}>
+          <Stack direction="row" spacing={0.75} sx={{ flexWrap: 'wrap' }}>
             {company.keyBrandAttributes.slice(0, 2).map((feature, index) => (
               <Chip
                 key={index}
@@ -230,100 +285,153 @@ const CompanyCard: React.FC<CompanyCardProps> = ({ company, onDelete }) => {
                 size="small"
                 color={index === 0 ? 'primary' : 'default'}
                 variant={index === 0 ? 'filled' : 'outlined'}
-                sx={{ mr: 0.5, mb: 0.5 }}
+                sx={{ 
+                  mb: 1, 
+                  height: 22,
+                  borderRadius: 1,
+                  '& .MuiChip-label': { 
+                    px: 1,
+                    py: 0.25,
+                    fontSize: '0.7rem',
+                    fontWeight: index === 0 ? 600 : 400,
+                  }
+                }}
               />
             ))}
             {company.keyBrandAttributes.length > 2 && (
               <Chip
-                label={`+${company.keyBrandAttributes.length - 2} more`}
+                label={`+${company.keyBrandAttributes.length - 2}`}
                 size="small"
-                sx={{ mr: 0.5, mb: 0.5 }}
                 variant="outlined"
+                sx={{ 
+                  mb: 1, 
+                  height: 22,
+                  borderRadius: 1,
+                  '& .MuiChip-label': { 
+                    px: 0.75,
+                    fontSize: '0.7rem' 
+                  }
+                }}
               />
             )}
-          </Box>
+          </Stack>
+        </CardContent>
+      </CardActionArea>
 
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 1 }}>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              display="block"
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.5,
-              }}
-            >
-              <ShowChartIcon fontSize="inherit" />
-              Last analysis: {new Date(company.updatedAt).toLocaleDateString()}
-            </Typography>
-
-            {company.userEmail && (
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                display="block"
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 0.5,
-                }}
-              >
-                <Tooltip title="Owner">
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <PersonIcon fontSize="inherit" />
-                    <EmailIcon fontSize="inherit" sx={{ ml: 0.5, fontSize: '0.8rem' }} />
-                  </Box>
-                </Tooltip>
-                {company.userEmail}
+      <Box sx={{ px: 2, pt: 0 }}>
+        <Divider sx={{ my: 1.5 }} />
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
+          <Typography 
+            variant="caption" 
+            sx={{ 
+              display: 'flex', 
+              alignItems: 'center',
+              fontSize: '0.7rem',
+              color: theme.palette.text.secondary,
+              opacity: 0.8
+            }}
+          >
+            <ShowChartIcon fontSize="inherit" sx={{ mr: 0.5 }} />
+            Updated {formattedDate}
+          </Typography>
+          
+          {company.userEmail && (
+            <Tooltip title={company.userEmail}>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <PersonIcon 
+                  sx={{ 
+                    fontSize: '0.8rem', 
+                    color: theme.palette.text.secondary, 
+                    mr: 0.5,
+                    opacity: 0.8
+                  }} 
+                />
                 {company.userLanguage && (
                   <Chip
-                    icon={<LanguageIcon sx={{ fontSize: '0.8rem !important' }} />}
                     label={company.userLanguage}
                     size="small"
                     variant="outlined"
                     sx={{
-                      ml: 0.5,
-                      height: 20,
-                      '& .MuiChip-label': { px: 0.5, fontSize: '0.7rem' },
+                      height: 18,
+                      borderRadius: 0.75,
+                      '& .MuiChip-label': { 
+                        px: 0.5, 
+                        fontSize: '0.65rem',
+                        fontWeight: 500,
+                      },
                     }}
                   />
                 )}
-              </Typography>
-            )}
-          </Box>
-        </CardContent>
-      </CardActionArea>
+              </Box>
+            </Tooltip>
+          )}
+        </Stack>
+      </Box>
 
-      <Divider />
-
-      <CardActions sx={{ justifyContent: 'space-between', px: 2, py: 1.5 }}>
+      <CardActions 
+        sx={{ 
+          px: 2, 
+          pt: 0, 
+          pb: 2,
+          mt: 'auto',
+          justifyContent: 'space-between',
+          '& .MuiButton-root': { borderRadius: 1 }
+        }}
+      >
         <Button
           size="small"
           variant="outlined"
-          startIcon={<BusinessIcon />}
+          startIcon={<BusinessIcon sx={{ fontSize: '0.9rem' }} />}
           onClick={handleCardClick}
+          sx={{ 
+            textTransform: 'none',
+            fontWeight: 500,
+            py: 0.5,
+            fontSize: '0.75rem'
+          }}
         >
-          Details
+          View Details
         </Button>
 
         <Box>
-          <IconButton
-            size="small"
-            color="primary"
-            onClick={() => navigate(`/companies/${company.id}?tab=sentiment`)}
-            sx={{ mr: 1 }}
-          >
-            <FactCheckIcon fontSize="small" />
-          </IconButton>
+          <Tooltip title="Sentiment Analysis">
+            <IconButton
+              size="small"
+              color="primary"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/companies/${company.id}?tab=sentiment`);
+              }}
+              sx={{ 
+                mr: 1,
+                width: 28,
+                height: 28,
+                backgroundColor: alpha(theme.palette.primary.main, 0.08),
+                '&:hover': { backgroundColor: alpha(theme.palette.primary.main, 0.12) },
+              }}
+            >
+              <FactCheckIcon sx={{ fontSize: '0.9rem' }} />
+            </IconButton>
+          </Tooltip>
 
-          <IconButton
-            size="small"
-            color="primary"
-            onClick={() => navigate(`/companies/${company.id}?tab=comparison`)}
-          >
-            <CompareIcon fontSize="small" />
-          </IconButton>
+          <Tooltip title="Competitor Analysis">
+            <IconButton
+              size="small"
+              color="info"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/companies/${company.id}?tab=comparison`);
+              }}
+              sx={{ 
+                width: 28,
+                height: 28,
+                backgroundColor: alpha(theme.palette.info.main, 0.08),
+                '&:hover': { backgroundColor: alpha(theme.palette.info.main, 0.12) },
+              }}
+            >
+              <CompareIcon sx={{ fontSize: '0.9rem' }} />
+            </IconButton>
+          </Tooltip>
         </Box>
       </CardActions>
     </Card>

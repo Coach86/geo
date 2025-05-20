@@ -6,6 +6,8 @@ export interface CompanyBatchContext {
   companyId: string;
   brandName: string;
   keyBrandAttributes: string[];
+  market: string;
+  websiteUrl: string;
   competitors: string[];
   promptSet: any;
   batchExecutionId?: string; // Optional ID of associated batch execution for storing raw responses

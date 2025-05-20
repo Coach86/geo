@@ -1,15 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { RawResponse, RawResponseDocument } from '../schemas/raw-response.schema';
 import { PromptType } from '../interfaces/llm.interfaces';
+import { RawResponseRepository } from '../repositories/raw-response.repository';
 
 @Injectable()
 export class RawResponseService {
   private readonly logger = new Logger(RawResponseService.name);
 
   constructor(
-    @InjectModel(RawResponse.name) private rawResponseModel: Model<RawResponseDocument>,
+    private readonly rawResponseRepository: RawResponseRepository,
   ) {}
 
   /**
@@ -42,8 +40,21 @@ export class RawResponseService {
         `Storing raw response for ${promptType} prompt #${promptIndex} in batch execution ${batchExecutionId}`,
       );
 
-      // First, check if a document already exists with these keys
-      const query: any = {
+      // Build response data object
+      const responseData = {
+        batchExecutionId,
+        promptType,
+        promptIndex,
+        originalPrompt,
+        llmResponse,
+        llmResponseModel,
+        analyzerPrompt,
+        analyzerResponse,
+        analyzerResponseModel,
+      };
+
+      // Find and update or create new if not exists
+      const query = {
         batchExecutionId,
         promptType,
         promptIndex,
@@ -51,44 +62,35 @@ export class RawResponseService {
 
       // Add model identifier to the query if provided for uniqueness
       if (modelIdentifier) {
-        query.llmResponseModel = modelIdentifier;
+        // Using type assertion to avoid TypeScript error
+        (query as any)['llmResponseModel'] = modelIdentifier;
       }
 
-      const existingResponse = await this.rawResponseModel.findOne(query).lean().exec();
+      // Check if response already exists
+      const existingResponse = await this.rawResponseRepository.findByQuery(query);
 
       if (existingResponse) {
-        // Update the existing document with analyzer information if provided
+        // Update existing response with analyzer data if provided
+        const updateData: any = {};
+        
         if (analyzerPrompt !== undefined) {
-          existingResponse.analyzerPrompt = analyzerPrompt;
+          updateData.analyzerPrompt = analyzerPrompt;
         }
         if (analyzerResponse !== undefined) {
-          existingResponse.analyzerResponse = analyzerResponse;
+          updateData.analyzerResponse = analyzerResponse;
         }
         if (analyzerResponseModel !== undefined) {
-          existingResponse.analyzerResponseModel = analyzerResponseModel;
+          updateData.analyzerResponseModel = analyzerResponseModel;
         }
 
-        // Save and return the updated document
         this.logger.log(
           `Updating existing raw response with analyzer data for ${promptType} prompt #${promptIndex} in batch execution ${batchExecutionId}`,
         );
-        return await existingResponse.save();
+        
+        return await this.rawResponseRepository.updateById(existingResponse.id, updateData);
       } else {
-        // Create a new raw response document
-        const newRawResponse = new this.rawResponseModel({
-          batchExecutionId,
-          promptType,
-          promptIndex,
-          originalPrompt,
-          llmResponse,
-          llmResponseModel,
-          analyzerPrompt,
-          analyzerResponse,
-          analyzerResponseModel,
-        });
-
-        // Save and return the document
-        return await newRawResponse.save();
+        // Create a new raw response
+        return await this.rawResponseRepository.create(responseData);
       }
     } catch (error) {
       this.logger.error(`Failed to store raw response: ${error.message}`, error.stack);
@@ -103,13 +105,7 @@ export class RawResponseService {
    */
   async getRawResponsesByBatchExecution(batchExecutionId: string): Promise<any[]> {
     try {
-      const responses = await this.rawResponseModel
-        .find({ batchExecutionId })
-        .sort({ promptType: 1, promptIndex: 1 })
-        .lean()
-        .exec();
-
-      return responses;
+      return await this.rawResponseRepository.findByExecutionId(batchExecutionId);
     } catch (error) {
       this.logger.error(`Failed to get raw responses: ${error.message}`, error.stack);
       throw new Error(`Failed to get raw responses: ${error.message}`);
@@ -126,13 +122,7 @@ export class RawResponseService {
     promptType?: 'spontaneous' | 'direct' | 'comparison' | 'accuracy';
   }): Promise<any[]> {
     try {
-      const responses = await this.rawResponseModel
-        .find(filters)
-        .sort({ promptType: 1, promptIndex: 1 })
-        .lean()
-        .exec();
-
-      return responses;
+      return await this.rawResponseRepository.findByFilters(filters);
     } catch (error) {
       this.logger.error(`Failed to get raw responses: ${error.message}`, error.stack);
       throw new Error(`Failed to get raw responses: ${error.message}`);
@@ -146,8 +136,7 @@ export class RawResponseService {
    */
   async deleteRawResponsesByBatchExecution(batchExecutionId: string): Promise<number> {
     try {
-      const result = await this.rawResponseModel.deleteMany({ batchExecutionId }).exec();
-      return result.deletedCount || 0;
+      return await this.rawResponseRepository.deleteByExecutionId(batchExecutionId);
     } catch (error) {
       this.logger.error(`Failed to delete raw responses: ${error.message}`, error.stack);
       throw new Error(`Failed to delete raw responses: ${error.message}`);

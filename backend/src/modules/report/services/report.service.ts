@@ -7,8 +7,7 @@ import {
   Inject,
   forwardRef,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { WeeklyBrandReportRepository } from '../repositories/weekly-brand-report.repository';
 import { WeeklyBrandReport as WeeklyBrandReportEntity } from '../entities/weekly-brand-report.entity';
 import {
   WeeklyBrandReport,
@@ -42,8 +41,7 @@ export class ReportService implements OnModuleInit {
     @Inject(forwardRef(() => ReportRetrievalService))
     private readonly retrievalService: ReportRetrievalService,
     private readonly converterService: ReportConverterService,
-    @InjectModel(WeeklyBrandReport.name)
-    private weeklyReportModel: Model<WeeklyBrandReportDocument>,
+    private readonly weeklyReportRepository: WeeklyBrandReportRepository,
     private readonly userService: UserService,
   ) {}
 
@@ -325,7 +323,7 @@ export class ReportService implements OnModuleInit {
   async sendReportAccessEmail(reportId: string, companyId: string, token: string): Promise<void> {
     try {
       // Get the report to extract date and other information
-      const report = await this.weeklyReportModel.findOne({ id: reportId }).lean().exec();
+      const report = await this.weeklyReportRepository.findByIdLean(reportId);
       if (!report) {
         throw new NotFoundException(`Report not found with ID ${reportId}`);
       }
@@ -362,7 +360,7 @@ export class ReportService implements OnModuleInit {
   ): Promise<boolean> {
     try {
       // Validate that the report exists and belongs to the company
-      const report = await this.weeklyReportModel.findOne({ id: reportId }).lean().exec();
+      const report = await this.weeklyReportRepository.findByIdLean(reportId);
       if (!report) {
         throw new NotFoundException(`Report not found with ID ${reportId}`);
       }
@@ -383,9 +381,9 @@ export class ReportService implements OnModuleInit {
         identityCard.userId,
         reportId,
         emailAddress,
+        customSubject,
         report.weekStart,
         companyName,
-        customSubject,
       );
     } catch (error) {
       this.logger.error(`Failed to send report email: ${error.message}`, error.stack);
@@ -405,7 +403,7 @@ export class ReportService implements OnModuleInit {
   @OnEvent('company.deleted')
   async handleCompanyDeleted(event: { companyId: string }) {
     const { companyId } = event;
-    await this.weeklyReportModel.deleteMany({ companyId }).exec();
+    await this.weeklyReportRepository.deleteByCompanyId(companyId);
     this.logger.log(`Cleaned up weekly reports for deleted company ${companyId}`);
   }
 }

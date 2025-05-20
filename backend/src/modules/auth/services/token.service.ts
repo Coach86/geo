@@ -1,18 +1,16 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
 import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
 import { addDays } from 'date-fns';
 import { AccessToken, AccessTokenDocument } from '../schemas/access-token.schema';
+import { AccessTokenRepository } from '../repositories/access-token.repository';
 
 @Injectable()
 export class TokenService {
   private readonly logger = new Logger(TokenService.name);
 
   constructor(
-    @InjectModel(AccessToken.name)
-    private accessTokenModel: Model<AccessTokenDocument>,
+    private readonly accessTokenRepository: AccessTokenRepository,
     private readonly configService: ConfigService,
   ) {}
 
@@ -24,13 +22,11 @@ export class TokenService {
     const expiryHours = this.configService.get<number>('REPORT_TOKEN_EXPIRY_HOURS') || 24;
     const expiresAt = addDays(new Date(), expiryHours / 24); // Convert hours to days
 
-    const accessToken = new this.accessTokenModel({
+    await this.accessTokenRepository.create({
       token,
       userId,
       expiresAt,
     });
-
-    await accessToken.save();
     this.logger.log(`Generated new access token for user ${userId}`);
     return token;
   }
@@ -39,7 +35,7 @@ export class TokenService {
    * Validate an access token
    */
   async validateAccessToken(token: string): Promise<{ valid: boolean; userId?: string }> {
-    const accessToken = await this.accessTokenModel.findOne({ token }).lean().exec();
+    const accessToken = await this.accessTokenRepository.findByToken(token);
 
     if (!accessToken) {
       this.logger.warn(`Access token not found: ${token.substring(0, 8)}...`);
@@ -58,7 +54,7 @@ export class TokenService {
     }
 
     // Mark token as used
-    await this.accessTokenModel.updateOne({ _id: accessToken._id }, { $set: { used: true } });
+    await this.accessTokenRepository.markAsUsed(token);
 
     this.logger.log(`Access token validated: ${token.substring(0, 8)}...`);
     return {

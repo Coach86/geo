@@ -14,6 +14,8 @@ import { Admin, AdminSchema } from './schemas/admin.schema';
 import { AccessToken, AccessTokenSchema } from './schemas/access-token.schema';
 import { ReportModule } from '../report/report.module';
 import { UserModule } from '../user/user.module';
+import { AdminRepository } from './repositories/admin.repository';
+import { AccessTokenRepository } from './repositories/access-token.repository';
 
 @Module({
   imports: [
@@ -33,8 +35,8 @@ import { UserModule } from '../user/user.module';
     forwardRef(() => ReportModule),
     UserModule,
   ],
-  providers: [AuthService, TokenService, LocalStrategy, JwtStrategy, TokenAuthGuard],
+  providers: [AuthService, TokenService, LocalStrategy, JwtStrategy, TokenAuthGuard, AdminRepository, AccessTokenRepository],
   controllers: [AuthController, TokenController],
-  exports: [AuthService, TokenService, TokenAuthGuard],
+  exports: [AuthService, TokenService, TokenAuthGuard, AdminRepository, AccessTokenRepository],
 })
 export class AuthModule {}

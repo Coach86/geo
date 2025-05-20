@@ -140,6 +140,9 @@ export interface WeeklyBrandReportEntity {
   /** When the report was generated */
   generatedAt: Date;
 
+  /** ID of the batch execution that generated this report */
+  batchExecutionId?: string;
+
   /** Brand name from identity card */
   brand: string;
 
@@ -235,6 +238,9 @@ export interface WeeklyBrandReportDocument {
   /** When the report was generated */
   generatedAt: Date;
 
+  /** ID of the batch execution that generated this report */
+  batchExecutionId?: string;
+
   /** Week start date */
   weekStart: Date;
 
@@ -326,6 +332,7 @@ export interface WeeklyReportResponseDto {
   comparison: ComparisonResults;
   llmVersions: Record<string, string>;
   generatedAt: Date;
+  batchExecutionId?: string;
 }
 
 /**
@@ -335,6 +342,7 @@ export interface ReportContentResponseDto {
   id: string;
   companyId: string;
   generatedAt: Date;
+  batchExecutionId?: string;
   brand: string;
   metadata: {
     url: string;

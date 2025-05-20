@@ -23,6 +23,7 @@ import {
   TokenDebugResponseDto,
 } from '../dto/token.dto';
 import { PublicRoute } from '../decorators/public-route.decorator';
+import { ReportAccessService } from '../../report/services/report-access.service';
 
 // Define interfaces for debug-request endpoint
 interface RequestHeaders {
@@ -61,6 +62,7 @@ export class TokenController {
   constructor(
     private readonly tokenService: TokenService,
     @Inject(UserService) private readonly userService: UserService,
+    @Inject(ReportAccessService) private readonly reportAccessService: ReportAccessService,
   ) {}
 
   @Get('validate')
@@ -126,10 +128,29 @@ export class TokenController {
       const token = await this.tokenService.generateAccessToken(request.userId);
       this.logger.log(`Token generated successfully for userId: ${request.userId}`);
 
-      // Here we would send an email but for now we'll just return success
+      // Get the user details to send the email
+      try {
+        // Send an email with the access token
+        const user = await this.userService.findOne(request.userId);
+        if (user && user.email) {
+          await this.reportAccessService.sendReportEmailToAddress(
+            request.userId,
+            null, // No specific report ID for general access
+            user.email,
+            'Your Brand Intelligence Reports - New Access Link', // Custom subject
+          );
+          this.logger.log(`Access token email sent to ${user.email} for user ${request.userId}`);
+        } else {
+          this.logger.warn(`User ${request.userId} has no email, skipping notification`);
+        }
+      } catch (emailError) {
+        // Don't fail the token generation if email fails
+        this.logger.error(`Failed to send token email: ${emailError.message}`, emailError.stack);
+      }
+
       return {
         success: true,
-        message: 'Access token generated successfully',
+        message: 'Access token generated successfully and email sent',
       };
     } catch (error) {
       this.logger.error(`Token generation error: ${error.message}`, error.stack);

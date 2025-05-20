@@ -40,6 +40,13 @@ export class WeeklyBrandReport {
   @Prop({
     type: String,
     required: false,
+    index: true,
+  })
+  batchExecutionId: string;
+
+  @Prop({
+    type: String,
+    required: false,
   })
   brand: string;
 

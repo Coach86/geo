@@ -1,23 +1,18 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { BatchExecution, BatchExecutionDocument } from '../schemas/batch-execution.schema';
-import { BatchResult, BatchResultDocument } from '../schemas/batch-result.schema';
-import {
-  IdentityCard,
-  IdentityCardDocument,
-} from '../../identity-card/schemas/identity-card.schema';
-import { RawResponse, RawResponseDocument } from '../schemas/raw-response.schema';
+import { BatchExecutionRepository } from '../repositories/batch-execution.repository';
+import { BatchResultRepository } from '../repositories/batch-result.repository';
+import { RawResponseRepository } from '../repositories/raw-response.repository';
+import { IdentityCardRepository } from '../../identity-card/repositories/identity-card.repository';
 
 @Injectable()
 export class BatchExecutionService {
   private readonly logger = new Logger(BatchExecutionService.name);
 
   constructor(
-    @InjectModel(BatchExecution.name) private batchExecutionModel: Model<BatchExecutionDocument>,
-    @InjectModel(BatchResult.name) private batchResultModel: Model<BatchResultDocument>,
-    @InjectModel(IdentityCard.name) private identityCardModel: Model<IdentityCardDocument>,
-    @InjectModel(RawResponse.name) private rawResponseModel: Model<RawResponseDocument>,
+    private readonly batchExecutionRepository: BatchExecutionRepository,
+    private readonly batchResultRepository: BatchResultRepository,
+    private readonly identityCardRepository: IdentityCardRepository,
+    private readonly rawResponseRepository: RawResponseRepository,
   ) {}
 
   /**
@@ -28,20 +23,18 @@ export class BatchExecutionService {
   async createBatchExecution(companyId: string): Promise<any> {
     try {
       // Verify the company exists
-      const company = await this.identityCardModel.findOne({ id: companyId }).lean().exec();
+      const company = await this.identityCardRepository.findById(companyId);
 
       if (!company) {
         throw new NotFoundException(`Company with ID ${companyId} not found`);
       }
 
       // Create a new batch execution
-      const newBatchExecution = new this.batchExecutionModel({
+      const batchExecution = await this.batchExecutionRepository.create({
         companyId,
         status: 'running',
         executedAt: new Date(),
       });
-
-      const batchExecution = await newBatchExecution.save();
 
       this.logger.log(`Created batch execution ${batchExecution.id} for company ${companyId}`);
       return batchExecution;
@@ -65,10 +58,7 @@ export class BatchExecutionService {
   ): Promise<any> {
     try {
       // Find the batch execution
-      const batchExecution = await this.batchExecutionModel
-        .findOne({ id: batchExecutionId })
-        .lean()
-        .exec();
+      const batchExecution = await this.batchExecutionRepository.findByIdLean(batchExecutionId);
 
       if (!batchExecution) {
         throw new NotFoundException(`Batch execution ${batchExecutionId} not found`);
@@ -78,13 +68,11 @@ export class BatchExecutionService {
       const enhancedResult = this.addWebSearchQueriesToResults(result);
 
       // Save the batch result
-      const newBatchResult = new this.batchResultModel({
+      const batchResult = await this.batchResultRepository.create({
         batchExecutionId,
         resultType,
         result: enhancedResult, // Store the enhanced object directly
       });
-
-      const batchResult = await newBatchResult.save();
 
       this.logger.log(`Saved ${resultType} result for batch execution ${batchExecutionId}`);
 
@@ -169,14 +157,7 @@ export class BatchExecutionService {
         updateObj.errorMessage = errorMessage;
       }
       
-      const batchExecution = await this.batchExecutionModel
-        .findOneAndUpdate(
-          { id: batchExecutionId },
-          updateObj,
-          { new: true }, // Return the updated document
-        )
-        .lean()
-        .exec();
+      const batchExecution = await this.batchExecutionRepository.updateById(batchExecutionId, updateObj);
 
       if (!batchExecution) {
         throw new NotFoundException(`Batch execution ${batchExecutionId} not found`);
@@ -202,14 +183,8 @@ export class BatchExecutionService {
    */
   async findStalledBatchExecutions(cutoffDate: Date): Promise<any[]> {
     try {
-      const stalledBatches = await this.batchExecutionModel
-        .find({
-          status: 'running',
-          createdAt: { $lt: cutoffDate }
-        })
-        .sort({ createdAt: -1 })
-        .lean()
-        .exec();
+      // This method will need to be added to the repository
+      const stalledBatches = await this.batchExecutionRepository.findStalledExecutions(cutoffDate);
         
       return stalledBatches;
     } catch (error) {
@@ -226,23 +201,17 @@ export class BatchExecutionService {
   async getBatchExecution(batchExecutionId: string): Promise<any> {
     try {
       // Get the batch execution
-      const batchExecution = await this.batchExecutionModel
-        .findOne({ id: batchExecutionId })
-        .lean()
-        .exec();
+      const batchExecution = await this.batchExecutionRepository.findByIdLean(batchExecutionId);
 
       if (!batchExecution) {
         throw new NotFoundException(`Batch execution ${batchExecutionId} not found`);
       }
 
       // Get the associated results
-      const batchResults = await this.batchResultModel.find({ batchExecutionId }).lean().exec();
+      const batchResults = await this.batchResultRepository.findAllByExecutionId(batchExecutionId);
 
       // Get the company details
-      const identityCard = await this.identityCardModel
-        .findOne({ id: batchExecution.companyId })
-        .lean()
-        .exec();
+      const identityCard = await this.identityCardRepository.findById(batchExecution.companyId);
 
       return {
         ...batchExecution,  // Using lean() so it's already a plain object
@@ -262,11 +231,7 @@ export class BatchExecutionService {
    */
   async getRawResponses(batchExecutionId: string): Promise<any[]> {
     try {
-      const rawResponses = await this.rawResponseModel
-        .find({ batchExecutionId })
-        .sort({ promptType: 1, promptIndex: 1, llmProvider: 1 })
-        .lean()
-        .exec();
+      const rawResponses = await this.rawResponseRepository.findByExecutionId(batchExecutionId);
 
       return rawResponses;
     } catch (error) {
@@ -283,24 +248,22 @@ export class BatchExecutionService {
   async getBatchExecutionsByCompany(companyId: string): Promise<any[]> {
     try {
       // Get all batch executions for this company
-      const batchExecutions = await this.batchExecutionModel
-        .find({ companyId })
-        .sort({ executedAt: -1 })
-        .lean()
-        .exec();
+      const batchExecutions = await this.batchExecutionRepository.findAllByCompanyId(companyId);
 
       // Get all batch execution IDs
-      const batchExecutionIds = batchExecutions.map((be) => be.id);
+      const batchExecutionIds = batchExecutions.map((be: { id: string }) => be.id);
 
-      // Get all batch results for these executions
-      const batchResults = await this.batchResultModel
-        .find({ batchExecutionId: { $in: batchExecutionIds } })
-        .lean()
-        .exec();
+      // We'll need a method to find batch results by multiple execution IDs
+      // For now, we'll collect results for each execution individually
+      const batchResults = [];
+      for (const execId of batchExecutionIds) {
+        const results = await this.batchResultRepository.findAllByExecutionId(execId);
+        batchResults.push(...results);
+      }
 
       // Group batch results by execution ID
       const resultsMap: Record<string, any[]> = batchResults.reduce(
-        (map: Record<string, any[]>, result) => {
+        (map: Record<string, any[]>, result: any) => {
           if (!map[result.batchExecutionId]) {
             map[result.batchExecutionId] = [];
           }
@@ -311,7 +274,7 @@ export class BatchExecutionService {
       );
 
       // Combine the data
-      return batchExecutions.map((execution) => ({
+      return batchExecutions.map((execution: any) => ({
         ...execution,  // Using lean() so it's already a plain object
         finalResults: resultsMap[execution.id] || [],
       }));

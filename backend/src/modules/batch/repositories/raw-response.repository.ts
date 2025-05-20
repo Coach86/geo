@@ -50,6 +50,34 @@ export class RawResponseRepository {
     this.logger.debug(`Finding raw responses for batch execution: ${batchExecutionId}`);
     const rawResponses = await this.rawResponseModel
       .find({ batchExecutionId })
+      .sort({ promptType: 1, promptIndex: 1 })
+      .lean()
+      .exec();
+    return rawResponses;
+  }
+
+  /**
+   * Find raw responses by custom query
+   * @param query The query object
+   * @returns The matching raw response document or null if not found
+   */
+  async findByQuery(query: Record<string, any>): Promise<RawResponseDocument | null> {
+    this.logger.debug(`Finding raw response with query: ${JSON.stringify(query)}`);
+    const rawResponse = await this.rawResponseModel.findOne(query).exec();
+    return rawResponse;
+  }
+
+  /**
+   * Find raw responses by filters
+   * @param filters Filter criteria
+   * @returns Array of matching raw responses
+   */
+  async findByFilters(filters: Record<string, any>): Promise<Record<string, any>[]> {
+    this.logger.debug(`Finding raw responses with filters: ${JSON.stringify(filters)}`);
+    const rawResponses = await this.rawResponseModel
+      .find(filters)
+      .sort({ promptType: 1, promptIndex: 1 })
+      .lean()
       .exec();
     return rawResponses;
   }

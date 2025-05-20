@@ -17,6 +17,6 @@ import { LlmModule } from '../llm/llm.module';
   ],
   controllers: [IdentityCardController],
   providers: [IdentityCardService, IdentityCardRepository],
-  exports: [IdentityCardService],
+  exports: [IdentityCardService, IdentityCardRepository],
 })
 export class IdentityCardModule {}

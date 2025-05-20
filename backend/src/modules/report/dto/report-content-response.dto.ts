@@ -24,6 +24,9 @@ export class ReportContentResponseDto {
   @ApiProperty({ description: 'When the report was generated' })
   generatedAt: Date;
 
+  @ApiProperty({ description: 'ID of the batch execution that generated this report', required: false })
+  batchExecutionId?: string;
+
   // Brand name - corresponds to identity card's brandName
   @ApiProperty({ description: 'Brand name' })
   brand: string;

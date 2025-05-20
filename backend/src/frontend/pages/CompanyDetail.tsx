@@ -22,6 +22,7 @@ import {
   DialogActions,
   IconButton,
   Tooltip,
+  styled,
 } from '@mui/material';
 import BusinessIcon from '@mui/icons-material/Business';
 import CategoryIcon from '@mui/icons-material/Category';
@@ -33,6 +34,8 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import HistoryIcon from '@mui/icons-material/History';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EmailIcon from '@mui/icons-material/Email';
+import FullWidthTabs from '../components/FullWidthTabs';
+
 import {
   getCompanyById,
   getPromptSet,
@@ -105,9 +108,7 @@ const CompanyDetail: React.FC = () => {
   const [batchError, setBatchError] = useState<string | undefined>(undefined);
 
   // Add batchType state
-  const [batchType, setBatchType] = useState<'full' | BatchType>(
-    'full',
-  );
+  const [batchType, setBatchType] = useState<'full' | BatchType>('full');
 
   // Initialize tab from URL search params
   useEffect(() => {
@@ -171,7 +172,7 @@ const CompanyDetail: React.FC = () => {
         // Use the runFullBatchAnalysis utility function instead of direct API call
         // This avoids potential duplicate requests
         const { batchExecutionId, alreadyRunning } = await runFullBatchAnalysis(id);
-        
+
         // If a batch is already running, update the UI to reflect this
         if (alreadyRunning) {
           setBatchStage('processing');
@@ -569,109 +570,138 @@ const CompanyDetail: React.FC = () => {
         error={batchError}
         onClose={handleBatchCompleted}
       />
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog
-        open={deleteDialogOpen}
-        onClose={(event, reason) => setDeleteDialogOpen(false)}
-        aria-labelledby="delete-company-dialog-title"
+      <Box
+        sx={{
+          width: '100%',
+          marginBottom: 2,
+        }}
       >
-        <DialogTitle id="delete-company-dialog-title">Delete {company.brandName}?</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Are you sure you want to delete {company.brandName}? This action cannot be undone and
-            will remove all associated data including batch results, reports, and prompt sets.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)} color="primary" disabled={isDeleting}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleDeleteConfirm}
-            color="error"
-            variant="contained"
-            startIcon={<DeleteIcon />}
-            disabled={isDeleting}
-          >
-            {isDeleting ? 'Deleting...' : 'Delete'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        {/* Delete Confirmation Dialog */}
+        <Dialog
+          open={deleteDialogOpen}
+          onClose={(event, reason) => setDeleteDialogOpen(false)}
+          aria-labelledby="delete-company-dialog-title"
+        >
+          <DialogTitle id="delete-company-dialog-title">Delete {company.brandName}?</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Are you sure you want to delete {company.brandName}? This action cannot be undone and
+              will remove all associated data including batch results, reports, and prompt sets.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button
+              onClick={() => setDeleteDialogOpen(false)}
+              color="primary"
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleDeleteConfirm}
+              color="error"
+              variant="contained"
+              startIcon={<DeleteIcon />}
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </Button>
+          </DialogActions>
+        </Dialog>
 
-      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          {company.brandName}
-        </Typography>
+        <Box
+          sx={{
+            mb: 4,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <Typography variant="h4" component="h1" gutterBottom>
+            {company.brandName}
+          </Typography>
 
-        <Tooltip title="Delete company">
-          <IconButton color="error" onClick={handleDeleteClick} aria-label="delete company">
-            <DeleteIcon />
-          </IconButton>
-        </Tooltip>
-      </Box>
-
-      <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-        <Chip icon={<CategoryIcon />} label={company.industry} color="primary" variant="outlined" />
-        {company.competitors.length > 0 && (
-          <Chip
-            icon={<GroupIcon />}
-            label={`${company.competitors.length} Competitors`}
-            color="secondary"
-            variant="outlined"
-          />
-        )}
-        {company.url && (
-          <Chip
-            icon={<BusinessIcon />}
-            label="Website"
-            component="a"
-            href={company.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            clickable
-          />
-        )}
-      </Box>
-
-      <Box sx={{ width: '100%' }}>
-        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs
-            value={currentTab}
-            onChange={handleTabChange}
-            aria-label="company tabs"
-            variant="scrollable"
-            scrollButtons="auto"
-          >
-            <Tab
-              label="Overview"
-              value={TabValue.OVERVIEW}
-              icon={<BusinessIcon />}
-              iconPosition="start"
-            />
-            <Tab
-              label="Prompts"
-              value={TabValue.PROMPTS}
-              icon={<FactCheckIcon />}
-              iconPosition="start"
-              disabled={!promptSet}
-            />
-            <Tab
-              label="Batches"
-              value={TabValue.BATCHES}
-              icon={<HistoryIcon />}
-              iconPosition="start"
-            />
-            <Tab
-              label="Reports"
-              value={TabValue.REPORTS}
-              icon={<EmailIcon />}
-              iconPosition="start"
-            />
-          </Tabs>
+          <Tooltip title="Delete company">
+            <IconButton color="error" onClick={handleDeleteClick} aria-label="delete company">
+              <DeleteIcon />
+            </IconButton>
+          </Tooltip>
         </Box>
 
-        <Box sx={{ py: 3 }}>
+        <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+          <Chip
+            icon={<CategoryIcon />}
+            label={company.industry}
+            color="primary"
+            variant="outlined"
+          />
+          {company.competitors.length > 0 && (
+            <Chip
+              icon={<GroupIcon />}
+              label={`${company.competitors.length} Competitors`}
+              color="secondary"
+              variant="outlined"
+            />
+          )}
+          {company.url && (
+            <Chip
+              icon={<BusinessIcon />}
+              label="Website"
+              component="a"
+              href={company.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              clickable
+            />
+          )}
+        </Box>
+
+        {/* Full width styled tabs */}
+        <Tabs
+          variant="fullWidth"
+          value={currentTab}
+          onChange={handleTabChange}
+          aria-label="company tabs"
+          TabIndicatorProps={{
+            style: {
+              height: 3,
+              borderTopLeftRadius: 3,
+              borderTopRightRadius: 3,
+            },
+          }}
+        >
+          <Tab
+            label="Overview"
+            value={TabValue.OVERVIEW}
+            icon={<BusinessIcon />}
+            iconPosition="start"
+            sx={{ textTransform: 'none' }}
+          />
+          <Tab
+            label="Prompts"
+            value={TabValue.PROMPTS}
+            icon={<FactCheckIcon />}
+            iconPosition="start"
+            disabled={!promptSet}
+            sx={{ textTransform: 'none' }}
+          />
+          <Tab
+            label="Batches"
+            value={TabValue.BATCHES}
+            icon={<HistoryIcon />}
+            iconPosition="start"
+            sx={{ textTransform: 'none' }}
+          />
+          <Tab
+            label="Reports"
+            value={TabValue.REPORTS}
+            icon={<EmailIcon />}
+            iconPosition="start"
+            sx={{ textTransform: 'none' }}
+          />
+        </Tabs>
+
+        <Box style={{ paddingTop: '12px', paddingBottom: '12px' }}>
           {currentTab === TabValue.OVERVIEW && company && <OverviewTab company={company} />}
 
           {currentTab === TabValue.PROMPTS && promptSet && <PromptsTab promptSet={promptSet} />}
@@ -708,13 +738,9 @@ const CompanyDetail: React.FC = () => {
             ) : (
               renderAnalysisButtons()
             ))}
-            
+
           {currentTab === TabValue.ACCURACY &&
-            (accuracyResults ? (
-              <AccuracyTab results={accuracyResults} />
-            ) : (
-              renderAnalysisButtons()
-            ))}
+            (accuracyResults ? <AccuracyTab results={accuracyResults} /> : renderAnalysisButtons())}
 
           {currentTab === TabValue.OVERVIEW && renderAnalysisButtons()}
         </Box>

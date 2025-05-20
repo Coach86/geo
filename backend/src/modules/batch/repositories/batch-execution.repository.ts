@@ -67,9 +67,39 @@ export class BatchExecutionRepository {
   }
 
   /**
-   * Get the latest batch execution for a company
+   * Find batch executions by companyId and status
    * @param companyId The company ID
-   * @returns The most recent batch execution or null if none found
+   * @param status The status of batch executions to find
+   * @returns Array of batch executions with the specified status
+   */
+  async findByCompanyIdAndStatus(companyId: string, status: string): Promise<BatchExecutionDocument[]> {
+    this.logger.debug(`Finding ${status} batch executions for company: ${companyId}`);
+    const batchExecutions = await this.batchExecutionModel
+      .find({ companyId, status })
+      .sort({ executedAt: -1 })
+      .lean()
+      .exec();
+    return batchExecutions;
+  }
+
+  /**
+   * Find all batch executions for a company
+   * @param companyId The company ID
+   * @returns Array of batch executions as plain objects
+   */
+  async findByCompanyId(companyId: string): Promise<Record<string, any>[]> {
+    this.logger.debug(`Finding batch executions for company: ${companyId}`);
+    const batchExecutions = await this.batchExecutionModel
+      .find({ companyId })
+      .lean()
+      .exec();
+    return batchExecutions;
+  }
+
+  /**
+   * Find the latest batch execution for a company
+   * @param companyId The company ID
+   * @returns The latest batch execution or null if none exists
    */
   async findLatestByCompanyId(companyId: string): Promise<BatchExecutionDocument | null> {
     this.logger.debug(`Finding latest batch execution for company: ${companyId}`);
@@ -142,5 +172,23 @@ export class BatchExecutionRepository {
     this.logger.debug(`Deleting all batch executions for company: ${companyId}`);
     const result = await this.batchExecutionModel.deleteMany({ companyId }).exec();
     return result.deletedCount;
+  }
+
+  /**
+   * Find stalled batch executions older than a cutoff date
+   * @param cutoffDate Date threshold for stalled batches
+   * @returns Array of stalled batch executions
+   */
+  async findStalledExecutions(cutoffDate: Date): Promise<Record<string, any>[]> {
+    this.logger.debug(`Finding stalled batch executions older than: ${cutoffDate.toISOString()}`);
+    const stalledBatches = await this.batchExecutionModel
+      .find({
+        status: 'running',
+        createdAt: { $lt: cutoffDate }
+      })
+      .sort({ createdAt: -1 })
+      .lean()
+      .exec();
+    return stalledBatches;
   }
 }
