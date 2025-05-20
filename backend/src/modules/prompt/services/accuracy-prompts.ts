@@ -31,8 +31,12 @@ export const accuracyUserPrompt = ({
   brandName: string;
   count: number;
 }) => `Generate ${count} distinct questions to evaluate the factual accuracy of information about ${brandName}, 
-a company in the ${market} market.
+a company in the ${market} market. 
 
+## Language:
+**Question should be generated in the language of the market: ${market}.**
+
+## Instructions:
 The questions should focus on assessing how accurately factual information about ${brandName} is presented, including:
 - Core product/service offerings
 - Key business facts
@@ -40,7 +44,8 @@ The questions should focus on assessing how accurately factual information about
 - Market positioning
 - Differentiating factors
 
-Return your response as a valid JSON object with this structure:
+## Format:
+Return your response (in the language of the market: ${market}) as a valid JSON object with this structure:
 {
   "prompts": [
     "Question 1 text here",

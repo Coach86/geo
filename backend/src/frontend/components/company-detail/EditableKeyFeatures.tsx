@@ -15,6 +15,8 @@ import {
   DialogContent,
   DialogActions,
   Tooltip,
+  useTheme,
+  alpha,
 } from '@mui/material';
 import StarIcon from '@mui/icons-material/Star';
 import EditIcon from '@mui/icons-material/Edit';
@@ -34,6 +36,7 @@ const EditableKeyFeatures: React.FC<EditableKeyFeaturesProps> = ({
   keyBrandAttributes,
   onUpdate,
 }) => {
+  const theme = useTheme();
   const [isEditing, setIsEditing] = useState(false);
   const [editedFeatures, setEditedFeatures] = useState<string[]>(
     keyBrandAttributes ? [...keyBrandAttributes] : [],
@@ -97,32 +100,98 @@ const EditableKeyFeatures: React.FC<EditableKeyFeaturesProps> = ({
   if (!isEditing) {
     return (
       <>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-          <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}>
-            <StarIcon color="primary" sx={{ mr: 1 }} />
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              display: 'flex', 
+              alignItems: 'center',
+              fontSize: '1rem',
+              fontWeight: 600, 
+              color: theme.palette.text.primary
+            }}
+          >
+            <StarIcon 
+              color="primary" 
+              sx={{ 
+                mr: 1, 
+                fontSize: '1.1rem',
+                color: theme.palette.primary.main 
+              }} 
+            />
             Key Brand Attributes
           </Typography>
           <Tooltip title="Edit key brand attributes">
-            <IconButton onClick={handleStartEdit} color="primary" size="small">
-              <EditIcon />
+            <IconButton 
+              onClick={handleStartEdit} 
+              color="primary" 
+              size="small"
+              sx={{ 
+                width: 30,
+                height: 30,
+                backgroundColor: alpha(theme.palette.primary.main, 0.08),
+                '&:hover': {
+                  backgroundColor: alpha(theme.palette.primary.main, 0.12),
+                }
+              }}
+            >
+              <EditIcon sx={{ fontSize: '0.9rem' }} />
             </IconButton>
           </Tooltip>
         </Box>
         <Divider sx={{ mb: 2 }} />
-        <List>
+        <List sx={{ p: 0 }}>
           {keyBrandAttributes?.map((feature, index) => (
-            <ListItem key={index} disablePadding sx={{ py: 0.5 }}>
+            <ListItem 
+              key={index} 
+              disablePadding 
+              sx={{ 
+                py: 0.75,
+                borderRadius: 1,
+                '&:hover': {
+                  backgroundColor: alpha(theme.palette.primary.light, 0.05),
+                }
+              }}
+            >
               <ListItemIcon sx={{ minWidth: 36 }}>
-                <StarIcon fontSize="small" color="primary" />
+                <StarIcon 
+                  fontSize="small" 
+                  sx={{ 
+                    color: index % 2 === 0 ? theme.palette.primary.main : theme.palette.secondary.main,
+                    fontSize: '0.9rem'
+                  }} 
+                />
               </ListItemIcon>
-              <ListItemText primary={feature} />
+              <ListItemText 
+                primary={feature} 
+                primaryTypographyProps={{
+                  sx: {
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                    color: theme.palette.text.primary
+                  }
+                }}
+              />
             </ListItem>
           ))}
         </List>
         {keyBrandAttributes?.length === 0 && (
-          <Typography variant="body2" color="text.secondary">
-            No key features specified. Click the edit button to add features.
-          </Typography>
+          <Box 
+            sx={{ 
+              p: 2, 
+              textAlign: 'center',
+              backgroundColor: alpha(theme.palette.grey[50], 0.8),
+              borderRadius: 1,
+            }}
+          >
+            <Typography 
+              variant="body2" 
+              color="text.secondary"
+              sx={{ fontSize: '0.875rem' }}
+            >
+              No key features specified. Click the edit button to add features.
+            </Typography>
+          </Box>
         )}
       </>
     );
@@ -130,19 +199,68 @@ const EditableKeyFeatures: React.FC<EditableKeyFeaturesProps> = ({
 
   // Render the edit mode
   return (
-    <Dialog open={isEditing} onClose={handleCancel} fullWidth maxWidth="sm">
-      <DialogTitle>Edit Key Features</DialogTitle>
-      <DialogContent>
+    <Dialog 
+      open={isEditing} 
+      onClose={handleCancel} 
+      fullWidth 
+      maxWidth="sm"
+      PaperProps={{
+        sx: {
+          borderRadius: 2,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.12)'
+        }
+      }}
+    >
+      <DialogTitle 
+        sx={{ 
+          pb: 1,
+          pt: 2,
+          fontWeight: 600,
+          fontSize: '1.1rem',
+        }}
+      >
+        Edit Key Features
+      </DialogTitle>
+      <DialogContent sx={{ pt: 2 }}>
         {error && (
-          <Typography color="error" variant="body2" sx={{ mb: 2 }}>
-            {error}
-          </Typography>
+          <Box
+            sx={{
+              mb: 2,
+              p: 1.5,
+              borderRadius: 1,
+              backgroundColor: alpha(theme.palette.error.light, 0.1),
+              border: `1px solid ${alpha(theme.palette.error.main, 0.2)}`,
+            }}
+          >
+            <Typography 
+              color="error" 
+              variant="body2" 
+              sx={{ 
+                fontSize: '0.875rem',
+                display: 'flex',
+                alignItems: 'center'
+              }}
+            >
+              {error}
+            </Typography>
+          </Box>
         )}
         <List>
           {editedFeatures.map((feature, index) => (
-            <ListItem key={index} sx={{ py: 1 }}>
+            <ListItem 
+              key={index} 
+              sx={{ 
+                py: 1,
+                px: 0.5,
+              }}
+            >
               <ListItemIcon sx={{ minWidth: 36 }}>
-                <StarIcon fontSize="small" color="primary" />
+                <StarIcon 
+                  sx={{ 
+                    fontSize: '1rem', 
+                    color: index % 2 === 0 ? theme.palette.primary.main : theme.palette.secondary.main 
+                  }} 
+                />
               </ListItemIcon>
               <TextField
                 fullWidth
@@ -151,22 +269,86 @@ const EditableKeyFeatures: React.FC<EditableKeyFeaturesProps> = ({
                 value={feature}
                 onChange={(e) => handleChange(index, e.target.value)}
                 placeholder="Enter key feature"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 1,
+                    fontSize: '0.875rem',
+                    backgroundColor: alpha(theme.palette.background.paper, 0.8),
+                    '&:hover': {
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderColor: alpha(theme.palette.primary.main, 0.5),
+                      }
+                    },
+                    '&.Mui-focused': {
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderColor: theme.palette.primary.main,
+                        borderWidth: 1,
+                      }
+                    }
+                  }
+                }}
               />
-              <IconButton onClick={() => handleDelete(index)} color="error">
-                <DeleteIcon />
+              <IconButton 
+                onClick={() => handleDelete(index)} 
+                color="error"
+                sx={{ 
+                  ml: 0.5,
+                  width: 32,
+                  height: 32,
+                  '&:hover': {
+                    backgroundColor: alpha(theme.palette.error.main, 0.08),
+                  }
+                }}
+              >
+                <DeleteIcon sx={{ fontSize: '1rem' }} />
               </IconButton>
             </ListItem>
           ))}
         </List>
-        <Button startIcon={<AddIcon />} onClick={handleAddNew} color="primary" sx={{ mt: 1 }}>
+        <Button 
+          startIcon={<AddIcon />} 
+          onClick={handleAddNew} 
+          color="primary" 
+          sx={{ 
+            mt: 1, 
+            textTransform: 'none',
+            fontWeight: 500,
+            fontSize: '0.875rem',
+            borderRadius: 1,
+          }}
+        >
           Add Feature
         </Button>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={handleCancel} disabled={saving}>
+      <DialogActions sx={{ px: 3, pb: 2.5 }}>
+        <Button 
+          onClick={handleCancel} 
+          disabled={saving}
+          sx={{ 
+            textTransform: 'none',
+            fontWeight: 500,
+            fontSize: '0.875rem',
+            color: theme.palette.text.secondary,
+            px: 2
+          }}
+        >
           Cancel
         </Button>
-        <Button onClick={handleSave} color="primary" startIcon={<SaveIcon />} disabled={saving}>
+        <Button 
+          onClick={handleSave} 
+          variant="contained"
+          color="primary" 
+          startIcon={<SaveIcon sx={{ fontSize: '1rem' }} />} 
+          disabled={saving}
+          sx={{ 
+            textTransform: 'none',
+            fontWeight: 600,
+            fontSize: '0.875rem',
+            boxShadow: 1,
+            borderRadius: 1,
+            px: 2
+          }}
+        >
           {saving ? 'Saving...' : 'Save Changes'}
         </Button>
       </DialogActions>

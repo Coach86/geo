@@ -1,7 +1,12 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-import { Box, Container, useTheme, Backdrop, CircularProgress } from '@mui/material';
-import Navbar from './Navbar';
+import { Box, useTheme, Backdrop, CircularProgress, alpha } from '@mui/material';
+import Sidebar from './Sidebar';
+import TopBar from './TopBar';
+
+const APP_BAR_MOBILE = 64;
+const APP_BAR_DESKTOP = 64;
+const DRAWER_WIDTH = 280;
 
 const Layout: React.FC = () => {
   const theme = useTheme();
@@ -11,30 +16,38 @@ const Layout: React.FC = () => {
     <Box
       sx={{
         display: 'flex',
-        flexDirection: 'column',
         minHeight: '100vh',
-        backgroundColor: theme.palette.background.default,
+        overflow: 'hidden',
+        backgroundColor: alpha(theme.palette.background.default, 0.96),
       }}
     >
-      <Navbar />
+      <TopBar />
+      
+      <Sidebar />
 
-      <Box
-        component="main"
+      <Box 
+        component="main" 
         sx={{
           flexGrow: 1,
-          py: 4,
-          px: { xs: 2, sm: 3 },
+          overflow: 'auto',
+          minHeight: '100%',
+          paddingTop: {
+            xs: `${APP_BAR_MOBILE + 16}px`,
+            lg: `${APP_BAR_DESKTOP + 24}px`,
+          },
+          paddingBottom: 0,
+          paddingLeft: 0,
+          paddingRight: 0,
+          [theme.breakpoints.up('lg')]: {
+            paddingLeft: 2,
+            paddingRight: 2,
+            width: `calc(100% - ${DRAWER_WIDTH}px)`,
+          },
         }}
       >
-        <Container
-          maxWidth="lg"
-          sx={{
-            position: 'relative',
-          }}
-        >
-          <Outlet />
-        </Container>
+        <Outlet />
       </Box>
+      
       <Backdrop sx={{ color: '#fff', zIndex: theme.zIndex.drawer + 1 }} open={loading}>
         <CircularProgress color="inherit" />
       </Backdrop>

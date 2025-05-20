@@ -133,7 +133,13 @@ function ReportAccess() {
         throw new Error("Failed to request new access token");
       }
 
-      setResendStatus("success");
+      // Log success for debugging
+      console.log(`Successfully requested new token for user ${tokenResult.userId}`);
+      
+      // Add a slight delay before showing success to ensure email is sent
+      setTimeout(() => {
+        setResendStatus("success");
+      }, 500);
     } catch (err) {
       console.error("Error requesting new token:", err);
       setResendStatus("error");
@@ -230,7 +236,15 @@ function ReportAccess() {
                   <AlertTitle>Success!</AlertTitle>
                   <AlertDescription>
                     A new access link has been sent to your email address.
-                    Please check your inbox.
+                    Please check your inbox and use the new link to access your report.
+                  </AlertDescription>
+                </Alert>
+              ) : resendStatus === "loading" ? (
+                <Alert className="mt-4">
+                  <AlertTitle>Sending...</AlertTitle>
+                  <AlertDescription className="flex flex-col items-center">
+                    <div className="mb-2">Requesting a new access link for your email address.</div>
+                    <div className="w-8 h-8 rounded-full border-2 border-t-blue-500 border-b-blue-700 border-l-blue-300 border-r-blue-600 animate-spin mt-2"></div>
                   </AlertDescription>
                 </Alert>
               ) : resendStatus === "error" ? (

@@ -17,8 +17,8 @@ export function directUserPrompt({
       Translate the following prompts (${count}) to the language of the market: ${market}
 
       ### Prompts:
-      - What do you think of ${brandName}?  (url: ${websiteUrl})
-      - What are the main strenghts and weaknesses of ${brandName}? (url: ${websiteUrl})
-      - What do clients and reviews say about ${brandName}?  (url: ${websiteUrl})
+      - What do you think of ${brandName}?
+      - What are the main strenghts and weaknesses of ${brandName}?
+      - What do clients and reviews say about ${brandName}?
     `;
 }

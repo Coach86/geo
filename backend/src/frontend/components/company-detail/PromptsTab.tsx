@@ -1,5 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Box, Card, CardContent, Tabs, Tab, Paper, Button, Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText, CircularProgress, IconButton, Tooltip, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
+import { 
+  Typography, 
+  Box, 
+  Card, 
+  CardContent, 
+  Tabs, 
+  Tab, 
+  Paper, 
+  Button, 
+  Dialog, 
+  DialogTitle, 
+  DialogContent, 
+  DialogActions, 
+  DialogContentText, 
+  CircularProgress, 
+  IconButton, 
+  Tooltip, 
+  Accordion, 
+  AccordionSummary, 
+  AccordionDetails,
+  useTheme,
+  alpha
+} from '@mui/material';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
@@ -24,6 +46,7 @@ enum PromptTabValue {
 }
 
 const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
+  const theme = useTheme();
   const [currentTab, setCurrentTab] = useState<PromptTabValue>(PromptTabValue.SPONTANEOUS);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
@@ -152,29 +175,63 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
   };
 
   return (
-    <>
+    <Box sx={{ maxWidth: '95vw', width: '100%' }}>
       {/* Regenerate Confirmation Dialog */}
       <Dialog
         open={confirmDialogOpen}
         onClose={handleCloseConfirmDialog}
         aria-labelledby="regenerate-prompts-dialog-title"
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.12)'
+          }
+        }}
       >
-        <DialogTitle id="regenerate-prompts-dialog-title">Regenerate All Prompts?</DialogTitle>
+        <DialogTitle 
+          id="regenerate-prompts-dialog-title"
+          sx={{ 
+            pb: 1,
+            pt: 2,
+            fontWeight: 600,
+            fontSize: '1.1rem',
+          }}
+        >
+          Regenerate All Prompts?
+        </DialogTitle>
         <DialogContent>
-          <DialogContentText>
+          <DialogContentText sx={{ fontSize: '0.875rem' }}>
             This will delete all current prompts and generate new ones using AI. Any customizations you've made will be lost. This process may take a minute to complete.
           </DialogContentText>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseConfirmDialog} color="primary">
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button 
+            onClick={handleCloseConfirmDialog} 
+            color="primary"
+            sx={{ 
+              textTransform: 'none',
+              fontWeight: 500,
+              fontSize: '0.875rem',
+              color: theme.palette.text.secondary,
+              px: 2
+            }}
+          >
             Cancel
           </Button>
           <Button 
             onClick={handleRegeneratePrompts} 
             color="primary" 
             variant="contained"
-            startIcon={<RefreshIcon />}
+            startIcon={<RefreshIcon sx={{ fontSize: '1rem' }} />}
             disabled={isRegenerating}
+            sx={{ 
+              textTransform: 'none',
+              fontWeight: 600,
+              fontSize: '0.875rem',
+              boxShadow: 1,
+              borderRadius: 1,
+              px: 2
+            }}
           >
             {isRegenerating ? 'Regenerating...' : 'Regenerate'}
           </Button>
@@ -254,24 +311,67 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
         </DialogContent>
       </Dialog>
 
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Box sx={{ 
+        width: '100%',
+        maxWidth: '95vw', 
+        mb: 3, 
+        display: 'flex', 
+        flexDirection: {xs: 'column', sm: 'row'}, 
+        justifyContent: 'space-between', 
+        alignItems: {xs: 'flex-start', sm: 'center'},
+        gap: 2
+      }}>
         <Box>
-          <Typography variant="h6" gutterBottom>
-            Generated Prompts
+          <Typography 
+            variant="h6" 
+            gutterBottom
+            sx={{ 
+              fontWeight: 600,
+              fontSize: '1rem',
+              color: theme.palette.text.primary,
+              display: 'flex',
+              alignItems: 'center',
+            }}
+          >
+            <ChatBubbleOutlineIcon 
+              sx={{ 
+                fontSize: '1.1rem', 
+                color: theme.palette.primary.main,
+                mr: 1 
+              }} 
+            />
+            Generated Analysis Prompts
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography 
+            variant="body2" 
+            color="text.secondary"
+            sx={{ 
+              fontSize: '0.875rem',
+              opacity: 0.85,
+            }}
+          >
             These prompts are automatically generated for analyzing this company and will be used in
             batch processes.
           </Typography>
         </Box>
         
-        <Box sx={{ display: 'flex', gap: 2 }}>
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
           <Tooltip title="View template prompts used to generate these prompts">
             <Button
               variant="outlined"
               color="secondary"
-              startIcon={<CodeIcon />}
+              startIcon={<CodeIcon sx={{ fontSize: '0.9rem' }} />}
               onClick={handleOpenTemplateDialog}
+              sx={{ 
+                borderRadius: 1,
+                textTransform: 'none',
+                fontWeight: 500,
+                fontSize: {xs: '0.75rem', sm: '0.875rem'},
+                py: 0.75,
+                whiteSpace: 'nowrap',
+                minWidth: 'fit-content',
+                border: `1px solid ${alpha(theme.palette.secondary.main, 0.5)}`,
+              }}
             >
               View Templates
             </Button>
@@ -280,59 +380,123 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
           <Button
             variant="outlined"
             color="primary"
-            startIcon={isRegenerating ? <CircularProgress size={20} /> : <RefreshIcon />}
+            startIcon={isRegenerating ? <CircularProgress size={16} /> : <RefreshIcon sx={{ fontSize: '0.9rem' }} />}
             onClick={handleOpenConfirmDialog}
             disabled={isRegenerating}
+            sx={{ 
+              borderRadius: 1,
+              textTransform: 'none',
+              fontWeight: 500,
+              fontSize: {xs: '0.75rem', sm: '0.875rem'},
+              py: 0.75,
+              whiteSpace: 'nowrap',
+              minWidth: 'fit-content',
+              border: `1px solid ${alpha(theme.palette.primary.main, 0.5)}`,
+            }}
           >
             {isRegenerating ? 'Regenerating...' : 'Regenerate Prompts'}
           </Button>
         </Box>
       </Box>
 
-      <Paper sx={{ width: '100%', mb: 3 }}>
-        <Tabs
-          value={currentTab}
-          onChange={handleTabChange}
-          aria-label="prompt type tabs"
-          variant="fullWidth"
-        >
-          <Tab
-            label={`Spontaneous (${spontaneousPrompts.length})`}
-            value={PromptTabValue.SPONTANEOUS}
-            icon={<QuestionAnswerIcon />}
-            iconPosition="start"
-          />
-          <Tab
-            label={`Direct Sentiment (${directPrompts.length})`}
-            value={PromptTabValue.DIRECT}
-            icon={<ChatBubbleOutlineIcon />}
-            iconPosition="start"
-          />
-          <Tab
-            label={`Comparison (${comparisonPrompts.length})`}
-            value={PromptTabValue.COMPARISON}
-            icon={<CompareArrowsIcon />}
-            iconPosition="start"
-          />
-          <Tab
-            label={`Accuracy (${accuracyPrompts.length})`}
-            value={PromptTabValue.ACCURACY}
-            icon={<FactCheckIcon />}
-            iconPosition="start"
-          />
-        </Tabs>
-      </Paper>
+      <Box 
+        sx={{ 
+          width: '100%', 
+          mb: 3,
+          borderRadius: 1.5,
+          boxShadow: 'none',
+          border: `1px solid ${alpha(theme.palette.grey[500], 0.12)}`,
+        }}
+      >
+        <Box sx={{ 
+          width: '100%', 
+          overflowX: 'auto', 
+          WebkitOverflowScrolling: 'touch',
+          '::-webkit-scrollbar': {
+            height: '8px',
+          },
+          '::-webkit-scrollbar-thumb': {
+            borderRadius: '4px',
+            backgroundColor: alpha(theme.palette.grey[500], 0.3),
+          },
+        }}>
+          <Box sx={{ minWidth: '500px' }}>
+            <Tabs
+              value={currentTab}
+              onChange={handleTabChange}
+              aria-label="prompt type tabs"
+              variant="scrollable"
+              scrollButtons={false}
+              sx={{
+                '& .MuiTab-root': {
+                  textTransform: 'none',
+                  minHeight: 48,
+                  fontWeight: 500,
+                  color: 'text.secondary',
+                  '&.Mui-selected': {
+                    color: 'primary.main',
+                    fontWeight: 600,
+                  },
+                },
+                '& .MuiTabs-indicator': {
+                  height: 3,
+                },
+              }}
+            >
+              <Tab
+                icon={<QuestionAnswerIcon sx={{ fontSize: '1.1rem' }} />}
+                label={<Typography sx={{ fontSize: '0.85rem', ml: 0.5 }}>Spontaneous ({spontaneousPrompts.length})</Typography>}
+                value={PromptTabValue.SPONTANEOUS}
+                sx={{ minWidth: '80px' }}
+              />
+              <Tab
+                icon={<ChatBubbleOutlineIcon sx={{ fontSize: '1.1rem' }} />}
+                label={<Typography sx={{ fontSize: '0.85rem', ml: 0.5 }}>Direct ({directPrompts.length})</Typography>}
+                value={PromptTabValue.DIRECT}
+                sx={{ minWidth: '80px' }}
+              />
+              <Tab
+                icon={<CompareArrowsIcon sx={{ fontSize: '1.1rem' }} />}
+                label={<Typography sx={{ fontSize: '0.85rem', ml: 0.5 }}>Comparison ({comparisonPrompts.length})</Typography>}
+                value={PromptTabValue.COMPARISON}
+                sx={{ minWidth: '80px' }}
+              />
+              <Tab
+                icon={<FactCheckIcon sx={{ fontSize: '1.1rem' }} />}
+                label={<Typography sx={{ fontSize: '0.85rem', ml: 0.5 }}>Accuracy ({accuracyPrompts.length})</Typography>}
+                value={PromptTabValue.ACCURACY}
+                sx={{ minWidth: '80px' }}
+              />
+            </Tabs>
+          </Box>
+        </Box>
+      </Box>
 
       {isRegenerating ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', my: 8 }}>
-          <CircularProgress size={60} />
-          <Typography variant="h6" sx={{ ml: 2 }}>
+          <CircularProgress size={40} />
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              ml: 2,
+              fontSize: '1rem',
+              fontWeight: 500,
+              color: alpha(theme.palette.text.primary, 0.8),
+            }}
+          >
             Regenerating prompts...
           </Typography>
         </Box>
       ) : (
-        <Card>
-          <CardContent>
+        <Card
+          sx={{ 
+            borderRadius: 1.5,
+            boxShadow: 'none',
+            border: `1px solid ${alpha(theme.palette.grey[500], 0.12)}`,
+            width: '100%',
+          }}
+        >
+          <CardContent sx={{ p: 3 }}>
             {currentTab === PromptTabValue.DIRECT && (
               <EditablePrompts
                 companyId={promptSet.companyId}
@@ -383,7 +547,7 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
           </CardContent>
         </Card>
       )}
-    </>
+    </Box>
   );
 };
 

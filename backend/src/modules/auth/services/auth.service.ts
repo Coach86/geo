@@ -1,23 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import { Admin, AdminDocument } from '../schemas/admin.schema';
+import { AdminRepository } from '../repositories/admin.repository';
 
 @Injectable()
 export class AuthService {
   constructor(
-    @InjectModel(Admin.name) private adminModel: Model<AdminDocument>,
+    private readonly adminRepository: AdminRepository,
     private jwtService: JwtService,
   ) {}
 
   async validateAdmin(email: string, password: string): Promise<any> {
-    const admin = await this.adminModel.findOne({ email }).lean().exec();
+    const admin = await this.adminRepository.findByEmail(email);
 
     if (admin && (await bcrypt.compare(password, admin.passwordHash))) {
       // Update last login timestamp
-      await this.adminModel.updateOne({ _id: admin._id }, { $set: { lastLogin: new Date() } });
+      await this.adminRepository.updateLastLogin(admin.id);
 
       // Since we're using lean(), admin is already a plain JS object
       const { passwordHash, ...result } = admin;

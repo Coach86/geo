@@ -16,7 +16,6 @@ export class PromptSetController {
   constructor(
     @InjectModel(PromptSet.name) private promptSetModel: Model<PromptSetDocument>,
     private readonly promptService: PromptService,
-    @InjectModel('IdentityCard') private identityCardModel: Model<any>,
   ) {}
 
   @Get(':companyId')
@@ -72,7 +71,7 @@ export class PromptSetController {
   async getPromptTemplates(@Param('companyId') companyId: string) {
     try {
       // Get the company identity card to extract information needed for templates
-      const company = await this.identityCardModel.findOne({ id: companyId }).exec();
+      const company = await this.promptService.getCompanyById(companyId);
 
       if (!company) {
         throw new NotFoundException(`Company with ID ${companyId} not found`);

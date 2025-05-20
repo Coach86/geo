@@ -8,12 +8,10 @@ import {
   CircularProgress,
   Alert,
   AlertTitle,
-  Paper,
+  Card,
+  Container,
   InputAdornment,
   IconButton,
-  Grid,
-  Card,
-  CardContent,
   Divider,
   Chip,
   Stack,
@@ -27,7 +25,10 @@ import {
   Select,
   MenuItem,
   SelectChangeEvent,
+  CardHeader,
+  CardContent,
 } from '@mui/material';
+import Grid from '@mui/material/Grid';
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
@@ -37,6 +38,7 @@ import ViewListIcon from '@mui/icons-material/ViewList';
 import ViewModuleIcon from '@mui/icons-material/ViewModule';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import CompaniesIcon from '@mui/icons-material/Business';
+import BusinessIcon from '@mui/icons-material/Business';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import AssessmentIcon from '@mui/icons-material/Assessment';
@@ -159,7 +161,7 @@ const CompanyList: React.FC = () => {
 
   if (error) {
     return (
-      <Alert severity="error" sx={{ mt: 2 }}>
+      <Alert severity="error" sx={{ mt: 2, borderRadius: 2 }}>
         <AlertTitle>Error</AlertTitle>
         {error}
       </Alert>
@@ -167,350 +169,802 @@ const CompanyList: React.FC = () => {
   }
 
   return (
-    <>
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: { xs: 'column', md: 'row' },
-          justifyContent: 'space-between',
-          alignItems: { xs: 'flex-start', md: 'center' },
-          mb: 4,
-        }}
-      >
-        <Box sx={{ mb: { xs: 2, md: 0 } }}>
-          <Typography
-            variant="h4"
-            component="h1"
-            sx={{
-              fontWeight: 700,
-              display: 'flex',
-              alignItems: 'center',
-            }}
-          >
-            <CompaniesIcon sx={{ mr: 1, color: theme.palette.primary.main }} />
-            Companies
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Manage your brand analysis portfolio
-          </Typography>
-        </Box>
-
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => navigate('/companies/new')}
-          sx={{
-            px: 3,
-            py: 1,
-            boxShadow: 2,
-            backgroundColor: theme.palette.primary.main,
-            '&:hover': {
-              backgroundColor: theme.palette.primary.dark,
-            },
-          }}
-        >
-          Add Company
-        </Button>
-      </Box>
-
-      {/* Dashboard Stats */}
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr 1fr' },
-          gap: 3,
-          mb: 4,
-        }}
-      >
-        <Card
-          sx={{
-            borderRadius: 2,
-            p: 1,
-            height: '100%',
-            backgroundImage: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.primary.dark, 0.1)} 100%)`,
-            border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
-          }}
-        >
-          <CardContent sx={{ p: 2 }}>
-            <CompaniesIcon sx={{ color: theme.palette.primary.main, mb: 1, fontSize: 32 }} />
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              {companies.length}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Total Companies
-            </Typography>
-          </CardContent>
-        </Card>
-
-        <Card
-          sx={{
-            borderRadius: 2,
-            p: 1,
-            height: '100%',
-            backgroundImage: `linear-gradient(135deg, ${alpha(theme.palette.secondary.main, 0.1)} 0%, ${alpha(theme.palette.secondary.dark, 0.1)} 100%)`,
-            border: `1px solid ${alpha(theme.palette.secondary.main, 0.2)}`,
-          }}
-        >
-          <CardContent sx={{ p: 2 }}>
-            <PersonIcon sx={{ color: theme.palette.secondary.main, mb: 1, fontSize: 32 }} />
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              {users.length}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Total Users
-            </Typography>
-          </CardContent>
-        </Card>
-
-        <Card
-          sx={{
-            borderRadius: 2,
-            p: 1,
-            height: '100%',
-            backgroundImage: `linear-gradient(135deg, ${alpha(theme.palette.info.main, 0.1)} 0%, ${alpha(theme.palette.info.dark, 0.1)} 100%)`,
-            border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
-          }}
-        >
-          <CardContent sx={{ p: 2 }}>
-            <TrendingUpIcon sx={{ color: theme.palette.info.main, mb: 1, fontSize: 32 }} />
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              {Object.keys(industryStats).length}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Industries
-            </Typography>
-          </CardContent>
-        </Card>
-
-        <Card
-          sx={{
-            borderRadius: 2,
-            p: 1,
-            height: '100%',
-            backgroundImage: `linear-gradient(135deg, ${alpha(theme.palette.success.main, 0.1)} 0%, ${alpha(theme.palette.success.dark, 0.1)} 100%)`,
-            border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`,
-          }}
-        >
-          <CardContent sx={{ p: 2 }}>
-            <PeopleAltIcon sx={{ color: theme.palette.success.main, mb: 1, fontSize: 32 }} />
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              {companies.reduce((acc, company) => acc + company.competitors.length, 0)}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Tracked Competitors
-            </Typography>
-          </CardContent>
-        </Card>
-
-        <Card
-          sx={{
-            borderRadius: 2,
-            p: 1,
-            height: '100%',
-            backgroundImage: `linear-gradient(135deg, ${alpha(theme.palette.warning.main, 0.1)} 0%, ${alpha(theme.palette.warning.dark, 0.1)} 100%)`,
-            border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
-          }}
-        >
-          <CardContent sx={{ p: 2 }}>
-            <AssessmentIcon sx={{ color: theme.palette.warning.main, mb: 1, fontSize: 32 }} />
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              {companies.reduce((acc, company) => acc + company.keyBrandAttributes.length, 0)}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Key Brand Attributes
-            </Typography>
-          </CardContent>
-        </Card>
-      </Box>
-
-      <Paper sx={{ mb: 3, borderRadius: 2, overflow: 'hidden' }}>
-        <Box
-          sx={{
-            p: 2,
-            display: 'flex',
-            flexDirection: { xs: 'column', sm: 'row' },
-            alignItems: { xs: 'stretch', sm: 'center' },
-            gap: 2,
-          }}
-        >
-          <TextField
-            placeholder="Search companies..."
-            size="small"
-            value={searchTerm}
-            onChange={handleSearchChange}
-            sx={{ flex: 1 }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon fontSize="small" />
-                </InputAdornment>
-              ),
-              endAdornment: searchTerm ? (
-                <InputAdornment position="end">
-                  <IconButton onClick={clearSearch} edge="end" size="small">
-                    <ClearIcon fontSize="small" />
-                  </IconButton>
-                </InputAdornment>
-              ) : null,
-            }}
-          />
-
-          <FormControl size="small" sx={{ minWidth: 180 }} disabled={loadingUsers}>
-            <InputLabel id="user-filter-label">
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <PersonIcon fontSize="small" sx={{ mr: 0.5 }} />
-                Filter by User
-              </Box>
-            </InputLabel>
-            <Select
-              labelId="user-filter-label"
-              value={selectedUserId}
-              onChange={handleUserFilterChange}
-              label="Filter by User"
-              displayEmpty
-            >
-              <MenuItem value="">
-                <em>All Users</em>
-              </MenuItem>
-              {users.map((user) => (
-                <MenuItem key={user.id} value={user.id}>
-                  {user.email} ({user.language})
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
+    <Container maxWidth={false} disableGutters>
+      <Box sx={{ py: 2, px: { xs: 2, sm: 3 } }}>
+        <Box sx={{ mb: 3 }}>
           <Box
             sx={{
               display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              justifyContent: { xs: 'space-between', sm: 'flex-end' },
-              width: { xs: '100%', sm: 'auto' },
+              flexDirection: { xs: 'column', sm: 'row' },
+              alignItems: { xs: 'flex-start', sm: 'center' },
+              justifyContent: 'space-between',
+              mb: 3,
             }}
           >
-            <Tooltip title="Refresh">
-              <IconButton size="small" onClick={fetchData}>
-                <RefreshIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
+            <Box>
+              <Typography
+                variant="h4"
+                component="h1"
+                sx={{
+                  fontWeight: 700,
+                  mb: 0.5,
+                  fontSize: { xs: '1.75rem', sm: '2rem' },
+                }}
+              >
+                Companies
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: 'text.secondary',
+                  opacity: 0.85,
+                  fontSize: '0.875rem',
+                }}
+              >
+                Analyze and manage your branded companies
+              </Typography>
+            </Box>
 
-            <Tooltip title="Filter">
-              <IconButton size="small">
-                <FilterListIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => navigate('/companies/new')}
+              sx={{
+                mt: { xs: 2, sm: 0 },
+                px: 2.5,
+                py: 1,
+                borderRadius: 1,
+                textTransform: 'none',
+                boxShadow: '0 2px 4px 0 rgba(0,0,0,0.05)',
+                fontWeight: 600,
+                fontSize: '0.875rem',
+                '&:hover': {
+                  boxShadow: '0 4px 8px 0 rgba(0,0,0,0.1)',
+                },
+              }}
+            >
+              Add New Company
+            </Button>
+          </Box>
 
-            <Tooltip title="Sort">
-              <IconButton size="small">
-                <SortIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
+          {/* Dashboard Stats */}
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: {
+                xs: '1fr',
+                sm: 'repeat(2, 1fr)',
+                md: 'repeat(4, 1fr)',
+              },
+              gap: 3,
+              mb: 3,
+            }}
+          >
+            <Card
+              sx={{
+                boxShadow: 'none',
+                border: `1px solid ${alpha(theme.palette.grey[500], 0.12)}`,
+                borderRadius: 1.5,
+                overflow: 'hidden',
+                position: 'relative',
+                '&::before': {
+                  content: '""',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '4px',
+                  backgroundColor: theme.palette.primary.main,
+                  opacity: 0.7,
+                },
+              }}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <Box>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{
+                        color: 'text.secondary',
+                        fontSize: '0.75rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                        fontWeight: 600,
+                        opacity: 0.8,
+                      }}
+                    >
+                      Total Companies
+                    </Typography>
+                    <Typography
+                      variant="h3"
+                      sx={{
+                        mt: 1,
+                        fontWeight: 700,
+                        fontSize: { xs: '1.75rem', sm: '2.2rem' },
+                      }}
+                    >
+                      {companies.length}
+                    </Typography>
+                  </Box>
+                  <Box
+                    sx={{
+                      p: 0.8,
+                      borderRadius: 1.5,
+                      bgcolor: alpha(theme.palette.primary.main, 0.12),
+                      color: theme.palette.primary.main,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: 44,
+                      height: 44,
+                    }}
+                  >
+                    <CompaniesIcon sx={{ fontSize: '1.3rem' }} />
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
 
-            <Divider
-              orientation="vertical"
-              flexItem
-              sx={{ mx: 1, display: { xs: 'none', sm: 'block' } }}
+            <Card
+              sx={{
+                boxShadow: 'none',
+                border: `1px solid ${alpha(theme.palette.grey[500], 0.12)}`,
+                borderRadius: 1.5,
+                overflow: 'hidden',
+                position: 'relative',
+                '&::before': {
+                  content: '""',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '4px',
+                  backgroundColor: theme.palette.info.main,
+                  opacity: 0.7,
+                },
+              }}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <Box>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{
+                        color: 'text.secondary',
+                        fontSize: '0.75rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                        fontWeight: 600,
+                        opacity: 0.8,
+                      }}
+                    >
+                      Total Users
+                    </Typography>
+                    <Typography
+                      variant="h3"
+                      sx={{
+                        mt: 1,
+                        fontWeight: 700,
+                        fontSize: { xs: '1.75rem', sm: '2.2rem' },
+                      }}
+                    >
+                      {users.length}
+                    </Typography>
+                  </Box>
+                  <Box
+                    sx={{
+                      p: 0.8,
+                      borderRadius: 1.5,
+                      bgcolor: alpha(theme.palette.info.main, 0.12),
+                      color: theme.palette.info.main,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: 44,
+                      height: 44,
+                    }}
+                  >
+                    <PersonIcon sx={{ fontSize: '1.3rem' }} />
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+
+            <Card
+              sx={{
+                boxShadow: 'none',
+                border: `1px solid ${alpha(theme.palette.grey[500], 0.12)}`,
+                borderRadius: 1.5,
+                overflow: 'hidden',
+                position: 'relative',
+                '&::before': {
+                  content: '""',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '4px',
+                  backgroundColor: theme.palette.success.main,
+                  opacity: 0.7,
+                },
+              }}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <Box>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{
+                        color: 'text.secondary',
+                        fontSize: '0.75rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                        fontWeight: 600,
+                        opacity: 0.8,
+                      }}
+                    >
+                      Industries
+                    </Typography>
+                    <Typography
+                      variant="h3"
+                      sx={{
+                        mt: 1,
+                        fontWeight: 700,
+                        fontSize: { xs: '1.75rem', sm: '2.2rem' },
+                      }}
+                    >
+                      {Object.keys(industryStats).length}
+                    </Typography>
+                  </Box>
+                  <Box
+                    sx={{
+                      p: 0.8,
+                      borderRadius: 1.5,
+                      bgcolor: alpha(theme.palette.success.main, 0.12),
+                      color: theme.palette.success.main,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: 44,
+                      height: 44,
+                    }}
+                  >
+                    <TrendingUpIcon sx={{ fontSize: '1.3rem' }} />
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+
+            <Card
+              sx={{
+                boxShadow: 'none',
+                border: `1px solid ${alpha(theme.palette.grey[500], 0.12)}`,
+                borderRadius: 1.5,
+                overflow: 'hidden',
+                position: 'relative',
+                '&::before': {
+                  content: '""',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '4px',
+                  backgroundColor: theme.palette.warning.main,
+                  opacity: 0.7,
+                },
+              }}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <Box>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{
+                        color: 'text.secondary',
+                        fontSize: '0.75rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                        fontWeight: 600,
+                        opacity: 0.8,
+                      }}
+                    >
+                      Competitors
+                    </Typography>
+                    <Typography
+                      variant="h3"
+                      sx={{
+                        mt: 1,
+                        fontWeight: 700,
+                        fontSize: { xs: '1.75rem', sm: '2.2rem' },
+                      }}
+                    >
+                      {companies.reduce((acc, company) => acc + company.competitors.length, 0)}
+                    </Typography>
+                  </Box>
+                  <Box
+                    sx={{
+                      p: 0.8,
+                      borderRadius: 1.5,
+                      bgcolor: alpha(theme.palette.warning.main, 0.12),
+                      color: theme.palette.warning.main,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: 44,
+                      height: 44,
+                    }}
+                  >
+                    <PeopleAltIcon sx={{ fontSize: '1.3rem' }} />
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Box>
+
+          <Card
+            sx={{
+              boxShadow: 'none',
+              border: `1px solid ${alpha(theme.palette.grey[500], 0.12)}`,
+              borderRadius: 1.5,
+              overflow: 'hidden',
+            }}
+          >
+            <CardHeader
+              title={
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      fontWeight: 600,
+                      fontSize: '1rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <BusinessIcon
+                      sx={{
+                        mr: 1,
+                        color: theme.palette.primary.main,
+                        fontSize: '1.1rem',
+                      }}
+                    />
+                    Companies
+                    <Typography
+                      component="span"
+                      variant="subtitle2"
+                      sx={{
+                        color: 'text.secondary',
+                        ml: 0.75,
+                        opacity: 0.7,
+                        fontWeight: 500,
+                      }}
+                    >
+                      ({filteredCompanies.length})
+                    </Typography>
+                  </Typography>
+                </Box>
+              }
+              sx={{ px: 3, pt: 2.5, pb: 2 }}
             />
 
-            <Tabs
-              value={currentView}
-              onChange={handleViewChange}
-              sx={{ minHeight: 36 }}
-              TabIndicatorProps={{ style: { display: 'none' } }}
+            <Box
+              sx={{
+                px: 3,
+                py: 2,
+                display: 'flex',
+                flexDirection: { xs: 'column', sm: 'row' },
+                alignItems: { xs: 'stretch', sm: 'center' },
+                gap: 2,
+                borderBottom: `1px solid ${alpha(theme.palette.grey[500], 0.12)}`,
+                backgroundColor: alpha(theme.palette.grey[50], 0.5),
+              }}
             >
-              <Tooltip title="Grid view">
-                <Tab
-                  icon={<ViewModuleIcon fontSize="small" />}
-                  sx={{
-                    minWidth: 40,
-                    minHeight: 36,
-                    p: 1,
+              <TextField
+                placeholder="Search companies..."
+                size="small"
+                value={searchTerm}
+                onChange={handleSearchChange}
+                sx={{
+                  flex: 1,
+                  '& .MuiOutlinedInput-root': {
                     borderRadius: 1,
-                    mr: 0.5,
-                    '&.Mui-selected': {
-                      bgcolor: alpha(theme.palette.primary.main, 0.1),
+                    backgroundColor: theme.palette.background.paper,
+                    borderColor: alpha(theme.palette.grey[500], 0.2),
+                    '&:hover': {
+                      borderColor: alpha(theme.palette.primary.main, 0.5),
                     },
-                  }}
-                />
-              </Tooltip>
-              <Tooltip title="List view">
-                <Tab
-                  icon={<ViewListIcon fontSize="small" />}
-                  sx={{
-                    minWidth: 40,
-                    minHeight: 36,
-                    p: 1,
+                    '&.Mui-focused': {
+                      borderColor: theme.palette.primary.main,
+                      boxShadow: `0 0 0 2px ${alpha(theme.palette.primary.main, 0.1)}`,
+                    },
+                  },
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon
+                        sx={{ fontSize: '1rem', color: alpha(theme.palette.text.secondary, 0.6) }}
+                      />
+                    </InputAdornment>
+                  ),
+                  endAdornment: searchTerm ? (
+                    <InputAdornment position="end">
+                      <IconButton onClick={clearSearch} edge="end" size="small">
+                        <ClearIcon sx={{ fontSize: '0.9rem' }} />
+                      </IconButton>
+                    </InputAdornment>
+                  ) : null,
+                }}
+              />
+
+              <FormControl
+                size="small"
+                sx={{
+                  minWidth: 180,
+                  '& .MuiOutlinedInput-root': {
                     borderRadius: 1,
-                    '&.Mui-selected': {
-                      bgcolor: alpha(theme.palette.primary.main, 0.1),
+                    backgroundColor: theme.palette.background.paper,
+                    borderColor: alpha(theme.palette.grey[500], 0.2),
+                    '&:hover': {
+                      borderColor: alpha(theme.palette.primary.main, 0.5),
                     },
+                    '&.Mui-focused': {
+                      borderColor: theme.palette.primary.main,
+                      boxShadow: `0 0 0 2px ${alpha(theme.palette.primary.main, 0.1)}`,
+                    },
+                  },
+                  '& .MuiInputLabel-root': {
+                    fontSize: '0.875rem',
+                  },
+                }}
+                disabled={loadingUsers}
+              >
+                <InputLabel id="user-filter-label">Filter by User</InputLabel>
+                <Select
+                  labelId="user-filter-label"
+                  value={selectedUserId}
+                  onChange={handleUserFilterChange}
+                  label="Filter by User"
+                  displayEmpty
+                >
+                  <MenuItem value="">
+                    <em>All Users</em>
+                  </MenuItem>
+                  {users.map((user) => (
+                    <MenuItem key={user.id} value={user.id}>
+                      {user.email} ({user.language})
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.75,
+                  justifyContent: { xs: 'flex-end', sm: 'flex-end' },
+                  width: { xs: '100%', sm: 'auto' },
+                }}
+              >
+                <Tooltip title="Refresh">
+                  <IconButton
+                    size="small"
+                    onClick={fetchData}
+                    sx={{
+                      backgroundColor: theme.palette.background.paper,
+                      border: `1px solid ${alpha(theme.palette.grey[500], 0.2)}`,
+                      borderRadius: 1,
+                      width: 32,
+                      height: 32,
+                      '&:hover': {
+                        backgroundColor: alpha(theme.palette.primary.main, 0.04),
+                        borderColor: alpha(theme.palette.primary.main, 0.4),
+                      },
+                    }}
+                  >
+                    <RefreshIcon sx={{ fontSize: '1rem' }} />
+                  </IconButton>
+                </Tooltip>
+
+                <Tooltip title="Filter">
+                  <IconButton
+                    size="small"
+                    sx={{
+                      backgroundColor: theme.palette.background.paper,
+                      border: `1px solid ${alpha(theme.palette.grey[500], 0.2)}`,
+                      borderRadius: 1,
+                      width: 32,
+                      height: 32,
+                      '&:hover': {
+                        backgroundColor: alpha(theme.palette.primary.main, 0.04),
+                        borderColor: alpha(theme.palette.primary.main, 0.4),
+                      },
+                    }}
+                  >
+                    <FilterListIcon sx={{ fontSize: '1rem' }} />
+                  </IconButton>
+                </Tooltip>
+
+                <Tooltip title="Sort">
+                  <IconButton
+                    size="small"
+                    sx={{
+                      backgroundColor: theme.palette.background.paper,
+                      border: `1px solid ${alpha(theme.palette.grey[500], 0.2)}`,
+                      borderRadius: 1,
+                      width: 32,
+                      height: 32,
+                      '&:hover': {
+                        backgroundColor: alpha(theme.palette.primary.main, 0.04),
+                        borderColor: alpha(theme.palette.primary.main, 0.4),
+                      },
+                    }}
+                  >
+                    <SortIcon sx={{ fontSize: '1rem' }} />
+                  </IconButton>
+                </Tooltip>
+
+                <Divider orientation="vertical" flexItem sx={{ mx: 1, height: 24 }} />
+
+                <Tabs
+                  value={currentView}
+                  onChange={handleViewChange}
+                  sx={{
+                    minHeight: 32,
+                    '& .MuiTabs-indicator': { display: 'none' },
                   }}
-                />
-              </Tooltip>
-            </Tabs>
-          </Box>
-        </Box>
-
-        {/* Industry filters */}
-        <Divider />
-        <Box sx={{ px: 2, py: 1, overflowX: 'auto' }}>
-          <Stack
-            direction="row"
-            spacing={1}
-            sx={{
-              minWidth: { xs: 'max-content', md: '100%' },
-            }}
-          >
-            <Chip label="All Industries" color="primary" variant="filled" size="small" />
-            {Object.entries(industryStats)
-              .sort((a, b) => b[1] - a[1])
-              .slice(0, 7)
-              .map(([industry, count]) => (
-                <Chip
-                  key={industry}
-                  label={`${industry} (${count})`}
-                  variant="outlined"
-                  size="small"
-                />
-              ))}
-          </Stack>
-        </Box>
-      </Paper>
-
-      {filteredCompanies.length === 0 ? (
-        <Card sx={{ p: 4, textAlign: 'center', borderRadius: 2 }}>
-          <SearchIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2, opacity: 0.5 }} />
-          <Typography variant="h6">No companies found</Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            {searchTerm
-              ? 'No companies match your search criteria. Try using different keywords.'
-              : 'There are no companies in the system yet.'}
-          </Typography>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => navigate('/companies/new')}
-          >
-            Add Your First Company
-          </Button>
-        </Card>
-      ) : (
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' },
-            gap: 3,
-          }}
-        >
-          {filteredCompanies.map((company) => (
-            <Box key={company.id}>
-              <CompanyCard company={company} onDelete={handleCompanyDeleted} />
+                >
+                  <Tooltip title="Grid view">
+                    <Tab
+                      icon={<ViewModuleIcon sx={{ fontSize: '1rem' }} />}
+                      sx={{
+                        minWidth: 32,
+                        minHeight: 32,
+                        p: 0,
+                        borderRadius: 1,
+                        mr: 0.5,
+                        backgroundColor:
+                          currentView === 0
+                            ? alpha(theme.palette.primary.main, 0.08)
+                            : theme.palette.background.paper,
+                        border: `1px solid ${currentView === 0 ? alpha(theme.palette.primary.main, 0.5) : alpha(theme.palette.grey[500], 0.2)}`,
+                        color:
+                          currentView === 0
+                            ? theme.palette.primary.main
+                            : theme.palette.text.secondary,
+                        width: 32,
+                        height: 32,
+                        '&:hover': {
+                          backgroundColor:
+                            currentView === 0
+                              ? alpha(theme.palette.primary.main, 0.12)
+                              : alpha(theme.palette.primary.main, 0.04),
+                          borderColor:
+                            currentView === 0
+                              ? theme.palette.primary.main
+                              : alpha(theme.palette.primary.main, 0.4),
+                        },
+                      }}
+                    />
+                  </Tooltip>
+                  <Tooltip title="List view">
+                    <Tab
+                      icon={<ViewListIcon sx={{ fontSize: '1rem' }} />}
+                      sx={{
+                        minWidth: 32,
+                        minHeight: 32,
+                        p: 0,
+                        borderRadius: 1,
+                        backgroundColor:
+                          currentView === 1
+                            ? alpha(theme.palette.primary.main, 0.08)
+                            : theme.palette.background.paper,
+                        border: `1px solid ${currentView === 1 ? alpha(theme.palette.primary.main, 0.5) : alpha(theme.palette.grey[500], 0.2)}`,
+                        color:
+                          currentView === 1
+                            ? theme.palette.primary.main
+                            : theme.palette.text.secondary,
+                        width: 32,
+                        height: 32,
+                        '&:hover': {
+                          backgroundColor:
+                            currentView === 1
+                              ? alpha(theme.palette.primary.main, 0.12)
+                              : alpha(theme.palette.primary.main, 0.04),
+                          borderColor:
+                            currentView === 1
+                              ? theme.palette.primary.main
+                              : alpha(theme.palette.primary.main, 0.4),
+                        },
+                      }}
+                    />
+                  </Tooltip>
+                </Tabs>
+              </Box>
             </Box>
-          ))}
+
+            {/* Industry filters */}
+            <Divider />
+            <Box
+              sx={{
+                px: 3,
+                py: 1.5,
+                overflowX: 'auto',
+                backgroundColor: alpha(theme.palette.grey[50], 0.3),
+                borderBottom: `1px solid ${alpha(theme.palette.grey[500], 0.12)}`,
+              }}
+            >
+              <Stack
+                direction="row"
+                spacing={1}
+                sx={{
+                  minWidth: { xs: 'max-content', md: '100%' },
+                }}
+              >
+                <Chip
+                  label="All Industries"
+                  color="primary"
+                  variant="filled"
+                  size="small"
+                  sx={{
+                    borderRadius: 1,
+                    height: 26,
+                    fontWeight: 500,
+                    fontSize: '0.75rem',
+                    '& .MuiChip-label': { px: 1 },
+                  }}
+                />
+                {Object.entries(industryStats)
+                  .sort((a, b) => b[1] - a[1])
+                  .slice(0, 7)
+                  .map(([industry, count]) => (
+                    <Chip
+                      key={industry}
+                      label={`${industry} (${count})`}
+                      variant="outlined"
+                      size="small"
+                      sx={{
+                        borderRadius: 1,
+                        height: 26,
+                        fontSize: '0.75rem',
+                        borderColor: alpha(theme.palette.grey[500], 0.24),
+                        '& .MuiChip-label': { px: 1 },
+                      }}
+                    />
+                  ))}
+              </Stack>
+            </Box>
+
+            <Divider />
+
+            {filteredCompanies.length === 0 ? (
+              <Box
+                sx={{
+                  p: 5,
+                  textAlign: 'center',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minHeight: 300,
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 80,
+                    height: 80,
+                    borderRadius: '50%',
+                    backgroundColor: alpha(theme.palette.primary.light, 0.12),
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    mb: 2,
+                  }}
+                >
+                  <SearchIcon
+                    sx={{
+                      fontSize: 32,
+                      color: theme.palette.primary.main,
+                      opacity: 0.7,
+                    }}
+                  />
+                </Box>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    mb: 1,
+                    fontWeight: 600,
+                    fontSize: '1.1rem',
+                  }}
+                >
+                  No companies found
+                </Typography>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{
+                    mb: 3,
+                    maxWidth: 400,
+                    fontSize: '0.875rem',
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {searchTerm
+                    ? 'No companies match your search criteria. Try using different keywords or clearing your filters.'
+                    : 'There are no companies in the portfolio yet. Add your first company to get started.'}
+                </Typography>
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={() => navigate('/companies/new')}
+                  sx={{
+                    borderRadius: 1,
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    boxShadow: '0 2px 4px 0 rgba(0,0,0,0.05)',
+                    px: 2.5,
+                    py: 1,
+                    '&:hover': {
+                      boxShadow: '0 4px 8px 0 rgba(0,0,0,0.1)',
+                    },
+                  }}
+                >
+                  Add Your First Company
+                </Button>
+              </Box>
+            ) : (
+              <Box sx={{ p: 3 }}>
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: {
+                      xs: '1fr',
+                      sm: 'repeat(2, 1fr)',
+                      md: 'repeat(3, 1fr)',
+                      lg: 'repeat(4, 1fr)',
+                    },
+                    gap: 2.5,
+                  }}
+                >
+                  {filteredCompanies.map((company) => (
+                    <CompanyCard
+                      key={company.id}
+                      company={company}
+                      onDelete={handleCompanyDeleted}
+                    />
+                  ))}
+                </Box>
+              </Box>
+            )}
+          </Card>
         </Box>
-      )}
-    </>
+      </Box>
+    </Container>
   );
 };
 

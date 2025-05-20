@@ -33,6 +33,7 @@ export class ReportPersistenceService {
         companyId: report.companyId,
         generatedAt: report.generatedAt || new Date(),
         weekStart: report.weekStart,
+        batchExecutionId: report.batchExecutionId,
         // New structure fields
         brand: report.brand,
         metadata: report.metadata,

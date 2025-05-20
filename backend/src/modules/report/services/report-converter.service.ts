@@ -113,6 +113,7 @@ export class ReportConverterService {
       companyId: input.companyId,
       generatedAt: input.generatedAt || new Date(),
       weekStart: input.weekStart,
+      batchExecutionId: input.batchExecutionId,
       // New structured fields
       brand: identityCard?.brandName || input.companyId,
       metadata: {
@@ -178,6 +179,7 @@ export class ReportConverterService {
         brand: document.brand,
         weekStart: document.weekStart,
         generatedAt: document.generatedAt,
+        batchExecutionId: document.batchExecutionId,
         metadata: document.metadata,
         kpi: document.kpi,
         pulse: {
@@ -208,6 +210,7 @@ export class ReportConverterService {
       weekStart: document.weekStart,
       llmVersions: document.llmVersions || {},
       generatedAt: document.generatedAt,
+      batchExecutionId: document.batchExecutionId,
       spontaneous: document.spontaneous,
       sentiment: document.sentiment,
       comparison: document.comparison,
@@ -227,6 +230,7 @@ export class ReportConverterService {
       id: reportEntity.id,
       companyId: reportEntity.companyId,
       generatedAt: reportEntity.generatedAt,
+      batchExecutionId: reportEntity.batchExecutionId,
       brand: reportEntity.brand,
       metadata: reportEntity.metadata,
       kpi: reportEntity.kpi,

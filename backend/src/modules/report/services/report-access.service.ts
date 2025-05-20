@@ -102,11 +102,11 @@ export class ReportAccessService {
    */
   async sendReportEmailToAddress(
     userId: string,
-    reportId: string,
+    reportId: string | null,
     emailAddress: string,
-    reportDate: Date,
-    companyName: string,
     customSubject?: string,
+    reportDate?: Date,
+    companyName?: string,
   ): Promise<boolean> {
     try {
       this.logger.log(`Attempting to send report email for user ${userId} to ${emailAddress}`);
@@ -114,12 +114,17 @@ export class ReportAccessService {
       // Generate a new token for this user
       const token = await this.tokenService.generateAccessToken(userId);
 
-      // Format the report date
-      const reportDateFormatted = format(reportDate, 'MMM dd, yyyy');
+      // Format the report date if provided, otherwise use current date
+      const reportDateFormatted = reportDate 
+        ? format(reportDate, 'MMM dd, yyyy')
+        : format(new Date(), 'MMM dd, yyyy');
 
       // Construct the access URL
       const baseUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001';
-      const accessUrl = `${baseUrl}/report-access?token=${token}&reportId=${reportId}`;
+      // Only include reportId if it's provided
+      const accessUrl = reportId
+        ? `${baseUrl}/report-access?token=${token}&reportId=${reportId}`
+        : `${baseUrl}/report-access?token=${token}`;
 
       // Check for Resend API key
       const resendApiKey = this.configService.get<string>('RESEND_API_KEY');
@@ -136,12 +141,15 @@ export class ReportAccessService {
       // Create default subject if not provided
       const subject = customSubject || `Your Brand Intelligence Reports`;
 
+      // Use default company name if not provided
+      const finalCompanyName = companyName || 'Your Brand';
+      
       const emailResponse = await resend.emails.send({
         from: 'tailorfeed-ai@tailorfeed.ai',
         to: emailAddress,
         subject: subject,
         react: React.createElement(ReportAccessEmail, {
-          companyName,
+          companyName: finalCompanyName,
           reportDate: reportDateFormatted,
           accessUrl,
         }),

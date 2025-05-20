@@ -11,10 +11,13 @@ import {
   ListItemIcon,
   ListItemText,
   Divider,
+  useTheme,
+  alpha,
   Grid,
 } from '@mui/material';
 import StarIcon from '@mui/icons-material/Star';
 import GroupIcon from '@mui/icons-material/Group';
+import PublicIcon from '@mui/icons-material/Public';
 import { CompanyIdentityCard } from '../../utils/types';
 import EditableKeyFeatures from './EditableKeyFeatures';
 import EditableCompetitors from './EditableCompetitors';
@@ -29,27 +32,70 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ company }) => {
     company.keyBrandAttributes,
   );
   const [competitors, setCompetitors] = useState<string[]>(company.competitors);
+  const theme = useTheme();
 
   // Using shared constant for market flags
   return (
-    <Grid container spacing={3}>
-      <Grid size={{ xs: 12 }}>
-        <Paper elevation={2} sx={{ p: 3 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <Card 
+        sx={{ 
+          borderRadius: 1.5,
+          boxShadow: 'none',
+          border: `1px solid ${alpha(theme.palette.grey[500], 0.12)}`,
+        }}
+      >
+        <CardContent sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              Description
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                fontWeight: 600,
+                fontSize: '1rem',
+                color: theme.palette.text.primary,
+              }}
+            >
+              Company Description
             </Typography>
-            <Chip label={getFormattedMarket(company.market)} variant="outlined" size="small" />
+            <Chip 
+              icon={<PublicIcon sx={{ fontSize: '0.9rem' }} />}
+              label={getFormattedMarket(company.market)} 
+              variant="outlined" 
+              size="small"
+              sx={{ 
+                borderRadius: 1,
+                height: 28,
+                '& .MuiChip-label': { 
+                  px: 1,
+                  fontSize: '0.75rem',
+                  fontWeight: 500
+                }
+              }} 
+            />
           </Box>
-          <Typography variant="body1" paragraph>
+          <Typography 
+            variant="body1" 
+            sx={{ 
+              color: alpha(theme.palette.text.primary, 0.8),
+              fontSize: '0.9rem',
+              lineHeight: 1.6,
+            }}
+          >
             {company.longDescription || company.shortDescription}
           </Typography>
-        </Paper>
-      </Grid>
+        </CardContent>
+      </Card>
 
-      <Grid size={{ xs: 12, md: 6 }}>
-        <Card>
-          <CardContent>
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
+        <Card 
+          sx={{ 
+            borderRadius: 1.5,
+            boxShadow: 'none',
+            border: `1px solid ${alpha(theme.palette.grey[500], 0.12)}`,
+            height: '100%',
+            flex: 1,
+          }}
+        >
+          <CardContent sx={{ p: 3, height: '100%' }}>
             <EditableKeyFeatures
               companyId={company.id}
               keyBrandAttributes={keyBrandAttributes}
@@ -57,11 +103,17 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ company }) => {
             />
           </CardContent>
         </Card>
-      </Grid>
 
-      <Grid size={{ xs: 12, md: 6 }}>
-        <Card>
-          <CardContent>
+        <Card 
+          sx={{ 
+            borderRadius: 1.5,
+            boxShadow: 'none',
+            border: `1px solid ${alpha(theme.palette.grey[500], 0.12)}`,
+            height: '100%',
+            flex: 1,
+          }}
+        >
+          <CardContent sx={{ p: 3, height: '100%' }}>
             <EditableCompetitors
               companyId={company.id}
               competitors={competitors}
@@ -69,24 +121,74 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ company }) => {
             />
           </CardContent>
         </Card>
-      </Grid>
+      </Box>
 
-      <Grid size={{ xs: 12 }}>
-        <Card sx={{ mt: 2 }}>
-          <CardContent>
-            <Typography variant="body2" color="text.secondary">
-              Company ID: {company.id}
+      <Card 
+        sx={{ 
+          mt: 2,
+          borderRadius: 1.5,
+          boxShadow: 'none',
+          border: `1px solid ${alpha(theme.palette.grey[500], 0.12)}`,
+          backgroundColor: alpha(theme.palette.grey[50], 0.5),
+        }}
+      >
+        <CardContent sx={{ p: 2.5 }}>
+          <Box 
+            sx={{ 
+              display: 'flex', 
+              flexDirection: { xs: 'column', md: 'row' },
+              justifyContent: 'space-between',
+              gap: 2,
+            }}
+          >
+            <Typography 
+              variant="body2" 
+              color="text.secondary"
+              sx={{ 
+                fontSize: '0.75rem',
+                display: 'flex',
+                alignItems: 'center',
+              }}
+            >
+              <Box component="span" sx={{ fontWeight: 600, mr: 0.5, color: alpha(theme.palette.text.primary, 0.7) }}>
+                Company ID:
+              </Box>
+              {company.id}
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Created: {new Date(company.createdAt).toLocaleString()}
+            
+            <Typography 
+              variant="body2" 
+              color="text.secondary"
+              sx={{ 
+                fontSize: '0.75rem',
+                display: 'flex',
+                alignItems: 'center',
+              }}
+            >
+              <Box component="span" sx={{ fontWeight: 600, mr: 0.5, color: alpha(theme.palette.text.primary, 0.7) }}>
+                Created:
+              </Box>
+              {new Date(company.createdAt).toLocaleString()}
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Last Updated: {new Date(company.updatedAt).toLocaleString()}
+            
+            <Typography 
+              variant="body2" 
+              color="text.secondary"
+              sx={{ 
+                fontSize: '0.75rem',
+                display: 'flex',
+                alignItems: 'center',
+              }}
+            >
+              <Box component="span" sx={{ fontWeight: 600, mr: 0.5, color: alpha(theme.palette.text.primary, 0.7) }}>
+                Last Updated:
+              </Box>
+              {new Date(company.updatedAt).toLocaleString()}
             </Typography>
-          </CardContent>
-        </Card>
-      </Grid>
-    </Grid>
+          </Box>
+        </CardContent>
+      </Card>
+    </Box>
   );
 };
 

@@ -183,8 +183,8 @@ export class CompanyBatchOrchestratorService {
     this.logger.log('Orchestrating batches for all companies');
 
     try {
-      // Get all companies using the identity card model (available through batch service)
-      const companies = await this.batchService['identityCardModel'].find().lean().exec();
+      // Get all companies from the batch service
+      const companies = await this.batchService.getAllCompanies();
 
       this.logger.log(`Found ${companies.length} companies to process`);
 

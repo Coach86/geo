@@ -1,15 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { BatchExecutionRepository } from '../repositories/batch-execution.repository';
+import { BatchResultRepository } from '../repositories/batch-result.repository';
+import { RawResponseRepository } from '../repositories/raw-response.repository';
 import pLimit from 'p-limit';
 import { IdentityCardService } from '../../identity-card/services/identity-card.service';
-import {
-  IdentityCard,
-  IdentityCardDocument,
-} from '../../identity-card/schemas/identity-card.schema';
+import { IdentityCardRepository } from '../../identity-card/repositories/identity-card.repository';
 import { PromptService } from '../../prompt/services/prompt.service';
-import { PromptSet, PromptSetDocument } from '../../prompt/schemas/prompt-set.schema';
+import { PromptSetRepository } from '../../prompt/repositories/prompt-set.repository';
 import { LlmService } from '../../llm/services/llm.service';
 import { ReportService } from '../../report/services/report.service';
 import { BatchReportInput } from '../../report/interfaces/report-input.interfaces';
@@ -22,9 +20,6 @@ import { BatchExecutionService } from './batch-execution.service';
 import { CompanyBatchContext } from '../interfaces/batch.interfaces';
 import { CompanyIdentityCard } from '../../identity-card/entities/company-identity-card.entity';
 import { OnEvent } from '@nestjs/event-emitter';
-import { BatchExecution, BatchExecutionDocument } from '../schemas/batch-execution.schema';
-import { RawResponse, RawResponseDocument } from '../schemas/raw-response.schema';
-import { BatchResult, BatchResultDocument } from '../schemas/batch-result.schema';
 
 @Injectable()
 export class BatchService {
@@ -34,17 +29,17 @@ export class BatchService {
 
   constructor(
     private readonly configService: ConfigService,
-    @InjectModel(IdentityCard.name) private identityCardModel: Model<IdentityCardDocument>,
-    @InjectModel(PromptSet.name) private promptSetModel: Model<PromptSetDocument>,
+    private readonly identityCardRepository: IdentityCardRepository,
+    private readonly promptSetRepository: PromptSetRepository,
+    private readonly batchExecutionRepository: BatchExecutionRepository,
+    private readonly batchResultRepository: BatchResultRepository,
+    private readonly rawResponseRepository: RawResponseRepository,
     private readonly reportService: ReportService,
     private readonly batchExecutionService: BatchExecutionService,
     private readonly spontaneousPipelineService: SpontaneousPipelineService,
     private readonly sentimentPipelineService: SentimentPipelineService,
     private readonly accuracyPipelineService: AccuracyPipelineService,
     private readonly comparisonPipelineService: ComparisonPipelineService,
-    @InjectModel(BatchExecution.name) private batchExecutionModel: Model<BatchExecutionDocument>,
-    @InjectModel(RawResponse.name) private rawResponseModel: Model<RawResponseDocument>,
-    @InjectModel(BatchResult.name) private batchResultModel: Model<BatchResultDocument>,
   ) {
     // Initialize the concurrency limiter with high parallelism
     // Ensure concurrencyLimit is a number and at least 1
@@ -73,10 +68,10 @@ export class BatchService {
       this.logger.log('Starting weekly batch processing');
 
       // Get all companies with their prompt sets
-      const companies = await this.identityCardModel.find().lean().exec();
+      const companies = await this.identityCardRepository.findAll();
 
       // Get all prompt sets
-      const promptSets = await this.promptSetModel.find().lean().exec();
+      const promptSets = await this.promptSetRepository.findAll();
 
       // Create a map of prompt sets by company ID
       const promptSetsByCompany: Record<string, any> = promptSets.reduce(
@@ -109,6 +104,8 @@ export class BatchService {
               keyBrandAttributes: company.keyBrandAttributes,
               competitors: company.competitors,
               promptSet,
+              websiteUrl: company.website,
+              market: company.market,
             };
 
             await this.processCompanyInternal(context, weekStart);
@@ -148,8 +145,10 @@ export class BatchService {
    */
   async processCompany(companyId: string, batchExecutionId?: string) {
     try {
-      this.logger.log(`Processing company ${companyId} with batchExecutionId: ${batchExecutionId || 'none'}`);
-      
+      this.logger.log(
+        `Processing company ${companyId} with batchExecutionId: ${batchExecutionId || 'none'}`,
+      );
+
       // Get the company data with context
       const company = await this.getCompanyBatchContext(companyId);
 
@@ -162,13 +161,15 @@ export class BatchService {
 
       // Add batchExecutionId to context if provided
       const contextWithBatchId = batchExecutionId ? { ...company, batchExecutionId } : company;
-      
+
       // Log the context to debug
-      this.logger.log(`Processing company context: ${JSON.stringify({
-        companyId: contextWithBatchId.companyId,
-        brandName: contextWithBatchId.brandName,
-        batchExecutionId: contextWithBatchId.batchExecutionId || 'none',
-      })}`);
+      this.logger.log(
+        `Processing company context: ${JSON.stringify({
+          companyId: contextWithBatchId.companyId,
+          brandName: contextWithBatchId.brandName,
+          batchExecutionId: contextWithBatchId.batchExecutionId || 'none',
+        })}`,
+      );
 
       // Process the company
       const result = await this.processCompanyInternal(contextWithBatchId, weekStart);
@@ -281,17 +282,21 @@ export class BatchService {
     try {
       // Use the batch execution ID from the context if it exists, otherwise create a new one
       let batchExecutionId: string;
-      
+
       if (context.batchExecutionId) {
         batchExecutionId = context.batchExecutionId;
-        this.logger.log(`Using existing batch execution ${batchExecutionId} for company ${context.companyId}`);
+        this.logger.log(
+          `Using existing batch execution ${batchExecutionId} for company ${context.companyId}`,
+        );
       } else {
         // Create a new batch execution only if one wasn't provided
         const batchExecution = await this.batchExecutionService.createBatchExecution(
           context.companyId,
         );
         batchExecutionId = batchExecution.id;
-        this.logger.log(`Created batch execution ${batchExecutionId} for company ${context.companyId}`);
+        this.logger.log(
+          `Created batch execution ${batchExecutionId} for company ${context.companyId}`,
+        );
       }
 
       // Inject the batchExecutionId into the context
@@ -315,7 +320,7 @@ export class BatchService {
       ]);
 
       this.logger.log(`Saving batch results for execution ${batchExecutionId}`);
-      
+
       // Save each result to batch_results table
       await Promise.all([
         this.batchExecutionService.saveBatchResult(
@@ -342,6 +347,7 @@ export class BatchService {
         comparison: comparisonResults,
         llmVersions,
         generatedAt: new Date(),
+        batchExecutionId: batchExecutionId,
       };
 
       // Save the report using the properly typed method
@@ -410,31 +416,27 @@ export class BatchService {
    */
   async getRunningBatchExecutionsByCompany(companyId: string): Promise<any[]> {
     try {
-      return await this.batchExecutionModel
-        .find({ companyId, status: 'running' })
-        .sort({ executedAt: -1 })
-        .lean()
-        .exec();
+      return await this.batchExecutionRepository.findByCompanyIdAndStatus(companyId, 'running');
     } catch (error) {
       this.logger.error(`Failed to get running batch executions: ${error.message}`, error.stack);
       return [];
     }
   }
-  
+
   /**
    * Get company batch context by ID
    * @param companyId The ID of the company
    * @returns The company batch context
    */
   async getCompanyBatchContext(companyId: string): Promise<CompanyBatchContext | null> {
-    const company = await this.identityCardModel.findOne({ id: companyId }).exec();
+    const company = await this.identityCardRepository.findById(companyId);
 
     if (!company) {
       return null;
     }
 
     // Get the prompt set for this company
-    const promptSet = await this.promptSetModel.findOne({ companyId }).exec();
+    const promptSet = await this.promptSetRepository.findByCompanyId(companyId);
 
     if (!promptSet) {
       throw new Error(`Company ${companyId} has no prompt sets`);
@@ -445,7 +447,9 @@ export class BatchService {
       brandName: company.brandName,
       keyBrandAttributes: company.keyBrandAttributes,
       competitors: company.competitors,
+      market: company.market,
       promptSet,
+      websiteUrl: company.website,
     };
   }
 
@@ -541,7 +545,7 @@ export class BatchService {
       return await this.batchExecutionService.updateBatchExecutionStatus(
         batchExecutionId,
         'failed',
-        errorMessage
+        errorMessage,
       );
     } catch (error) {
       this.logger.error(`Failed to mark batch execution as failed: ${error.message}`, error.stack);
@@ -665,21 +669,41 @@ export class BatchService {
     }
   }
 
+  /**
+   * Get all companies in the system
+   * @returns Array of company data
+   */
+  async getAllCompanies(): Promise<any[]> {
+    try {
+      this.logger.log('Getting all companies for batch processing');
+      
+      // Use the identity card repository to get all companies
+      const identityCards = await this.identityCardRepository.findAll();
+      
+      // Map to the format expected by the orchestrator
+      return identityCards.map(card => this.identityCardRepository.mapToEntity(card));
+    } catch (error) {
+      this.logger.error(`Failed to get all companies: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
   @OnEvent('company.deleted')
   async handleCompanyDeleted(event: { companyId: string }) {
     const { companyId } = event;
     // Delete all batch executions for this company
-    await this.batchExecutionModel.deleteMany({ companyId }).exec();
-    // Delete all raw responses for this company's batch executions
-    const batchExecutions = await this.batchExecutionModel.find({ companyId }).exec();
+    await this.batchExecutionRepository.deleteByCompanyId(companyId);
+    
+    // Get execution IDs before deletion to clean up related data
+    const batchExecutions = await this.batchExecutionRepository.findByCompanyId(companyId);
     const batchExecutionIds = batchExecutions.map((be) => be.id);
+    
     if (batchExecutionIds.length > 0) {
-      await this.rawResponseModel
-        .deleteMany({ batchExecutionId: { $in: batchExecutionIds } })
-        .exec();
-      await this.batchResultModel
-        .deleteMany({ batchExecutionId: { $in: batchExecutionIds } })
-        .exec();
+      // Delete related raw responses and batch results
+      for (const execId of batchExecutionIds) {
+        await this.rawResponseRepository.deleteByExecutionId(execId);
+        await this.batchResultRepository.deleteByExecutionId(execId);
+      }
     }
     // Optionally, log the cleanup
     this.logger.log(`Cleaned up batch data for deleted company ${companyId}`);

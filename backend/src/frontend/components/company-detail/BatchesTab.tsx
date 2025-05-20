@@ -21,6 +21,10 @@ import {
   ListItemIcon,
   ListItemText,
   Snackbar,
+  Card,
+  CardContent,
+  useTheme,
+  alpha,
 } from '@mui/material';
 import { getBatchExecutions, generateReportFromBatch } from '../../utils/api';
 import { BatchExecution, BatchType } from '../../utils/types';
@@ -45,6 +49,7 @@ interface BatchesTabProps {
 
 const BatchesTab: React.FC<BatchesTabProps> = ({ companyId, onRunNewBatch, onRunSingleBatch }) => {
   const navigate = useNavigate();
+  const theme = useTheme();
   const [batchExecutions, setBatchExecutions] = useState<BatchExecution[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -161,15 +166,51 @@ const BatchesTab: React.FC<BatchesTabProps> = ({ companyId, onRunNewBatch, onRun
   }
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h6">Batch Analysis History</Typography>
-        <Box sx={{ display: 'flex', gap: 1 }}>
+    <>
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', sm: 'row' },
+          justifyContent: 'space-between',
+          alignItems: { xs: 'flex-start', sm: 'center' },
+          mb: 3,
+          gap: 2,
+          minWidth: '100%',
+        }}
+      >
+        <Typography
+          variant="h6"
+          sx={{
+            fontWeight: 600,
+            fontSize: '1rem',
+            color: theme.palette.text.primary,
+            display: 'flex',
+            alignItems: 'center',
+          }}
+        >
+          <PlayArrowIcon
+            sx={{
+              fontSize: '1.1rem',
+              color: theme.palette.primary.main,
+              mr: 1,
+            }}
+          />
+          Batch Analysis History
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
           <Button
             variant="contained"
             color="primary"
             startIcon={<PlayArrowIcon />}
             onClick={onRunNewBatch}
+            sx={{
+              borderRadius: 1,
+              textTransform: 'none',
+              fontWeight: 600,
+              fontSize: { xs: '0.75rem', sm: '0.875rem' },
+              boxShadow: 1,
+              px: { xs: 1.5, sm: 2 },
+            }}
           >
             Run Full Analysis
           </Button>
@@ -181,6 +222,14 @@ const BatchesTab: React.FC<BatchesTabProps> = ({ companyId, onRunNewBatch, onRun
             aria-controls={open ? 'single-batch-menu' : undefined}
             aria-haspopup="true"
             aria-expanded={open ? 'true' : undefined}
+            sx={{
+              borderRadius: 1,
+              textTransform: 'none',
+              fontWeight: 600,
+              fontSize: { xs: '0.75rem', sm: '0.875rem' },
+              boxShadow: 1,
+              px: { xs: 1.5, sm: 2 },
+            }}
           >
             Run Single Analysis
           </Button>
@@ -222,8 +271,16 @@ const BatchesTab: React.FC<BatchesTabProps> = ({ companyId, onRunNewBatch, onRun
       </Box>
 
       {batchExecutions.length === 0 ? (
-        <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <Typography variant="body1" sx={{ mb: 2 }}>
+        <Card
+          sx={{
+            p: 4,
+            textAlign: 'center',
+            borderRadius: 1.5,
+            boxShadow: 'none',
+            border: `1px solid ${alpha(theme.palette.grey[500], 0.12)}`,
+          }}
+        >
+          <Typography variant="body1" sx={{ mb: 2, color: alpha(theme.palette.text.primary, 0.7) }}>
             No batch analyses have been run for this company yet.
           </Typography>
           <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
@@ -232,6 +289,12 @@ const BatchesTab: React.FC<BatchesTabProps> = ({ companyId, onRunNewBatch, onRun
               color="primary"
               startIcon={<PlayArrowIcon />}
               onClick={onRunNewBatch}
+              sx={{
+                borderRadius: 1,
+                textTransform: 'none',
+                fontWeight: 500,
+                fontSize: '0.875rem',
+              }}
             >
               Run Full Analysis
             </Button>
@@ -240,113 +303,164 @@ const BatchesTab: React.FC<BatchesTabProps> = ({ companyId, onRunNewBatch, onRun
               variant="outlined"
               endIcon={<ArrowDropDownIcon />}
               onClick={handleMenuClick}
+              sx={{
+                borderRadius: 1,
+                textTransform: 'none',
+                fontWeight: 500,
+                fontSize: '0.875rem',
+              }}
             >
               Run Single Analysis
             </Button>
           </Box>
-        </Paper>
+        </Card>
       ) : (
-        <TableContainer component={Paper} sx={{ mb: 4 }}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Executed At</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Results</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {batchExecutions.map((batch) => {
-                // Count result types
-                const resultTypes = batch.finalResults.reduce(
-                  (acc, result) => {
-                    acc[result.resultType] = (acc[result.resultType] || 0) + 1;
-                    return acc;
-                  },
-                  {} as Record<string, number>,
-                );
+        <Box
+          sx={{
+            mb: 4,
+            borderRadius: 1.5,
+            boxShadow: 'none',
+            border: `1px solid ${alpha(theme.palette.grey[500], 0.12)}`,
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            flex: 1,
+          }}
+        >
+          <Box
+            sx={{
+              width: '100%',
+              p: 2,
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 600 }}>
+              Execution History
+            </Typography>
 
-                return (
-                  <TableRow key={batch.id} hover>
-                    <TableCell>{new Date(batch.executedAt).toLocaleString()}</TableCell>
-                    <TableCell>{getStatusChip(batch.status)}</TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                        {resultTypes[BatchType.SPONTANEOUS] && (
-                          <Chip
+            {batchExecutions.map((batch) => {
+              // Count result types
+              const resultTypes = batch.finalResults.reduce(
+                (acc, result) => {
+                  acc[result.resultType] = (acc[result.resultType] || 0) + 1;
+                  return acc;
+                },
+                {} as Record<string, number>,
+              );
+
+              return (
+                <Box
+                  key={batch.id}
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    py: 1.5,
+                    px: 1,
+                    borderBottom: `1px solid ${alpha(theme.palette.grey[500], 0.12)}`,
+                    '&:last-child': {
+                      borderBottom: 'none',
+                    },
+                    '&:hover': {
+                      backgroundColor: alpha(theme.palette.grey[500], 0.05),
+                    },
+                  }}
+                >
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      mb: 1,
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Typography variant="body2" sx={{ fontSize: '0.875rem', fontWeight: 500 }}>
+                        {new Date(batch.executedAt).toLocaleString()}
+                      </Typography>
+                      {getStatusChip(batch.status)}
+                    </Box>
+
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      {batch.status === 'completed' && (
+                        <Tooltip title="Generate report">
+                          <IconButton
                             size="small"
-                            label={`Spontaneous: ${resultTypes[BatchType.SPONTANEOUS]}`}
-                            variant="outlined"
-                            color="info"
-                            sx={{ mr: 1 }}
-                          />
-                        )}
-                        {resultTypes[BatchType.SENTIMENT] && (
-                          <Chip
-                            size="small"
-                            label={`Sentiment: ${resultTypes[BatchType.SENTIMENT]}`}
-                            variant="outlined"
-                            color="success"
-                            sx={{ mr: 1 }}
-                          />
-                        )}
-                        {resultTypes[BatchType.ACCURACY] && (
-                          <Chip
-                            size="small"
-                            label={`Accuracy: ${resultTypes[BatchType.ACCURACY]}`}
-                            variant="outlined"
                             color="secondary"
-                            sx={{ mr: 1 }}
-                          />
-                        )}
-                        {resultTypes[BatchType.COMPARISON] && (
-                          <Chip
-                            size="small"
-                            label={`Comparison: ${resultTypes[BatchType.COMPARISON]}`}
-                            variant="outlined"
-                            color="warning"
-                            sx={{ mr: 1 }}
-                          />
-                        )}
-                      </Box>
-                    </TableCell>
-                    <TableCell align="right">
-                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                        {batch.status === 'completed' && (
-                          <Tooltip title="Generate report without email">
-                            <Button
-                              variant="outlined"
-                              size="small"
-                              color="secondary"
-                              startIcon={<ArticleIcon />}
-                              onClick={() => handleGenerateReport(batch.id)}
-                              disabled={isGeneratingReport}
-                            >
-                              {isGeneratingReport ? (
-                                <CircularProgress size={20} />
-                              ) : (
-                                'Generate Report'
-                              )}
-                            </Button>
-                          </Tooltip>
-                        )}
-                        <Button
-                          variant="outlined"
+                            onClick={() => handleGenerateReport(batch.id)}
+                            disabled={isGeneratingReport}
+                            sx={{
+                              p: 1,
+                              border: `1px solid ${alpha(theme.palette.secondary.main, 0.5)}`,
+                            }}
+                          >
+                            {isGeneratingReport ? (
+                              <CircularProgress size={16} />
+                            ) : (
+                              <ArticleIcon sx={{ fontSize: '1rem' }} />
+                            )}
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                      <Tooltip title="View details">
+                        <IconButton
                           size="small"
-                          endIcon={<ChevronRightIcon />}
                           onClick={() => handleViewDetails(batch.id)}
+                          sx={{
+                            p: 1,
+                            border: `1px solid ${alpha(theme.palette.primary.main, 0.5)}`,
+                          }}
                         >
-                          Details
-                        </Button>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                          <ChevronRightIcon sx={{ fontSize: '1rem' }} />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </Box>
+
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, ml: 0.5 }}>
+                    {resultTypes[BatchType.SPONTANEOUS] && (
+                      <Chip
+                        size="small"
+                        label={`Spontaneous: ${resultTypes[BatchType.SPONTANEOUS]}`}
+                        variant="outlined"
+                        color="info"
+                        sx={{ mr: 1, mb: 0.5 }}
+                      />
+                    )}
+                    {resultTypes[BatchType.SENTIMENT] && (
+                      <Chip
+                        size="small"
+                        label={`Sentiment: ${resultTypes[BatchType.SENTIMENT]}`}
+                        variant="outlined"
+                        color="success"
+                        sx={{ mr: 1, mb: 0.5 }}
+                      />
+                    )}
+                    {resultTypes[BatchType.ACCURACY] && (
+                      <Chip
+                        size="small"
+                        label={`Accuracy: ${resultTypes[BatchType.ACCURACY]}`}
+                        variant="outlined"
+                        color="secondary"
+                        sx={{ mr: 1, mb: 0.5 }}
+                      />
+                    )}
+                    {resultTypes[BatchType.COMPARISON] && (
+                      <Chip
+                        size="small"
+                        label={`Comparison: ${resultTypes[BatchType.COMPARISON]}`}
+                        variant="outlined"
+                        color="warning"
+                        sx={{ mr: 1, mb: 0.5 }}
+                      />
+                    )}
+                  </Box>
+                </Box>
+              );
+            })}
+          </Box>
+        </Box>
       )}
 
       {/* Snackbar for report generation notifications */}
@@ -356,7 +470,7 @@ const BatchesTab: React.FC<BatchesTabProps> = ({ companyId, onRunNewBatch, onRun
         onClose={() => setReportSnackbarOpen(false)}
         message={reportSnackbarMessage}
       />
-    </Box>
+    </>
   );
 };
 

@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { OnEvent } from '@nestjs/event-emitter';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { PromptSetRepository } from '../repositories/prompt-set.repository';
 import { CompanyCreatedEvent } from '../../identity-card/events/company-created.event';
 import { LlmService } from '../../llm/services/llm.service';
 import { z } from 'zod';
@@ -12,10 +13,7 @@ import { comparisonSystemPrompt, comparisonUserPrompt } from './comparison-promp
 import { accuracySystemPrompt, accuracyUserPrompt } from './accuracy-prompts';
 import { CompanyIdentityCard } from '../../identity-card/entities/company-identity-card.entity';
 import { PromptSet, PromptSetDocument } from '../schemas/prompt-set.schema';
-import {
-  IdentityCard,
-  IdentityCardDocument,
-} from '../../identity-card/schemas/identity-card.schema';
+import { IdentityCardRepository } from '../../identity-card/repositories/identity-card.repository';
 import { LlmProvider } from '@/modules/llm/interfaces/llm-provider.enum';
 
 @Injectable()
@@ -27,8 +25,8 @@ export class PromptService implements OnModuleInit {
   private accuracyPromptCount: number;
 
   constructor(
-    @InjectModel(PromptSet.name) private promptSetModel: Model<PromptSetDocument>,
-    @InjectModel(IdentityCard.name) private identityCardModel: Model<IdentityCardDocument>,
+    private readonly promptSetRepository: PromptSetRepository,
+    private readonly identityCardRepository: IdentityCardRepository,
     private readonly configService: ConfigService,
     private readonly llmService: LlmService,
   ) {}
@@ -46,17 +44,35 @@ export class PromptService implements OnModuleInit {
     );
   }
 
+  /**
+   * Get a company by ID using the identity card repository
+   * @param companyId The ID of the company to get
+   * @returns The company identity card or null if not found
+   */
+  async getCompanyById(companyId: string): Promise<CompanyIdentityCard | null> {
+    try {
+      const document = await this.identityCardRepository.findById(companyId);
+      if (!document) {
+        return null;
+      }
+      
+      // Map the document to the entity format
+      return this.identityCardRepository.mapToEntity(document);
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
   @OnEvent('company.created')
   async handleCompanyCreated(event: CompanyCreatedEvent) {
     this.logger.log(`Generating prompts for new company: ${event.companyId}`);
 
     try {
       // Check if a prompt set already exists for this company
-      const existingPromptSet = await this.promptSetModel
-        .findOne({
-          companyId: event.companyId,
-        })
-        .exec();
+      const existingPromptSet = await this.promptSetRepository.findByCompanyId(event.companyId);
 
       if (existingPromptSet) {
         this.logger.log(`Prompt set already exists for company ${event.companyId}`);
@@ -64,11 +80,7 @@ export class PromptService implements OnModuleInit {
       }
 
       // Fetch the company details to create context-specific prompts
-      const companyRaw = await this.identityCardModel
-        .findOne({
-          id: event.companyId,
-        })
-        .exec();
+      const companyRaw = await this.identityCardRepository.findById(event.companyId);
 
       if (!companyRaw) {
         this.logger.error(`Company ${event.companyId} not found when generating prompts`);
@@ -93,7 +105,7 @@ export class PromptService implements OnModuleInit {
       const promptSet = await this.generatePromptSet(company);
 
       // Save to database
-      const newPromptSet = new this.promptSetModel({
+      await this.promptSetRepository.create({
         id: event.companyId,
         companyId: event.companyId,
         spontaneous: promptSet.spontaneous,
@@ -101,8 +113,6 @@ export class PromptService implements OnModuleInit {
         comparison: promptSet.comparison,
         accuracy: promptSet.accuracy,
       });
-
-      await newPromptSet.save();
 
       this.logger.log(`Successfully generated prompts for company ${event.companyId}`);
     } catch (error) {
@@ -113,7 +123,7 @@ export class PromptService implements OnModuleInit {
   @OnEvent('company.deleted')
   async handleCompanyDeleted(event: { companyId: string }) {
     const { companyId } = event;
-    await this.promptSetModel.deleteMany({ companyId }).exec();
+    await this.promptSetRepository.deleteByCompanyId(companyId);
     this.logger.log(`Cleaned up prompt sets for deleted company ${companyId}`);
   }
 
@@ -282,7 +292,7 @@ export class PromptService implements OnModuleInit {
 
     try {
       // Check if a prompt set exists for this company
-      const existingPromptSet = await this.promptSetModel.findOne({ companyId }).exec();
+      const existingPromptSet = await this.promptSetRepository.findByCompanyId(companyId);
 
       if (!existingPromptSet) {
         this.logger.error(`No prompt set found for company ${companyId}`);
@@ -325,13 +335,7 @@ export class PromptService implements OnModuleInit {
       }
 
       // Update the prompt set
-      const updatedPromptSet = await this.promptSetModel
-        .findOneAndUpdate(
-          { companyId },
-          { $set: updateData },
-          { new: true }, // Return the updated document
-        )
-        .exec();
+      const updatedPromptSet = await this.promptSetRepository.updateByCompanyId(companyId, updateData);
 
       if (!updatedPromptSet) {
         throw new NotFoundException(
@@ -368,7 +372,7 @@ export class PromptService implements OnModuleInit {
 
     try {
       // Fetch the company details to create context-specific prompts
-      const companyRaw = await this.identityCardModel.findOne({ id: companyId }).lean().exec();
+      const companyRaw = await this.identityCardRepository.findById(companyId);
 
       if (!companyRaw) {
         this.logger.error(`Company ${companyId} not found when regenerating prompts`);
@@ -394,27 +398,18 @@ export class PromptService implements OnModuleInit {
       const promptSet = await this.generatePromptSet(company);
 
       // Check if a prompt set already exists for this company
-      const existingPromptSet = await this.promptSetModel.findOne({ companyId }).lean().exec();
+      const existingPromptSet = await this.promptSetRepository.findByCompanyId(companyId);
 
       let result;
 
       if (existingPromptSet) {
         // Update existing prompt set
-        result = await this.promptSetModel
-          .findOneAndUpdate(
-            { companyId },
-            {
-              $set: {
-                spontaneous: promptSet.spontaneous,
-                direct: promptSet.direct,
-                comparison: promptSet.comparison,
-                accuracy: promptSet.accuracy,
-              },
-            },
-            { new: true }, // Return the updated document
-          )
-          .lean()
-          .exec();
+        result = await this.promptSetRepository.updateByCompanyId(companyId, {
+          spontaneous: promptSet.spontaneous,
+          direct: promptSet.direct,
+          comparison: promptSet.comparison,
+          accuracy: promptSet.accuracy,
+        });
 
         if (!result) {
           throw new NotFoundException(
@@ -423,7 +418,7 @@ export class PromptService implements OnModuleInit {
         }
       } else {
         // Create new prompt set
-        const newPromptSet = new this.promptSetModel({
+        result = await this.promptSetRepository.create({
           id: companyId,
           companyId,
           spontaneous: promptSet.spontaneous,
@@ -431,8 +426,6 @@ export class PromptService implements OnModuleInit {
           comparison: promptSet.comparison,
           accuracy: promptSet.accuracy,
         });
-
-        result = await newPromptSet.save();
       }
 
       this.logger.log(`Successfully regenerated prompts for company ${companyId}`);

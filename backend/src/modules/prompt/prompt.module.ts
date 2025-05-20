@@ -2,20 +2,21 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { PromptService } from './services/prompt.service';
 import { PromptSetController } from './controllers/prompt-set.controller';
+import { PromptSetRepository } from './repositories/prompt-set.repository';
 import { LlmModule } from '../llm/llm.module';
+import { IdentityCardModule } from '../identity-card/identity-card.module';
 import { PromptSet, PromptSetSchema } from './schemas/prompt-set.schema';
-import { IdentityCard, IdentityCardSchema } from '../identity-card/schemas/identity-card.schema';
 
 @Module({
   imports: [
     LlmModule,
+    IdentityCardModule,
     MongooseModule.forFeature([
       { name: PromptSet.name, schema: PromptSetSchema },
-      { name: IdentityCard.name, schema: IdentityCardSchema },
     ]),
   ],
-  providers: [PromptService],
+  providers: [PromptService, PromptSetRepository],
   controllers: [PromptSetController],
-  exports: [PromptService],
+  exports: [PromptService, PromptSetRepository],
 })
 export class PromptModule {}
