@@ -1,14 +1,12 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { WeeklyBrandReport as WeeklyBrandReportEntity } from '../entities/weekly-brand-report.entity';
-import {
-  WeeklyBrandReport,
-  WeeklyBrandReportDocument,
-} from '../schemas/weekly-brand-report.schema';
+import { WeeklyBrandReportEntity } from '../interfaces/report-types';
+import { WeeklyBrandReportRepository } from '../repositories/weekly-brand-report.repository';
 import { TokenService } from '@/modules/auth/services/token.service';
 import { CompanyIdentityCard } from '@/modules/identity-card/entities/company-identity-card.entity';
 import { IdentityCardService } from '@/modules/identity-card/services/identity-card.service';
+import { ReportConverterService } from './report-converter.service';
+import { ReportAccessService } from './report-access.service';
+import { UserService } from '../../user/services/user.service';
 /**
  * Service responsible for saving and persisting report data
  */
@@ -17,29 +15,24 @@ export class ReportPersistenceService {
   private readonly logger = new Logger(ReportPersistenceService.name);
 
   constructor(
-    @InjectModel(WeeklyBrandReport.name)
-    private weeklyReportModel: Model<WeeklyBrandReportDocument>,
+    private readonly weeklyReportRepository: WeeklyBrandReportRepository,
     private readonly tokenService: TokenService,
     private readonly identityCardService: IdentityCardService,
+    private readonly converterService: ReportConverterService,
+    private readonly reportAccessService: ReportAccessService,
+    private readonly userService: UserService,
   ) {}
 
   /**
    * Save a report with the new structure
    */
-  async saveReport(
-    report: WeeklyBrandReportEntity,
-    transformToEntityFormat: (
-      report: WeeklyBrandReportDocument,
-      identityCard?: CompanyIdentityCard,
-    ) => Promise<WeeklyBrandReportEntity>,
-    sendReportAccessEmail: (reportId: string, companyId: string, token: string) => Promise<void>,
-  ): Promise<WeeklyBrandReportEntity> {
+  async saveReport(report: WeeklyBrandReportEntity): Promise<WeeklyBrandReportEntity> {
     try {
-      // Create new report with both new and legacy structures
-      const newReport = new this.weeklyReportModel({
+      // Prepare the report data for MongoDB
+      const reportData = {
         companyId: report.companyId,
         generatedAt: report.generatedAt || new Date(),
-
+        weekStart: report.weekStart,
         // New structure fields
         brand: report.brand,
         metadata: report.metadata,
@@ -48,22 +41,39 @@ export class ReportPersistenceService {
         tone: report.tone,
         accord: report.accord,
         arena: report.arena,
-
         llmVersions: report.llmVersions || {},
-      });
+        // Legacy raw data fields for backward compatibility
+        spontaneous: report.rawData?.spontaneous,
+        sentiment: report.rawData?.sentiment,
+        comparison: report.rawData?.comparison,
+      };
 
-      const saved = await newReport.save();
+      // Create the report document
+      const saved = await this.weeklyReportRepository.create(reportData);
 
+      // Get company for email and transformation
       const company = await this.identityCardService.findById(report.companyId);
       if (!company) {
         throw new NotFoundException(`Company not found for report ${report.id}`);
       }
-      // Generate an access token and send email notification
-      const token = await this.tokenService.generateAccessToken(company.userId);
-      await sendReportAccessEmail(saved.id, report.companyId, token);
 
-      // Return the saved report in the new entity format
-      return transformToEntityFormat(saved);
+      // Generate an access token and send email notification
+      const reportDate = saved.weekStart;
+      const user = await this.userService.findOne(company.userId);
+      const recipientEmail = user.email;
+      const companyName = company.brandName || report.companyId;
+
+      const token = await this.tokenService.generateAccessToken(company.userId);
+      await this.reportAccessService.sendReportAccessEmail(
+        saved.id,
+        token,
+        reportDate,
+        recipientEmail,
+        companyName,
+      );
+
+      // Return the formatted entity
+      return this.converterService.convertDocumentToEntity(saved, company);
     } catch (error) {
       this.logger.error(`Failed to save report: ${error.message}`, error.stack);
       throw new Error(`Failed to save report: ${error.message}`);

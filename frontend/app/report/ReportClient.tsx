@@ -36,12 +36,12 @@ interface ReportData {
     };
     tone: {
       value: string;
-      status: "green" | "yellow" | "red";
+      status: string;
       description: string;
     };
     accord: {
       value: string;
-      status: "green" | "yellow" | "red";
+      status: string;
       description: string;
     };
     arena: {
@@ -61,7 +61,7 @@ interface ReportData {
     sentiments: {
       model: string;
       sentiment: string;
-      status: "green" | "yellow" | "red";
+      status: string;
       positives: string;
       negatives: string;
       isAverage?: boolean;
@@ -71,7 +71,7 @@ interface ReportData {
       results: {
         model: string;
         sentiment: string;
-        status: "green" | "yellow" | "red";
+        status: string;
         keywords: string;
       }[];
     }[];
@@ -84,7 +84,7 @@ interface ReportData {
     }[];
     score: {
       value: string;
-      status: "green" | "yellow" | "red";
+      status: string;
     };
   };
   arena: {

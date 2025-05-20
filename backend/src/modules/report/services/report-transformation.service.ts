@@ -1,9 +1,11 @@
 import {
-  SpontaneousPipelineResult,
+  AccuracyResults,
+  ComparisonResults,
+  SentimentResults,
   SpontaneousResults,
 } from '@/modules/batch/interfaces/batch.interfaces';
 import { Injectable, Logger } from '@nestjs/common';
-
+import { CompanyIdentityCard } from '@/modules/identity-card/entities/company-identity-card.entity';
 /**
  * Service responsible for transforming raw data into typed, display-ready formats
  * Handles type safety, data formatting, and structure transformations
@@ -15,7 +17,7 @@ export class ReportTransformationService {
   /**
    * Format pulse model visibility data
    */
-  formatPulseModelVisibility(spontaneousData: SpontaneousResults): Array<{
+  formatPulseModelVisibility(spontaneousData?: SpontaneousResults): Array<{
     model: string;
     value: number;
     isAverage?: boolean;
@@ -23,7 +25,6 @@ export class ReportTransformationService {
     if (!spontaneousData?.brandVisibility) {
       return [];
     }
-    this.logger.log('spontaneousData', spontaneousData);
 
     // Calculate visibility percentage for each model
     const modelVisibility = spontaneousData.brandVisibility?.modelBreakdown.map((modelSummary) => {
@@ -39,14 +40,13 @@ export class ReportTransformationService {
   /**
    * Format tone data
    */
-  formatToneData(sentimentData: any): {
+  formatToneData(sentimentData?: SentimentResults): {
     sentiments: Array<{
       model: string;
       sentiment: string;
       status: string;
-      positives: string;
-      negatives: string;
-      isAverage?: boolean;
+      positiveKeywords: string[];
+      negativeKeywords: string[];
     }>;
     questions: Array<{
       question: string;
@@ -54,7 +54,8 @@ export class ReportTransformationService {
         model: string;
         sentiment: string;
         status: string;
-        keywords: string;
+        positiveKeywords: string[];
+        negativeKeywords: string[];
       }>;
     }>;
   } {
@@ -75,7 +76,13 @@ export class ReportTransformationService {
     const llmProviders = Array.from(llmProviderSet);
 
     // Create sentiments for each model
-    const sentiments = llmProviders.map((provider) => {
+    const sentiments: Array<{
+      model: string;
+      sentiment: string;
+      status: 'green' | 'yellow' | 'red';
+      positiveKeywords: string[];
+      negativeKeywords: string[];
+    }> = llmProviders.map((provider) => {
       const modelResults = sentimentData.results.filter((r: any) => r.llmProvider === provider);
       const sentimentValue =
         modelResults.reduce((sum: number, result: any) => {
@@ -93,21 +100,15 @@ export class ReportTransformationService {
       const status = sentimentValue > 0.3 ? 'green' : sentimentValue < -0.3 ? 'red' : 'yellow';
 
       // Extract facts as positives/negatives
-      const facts = modelResults.flatMap((r: any) => r.extractedFacts || []);
-      const positives = facts
-        .filter((f: string) => !f.toLowerCase().includes('negative'))
-        .join(', ');
-      const negatives = facts
-        .filter((f: string) => f.toLowerCase().includes('negative'))
-        .join(', ');
+      const positives = modelResults.flatMap((r) => r.extractedPositiveKeywords || []);
+      const negatives = modelResults.flatMap((r) => r.extractedNegativeKeywords || []);
 
       return {
         model: provider,
         sentiment: formattedSentiment,
         status,
-        positives: positives || 'quality, innovation',
-        negatives: negatives || 'pricing',
-        isAverage: false,
+        positiveKeywords: positives || ['No positive keywords found'],
+        negativeKeywords: negatives || ['No negative keywords found'],
       };
     });
 
@@ -116,7 +117,7 @@ export class ReportTransformationService {
       sentiments.reduce((sum, s) => sum + parseFloat(s.sentiment), 0) / (sentiments.length || 1);
     const formattedAvgSentiment =
       avgSentiment > 0 ? `+${avgSentiment.toFixed(2)}` : avgSentiment.toFixed(2);
-
+    /*
     sentiments.push({
       model: 'Global Avg',
       sentiment: formattedAvgSentiment,
@@ -125,30 +126,45 @@ export class ReportTransformationService {
       negatives: '—',
       isAverage: true,
     });
-
+*/
     // Create questions from the sentiment data
-    const questions = [
-      {
-        question: 'What do you think of the brand?',
-        results: sentiments
-          .filter((s) => s.isAverage !== true)
-          .map((s) => ({
-            model: s.model,
-            sentiment: s.sentiment,
-            status: s.status,
-            keywords: s.positives,
+    const uniquesQuestions = new Set<string>();
+    for (const result of sentimentData.results) {
+      uniquesQuestions.add(result.originalPrompt || '');
+    }
+
+    const questions = Array.from(uniquesQuestions).map((question) => {
+      return {
+        question,
+        results: sentimentData.results
+          .filter((r) => r.originalPrompt === question)
+          .map((r) => ({
+            model: r.llmProvider,
+            sentiment: r.sentiment,
+            status:
+              r.sentiment === 'positive' ? 'green' : r.sentiment === 'negative' ? 'red' : 'yellow',
+            positiveKeywords: r.extractedPositiveKeywords,
+            negativeKeywords: r.extractedNegativeKeywords,
           })),
-      },
+      };
+    });
+
+    return {
+      sentiments,
+      questions,
+    };
+  }
+
+  /**
       {
         question: 'Key pros/cons of the brand?',
-        results: sentiments
-          .filter((s) => s.isAverage !== true)
-          .map((s) => ({
-            model: s.model,
-            sentiment: s.sentiment,
-            status: s.status,
-            keywords: `${s.positives} vs ${s.negatives}`,
-          })),
+        results: sentiments.map((s) => ({
+          model: s.model,
+          sentiment: s.sentiment,
+          status: s.status,
+          positiveKeywords: s.positiveKeywords,
+          negativeKeywords: s.negativeKeywords,
+        })),
       },
     ];
 
@@ -159,71 +175,10 @@ export class ReportTransformationService {
   }
 
   /**
-   * Type safe version of tone data
-   */
-  typeSafeToneData(toneData: {
-    sentiments: Array<{
-      model: string;
-      sentiment: string;
-      status: string;
-      positives: string;
-      negatives: string;
-      isAverage?: boolean;
-    }>;
-    questions: Array<{
-      question: string;
-      results: Array<{
-        model: string;
-        sentiment: string;
-        status: string;
-        keywords: string;
-      }>;
-    }>;
-  }): {
-    sentiments: Array<{
-      model: string;
-      sentiment: string;
-      status: 'green' | 'yellow' | 'red';
-      positives: string;
-      negatives: string;
-      isAverage?: boolean;
-    }>;
-    questions: Array<{
-      question: string;
-      results: Array<{
-        model: string;
-        sentiment: string;
-        status: 'green' | 'yellow' | 'red';
-        keywords: string;
-      }>;
-    }>;
-  } {
-    // Convert string status to type-safe status
-    const safeSentiments = toneData.sentiments.map((sentiment) => ({
-      ...sentiment,
-      status: this.safeStatusColor(sentiment.status),
-    }));
-
-    // Convert string status in question results to type-safe status
-    const safeQuestions = toneData.questions.map((question) => ({
-      ...question,
-      results: question.results.map((result) => ({
-        ...result,
-        status: this.safeStatusColor(result.status),
-      })),
-    }));
-
-    return {
-      sentiments: safeSentiments,
-      questions: safeQuestions,
-    };
-  }
-
-  /**
    * Format arena data
    */
   formatArenaData(
-    comparisonData: any,
+    comparisonData?: ComparisonResults,
     competitors: string[] = [],
   ): {
     competitors: Array<{
@@ -233,8 +188,8 @@ export class ReportTransformationService {
       mistral: number;
       gemini: number;
       global: string;
-      size: string;
-      sentiment: string;
+      size: 'lg' | 'md' | 'sm';
+      sentiment: 'neutral' | 'positive' | 'negative';
     }>;
     battle: {
       competitors: Array<{
@@ -336,9 +291,12 @@ export class ReportTransformationService {
         mistral: modelWins.mistral || 0,
         gemini: modelWins.gemini || 0,
         global: `${globalPercentage}%`,
-        size: index < 2 ? 'lg' : 'md',
-        sentiment:
-          globalPercentage > 50 ? 'positive' : globalPercentage > 30 ? 'neutral' : 'negative',
+        size: (index < 2 ? 'lg' : 'md') as 'lg' | 'md' | 'sm',
+        sentiment: (globalPercentage > 50
+          ? 'positive'
+          : globalPercentage > 30
+            ? 'neutral'
+            : 'negative') as 'positive' | 'neutral' | 'negative',
       };
     });
 
@@ -407,9 +365,8 @@ export class ReportTransformationService {
    * Format accord data using the new accuracy pipeline results
    */
   formatAccordData(
-    accuracyData: any,
-    sentimentData: any,
-    identityCard?: any,
+    accuracyData: AccuracyResults,
+    identityCard: CompanyIdentityCard,
   ): {
     attributes: Array<{ name: string; rate: string; alignment: string }>;
     score: {
@@ -418,11 +375,10 @@ export class ReportTransformationService {
     };
   } {
     // Generate attributes from identity card or default values
-    const attributes = this.generateAttributesList(sentimentData, identityCard);
+    const attributes = this.generateAttributesList(identityCard, accuracyData);
 
     // Calculate accuracy score from accuracyData if available, otherwise use sentimentData
-    const averageAccuracy =
-      accuracyData?.summary?.averageAccuracy || sentimentData?.summary?.averageAccuracy || 0.5;
+    const averageAccuracy = accuracyData?.summary?.averageAccuracy;
 
     // Format as percentage
     const scoreValue = `${Math.round(averageAccuracy * 100)}%`;
@@ -442,154 +398,6 @@ export class ReportTransformationService {
         status,
       },
     };
-  }
-
-  /**
-   * Type safe version of attributes
-   */
-  typeSafeAttributes(
-    attributes: Array<{ name: string; rate: string; alignment: string }>,
-  ): Array<{ name: string; rate: string; alignment: '✅' | '⚠️' | '❌' }> {
-    return attributes.map((attr) => ({
-      ...attr,
-      alignment: this.safeAlignmentIcon(attr.alignment),
-    }));
-  }
-
-  /**
-   * Type safe version of arena data
-   */
-  typeSafeArenaData(arenaData: {
-    competitors: Array<{
-      name: string;
-      chatgpt: number;
-      claude: number;
-      mistral: number;
-      gemini: number;
-      global: string;
-      size: string;
-      sentiment: string;
-    }>;
-    battle: {
-      competitors: Array<{
-        name: string;
-        comparisons: Array<{
-          model: string;
-          positives: string[];
-          negatives: string[];
-        }>;
-      }>;
-      chatgpt?: {
-        positives: string[];
-        negatives: string[];
-      };
-      claude?: {
-        positives: string[];
-        negatives: string[];
-      };
-    };
-  }): {
-    competitors: Array<{
-      name: string;
-      chatgpt: number;
-      claude: number;
-      mistral: number;
-      gemini: number;
-      global: string;
-      size: 'lg' | 'md' | 'sm';
-      sentiment: 'positive' | 'neutral' | 'negative';
-    }>;
-    battle: {
-      competitors: Array<{
-        name: string;
-        comparisons: Array<{
-          model: string;
-          positives: string[];
-          negatives: string[];
-        }>;
-      }>;
-      chatgpt?: {
-        positives: string[];
-        negatives: string[];
-      };
-      claude?: {
-        positives: string[];
-        negatives: string[];
-      };
-    };
-  } {
-    // Convert string size and sentiment to type-safe values
-    const safeCompetitors = arenaData.competitors.map((competitor) => ({
-      ...competitor,
-      size: this.safeSizeValue(competitor.size),
-      sentiment: this.safeSentimentValue(competitor.sentiment),
-    }));
-
-    return {
-      competitors: safeCompetitors,
-      battle: arenaData.battle,
-    };
-  }
-
-  /**
-   * Type safe version of accord data
-   */
-  typeSafeAccordData(accordData: {
-    attributes: Array<{ name: string; rate: string; alignment: string }>;
-    score: {
-      value: string;
-      status: string;
-    };
-  }): {
-    attributes: Array<{ name: string; rate: string; alignment: '✅' | '⚠️' | '❌' }>;
-    score: {
-      value: string;
-      status: 'green' | 'yellow' | 'red';
-    };
-  } {
-    return {
-      attributes: this.typeSafeAttributes(accordData.attributes),
-      score: {
-        value: accordData.score.value,
-        status: this.safeStatusColor(accordData.score.status),
-      },
-    };
-  }
-
-  /**
-   * Convert string status to type-safe status
-   */
-  safeStatusColor(status: string): 'green' | 'yellow' | 'red' {
-    if (status === 'green') return 'green';
-    if (status === 'red') return 'red';
-    return 'yellow';
-  }
-
-  /**
-   * Convert string alignment to type-safe alignment
-   */
-  safeAlignmentIcon(alignment: string): '✅' | '⚠️' | '❌' {
-    if (alignment === '✅') return '✅';
-    if (alignment === '❌') return '❌';
-    return '⚠️';
-  }
-
-  /**
-   * Convert size string to type-safe size
-   */
-  safeSizeValue(size: string): 'lg' | 'md' | 'sm' {
-    if (size === 'lg') return 'lg';
-    if (size === 'sm') return 'sm';
-    return 'md';
-  }
-
-  /**
-   * Convert sentiment string to type-safe sentiment
-   */
-  safeSentimentValue(sentiment: string): 'positive' | 'neutral' | 'negative' {
-    if (sentiment === 'positive') return 'positive';
-    if (sentiment === 'negative') return 'negative';
-    return 'neutral';
   }
 
   /**
@@ -629,29 +437,22 @@ export class ReportTransformationService {
    * Helper to generate attributes list for accord section
    */
   generateAttributesList(
-    sentimentData: any,
-    identityCard?: any,
-  ): Array<{ name: string; rate: string; alignment: string }> {
+    identityCard: CompanyIdentityCard,
+    data?: SentimentResults | AccuracyResults,
+  ): Array<{ name: string; rate: string; alignment: '✅' | '⚠️' | '❌' }> {
     // If we have brand attributes from identity card, use those
     if (identityCard?.keyBrandAttributes && identityCard.keyBrandAttributes.length > 0) {
       return identityCard.keyBrandAttributes.map((feature: string, index: number) => {
         // Generate a fake score based on index (higher for first features)
         const score = Math.round(80 - index * 10);
         return {
-          name: feature,
+          name: `NOT IMPLEMENTED ${feature}`,
           rate: `${score}%`,
           alignment: score > 60 ? '✅' : '⚠️',
         };
       });
     }
 
-    // Otherwise, create default attributes
-    return [
-      { name: 'Innovation', rate: '82%', alignment: '✅' },
-      { name: 'Reliability', rate: '78%', alignment: '✅' },
-      { name: 'User-Friendly', rate: '65%', alignment: '✅' },
-      { name: 'Value', rate: '48%', alignment: '⚠️' },
-      { name: 'Accessibility', rate: '52%', alignment: '⚠️' },
-    ];
+    throw new Error('No attributes found');
   }
 }

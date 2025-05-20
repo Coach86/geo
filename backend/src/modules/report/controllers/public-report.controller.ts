@@ -15,6 +15,7 @@ import {
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { ReportService } from '../services/report.service';
 import { ReportContentResponseDto } from '../dto/report-content-response.dto';
+import { ReportConverterService } from '../services/report-converter.service';
 import { TokenRoute } from '../../auth/decorators/token-route.decorator';
 import { IdentityCardService } from '../../identity-card/services/identity-card.service';
 import { TokenService } from '../../auth/services/token.service';
@@ -29,6 +30,7 @@ export class PublicReportController {
     private readonly reportService: ReportService,
     @Inject(IdentityCardService) private readonly identityCardService: IdentityCardService,
     @Inject(TokenService) private readonly tokenService: TokenService,
+    private readonly reportConverterService: ReportConverterService,
   ) {}
 
   @Get('content/:reportId')
@@ -92,7 +94,8 @@ export class PublicReportController {
       
       this.logger.log(`Access granted for user ${request.userId} to report ${reportId}`);
       
-      return report;
+      // Convert the entity to a response DTO
+      return this.reportConverterService.convertEntityToResponseDto(report);
     } catch (error) {
       if (error instanceof NotFoundException || error instanceof UnauthorizedException) {
         throw error;

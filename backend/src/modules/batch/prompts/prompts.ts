@@ -6,7 +6,7 @@ export const SystemPrompts = {
   // Sentiment analysis
   SENTIMENT_ANALYSIS: `
   You are a sentiment analysis expert. Your task is to analyze responses to questions about specific brands
-  and determine the overall sentiment (positive, neutral, or negative) along with supporting facts.
+  and determine the overall sentiment (positive, neutral, or negative) along with supporting keywords.
   `,
 
   // Accuracy analysis (new)
@@ -36,7 +36,7 @@ export const PromptTemplates = {
   Analyze the sentiment in the following response to the question: "{originalPrompt}"
   
   Determine if the sentiment towards "{brandName}" is positive, neutral, or negative.
-  Also extract key facts or opinions about the brand.
+  Also extract *the most important* key words or phrases about the brand, negative (max 3) or positive (max 3).
   
   Response: {llmResponse}
   `,
@@ -45,7 +45,7 @@ export const PromptTemplates = {
   ACCURACY_ANALYSIS: `
   Analyze the accuracy of information in the following response to the question: "{originalPrompt}"
   
-  The known key attributes of "{brandName}" are: {keyBrandAttributes}
+  The known key attributes of "{brandName}" are: "{keyBrandAttributes}"
   
   Evaluate how accurate the information presented about "{brandName}" appears to be compared to these key attributes.
   Rate the accuracy on a scale from 0 to 1, where:

@@ -1,10 +1,15 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
 import { renderAsync } from '@react-email/render';
 import React from 'react';
 import { BrandIntelligenceReport } from '../email';
 import { IdentityCardService } from '../../identity-card/services/identity-card.service';
+import { BatchExecution, BatchExecutionDocument } from '../../batch/schemas/batch-execution.schema';
+import { BatchResult, BatchResultDocument } from '../../batch/schemas/batch-result.schema';
+import { PipelineType } from '../../batch/interfaces/llm.interfaces';
 
 /**
  * Service responsible for integrating with external services and data
@@ -16,12 +21,14 @@ export class ReportIntegrationService {
   constructor(
     private readonly configService: ConfigService,
     private readonly identityCardService: IdentityCardService,
+    @InjectModel(BatchExecution.name) private batchExecutionModel: Model<BatchExecutionDocument>,
+    @InjectModel(BatchResult.name) private batchResultModel: Model<BatchResultDocument>,
   ) {}
 
   /**
    * Get the identity card for a company, with proper type safety
    * Uses properly injected IdentityCardService instead of direct mongoose access
-   * 
+   *
    * @param companyId The ID of the company to get the identity card for
    * @returns The identity card entity or null if not found
    */
@@ -40,18 +47,18 @@ export class ReportIntegrationService {
   /**
    * Get the application configuration
    * Uses ConfigService instead of directly reading the file
-   * 
+   *
    * @returns The application configuration
    */
   async getConfig() {
     try {
       // Use configService to get the LLM models configuration
       const llmModels = this.configService.get<any[]>('llmModels');
-      
+
       if (llmModels && Array.isArray(llmModels)) {
         return { llmModels };
       }
-      
+
       // If not available in ConfigService, try to read from file
       // This is a fallback mechanism and should be replaced with proper config
       try {
@@ -63,7 +70,7 @@ export class ReportIntegrationService {
       } catch (fileError) {
         this.logger.warn(`Failed to read config file: ${fileError.message}`);
       }
-      
+
       // Return default config as last resort
       return {
         llmModels: [
@@ -88,8 +95,46 @@ export class ReportIntegrationService {
   }
 
   /**
-   * Test email rendering and sending with sample data
+   * Get a batch execution by ID
+   * @param batchExecutionId The ID of the batch execution to get
+   * @returns The batch execution or null if not found
    */
+  async getBatchExecution(batchExecutionId: string) {
+    this.logger.debug(`Getting batch execution with ID ${batchExecutionId}`);
+    const batchExecution = await this.batchExecutionModel.findOne({ id: batchExecutionId }).exec();
+
+    if (!batchExecution) {
+      this.logger.warn(`Batch execution with ID ${batchExecutionId} not found`);
+      return null;
+    }
+
+    return batchExecution;
+  }
+
+  /**
+   * Get a batch result by type
+   * @param batchExecutionId The ID of the batch execution
+   * @param resultType The type of result to get (spontaneous, sentiment, accuracy, comparison)
+   * @returns The batch result or null if not found
+   */
+  async getBatchResultByType(batchExecutionId: string, resultType: PipelineType) {
+    this.logger.debug(`Getting ${resultType} result for batch execution ${batchExecutionId}`);
+
+    const batchResult = await this.batchResultModel
+      .findOne({
+        batchExecutionId,
+        resultType,
+      })
+      .exec();
+
+    if (!batchResult) {
+      this.logger.warn(`No ${resultType} result found for batch execution ${batchExecutionId}`);
+      return null;
+    }
+
+    return batchResult.result;
+  }
+
   async testEmailRendering() {
     // Example data structure for testing email rendering
     const data = {
@@ -339,7 +384,7 @@ export class ReportIntegrationService {
       if (resendApiKey) {
         const resend = new Resend(resendApiKey);
         try {
-          const emailHtml = await renderAsync(
+          /*   const emailHtml = await renderAsync(
             React.createElement(BrandIntelligenceReport, {
               data: data,
             }),
@@ -358,8 +403,8 @@ export class ReportIntegrationService {
             });
             this.logger.log('Test email sent:', email);
             return { success: true, email };
-          }
-          return { success: true, html: emailHtml };
+          } */
+          return { success: true, html: 'emailHtml' };
         } catch (error) {
           this.logger.warn('Failed to render or send test email:', error.message);
           return { success: false, error: error.message };

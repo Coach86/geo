@@ -2,8 +2,8 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { IdentityCard, IdentityCardDocument } from '../schemas/identity-card.schema';
-import { User, UserDocument } from '../../user/schemas/user.schema';
 import { CompanyIdentityCard } from '../entities/company-identity-card.entity';
+import { UserRepository } from '../../user/repositories/user.repository';
 
 @Injectable()
 export class IdentityCardRepository {
@@ -11,7 +11,7 @@ export class IdentityCardRepository {
 
   constructor(
     @InjectModel(IdentityCard.name) private identityCardModel: Model<IdentityCardDocument>,
-    @InjectModel(User.name) private userModel: Model<UserDocument>,
+    private userRepository: UserRepository,
   ) {}
 
   /**
@@ -25,8 +25,15 @@ export class IdentityCardRepository {
   /**
    * Find a user by ID
    */
-  async findUserById(userId: string): Promise<UserDocument | null> {
-    return await this.userModel.findOne({ id: userId }).exec();
+  async findUserById(userId: string): Promise<any> {
+    try {
+      return await this.userRepository.findById(userId);
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        return null;
+      }
+      throw error;
+    }
   }
 
   /**

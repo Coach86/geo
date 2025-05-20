@@ -102,16 +102,7 @@ export default function ExecutiveSummary({ kpi }: ExecutiveSummaryProps) {
   // Calculer les pourcentages pour les barres de progression
   const pulsePercentage = getNumericValue(kpi.pulse.value);
 
-  // Convertir la valeur du tone de -1.0 à +1.0 en pourcentage de 0 à 100%
-  // Si la valeur contient un +, on considère qu'elle est positive
-  const toneValue = kpi.tone.value.includes("+")
-    ? getNumericValue(kpi.tone.value)
-    : kpi.tone.value.includes("-")
-    ? -getNumericValue(kpi.tone.value)
-    : 0;
-
-  // Convertir de l'échelle -1 à +1 à l'échelle 0 à 100%
-  const tonePercentage = Math.round((toneValue + 1) * 50);
+  const tonePercentage = getNumericValue(kpi.tone.value);
 
   const accordPercentage = getNumericValue(kpi.accord.value) * 10; // Supposant que c'est sur 10
 

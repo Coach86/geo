@@ -1,52 +1,99 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { WeeklyBrandReport as WeeklyBrandReportEntity } from '../entities/weekly-brand-report.entity';
-import {
-  WeeklyBrandReport,
-  WeeklyBrandReportDocument,
-} from '../schemas/weekly-brand-report.schema';
+import { Injectable, Logger, NotFoundException, Inject, forwardRef } from '@nestjs/common';
+import { WeeklyBrandReportEntity } from '../interfaces/report-types';
+import { IdentityCardService } from '@/modules/identity-card/services/identity-card.service';
+import { ReportService } from './report.service';
+import { ReportConverterService } from './report-converter.service';
+import { WeeklyBrandReportRepository } from '../repositories/weekly-brand-report.repository';
 
 /**
  * Service responsible for retrieving reports from the database
+ * Handles fetching and transforming MongoDB documents to entity format
  */
 @Injectable()
 export class ReportRetrievalService {
   private readonly logger = new Logger(ReportRetrievalService.name);
 
   constructor(
-    @InjectModel(WeeklyBrandReport.name)
-    private weeklyReportModel: Model<WeeklyBrandReportDocument>,
+    @Inject(forwardRef(() => ReportService))
+    private readonly reportService: ReportService,
+    private readonly identityCardService: IdentityCardService,
+    private readonly converterService: ReportConverterService,
+    private readonly weeklyReportRepository: WeeklyBrandReportRepository,
   ) {}
 
   /**
-   * Get a report by ID, transforming it to the entity format
+   * Get a report by ID, returning it in entity format
+   * @param reportId The unique report ID
+   * @returns The report in entity format
    */
-  async getReportById(
-    reportId: string, 
-    transformToEntityFormat: (report: WeeklyBrandReportDocument, identityCard?: any) => Promise<WeeklyBrandReportEntity>,
-    getCompanyIdentityCard: (companyId: string) => Promise<any>
-  ): Promise<WeeklyBrandReportEntity> {
+  async getReportById(reportId: string): Promise<WeeklyBrandReportEntity> {
     try {
-      this.logger.log(`Looking up report with ID ${reportId} using 'id' field query`);
-
-      // Use findOne with the 'id' field instead of findById which uses MongoDB's _id
-      const report = await this.weeklyReportModel.findOne({ id: reportId }).exec();
-
-      if (!report) {
+      this.logger.log(`Looking up report with ID ${reportId}`);
+      const document = await this.weeklyReportRepository.findByIdLean(reportId);
+      if (!document) {
         this.logger.warn(`Report not found with ID ${reportId}`);
         throw new NotFoundException(`Report not found with ID ${reportId}`);
       }
-
-      this.logger.log(`Found report with ID ${reportId}, company ${report.companyId}`);
-
-      // Get identity card for additional data
-      const identityCard = await getCompanyIdentityCard(report.companyId);
       
-      // Transform to entity with new structure
-      const reportEntity = await transformToEntityFormat(report, identityCard);
+      this.logger.log(`Found report with ID ${reportId}, company ${document.companyId}`);
       
-      return reportEntity;
+      // Get identity card for additional company data if needed
+      try {
+        const identityCard = await this.identityCardService.findById(document.companyId);
+        if (identityCard) {
+          // Convert MongoDB document to entity using converter service
+          return this.converterService.convertDocumentToEntity(document, identityCard);
+        }
+      } catch (idCardError) {
+        this.logger.warn(
+          `Could not find identity card for company ${document.companyId}, returning minimal report data`,
+        );
+      }
+      
+      // If identity card is not available, create a minimal entity
+      return {
+        id: document.id,
+        companyId: document.companyId,
+        brand: document.brand || document.companyId,
+        weekStart: document.weekStart,
+        generatedAt: document.generatedAt,
+        metadata: document.metadata || {
+          url: '',
+          market: '',
+          flag: '',
+          competitors: '',
+          date: document.weekStart.toISOString().split('T')[0],
+          models: ''
+        },
+        kpi: document.kpi || {
+          pulse: { value: '0%', description: 'Global Visibility Score' },
+          tone: { value: '0', status: 'yellow', description: 'Overall sentiment' },
+          accord: { value: '0/10', status: 'yellow', description: 'Brand compliance' },
+          arena: { competitors: [], description: 'Top competitors' }
+        },
+        pulse: document.pulse || {
+          promptsTested: 0,
+          modelVisibility: []
+        },
+        tone: document.tone || {
+          sentiments: [],
+          questions: []
+        },
+        accord: document.accord || {
+          attributes: [],
+          score: { value: '0/10', status: 'yellow' }
+        },
+        arena: document.arena || {
+          competitors: [],
+          battle: { competitors: [] }
+        },
+        llmVersions: document.llmVersions || {},
+        rawData: {
+          spontaneous: document.spontaneous,
+          sentiment: document.sentiment,
+          comparison: document.comparison
+        }
+      };
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
@@ -58,30 +105,19 @@ export class ReportRetrievalService {
 
   /**
    * Get the latest report for a company
+   * @param companyId The company ID
+   * @returns The most recent report in entity format
    */
-  async getLatestReport(
-    companyId: string,
-    transformToEntityFormat: (report: WeeklyBrandReportDocument, identityCard?: any) => Promise<WeeklyBrandReportEntity>,
-    getCompanyIdentityCard: (companyId: string) => Promise<any>
-  ): Promise<WeeklyBrandReportEntity> {
+  async getLatestReport(companyId: string): Promise<WeeklyBrandReportEntity> {
     try {
-      // Get the latest report for the company
-      const report = await this.weeklyReportModel
-        .findOne({ companyId })
-        .sort({ weekStart: -1 })
-        .exec();
-
-      if (!report) {
+      const document = await this.weeklyReportRepository.findLatestByCompanyIdLean(companyId);
+        
+      if (!document) {
         throw new NotFoundException(`No reports found for company ${companyId}`);
       }
-
-      // Get identity card for additional data
-      const identityCard = await getCompanyIdentityCard(report.companyId);
       
-      // Transform to entity with new structure
-      const reportEntity = await transformToEntityFormat(report, identityCard);
-      
-      return reportEntity;
+      // Once we have the latest report, use the same logic as getReportById
+      return this.getReportById(document.id);
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
@@ -93,14 +129,14 @@ export class ReportRetrievalService {
 
   /**
    * Get all reports for a company
+   * @param companyId The company ID
+   * @returns A list of summary data for all reports
    */
   async getAllCompanyReports(companyId: string) {
     try {
       // Get all reports for the company, sorted by week start date (newest first)
-      const reports = await this.weeklyReportModel
-        .find({ companyId })
-        .sort({ weekStart: -1 })
-        .exec();
+      const reports = await this.weeklyReportRepository.findAllByCompanyId(companyId);
+      const count = await this.weeklyReportRepository.countByCompanyId(companyId);
 
       return {
         reports: reports.map((report) => ({
@@ -109,7 +145,7 @@ export class ReportRetrievalService {
           generatedAt: report.generatedAt || new Date(),
           brand: report.brand || null, // Include brand if available in new structure
         })),
-        total: reports.length,
+        total: count,
       };
     } catch (error) {
       this.logger.error(

@@ -233,6 +233,7 @@ export class IdentityCardService {
         url,
         mainIdentityCard.brandName,
         mainIdentityCard.industry,
+        market,
       );
 
       // Step 3: Combine results into a complete identity card
@@ -296,10 +297,17 @@ export class IdentityCardService {
     url: string,
     brandName: string,
     industry: string,
+    market: string,
   ): Promise<string[]> {
     try {
       // Build prompt for competitors
-      const prompt = buildCompetitorsPrompt({ url, scrapedData, brandName, industry });
+      const prompt = buildCompetitorsPrompt({
+        url,
+        scrapedData,
+        brandName,
+        industry,
+        market,
+      });
       const systemPrompt = getCompetitorsSystemPrompt();
 
       // Call Perplexity LLM with structured output

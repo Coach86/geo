@@ -42,7 +42,7 @@ export class PromptService implements OnModuleInit {
 
     this.logger.log(
       `Initialized with ${this.spontPromptCount} spontaneous prompts, ${this.directPromptCount} direct prompts, ` +
-      `${this.comparisonPromptCount} comparison prompts, ${this.accuracyPromptCount} accuracy prompts`,
+        `${this.comparisonPromptCount} comparison prompts, ${this.accuracyPromptCount} accuracy prompts`,
     );
   }
 
@@ -367,7 +367,7 @@ export class PromptService implements OnModuleInit {
 
     try {
       // Fetch the company details to create context-specific prompts
-      const companyRaw = await this.identityCardModel.findOne({ id: companyId }).exec();
+      const companyRaw = await this.identityCardModel.findOne({ id: companyId }).lean().exec();
 
       if (!companyRaw) {
         this.logger.error(`Company ${companyId} not found when regenerating prompts`);
@@ -393,7 +393,7 @@ export class PromptService implements OnModuleInit {
       const promptSet = await this.generatePromptSet(company);
 
       // Check if a prompt set already exists for this company
-      const existingPromptSet = await this.promptSetModel.findOne({ companyId }).exec();
+      const existingPromptSet = await this.promptSetModel.findOne({ companyId }).lean().exec();
 
       let result;
 
@@ -412,6 +412,7 @@ export class PromptService implements OnModuleInit {
             },
             { new: true }, // Return the updated document
           )
+          .lean()
           .exec();
 
         if (!result) {

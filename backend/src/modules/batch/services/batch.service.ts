@@ -148,6 +148,8 @@ export class BatchService {
    */
   async processCompany(companyId: string, batchExecutionId?: string) {
     try {
+      this.logger.log(`Processing company ${companyId} with batchExecutionId: ${batchExecutionId || 'none'}`);
+      
       // Get the company data with context
       const company = await this.getCompanyBatchContext(companyId);
 
@@ -160,6 +162,13 @@ export class BatchService {
 
       // Add batchExecutionId to context if provided
       const contextWithBatchId = batchExecutionId ? { ...company, batchExecutionId } : company;
+      
+      // Log the context to debug
+      this.logger.log(`Processing company context: ${JSON.stringify({
+        companyId: contextWithBatchId.companyId,
+        brandName: contextWithBatchId.brandName,
+        batchExecutionId: contextWithBatchId.batchExecutionId || 'none',
+      })}`);
 
       // Process the company
       const result = await this.processCompanyInternal(contextWithBatchId, weekStart);
@@ -270,26 +279,32 @@ export class BatchService {
     this.logger.log(`Processing company ${context.companyId} (${context.brandName})`);
 
     try {
-      // Create a new batch execution
-      const batchExecution = await this.batchExecutionService.createBatchExecution(
-        context.companyId,
-      );
-      const batchExecutionId = batchExecution.id;
-
-      this.logger.log(
-        `Created batch execution ${batchExecutionId} for company ${context.companyId}`,
-      );
+      // Use the batch execution ID from the context if it exists, otherwise create a new one
+      let batchExecutionId: string;
+      
+      if (context.batchExecutionId) {
+        batchExecutionId = context.batchExecutionId;
+        this.logger.log(`Using existing batch execution ${batchExecutionId} for company ${context.companyId}`);
+      } else {
+        // Create a new batch execution only if one wasn't provided
+        const batchExecution = await this.batchExecutionService.createBatchExecution(
+          context.companyId,
+        );
+        batchExecutionId = batchExecution.id;
+        this.logger.log(`Created batch execution ${batchExecutionId} for company ${context.companyId}`);
+      }
 
       // Inject the batchExecutionId into the context
       const contextWithBatchExecId = { ...context, batchExecutionId };
 
       // Run all four pipelines in parallel
-      const [spontaneousResults, sentimentResults, accuracyResults, comparisonResults] = await Promise.all([
-        this.spontaneousPipelineService.run(contextWithBatchExecId),
-        this.sentimentPipelineService.run(contextWithBatchExecId),
-        this.accuracyPipelineService.run(contextWithBatchExecId),
-        this.comparisonPipelineService.run(contextWithBatchExecId),
-      ]);
+      const [spontaneousResults, sentimentResults, accuracyResults, comparisonResults] =
+        await Promise.all([
+          this.spontaneousPipelineService.run(contextWithBatchExecId),
+          this.sentimentPipelineService.run(contextWithBatchExecId),
+          this.accuracyPipelineService.run(contextWithBatchExecId),
+          this.comparisonPipelineService.run(contextWithBatchExecId),
+        ]);
 
       // Get LLM versions
       const llmVersions = this.getLlmVersions([
@@ -299,6 +314,8 @@ export class BatchService {
         ...comparisonResults.results,
       ]);
 
+      this.logger.log(`Saving batch results for execution ${batchExecutionId}`);
+      
       // Save each result to batch_results table
       await Promise.all([
         this.batchExecutionService.saveBatchResult(
@@ -320,8 +337,8 @@ export class BatchService {
         companyId: context.companyId,
         weekStart,
         spontaneous: spontaneousResults,
-        sentimentAccuracy: sentimentResults,
-        accuracy: accuracyResults,
+        sentiment: sentimentResults,
+        accord: accuracyResults,
         comparison: comparisonResults,
         llmVersions,
         generatedAt: new Date(),
@@ -386,6 +403,24 @@ export class BatchService {
     return monday;
   }
 
+  /**
+   * Get running batch executions for a company
+   * @param companyId The ID of the company
+   * @returns Array of running batch executions sorted by executedAt (newest first)
+   */
+  async getRunningBatchExecutionsByCompany(companyId: string): Promise<any[]> {
+    try {
+      return await this.batchExecutionModel
+        .find({ companyId, status: 'running' })
+        .sort({ executedAt: -1 })
+        .lean()
+        .exec();
+    } catch (error) {
+      this.logger.error(`Failed to get running batch executions: ${error.message}`, error.stack);
+      return [];
+    }
+  }
+  
   /**
    * Get company batch context by ID
    * @param companyId The ID of the company
@@ -506,6 +541,7 @@ export class BatchService {
       return await this.batchExecutionService.updateBatchExecutionStatus(
         batchExecutionId,
         'failed',
+        errorMessage
       );
     } catch (error) {
       this.logger.error(`Failed to mark batch execution as failed: ${error.message}`, error.stack);

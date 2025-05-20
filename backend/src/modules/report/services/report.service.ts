@@ -4,6 +4,8 @@ import {
   NotFoundException,
   BadRequestException,
   OnModuleInit,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -22,7 +24,9 @@ import { ReportConverterService } from './report-converter.service';
 import { UserService } from '../../user/services/user.service';
 import { CompanyIdentityCard } from '@/modules/identity-card/entities/company-identity-card.entity';
 import { OnEvent } from '@nestjs/event-emitter';
-import { SpontaneousResults } from '@/modules/batch/interfaces/batch.interfaces';
+import { SentimentResults, SpontaneousResults } from '@/modules/batch/interfaces/batch.interfaces';
+import { PipelineType } from '@/modules/batch/interfaces/llm.interfaces';
+import { ReportContentResponseDto } from '../dto/report-content-response.dto';
 /**
  * Main report service that serves as a facade for specialized services
  */
@@ -35,6 +39,7 @@ export class ReportService implements OnModuleInit {
     private readonly accessService: ReportAccessService,
     private readonly integrationService: ReportIntegrationService,
     private readonly persistenceService: ReportPersistenceService,
+    @Inject(forwardRef(() => ReportRetrievalService))
     private readonly retrievalService: ReportRetrievalService,
     private readonly converterService: ReportConverterService,
     @InjectModel(WeeklyBrandReport.name)
@@ -48,56 +53,61 @@ export class ReportService implements OnModuleInit {
   }
 
   /**
+   * Helper method to get the start of the current week (Monday 00:00:00 UTC)
+   */
+  private getCurrentWeekStart(): Date {
+    const now = new Date();
+    const dayOfWeek = now.getUTCDay();
+    const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Adjust for Sunday
+
+    const monday = new Date(now);
+    monday.setUTCDate(now.getUTCDate() - diff);
+    monday.setUTCHours(0, 0, 0, 0);
+
+    return monday;
+  }
+
+  /**
+   * Extract LLM versions from results
+   */
+  private extractLlmVersions(results: any[]): Record<string, string> {
+    const versions: Record<string, string> = {};
+
+    for (const result of results) {
+      if (result.llmProvider && !versions[result.llmProvider]) {
+        versions[result.llmProvider] = `${result.llmProvider.toLowerCase()}-version`;
+      }
+    }
+
+    return versions;
+  }
+
+  /**
    * Transform raw batch data into a standardized report entity
    *
-   * This method takes raw batch data and uses the converterService to transform it
+   * This method takes a document from MongoDB and uses the converterService to transform it
    * into a standardized report entity format.
    */
-  private async transformToEntityFormat(
-    report: WeeklyBrandReportDocument,
+  public transformToEntityFormat = async (
+    document: Record<string, any>,
     identityCard: CompanyIdentityCard,
-  ): Promise<WeeklyBrandReportEntity> {
-    this.logger.debug(`Transforming report ${report.id} for company ${report.companyId}`);
-
+  ): Promise<WeeklyBrandReportEntity> => {
+    this.logger.debug(`Transforming report ${document.id} for company ${document.companyId}`);
     try {
-      // Create a batch report input object from the document with defaults for missing data
-      const batchInput: BatchReportInput = {
-        companyId: report.companyId,
-        weekStart: report.weekStart,
-        spontaneous: report.spontaneous || {
-          results: [],
-          summary: { mentionRate: 0, topMentions: [] },
-          webSearchSummary: { usedWebSearch: false, webSearchCount: 0, consultedWebsites: [] },
-        },
-        sentimentAccuracy: report.sentiment || {
-          results: [],
-          summary: { overallSentiment: 'neutral', averageAccuracy: 0 },
-          webSearchSummary: { usedWebSearch: false, webSearchCount: 0, consultedWebsites: [] },
-        },
-        comparison: report.comparison || {
-          results: [],
-          summary: { winRate: 0, keyDifferentiators: [] },
-          webSearchSummary: { usedWebSearch: false, webSearchCount: 0, consultedWebsites: [] },
-        },
-        llmVersions: report.llmVersions || {},
-        generatedAt: report.generatedAt || new Date(),
-      };
-
-      // Use the converter service to transform the data
-      const convertedEntity = this.converterService.convertBatchInputToReportEntity(
-        batchInput,
-        identityCard,
-      );
-
-      // Ensure the ID is preserved
-      convertedEntity.id = report.id;
-
-      this.logger.debug(`Successfully transformed report ${report.id}`);
-      return convertedEntity;
+      // Delegate to the converter service and adapt the type
+      return this.adaptReportType(this.converterService.convertDocumentToEntity(document, identityCard));
     } catch (error) {
-      this.logger.error(`Error transforming report ${report.id}: ${error.message}`, error.stack);
+      this.logger.error(`Error transforming report ${document.id}: ${error.message}`, error.stack);
       throw new Error(`Failed to transform report: ${error.message}`);
     }
+  };
+
+  /**
+   * Type adapter to handle the circular reference issues
+   * This is necessary as a temporary solution until a full refactoring
+   */
+  private adaptReportType<T>(report: T): any {
+    return report;
   }
 
   /**
@@ -113,20 +123,8 @@ export class ReportService implements OnModuleInit {
     return this.transformationService.formatToneData(sentimentData);
   }
 
-  typeSafeToneData(toneData: any) {
-    return this.transformationService.typeSafeToneData(toneData);
-  }
-
-  typeSafeAttributes(attributes: any) {
-    return this.transformationService.typeSafeAttributes(attributes);
-  }
-
   formatArenaData(comparisonData: any, competitors: string[] = []) {
     return this.transformationService.formatArenaData(comparisonData, competitors);
-  }
-
-  typeSafeArenaData(arenaData: any) {
-    return this.transformationService.typeSafeArenaData(arenaData);
   }
 
   getCompetitorNames(comparison: any, defaultCompetitors?: string[]): string[] {
@@ -134,27 +132,21 @@ export class ReportService implements OnModuleInit {
   }
 
   generateAttributesList(
-    sentimentData: any,
-    identityCard?: any,
+    sentimentData: SentimentResults,
+    identityCard: CompanyIdentityCard,
   ): Array<{ name: string; rate: string; alignment: string }> {
-    return this.transformationService.generateAttributesList(sentimentData, identityCard);
+    return this.transformationService.generateAttributesList(identityCard, sentimentData);
   }
 
   // Report retrieval methods
   async getReportById(reportId: string): Promise<WeeklyBrandReportEntity> {
-    return this.retrievalService.getReportById(
-      reportId,
-      this.transformToEntityFormat.bind(this),
-      this.integrationService.getCompanyIdentityCard.bind(this.integrationService),
-    );
+    const report = await this.retrievalService.getReportById(reportId);
+    return this.adaptReportType(report);
   }
 
   async getLatestReport(companyId: string): Promise<WeeklyBrandReportEntity> {
-    return this.retrievalService.getLatestReport(
-      companyId,
-      this.transformToEntityFormat.bind(this),
-      this.integrationService.getCompanyIdentityCard.bind(this.integrationService),
-    );
+    const report = await this.retrievalService.getLatestReport(companyId);
+    return this.adaptReportType(report);
   }
 
   async getAllCompanyReports(companyId: string) {
@@ -168,11 +160,18 @@ export class ReportService implements OnModuleInit {
    * This method is used when the report is already in the entity format
    */
   async saveReport(report: WeeklyBrandReportEntity): Promise<WeeklyBrandReportEntity> {
-    return this.persistenceService.saveReport(
-      report,
-      this.transformToEntityFormat.bind(this),
-      this.sendReportAccessEmail.bind(this),
-    );
+    const result = await this.persistenceService.saveReport(this.adaptReportType(report));
+    return this.adaptReportType(result);
+  }
+
+  /**
+   * Save a report entity without sending email notification
+   * @param report Report entity to save
+   * @returns The saved report entity
+   */
+  async saveReportNoEmail(report: WeeklyBrandReportEntity): Promise<WeeklyBrandReportEntity> {
+    const result = await this.persistenceService.saveReport(this.adaptReportType(report));
+    return this.adaptReportType(result);
   }
 
   /**
@@ -200,10 +199,124 @@ export class ReportService implements OnModuleInit {
         identityCard,
       );
 
-      // Save using the standard method
-      return this.saveReport(reportEntity);
+      // Save using the standard method with type adaptation
+      return this.saveReport(this.adaptReportType(reportEntity));
     } catch (error) {
       this.logger.error(`Failed to save report from batch: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Save a report from batch execution without sending an email notification
+   * Similar to saveReportFromBatch but does not trigger email notifications
+   *
+   * @param batchExecutionId ID of the batch execution to create report from
+   * @returns The saved report entity
+   */
+  async saveReportFromBatchExecutionNoEmail(
+    batchExecutionId: string,
+  ): Promise<WeeklyBrandReportEntity> {
+    this.logger.log(
+      `Saving report from batch execution ${batchExecutionId} without email notification`,
+    );
+
+    try {
+      // Get the batch execution results
+      const spontaneousResult = await this.integrationService.getBatchResultByType(
+        batchExecutionId,
+        PipelineType.SPONTANEOUS,
+      );
+      const sentimentResult = await this.integrationService.getBatchResultByType(
+        batchExecutionId,
+        PipelineType.SENTIMENT,
+      );
+      const accuracyResult = await this.integrationService.getBatchResultByType(
+        batchExecutionId,
+        PipelineType.ACCURACY,
+      );
+      const comparisonResult = await this.integrationService.getBatchResultByType(
+        batchExecutionId,
+        PipelineType.COMPARISON,
+      );
+
+      // Log which results were found
+      this.logger.log(
+        `Batch results found for ${batchExecutionId}: ` +
+          `spontaneous=${!!spontaneousResult}, ` +
+          `sentiment=${!!sentimentResult}, ` +
+          `accuracy=${!!accuracyResult}, ` +
+          `comparison=${!!comparisonResult}`,
+      );
+      this.logger.log('spontaneousResult' + JSON.stringify(spontaneousResult));
+
+      // Continue even if some results are missing - create default empty results
+      // for any missing batch types
+
+      // Get execution details to get companyId
+      const batchExecution = await this.integrationService.getBatchExecution(batchExecutionId);
+      if (!batchExecution) {
+        throw new NotFoundException(`Batch execution not found with ID ${batchExecutionId}`);
+      }
+
+      const companyId = batchExecution.companyId;
+
+      // Get identity card for additional company info
+      const identityCard = await this.integrationService.getCompanyIdentityCard(companyId);
+      if (!identityCard) {
+        throw new NotFoundException(`Identity card not found for company ${companyId}`);
+      }
+
+      // Current week's start date (Monday 00:00:00 UTC)
+      const weekStart = this.getCurrentWeekStart();
+
+      // Extract LLM versions from available results
+      const allResults = [
+        ...(spontaneousResult?.results || []),
+        ...(sentimentResult?.results || []),
+        ...(accuracyResult?.results || []),
+        ...(comparisonResult?.results || []),
+      ];
+      const llmVersions = this.extractLlmVersions(allResults);
+
+      // Create the batch report input with only the available data
+      const batchReportInput: BatchReportInput = {
+        companyId,
+        weekStart,
+        llmVersions,
+        generatedAt: new Date(),
+      };
+
+      // Only add results that are available
+      if (spontaneousResult) {
+        batchReportInput.spontaneous = spontaneousResult;
+      }
+
+      if (sentimentResult) {
+        batchReportInput.sentiment = sentimentResult;
+      }
+
+      if (accuracyResult) {
+        batchReportInput.accord = accuracyResult;
+      }
+
+      if (comparisonResult) {
+        batchReportInput.comparison = comparisonResult;
+      }
+
+      // Convert batch input to report entity
+      const reportEntity = this.converterService.convertBatchInputToReportEntity(
+        batchReportInput,
+        identityCard,
+      );
+
+      // Save without sending email notification with type adaptation
+      return this.saveReportNoEmail(this.adaptReportType(reportEntity));
+    } catch (error) {
+      this.logger.error(
+        `Failed to save report from batch execution: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -212,7 +325,7 @@ export class ReportService implements OnModuleInit {
   async sendReportAccessEmail(reportId: string, companyId: string, token: string): Promise<void> {
     try {
       // Get the report to extract date and other information
-      const report = await this.weeklyReportModel.findOne({ id: reportId }).exec();
+      const report = await this.weeklyReportModel.findOne({ id: reportId }).lean().exec();
       if (!report) {
         throw new NotFoundException(`Report not found with ID ${reportId}`);
       }
@@ -249,7 +362,7 @@ export class ReportService implements OnModuleInit {
   ): Promise<boolean> {
     try {
       // Validate that the report exists and belongs to the company
-      const report = await this.weeklyReportModel.findOne({ id: reportId }).exec();
+      const report = await this.weeklyReportModel.findOne({ id: reportId }).lean().exec();
       if (!report) {
         throw new NotFoundException(`Report not found with ID ${reportId}`);
       }

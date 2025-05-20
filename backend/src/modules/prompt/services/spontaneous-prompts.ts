@@ -24,9 +24,11 @@ export function spontaneousUserPrompt({
       - Website URL: ${websiteUrl}
       - Company/Brandname: ${brandName} in the ${industry} industry.
       - Language to generate prompts in: ${market}
+      - Market that needs to be targeted: ${market}
       - Current date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
       - Competitors: ${competitors.join(', ')}
-      GOAL:
+      
+      ### GOAL:
       1. Think step-by-step (do NOT reveal this reasoning in the final answer):
         a) Identify the main industry and 1-2 sub-segments.
         b) Note the site language.
@@ -41,9 +43,9 @@ export function spontaneousUserPrompt({
         • **Never mention any brand names, company names, or the target URL in the prompt itself.** 
         • Keep prompts concise (max 20 words each).
         • Avoid duplicate meanings.
-        • *Use a very casual, almost familiar and conversational tone, like most users talk to a LLM.*
-        • *Use questions that force the LLM to list brands, companies, or products.*
-        • *Without never mentionning any brand names, company names, use the competitors of the target brand to tailor the prompts.*
+        • **Use a very casual, almost familiar and conversational tone, like most users talk to a LLM. Use abbreviations and slangs.**
+        • **Use questions that force the LLM to list brands, companies, or products.**
+        • **Without never mentionning any brand names, company names, use the competitors of the target brand to tailor the prompts.**
 
       Example output for a Spanish online bike store (illustrative only, do NOT reuse):
         1. ¿Mejor marca bici eléctrica ciudad 2025?

@@ -18,7 +18,7 @@ import {
   Chip,
   List,
   ListItem,
-  ListItemText
+  ListItemText,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import SentimentSatisfiedAltIcon from '@mui/icons-material/SentimentSatisfiedAlt';
@@ -86,11 +86,11 @@ const SentimentTab: React.FC<SentimentTabProps> = ({ results }) => {
                 <Box sx={{ mr: 2, fontSize: '3rem' }}>
                   {renderSentimentIcon(summary.overallSentiment)}
                 </Box>
-                <Typography 
-                  variant="h3" 
-                  sx={{ 
-                    textTransform: 'capitalize', 
-                    color: getSentimentColor(summary.overallSentiment) 
+                <Typography
+                  variant="h3"
+                  sx={{
+                    textTransform: 'capitalize',
+                    color: getSentimentColor(summary.overallSentiment),
                   }}
                 >
                   {summary.overallSentiment}
@@ -125,13 +125,15 @@ const SentimentTab: React.FC<SentimentTabProps> = ({ results }) => {
                         <TableCell>{result.llmProvider}</TableCell>
                         <TableCell>{result.promptIndex + 1}</TableCell>
                         <TableCell align="center">
-                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Box
+                            sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          >
                             {renderSentimentIcon(result.sentiment)}
-                            <Typography 
-                              sx={{ 
-                                ml: 1, 
-                                textTransform: 'capitalize', 
-                                color: getSentimentColor(result.sentiment) 
+                            <Typography
+                              sx={{
+                                ml: 1,
+                                textTransform: 'capitalize',
+                                color: getSentimentColor(result.sentiment),
                               }}
                             >
                               {result.sentiment}
@@ -140,19 +142,19 @@ const SentimentTab: React.FC<SentimentTabProps> = ({ results }) => {
                         </TableCell>
                         <TableCell>
                           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                            {result.extractedFacts.slice(0, 3).map((fact, idx) => (
-                              <Chip 
-                                key={idx} 
-                                label={fact.length > 40 ? `${fact.substring(0, 40)}...` : fact} 
-                                size="small" 
-                                sx={{ mr: 0.5, mb: 0.5 }} 
+                            {result.extractedPositiveKeywords.slice(0, 3).map((fact, idx) => (
+                              <Chip
+                                key={idx}
+                                label={fact.length > 40 ? `${fact.substring(0, 40)}...` : fact}
+                                size="small"
+                                sx={{ mr: 0.5, mb: 0.5 }}
                               />
                             ))}
-                            {result.extractedFacts.length > 3 && (
-                              <Chip 
-                                label={`+${result.extractedFacts.length - 3} more`} 
-                                size="small" 
-                                variant="outlined" 
+                            {result.extractedPositiveKeywords.length > 3 && (
+                              <Chip
+                                label={`+${result.extractedPositiveKeywords.length - 3} more`}
+                                size="small"
+                                variant="outlined"
                               />
                             )}
                           </Box>
@@ -182,12 +184,12 @@ const SentimentTab: React.FC<SentimentTabProps> = ({ results }) => {
               </AccordionSummary>
               <AccordionDetails>
                 <Typography variant="subtitle2" gutterBottom>
-                  Extracted Facts:
+                  Extracted Positive Keywords:
                 </Typography>
                 <Box sx={{ mb: 2 }}>
-                  {result.extractedFacts.length > 0 ? (
+                  {result.extractedPositiveKeywords.length > 0 ? (
                     <ul style={{ margin: 0, paddingLeft: '1.5rem' }}>
-                      {result.extractedFacts.map((fact, idx) => (
+                      {result.extractedPositiveKeywords.map((fact, idx) => (
                         <li key={idx}>
                           <Typography variant="body2">{fact}</Typography>
                         </li>
@@ -195,29 +197,58 @@ const SentimentTab: React.FC<SentimentTabProps> = ({ results }) => {
                     </ul>
                   ) : (
                     <Typography variant="body2" color="text.secondary">
-                      No facts extracted.
+                      No positive keywords extracted.
                     </Typography>
                   )}
                 </Box>
-                
+                <Typography variant="subtitle2" gutterBottom>
+                  Extracted Negative Keywords:
+                </Typography>
+                <Box sx={{ mb: 2 }}>
+                  {result.extractedNegativeKeywords.length > 0 ? (
+                    <ul style={{ margin: 0, paddingLeft: '1.5rem' }}>
+                      {result.extractedNegativeKeywords.map((fact, idx) => (
+                        <li key={idx}>
+                          <Typography variant="body2">{fact}</Typography>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      No negative keywords extracted.
+                    </Typography>
+                  )}
+                </Box>
                 <Typography variant="subtitle2" gutterBottom>
                   Question:
                 </Typography>
-                <Typography variant="body2" paragraph sx={{ mb: 2, whiteSpace: 'pre-wrap', maxHeight: 'none', overflow: 'visible' }}>
+                <Typography
+                  variant="body2"
+                  paragraph
+                  sx={{ mb: 2, whiteSpace: 'pre-wrap', maxHeight: 'none', overflow: 'visible' }}
+                >
                   {result.originalPrompt || 'No original prompt available.'}
                 </Typography>
-                
+
                 <Typography variant="subtitle2" gutterBottom>
                   Answer:
                 </Typography>
-                <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mb: 3, maxHeight: 'none', overflow: 'visible' }}>
+                <Typography
+                  variant="body2"
+                  sx={{ whiteSpace: 'pre-wrap', mb: 3, maxHeight: 'none', overflow: 'visible' }}
+                >
                   {result.llmResponse || 'No response available.'}
                 </Typography>
-                
+
                 {/* Web Search Queries Section */}
                 {result.toolUsage && (
                   <Box sx={{ mb: 3 }}>
-                    <Typography variant="subtitle2" fontWeight="bold" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Typography
+                      variant="subtitle2"
+                      fontWeight="bold"
+                      gutterBottom
+                      sx={{ display: 'flex', alignItems: 'center' }}
+                    >
                       <SearchIcon fontSize="small" sx={{ mr: 1 }} />
                       Web Search Queries:
                     </Typography>
@@ -225,15 +256,19 @@ const SentimentTab: React.FC<SentimentTabProps> = ({ results }) => {
                       <List dense disablePadding>
                         {(() => {
                           try {
-                            const toolUsageData = Array.isArray(result.toolUsage) 
+                            const toolUsageData = Array.isArray(result.toolUsage)
                               ? result.toolUsage
-                              : JSON.parse(typeof result.toolUsage === 'string' ? result.toolUsage : '[]');
-                            
-                            const webSearchTools = toolUsageData.filter((tool: ToolUseInfo) => 
-                              tool.type === 'web_search' || 
-                              tool.type === 'search' || 
-                              tool.type?.includes('search'));
-                            
+                              : JSON.parse(
+                                  typeof result.toolUsage === 'string' ? result.toolUsage : '[]',
+                                );
+
+                            const webSearchTools = toolUsageData.filter(
+                              (tool: ToolUseInfo) =>
+                                tool.type === 'web_search' ||
+                                tool.type === 'search' ||
+                                tool.type?.includes('search'),
+                            );
+
                             if (webSearchTools.length === 0) {
                               return (
                                 <ListItem>
@@ -241,7 +276,7 @@ const SentimentTab: React.FC<SentimentTabProps> = ({ results }) => {
                                 </ListItem>
                               );
                             }
-                            
+
                             return webSearchTools.map((tool: ToolUseInfo, i: number) => (
                               <ListItem key={i} divider={i < webSearchTools.length - 1}>
                                 <ListItemText
@@ -254,7 +289,9 @@ const SentimentTab: React.FC<SentimentTabProps> = ({ results }) => {
                             const errorMessage = err?.message || 'Unknown error';
                             return (
                               <ListItem>
-                                <ListItemText primary={`Error parsing tool usage data: ${errorMessage}`} />
+                                <ListItemText
+                                  primary={`Error parsing tool usage data: ${errorMessage}`}
+                                />
                               </ListItem>
                             );
                           }
@@ -263,21 +300,94 @@ const SentimentTab: React.FC<SentimentTabProps> = ({ results }) => {
                     </Card>
                   </Box>
                 )}
-                
+
                 {/* Display Web Search Queries from the result object directly if available */}
-                {result.webSearchQueries && result.webSearchQueries.length > 0 && !result.toolUsage && (
+                {result.webSearchQueries &&
+                  result.webSearchQueries.length > 0 &&
+                  !result.toolUsage && (
+                    <Box sx={{ mb: 3 }}>
+                      <Typography
+                        variant="subtitle2"
+                        fontWeight="bold"
+                        gutterBottom
+                        sx={{ display: 'flex', alignItems: 'center' }}
+                      >
+                        <SearchIcon fontSize="small" sx={{ mr: 1 }} />
+                        Web Search Queries:
+                      </Typography>
+                      <Card variant="outlined">
+                        <List dense disablePadding>
+                          {result.webSearchQueries.map((query, i) => (
+                            <ListItem key={i} divider={i < result.webSearchQueries!.length - 1}>
+                              <ListItemText
+                                primary={`Query: ${query.query}`}
+                                secondary={`Status: ${query.status} (${query.provider})`}
+                              />
+                            </ListItem>
+                          ))}
+                        </List>
+                      </Card>
+                    </Box>
+                  )}
+
+                {/* Citations Section */}
+                {result.citations && result.citations.length > 0 && (
                   <Box sx={{ mb: 3 }}>
-                    <Typography variant="subtitle2" fontWeight="bold" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                      <SearchIcon fontSize="small" sx={{ mr: 1 }} />
-                      Web Search Queries:
+                    <Typography
+                      variant="subtitle2"
+                      fontWeight="bold"
+                      gutterBottom
+                      sx={{ display: 'flex', alignItems: 'center' }}
+                    >
+                      <LinkIcon fontSize="small" sx={{ mr: 1 }} />
+                      Citations:
                     </Typography>
                     <Card variant="outlined">
                       <List dense disablePadding>
-                        {result.webSearchQueries.map((query, i) => (
-                          <ListItem key={i} divider={i < result.webSearchQueries!.length - 1}>
+                        {(Array.isArray(result.citations)
+                          ? result.citations
+                          : JSON.parse(
+                              typeof result.citations === 'string' ? result.citations : '[]',
+                            )
+                        ).map((citation: SourceCitation, i: number) => (
+                          <ListItem
+                            key={i}
+                            divider={
+                              i <
+                              (Array.isArray(result.citations)
+                                ? result.citations.length
+                                : JSON.parse(
+                                    typeof result.citations === 'string' ? result.citations : '[]',
+                                  ).length) -
+                                1
+                            }
+                          >
                             <ListItemText
-                              primary={`Query: ${query.query}`}
-                              secondary={`Status: ${query.status} (${query.provider})`}
+                              primary={citation.title || 'Untitled Source'}
+                              secondary={
+                                <>
+                                  <a
+                                    href={citation.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{ color: 'inherit', wordBreak: 'break-all' }}
+                                  >
+                                    {citation.url}
+                                  </a>
+                                  {citation.text && (
+                                    <Box
+                                      sx={{
+                                        mt: 1,
+                                        fontSize: '0.85rem',
+                                        fontStyle: 'italic',
+                                        color: 'text.secondary',
+                                      }}
+                                    >
+                                      "{citation.text}"
+                                    </Box>
+                                  )}
+                                </>
+                              }
                             />
                           </ListItem>
                         ))}
@@ -285,51 +395,7 @@ const SentimentTab: React.FC<SentimentTabProps> = ({ results }) => {
                     </Card>
                   </Box>
                 )}
-                
-                {/* Citations Section */}
-                {result.citations && result.citations.length > 0 && (
-                  <Box sx={{ mb: 3 }}>
-                    <Typography variant="subtitle2" fontWeight="bold" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                      <LinkIcon fontSize="small" sx={{ mr: 1 }} />
-                      Citations:
-                    </Typography>
-                    <Card variant="outlined">
-                      <List dense disablePadding>
-                        {(Array.isArray(result.citations) 
-                          ? result.citations
-                          : JSON.parse(typeof result.citations === 'string' ? result.citations : '[]'))
-                          .map((citation: SourceCitation, i: number) => (
-                            <ListItem key={i} divider={i < (Array.isArray(result.citations) 
-                              ? result.citations.length 
-                              : JSON.parse(typeof result.citations === 'string' ? result.citations : '[]').length) - 1}>
-                              <ListItemText
-                                primary={citation.title || 'Untitled Source'}
-                                secondary={
-                                  <>
-                                    <a
-                                      href={citation.url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      style={{ color: 'inherit', wordBreak: 'break-all' }}
-                                    >
-                                      {citation.url}
-                                    </a>
-                                    {citation.text && (
-                                      <Box sx={{ mt: 1, fontSize: '0.85rem', fontStyle: 'italic', color: 'text.secondary' }}>
-                                        "{citation.text}"
-                                      </Box>
-                                    )}
-                                  </>
-                                }
-                              />
-                            </ListItem>
-                          ))
-                        }
-                      </List>
-                    </Card>
-                  </Box>
-                )}
-                
+
                 {result.error && (
                   <>
                     <Typography variant="subtitle2" color="error" gutterBottom sx={{ mt: 2 }}>

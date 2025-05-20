@@ -4,15 +4,15 @@ import { IdentityCardController } from './controllers/identity-card.controller';
 import { IdentityCardService } from './services/identity-card.service';
 import { IdentityCardRepository } from './repositories/identity-card.repository';
 import { IdentityCard, IdentityCardSchema } from './schemas/identity-card.schema';
-import { User, UserSchema } from '../user/schemas/user.schema';
+import { UserModule } from '../user/user.module';
 import { LlmModule } from '../llm/llm.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: IdentityCard.name, schema: IdentityCardSchema },
-      { name: User.name, schema: UserSchema },
     ]),
+    UserModule,
     LlmModule,
   ],
   controllers: [IdentityCardController],

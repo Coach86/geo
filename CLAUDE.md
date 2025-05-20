@@ -154,3 +154,4 @@ When running tests, we use specific ports to avoid conflicts:
 
 ## CODE GUIDELINES
 - **Files should not have more than 300 lines, consider breaking it into multiple files**
+- YOU NEVER NEVER USE any for typing. 

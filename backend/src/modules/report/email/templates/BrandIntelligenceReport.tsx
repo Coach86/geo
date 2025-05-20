@@ -60,30 +60,22 @@ export const BrandIntelligenceReport: React.FC<BrandIntelligenceReportProps> = (
           model: 'ChatGPT‑4o',
           sentiment: '+0.35',
           status: 'green',
-          positives: 'affordable, eco',
-          negatives: 'limited warranty',
+          positiveKeywords: ['affordable', 'eco-friendly'],
+          negativeKeywords: ['limited warranty'],
         },
         {
           model: 'Claude 3',
           sentiment: '+0.18',
           status: 'yellow',
-          positives: 'reliable, fast ship',
-          negatives: 'pricey',
+          positiveKeywords: ['reliable', 'fast shipping'],
+          negativeKeywords: ['pricey'],
         },
         {
           model: 'Gemini',
           sentiment: '+0.05',
           status: 'yellow',
-          positives: 'cheap, easy buy',
-          negatives: 'quality doubts',
-        },
-        {
-          model: 'Global Avg',
-          sentiment: '+0.20',
-          status: 'green',
-          positives: '—',
-          negatives: '—',
-          isAverage: true,
+          positiveKeywords: ['cheap', 'easy buy'],
+          negativeKeywords: ['quality doubts'],
         },
       ],
       questions: [
@@ -94,25 +86,29 @@ export const BrandIntelligenceReport: React.FC<BrandIntelligenceReportProps> = (
               model: 'ChatGPT‑4o',
               sentiment: '+0.35',
               status: 'green',
-              keywords: 'affordable, eco-friendly',
+              positiveKeywords: ['affordable', 'eco-friendly'],
+              negativeKeywords: ['limited warranty'],
             },
             {
               model: 'Claude 3',
               sentiment: '+0.18',
               status: 'yellow',
-              keywords: 'reliable, somewhat pricey',
+              positiveKeywords: ['reliable'],
+              negativeKeywords: ['somewhat pricey'],
             },
             {
               model: 'Mistral Large',
               sentiment: '+0.22',
               status: 'green',
-              keywords: 'good quality, trusted',
+              positiveKeywords: ['good quality', 'trusted'],
+              negativeKeywords: ['limited warranty'],
             },
             {
               model: 'Gemini 1.5 Pro',
               sentiment: '+0.05',
               status: 'yellow',
-              keywords: 'mixed reviews',
+              positiveKeywords: ['mixed reviews'],
+              negativeKeywords: ['limited warranty'],
             },
           ],
         },
@@ -123,7 +119,8 @@ export const BrandIntelligenceReport: React.FC<BrandIntelligenceReportProps> = (
               model: 'ChatGPT‑4o',
               sentiment: '+0.30',
               status: 'green',
-              keywords: 'sustainable vs limited options',
+              positiveKeywords: ['sustainable'],
+              negativeKeywords: ['limited options'],
             },
             {
               model: 'Claude 3',
@@ -373,11 +370,11 @@ export const BrandIntelligenceReport: React.FC<BrandIntelligenceReportProps> = (
           <ReportHeader brand={reportData.brand} metadata={reportData.metadata} />
         </Section>
         <ExecutiveSummary kpi={reportData.kpi} />
-        <PulseSection data={reportData.pulse} />
-        <ToneSection data={reportData.tone} />
+        {/* <PulseSection data={reportData.pulse} /> */}
+        {/* <ToneSection data={reportData.tone} /> */}
         <AccordSection data={reportData.accord} />
-        <ArenaSection data={reportData.arena} />
-        <ArenaBattleSection data={reportData.arena.battle} />
+        {reportData.arena && <ArenaSection data={reportData.arena} />}
+        {reportData.arena.battle && <ArenaBattleSection data={reportData.arena.battle} />}
       </Section>
 
       {/* Footer */}

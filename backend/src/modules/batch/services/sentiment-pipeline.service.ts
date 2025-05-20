@@ -9,7 +9,12 @@ import {
   SentimentResults,
   WebSearchSummary,
 } from '../interfaces/batch.interfaces';
-import { AnalyzerConfig, LlmModelConfig, PipelineType, PromptType } from '../interfaces/llm.interfaces';
+import {
+  AnalyzerConfig,
+  LlmModelConfig,
+  PipelineType,
+  PromptType,
+} from '../interfaces/llm.interfaces';
 import { BasePipelineService } from './base-pipeline.service';
 import { SystemPrompts, PromptTemplates, formatPrompt } from '../prompts/prompts';
 
@@ -102,7 +107,8 @@ export class SentimentPipelineService extends BasePipelineService {
                   promptIndex: i,
                   sentiment: 'neutral' as 'positive' | 'neutral' | 'negative',
                   accuracy: 0,
-                  extractedFacts: [],
+                  extractedPositiveKeywords: [],
+                  extractedNegativeKeywords: [],
                   originalPrompt: formattedPrompts[i],
                   error: error.message,
                 };
@@ -179,9 +185,12 @@ export class SentimentPipelineService extends BasePipelineService {
       sentiment: z
         .enum(['positive', 'neutral', 'negative'])
         .describe('Overall sentiment towards the brand'),
-      extractedFacts: z
+      extractedPositiveKeywords: z
         .array(z.string())
-        .describe('Key facts or opinions extracted from the response'),
+        .describe('Key words or phrases extracted from the response that are positive'),
+      extractedNegativeKeywords: z
+        .array(z.string())
+        .describe('Key words or phrases extracted from the response that are negative'),
     });
 
     // Format the user prompt using the template
@@ -199,7 +208,7 @@ export class SentimentPipelineService extends BasePipelineService {
         SystemPrompts.SENTIMENT_ANALYSIS,
         llmResponseObj.batchExecutionId, // Pass the batch execution ID if available
         promptIndex, // Pass the prompt index
-        PromptType.DIRECT, // Pass the prompt type using enum
+        PromptType.SENTIMENT, // Pass the prompt type using enum
         prompt, // Pass the original prompt
         llmResponse, // Pass the original LLM response
         modelConfig.model, // Pass the original LLM model
@@ -211,7 +220,8 @@ export class SentimentPipelineService extends BasePipelineService {
         promptIndex,
         sentiment: result.sentiment,
         accuracy: 0, // Set default accuracy to 0, will be filled by accuracy pipeline
-        extractedFacts: result.extractedFacts,
+        extractedPositiveKeywords: result.extractedPositiveKeywords,
+        extractedNegativeKeywords: result.extractedNegativeKeywords,
         originalPrompt: prompt,
         llmResponse,
         // Include web search and citation information if available
@@ -304,7 +314,7 @@ export class SentimentPipelineService extends BasePipelineService {
     if (validResults.length === 0) {
       return {
         overallSentiment: 'neutral',
-        averageAccuracy: 0, // Will be filled by accuracy pipeline
+        overallSentimentPercentage: 0,
       };
     }
 
@@ -312,12 +322,16 @@ export class SentimentPipelineService extends BasePipelineService {
     let positiveCount = 0;
     let neutralCount = 0;
     let negativeCount = 0;
+    let overallSentimentPercentage = 0;
 
     for (const result of validResults) {
       if (result.sentiment === 'positive') positiveCount++;
       else if (result.sentiment === 'neutral') neutralCount++;
       else if (result.sentiment === 'negative') negativeCount++;
+      overallSentimentPercentage +=
+        result.sentiment === 'positive' ? 1 : result.sentiment === 'neutral' ? 0 : -1;
     }
+    overallSentimentPercentage = overallSentimentPercentage / validResults.length;
 
     // Determine overall sentiment
     let overallSentiment: 'positive' | 'neutral' | 'negative';
@@ -331,7 +345,7 @@ export class SentimentPipelineService extends BasePipelineService {
 
     return {
       overallSentiment,
-      averageAccuracy: 0, // Will be filled by accuracy pipeline
+      overallSentimentPercentage,
     };
   }
 }

@@ -36,20 +36,21 @@ import EmailIcon from '@mui/icons-material/Email';
 import {
   getCompanyById,
   getPromptSet,
-  runFullBatchAnalysis,
   deleteCompany,
   runBatchWithEmailNotification,
+  getBatchExecution,
 } from '../utils/api';
 import {
   runSpontaneousPipeline,
   runSentimentPipeline,
   runComparisonPipeline,
   runAccuracyPipeline,
-  getBatchExecution,
+  runFullBatchAnalysis,
 } from '../utils/api-batch';
 import authApi from '../utils/auth';
 import BatchProcessingOverlay, { BatchProcessStage } from '../components/BatchProcessingOverlay';
 import {
+  BatchType,
   CompanyIdentityCard,
   PromptSet,
   SpontaneousResults,
@@ -104,7 +105,7 @@ const CompanyDetail: React.FC = () => {
   const [batchError, setBatchError] = useState<string | undefined>(undefined);
 
   // Add batchType state
-  const [batchType, setBatchType] = useState<'full' | 'spontaneous' | 'sentiment' | 'comparison' | 'accuracy'>(
+  const [batchType, setBatchType] = useState<'full' | BatchType>(
     'full',
   );
 
@@ -167,14 +168,15 @@ const CompanyDetail: React.FC = () => {
         setBatchStage('processing');
         setBatchProgress(20);
 
-        // Start the batch process and get the batch ID
-        const response = await authApi.post(`/batch/process/${id}`);
-
-        if (!response.data.success) {
-          throw new Error(response.data.error || 'Failed to run batch analysis');
+        // Use the runFullBatchAnalysis utility function instead of direct API call
+        // This avoids potential duplicate requests
+        const { batchExecutionId, alreadyRunning } = await runFullBatchAnalysis(id);
+        
+        // If a batch is already running, update the UI to reflect this
+        if (alreadyRunning) {
+          setBatchStage('processing');
+          setBatchProgress(40); // Set higher progress since it's already running
         }
-
-        const batchExecutionId = response.data.batchExecutionId;
 
         // Set progress to show we're polling
         setBatchProgress(30);
@@ -203,13 +205,13 @@ const CompanyDetail: React.FC = () => {
 
                 // Parse the results
                 const spontaneousResult = batchExecution.finalResults.find(
-                  (r: any) => r.resultType === 'spontaneous',
+                  (r: any) => r.resultType === BatchType.SPONTANEOUS,
                 );
                 const sentimentResult = batchExecution.finalResults.find(
-                  (r: any) => r.resultType === 'sentiment',
+                  (r: any) => r.resultType === BatchType.SENTIMENT,
                 );
                 const comparisonResult = batchExecution.finalResults.find(
-                  (r: any) => r.resultType === 'comparison',
+                  (r: any) => r.resultType === BatchType.COMPARISON,
                 );
 
                 if (batchType === 'full') {
@@ -218,15 +220,15 @@ const CompanyDetail: React.FC = () => {
                       'Missing batch results. Not all pipeline results are available.',
                     );
                   }
-                } else if (batchType === 'spontaneous' && !spontaneousResult) {
+                } else if (batchType === BatchType.SPONTANEOUS && !spontaneousResult) {
                   throw new Error('Spontaneous analysis failed.');
-                } else if (batchType === 'sentiment' && !sentimentResult) {
+                } else if (batchType === BatchType.SENTIMENT && !sentimentResult) {
                   throw new Error('Sentiment analysis failed.');
-                } else if (batchType === 'comparison' && !comparisonResult) {
+                } else if (batchType === BatchType.COMPARISON && !comparisonResult) {
                   throw new Error('Comparison analysis failed.');
-                } else if (batchType === 'accuracy') {
+                } else if (batchType === BatchType.ACCURACY) {
                   const accuracyResult = batchExecution.finalResults.find(
-                    (r: any) => r.resultType === 'accuracy',
+                    (r: any) => r.resultType === BatchType.ACCURACY,
                   );
                   if (!accuracyResult) {
                     throw new Error('Accuracy analysis failed.');
@@ -245,7 +247,7 @@ const CompanyDetail: React.FC = () => {
                 }
                 // Add the accuracy result handling
                 const accuracyResult = batchExecution.finalResults.find(
-                  (r: any) => r.resultType === 'accuracy',
+                  (r: any) => r.resultType === BatchType.ACCURACY,
                 );
                 if (accuracyResult) {
                   setAccuracyResults(JSON.parse(accuracyResult.result));
@@ -376,7 +378,7 @@ const CompanyDetail: React.FC = () => {
     }
   };
 
-  const handleRunSingleBatch = async (type: 'spontaneous' | 'sentiment' | 'comparison' | 'accuracy') => {
+  const handleRunSingleBatch = async (type: BatchType) => {
     if (!id) return;
     setBatchType(type); // Set batch type
 
@@ -407,19 +409,19 @@ const CompanyDetail: React.FC = () => {
 
         try {
           switch (type) {
-            case 'spontaneous':
+            case BatchType.SPONTANEOUS:
               result = await runSpontaneousPipeline(id);
               setSpontaneousResults(result);
               break;
-            case 'sentiment':
+            case BatchType.SENTIMENT:
               result = await runSentimentPipeline(id);
               setSentimentResults(result);
               break;
-            case 'comparison':
+            case BatchType.COMPARISON:
               result = await runComparisonPipeline(id);
               setComparisonResults(result);
               break;
-            case 'accuracy':
+            case BatchType.ACCURACY:
               result = await runAccuracyPipeline(id);
               setAccuracyResults(result);
               break;

@@ -3,7 +3,10 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { BatchExecution, BatchExecutionDocument } from '../schemas/batch-execution.schema';
 import { BatchResult, BatchResultDocument } from '../schemas/batch-result.schema';
-import { IdentityCard, IdentityCardDocument } from '../../identity-card/schemas/identity-card.schema';
+import {
+  IdentityCard,
+  IdentityCardDocument,
+} from '../../identity-card/schemas/identity-card.schema';
 import { RawResponse, RawResponseDocument } from '../schemas/raw-response.schema';
 
 @Injectable()
@@ -14,7 +17,7 @@ export class BatchExecutionService {
     @InjectModel(BatchExecution.name) private batchExecutionModel: Model<BatchExecutionDocument>,
     @InjectModel(BatchResult.name) private batchResultModel: Model<BatchResultDocument>,
     @InjectModel(IdentityCard.name) private identityCardModel: Model<IdentityCardDocument>,
-    @InjectModel(RawResponse.name) private rawResponseModel: Model<RawResponseDocument>
+    @InjectModel(RawResponse.name) private rawResponseModel: Model<RawResponseDocument>,
   ) {}
 
   /**
@@ -25,7 +28,7 @@ export class BatchExecutionService {
   async createBatchExecution(companyId: string): Promise<any> {
     try {
       // Verify the company exists
-      const company = await this.identityCardModel.findOne({ id: companyId }).exec();
+      const company = await this.identityCardModel.findOne({ id: companyId }).lean().exec();
 
       if (!company) {
         throw new NotFoundException(`Company with ID ${companyId} not found`);
@@ -62,7 +65,10 @@ export class BatchExecutionService {
   ): Promise<any> {
     try {
       // Find the batch execution
-      const batchExecution = await this.batchExecutionModel.findOne({ id: batchExecutionId }).exec();
+      const batchExecution = await this.batchExecutionModel
+        .findOne({ id: batchExecutionId })
+        .lean()
+        .exec();
 
       if (!batchExecution) {
         throw new NotFoundException(`Batch execution ${batchExecutionId} not found`);
@@ -80,9 +86,7 @@ export class BatchExecutionService {
 
       const batchResult = await newBatchResult.save();
 
-      this.logger.log(
-        `Saved ${resultType} result for batch execution ${batchExecutionId}`,
-      );
+      this.logger.log(`Saved ${resultType} result for batch execution ${batchExecutionId}`);
 
       return batchResult;
     } catch (error) {
@@ -90,7 +94,7 @@ export class BatchExecutionService {
       throw error;
     }
   }
-  
+
   /**
    * Add web search queries to individual result items only
    * @param result The pipeline result to process
@@ -99,7 +103,7 @@ export class BatchExecutionService {
   private addWebSearchQueriesToResults(result: any): any {
     // Clone the result to avoid modifying the original object
     const enhancedResult = { ...result };
-    
+
     try {
       // Check if results array exists
       if (Array.isArray(enhancedResult.results)) {
@@ -107,33 +111,38 @@ export class BatchExecutionService {
         enhancedResult.results.forEach((resultItem: any) => {
           if (resultItem.toolUsage) {
             // Get the tool usage data
-            const toolUsageData = Array.isArray(resultItem.toolUsage) 
+            const toolUsageData = Array.isArray(resultItem.toolUsage)
               ? resultItem.toolUsage
-              : typeof resultItem.toolUsage === 'string' 
-                ? JSON.parse(resultItem.toolUsage) 
+              : typeof resultItem.toolUsage === 'string'
+                ? JSON.parse(resultItem.toolUsage)
                 : [];
-                
+
             // Extract web search queries
-            const webSearchTools = toolUsageData.filter((tool: any) => 
-              tool.type === 'web_search' || 
-              tool.type === 'search' || 
-              tool.type?.includes('search'));
-            
+            const webSearchTools = toolUsageData.filter(
+              (tool: any) =>
+                tool.type === 'web_search' ||
+                tool.type === 'search' ||
+                tool.type?.includes('search'),
+            );
+
             // Store the web search queries directly in the result item only
             resultItem.webSearchQueries = webSearchTools.map((tool: any) => ({
               query: tool.parameters?.query || tool.parameters?.q || 'Unknown query',
               status: tool.execution_details?.status || 'Unknown status',
               timestamp: tool.execution_details?.timestamp || new Date().toISOString(),
-              provider: resultItem.llmProvider || 'Unknown'
+              provider: resultItem.llmProvider || 'Unknown',
             }));
           }
         });
       }
-      
+
       this.logger.log('Successfully added web search queries to individual results');
       return enhancedResult;
     } catch (error) {
-      this.logger.error(`Failed to add web search queries to results: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to add web search queries to results: ${error.message}`,
+        error.stack,
+      );
       // Return the original result if extraction fails
       return result;
     }
@@ -143,33 +152,68 @@ export class BatchExecutionService {
    * Update the status of a batch execution
    * @param batchExecutionId The ID of the batch execution
    * @param status The new status ('running', 'completed', 'failed')
+   * @param errorMessage Optional error message when status is 'failed'
    * @returns The updated batch execution
    */
   async updateBatchExecutionStatus(
     batchExecutionId: string,
     status: 'running' | 'completed' | 'failed',
+    errorMessage?: string,
   ): Promise<any> {
     try {
-      const batchExecution = await this.batchExecutionModel.findOneAndUpdate(
-        { id: batchExecutionId },
-        { status },
-        { new: true } // Return the updated document
-      ).exec();
+      // Prepare update object
+      const updateObj: any = { status };
+      
+      // Add error message if provided and status is failed
+      if (status === 'failed' && errorMessage) {
+        updateObj.errorMessage = errorMessage;
+      }
+      
+      const batchExecution = await this.batchExecutionModel
+        .findOneAndUpdate(
+          { id: batchExecutionId },
+          updateObj,
+          { new: true }, // Return the updated document
+        )
+        .lean()
+        .exec();
 
       if (!batchExecution) {
         throw new NotFoundException(`Batch execution ${batchExecutionId} not found`);
       }
 
-      this.logger.log(
-        `Updated batch execution ${batchExecutionId} status to ${status}`,
-      );
+      if (errorMessage) {
+        this.logger.log(`Updated batch execution ${batchExecutionId} status to ${status} with error: ${errorMessage}`);
+      } else {
+        this.logger.log(`Updated batch execution ${batchExecutionId} status to ${status}`);
+      }
 
       return batchExecution;
     } catch (error) {
-      this.logger.error(
-        `Failed to update batch execution status: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Failed to update batch execution status: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+  
+  /**
+   * Find stalled batch executions
+   * @param cutoffDate Date threshold for stalled batches (usually 2 hours ago)
+   * @returns Array of stalled batch executions
+   */
+  async findStalledBatchExecutions(cutoffDate: Date): Promise<any[]> {
+    try {
+      const stalledBatches = await this.batchExecutionModel
+        .find({
+          status: 'running',
+          createdAt: { $lt: cutoffDate }
+        })
+        .sort({ createdAt: -1 })
+        .lean()
+        .exec();
+        
+      return stalledBatches;
+    } catch (error) {
+      this.logger.error(`Failed to find stalled batch executions: ${error.message}`, error.stack);
       throw error;
     }
   }
@@ -182,20 +226,26 @@ export class BatchExecutionService {
   async getBatchExecution(batchExecutionId: string): Promise<any> {
     try {
       // Get the batch execution
-      const batchExecution = await this.batchExecutionModel.findOne({ id: batchExecutionId }).exec();
+      const batchExecution = await this.batchExecutionModel
+        .findOne({ id: batchExecutionId })
+        .lean()
+        .exec();
 
       if (!batchExecution) {
         throw new NotFoundException(`Batch execution ${batchExecutionId} not found`);
       }
 
       // Get the associated results
-      const batchResults = await this.batchResultModel.find({ batchExecutionId }).exec();
+      const batchResults = await this.batchResultModel.find({ batchExecutionId }).lean().exec();
 
       // Get the company details
-      const identityCard = await this.identityCardModel.findOne({ id: batchExecution.companyId }).exec();
+      const identityCard = await this.identityCardModel
+        .findOne({ id: batchExecution.companyId })
+        .lean()
+        .exec();
 
       return {
-        ...batchExecution.toObject(),
+        ...batchExecution,  // Using lean() so it's already a plain object
         finalResults: batchResults,
         identityCard: identityCard,
       };
@@ -215,6 +265,7 @@ export class BatchExecutionService {
       const rawResponses = await this.rawResponseModel
         .find({ batchExecutionId })
         .sort({ promptType: 1, promptIndex: 1, llmProvider: 1 })
+        .lean()
         .exec();
 
       return rawResponses;
@@ -235,28 +286,33 @@ export class BatchExecutionService {
       const batchExecutions = await this.batchExecutionModel
         .find({ companyId })
         .sort({ executedAt: -1 })
+        .lean()
         .exec();
 
       // Get all batch execution IDs
-      const batchExecutionIds = batchExecutions.map(be => be.id);
+      const batchExecutionIds = batchExecutions.map((be) => be.id);
 
       // Get all batch results for these executions
       const batchResults = await this.batchResultModel
         .find({ batchExecutionId: { $in: batchExecutionIds } })
+        .lean()
         .exec();
 
       // Group batch results by execution ID
-      const resultsMap: Record<string, any[]> = batchResults.reduce((map: Record<string, any[]>, result) => {
-        if (!map[result.batchExecutionId]) {
-          map[result.batchExecutionId] = [];
-        }
-        map[result.batchExecutionId].push(result);
-        return map;
-      }, {});
+      const resultsMap: Record<string, any[]> = batchResults.reduce(
+        (map: Record<string, any[]>, result) => {
+          if (!map[result.batchExecutionId]) {
+            map[result.batchExecutionId] = [];
+          }
+          map[result.batchExecutionId].push(result);
+          return map;
+        },
+        {},
+      );
 
       // Combine the data
-      return batchExecutions.map(execution => ({
-        ...execution.toObject(),
+      return batchExecutions.map((execution) => ({
+        ...execution,  // Using lean() so it's already a plain object
         finalResults: resultsMap[execution.id] || [],
       }));
     } catch (error) {

@@ -14,6 +14,7 @@ import {
 import { InfoIcon } from "lucide-react";
 
 interface PulseSectionProps {
+  globalAverage: number;
   data: {
     promptsTested: number;
     modelVisibility: {
@@ -21,12 +22,14 @@ interface PulseSectionProps {
       value: number;
       isAverage?: boolean;
     }[];
-    globalAverage: number;
   };
 }
 
-export default function PulseSection({ data }: PulseSectionProps) {
-  const { modelVisibility, globalAverage } = data;
+export default function PulseSection({
+  data,
+  globalAverage,
+}: PulseSectionProps) {
+  const { modelVisibility } = data;
   // Sort data by value in descending order, but keep Global Avg at the end
   const sortedData = [...modelVisibility].sort((a, b) => b.value - a.value);
 
