@@ -70,24 +70,19 @@ export default function ToneSection({ data, globalAverage }: ToneSectionProps) {
 
   // Fonction pour obtenir la valeur numérique du sentiment
   const getSentimentValue = (sentiment: string) => {
-    if (sentiment.startsWith("+")) {
-      return Number.parseFloat(sentiment.substring(1));
-    } else if (sentiment.startsWith("-")) {
-      return Number.parseFloat(sentiment);
-    }
-    return 0;
+    return Number.parseFloat(sentiment);
   };
 
   // Fonction pour obtenir la position relative sur une échelle de -1 à +1
   const getSentimentPosition = (sentiment: string) => {
     const value = getSentimentValue(sentiment);
     // Convertir de -1...+1 à 0...100%
-    return ((value + 1) / 2) * 100;
+    return ((value + 1) / 2) * 100 - 1;
   };
 
   // Fonction pour convertir le sentiment en pourcentage
   const getSentimentPercentage = (sentiment: string) => {
-    return Math.round(getSentimentPosition(sentiment));
+    return Math.round(getSentimentValue(sentiment) * 100);
   };
 
   // Fonction pour extraire la valeur numérique du KPI

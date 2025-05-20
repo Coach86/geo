@@ -87,15 +87,9 @@ export class ReportTransformationService {
       const sentimentValue =
         modelResults.reduce((sum: number, result: any) => {
           return (
-            sum +
-            (result.sentiment === 'positive' ? 0.5 : result.sentiment === 'negative' ? -0.5 : 0)
+            sum + (result.sentiment === 'positive' ? 1 : result.sentiment === 'negative' ? -1 : 0)
           );
         }, 0) / (modelResults.length || 1);
-
-      // Format to +/- number with 2 decimal places
-      const formattedSentiment =
-        sentimentValue > 0 ? `+${sentimentValue.toFixed(2)}` : sentimentValue.toFixed(2);
-
       // Get status based on sentiment
       const status = sentimentValue > 0.3 ? 'green' : sentimentValue < -0.3 ? 'red' : 'yellow';
 
@@ -105,7 +99,7 @@ export class ReportTransformationService {
 
       return {
         model: provider,
-        sentiment: formattedSentiment,
+        sentiment: `${sentimentValue}`,
         status,
         positiveKeywords: positives || ['No positive keywords found'],
         negativeKeywords: negatives || ['No negative keywords found'],
@@ -398,15 +392,6 @@ export class ReportTransformationService {
         status,
       },
     };
-  }
-
-  /**
-   * Helper to format sentiment value like +0.35 or -0.35
-   */
-  formatSentimentValue(sentiment: 'positive' | 'neutral' | 'negative' | undefined): string {
-    if (sentiment === 'positive') return '+0.35';
-    if (sentiment === 'negative') return '-0.35';
-    return '0.00';
   }
 
   /**
