@@ -67,7 +67,7 @@ export default function PulseSection({
             <div>
               <div className="flex items-center mb-1">
                 <h3 className="text-3xl font-bold text-gray-900">
-                  {globalAverage}%
+                  {globalAverage}
                 </h3>
                 <span className="ml-2 px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
                   Global Average

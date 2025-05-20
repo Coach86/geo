@@ -93,10 +93,9 @@ export class ReportConverterService {
       .map((provider) => `${provider}`)
       .join(', ');
 
+    this.logger.debug(`input.sentiment ${JSON.stringify(input.sentiment?.summary)}`);
     // Format sentiment value and status with helper methods
-    const sentimentValue = this.transformationService.formatSentimentValue(
-      input.sentiment?.summary?.overallSentiment || 'neutral',
-    );
+    const sentimentValue = input.sentiment?.summary?.overallSentimentPercentage;
 
     const sentimentStatus = this.transformationService.getSentimentStatus(
       input.sentiment?.summary?.overallSentiment || 'neutral',
@@ -126,11 +125,11 @@ export class ReportConverterService {
       },
       kpi: {
         pulse: {
-          value: `${this.formatPercentage(input.spontaneous?.summary?.mentionRate)}%`,
+          value: `${this.formatPercentage(input.spontaneous?.summary?.mentionRate)}`,
           description: 'Global Visibility Score across all tested models',
         },
         tone: {
-          value: sentimentValue,
+          value: `${this.formatPercentage(sentimentValue)}`,
           status: sentimentStatus,
           description: 'Overall sentiment score across all models',
         },
