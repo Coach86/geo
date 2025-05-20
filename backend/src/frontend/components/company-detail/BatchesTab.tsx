@@ -57,7 +57,7 @@ const BatchesTab: React.FC<BatchesTabProps> = ({ companyId, onRunNewBatch, onRun
   const open = Boolean(menuAnchorEl);
 
   // States for report generation
-  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [generatingReportIds, setGeneratingReportIds] = useState<string[]>([]);
   const [reportSnackbarOpen, setReportSnackbarOpen] = useState(false);
   const [reportSnackbarMessage, setReportSnackbarMessage] = useState('');
 
@@ -99,7 +99,9 @@ const BatchesTab: React.FC<BatchesTabProps> = ({ companyId, onRunNewBatch, onRun
   // Handle generation of report from batch execution without sending an email
   const handleGenerateReport = async (batchId: string) => {
     try {
-      setIsGeneratingReport(true);
+      // Add this batch ID to the list of batches that are generating reports
+      setGeneratingReportIds(prevIds => [...prevIds, batchId]);
+      
       const result = await generateReportFromBatch(batchId);
 
       // Create a simple success message
@@ -112,7 +114,8 @@ const BatchesTab: React.FC<BatchesTabProps> = ({ companyId, onRunNewBatch, onRun
       setReportSnackbarMessage('Failed to generate report. Please try again.');
       setReportSnackbarOpen(true);
     } finally {
-      setIsGeneratingReport(false);
+      // Remove this batch ID from the list when done
+      setGeneratingReportIds(prevIds => prevIds.filter(id => id !== batchId));
     }
   };
 
@@ -389,13 +392,13 @@ const BatchesTab: React.FC<BatchesTabProps> = ({ companyId, onRunNewBatch, onRun
                             size="small"
                             color="secondary"
                             onClick={() => handleGenerateReport(batch.id)}
-                            disabled={isGeneratingReport}
+                            disabled={generatingReportIds.includes(batch.id)}
                             sx={{
                               p: 1,
                               border: `1px solid ${alpha(theme.palette.secondary.main, 0.5)}`,
                             }}
                           >
-                            {isGeneratingReport ? (
+                            {generatingReportIds.includes(batch.id) ? (
                               <CircularProgress size={16} />
                             ) : (
                               <ArticleIcon sx={{ fontSize: '1rem' }} />
