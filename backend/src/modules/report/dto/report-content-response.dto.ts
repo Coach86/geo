@@ -1,8 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
+import {
+  ModelVisibility,
+  SentimentResult,
+  Question,
+  AttributeItem,
+  Competitor,
+  CompetitorComparison,
+  ModelComparison,
+} from '../interfaces/report-types';
 
 /**
- * This DTO matches the BrandIntelligenceReportData interface defined in the email/utils/types.ts file
- * to ensure consistent structure between the API and the frontend components
+ * This DTO matches the WeeklyBrandReportEntity structure and is used
+ * as a response type for the report content API
  */
 export class ReportContentResponseDto {
   // Basic report information
@@ -39,12 +48,12 @@ export class ReportContentResponseDto {
     };
     tone: {
       value: string; // Sentiment score (e.g., "+0.35")
-      status: string; // Status color (green/yellow/red)
+      status: 'green' | 'yellow' | 'red' | string; // Status color
       description: string; // Description of the KPI
     };
     accord: {
       value: string; // Brand compliance score (e.g., "7.4/10")
-      status: string; // Status color (green/yellow/red)
+      status: 'green' | 'yellow' | 'red' | string; // Status color
       description: string; // Description of the KPI
     };
     arena: {
@@ -57,94 +66,47 @@ export class ReportContentResponseDto {
   @ApiProperty({ description: 'Pulse section data', type: 'object', additionalProperties: true })
   pulse: {
     promptsTested: number; // Number of prompts tested
-    modelVisibility: Array<{
-      model: string; // Model name (e.g., "Claude 3")
-      value: number; // Visibility percentage (0-100)
-      isAverage?: boolean; // Whether this entry is the average value
-    }>;
+    modelVisibility: ModelVisibility[];
   };
 
   // Tone section - sentiment analysis across LLM models
   @ApiProperty({ description: 'Tone section data', type: 'object', additionalProperties: true })
   tone: {
-    sentiments: Array<{
-      model: string; // Model name
-      sentiment: string; // Sentiment score (e.g., "+0.42")
-      status: string; // Status color (green/yellow/red)
-      positives: string; // Comma-separated positive attributes
-      negatives: string; // Comma-separated negative attributes
-      isAverage?: boolean; // Whether this entry is the average value
-    }>;
-    questions: Array<{
-      question: string; // Question asked to LLMs
-      results: Array<{
-        model: string; // Model name
-        sentiment: string; // Sentiment score
-        status: string; // Status color (green/yellow/red)
-        keywords: string; // Keywords from the response
-      }>;
-    }>;
+    sentiments: SentimentResult[];
+    questions: Question[];
   };
 
   // Accord section - brand attribute alignment
   @ApiProperty({ description: 'Accord section data', type: 'object', additionalProperties: true })
   accord: {
-    attributes: Array<{
-      name: string; // Attribute name (e.g., "Innovation")
-      rate: string; // Percentage (e.g., "82%")
-      alignment: string; // Alignment indicator (✅/⚠️/❌)
-    }>;
+    attributes: AttributeItem[];
     score: {
       value: string; // Overall score (e.g., "7.4/10")
-      status: string; // Status color (green/yellow/red)
+      status: 'green' | 'yellow' | 'red' | string; // Status color
     };
   };
 
   // Arena section - competitor comparison
   @ApiProperty({ description: 'Arena section data', type: 'object', additionalProperties: true })
   arena: {
-    competitors: Array<{
-      name: string; // Competitor name
-      chatgpt: number; // Rank in ChatGPT responses (1-3)
-      claude: number; // Rank in Claude responses (1-3)
-      mistral: number; // Rank in Mistral responses (1-3)
-      gemini: number; // Rank in Gemini responses (1-3)
-      global: string; // Global percentage (e.g., "65%")
-      size: string; // Size indicator for visualization (lg/md/sm)
-      sentiment: string; // Overall sentiment (positive/neutral/negative)
-    }>;
+    competitors: Competitor[];
     battle: {
-      competitors: Array<{
-        name: string; // Competitor name
-        comparisons: Array<{
-          model: string; // Model name
-          positives: string[]; // Positive differentiators
-          negatives: string[]; // Negative differentiators
-        }>;
-      }>;
-      chatgpt?: {
-        // ChatGPT-specific summaries
-        positives: string[];
-        negatives: string[];
-      };
-      claude?: {
-        // Claude-specific summaries
-        positives: string[];
-        negatives: string[];
-      };
+      competitors: CompetitorComparison[];
+      chatgpt?: ModelComparison;
+      claude?: ModelComparison;
     };
   };
 
-  // Raw data for debugging (not visible to frontend)
+  // Raw data for debugging (only visible in development)
   @ApiProperty({
     description: 'Raw data from database (for debugging)',
     type: 'object',
     additionalProperties: true,
   })
   rawData?: {
-    spontaneous: any; // Raw spontaneous data from database
-    sentiment: any; // Raw sentiment data from database
-    comparison: any; // Raw comparison data from database
-    llmVersions: Record<string, string>; // LLM version information
+    spontaneous?: any;
+    sentiment?: any;
+    comparison?: any;
+    accord?: any;
   };
 }

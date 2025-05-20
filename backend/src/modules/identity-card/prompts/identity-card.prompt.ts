@@ -58,11 +58,13 @@ export function buildCompetitorsPrompt({
   scrapedData,
   brandName,
   industry,
+  market,
 }: {
   url: string;
   scrapedData: ScrapedWebsite;
   brandName: string;
   industry: string;
+  market: string;
 }): string {
   // Check if we have meaningful scraped data to include
   const hasScrapedData =
@@ -87,16 +89,19 @@ export function buildCompetitorsPrompt({
   }
 
   return `
-    I need to identify the main competitors for ${brandName}, a company in the ${industry} industry with website ${url}.
+    ## GOAL:
+    I need to identify the main competitors for "${brandName}", a company in the ${industry} industry (website: ${url}), whose competitors operate in the ${market} market.
 
     IMPORTANT: You have the capability to search the web. First, search the web for up-to-date information about this company's competitors.
     Look for industry reports, market analysis, business directories, and comparison sites.
     ${hasScrapedData ? promptWithScrapedData : ''}
 
+    ## INSTRUCTIONS:
     Based on your web search${hasScrapedData ? ' AND the scraped data above' : ''}, please identify 3-5 direct competitors of ${brandName}.
     Return the biggest competitors (per revenues and/or market share, traffic, etc.) in order of importance.
     These should be actual company names that compete in the same market space, not generic categories.
 
+    ## OUTPUT:
     Return your analysis as a valid JSON object with the following structure:
   `;
 }

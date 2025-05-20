@@ -3,11 +3,11 @@
  */
 
 // Import the batch result interfaces so we can reference them
-import { 
-  SpontaneousResults, 
-  SentimentResults, 
+import {
+  SpontaneousResults,
+  SentimentResults,
   ComparisonResults,
-  AccuracyResults
+  AccuracyResults,
 } from '../../batch/interfaces/batch.interfaces';
 
 /**
@@ -18,25 +18,25 @@ import {
 export interface BatchReportInput {
   /** Company identifier */
   companyId: string;
-  
+
   /** Start of the week (Monday 00:00:00 UTC) */
   weekStart: Date;
-  
+
   /** Spontaneous mention results from the spontaneous pipeline */
-  spontaneous: SpontaneousResults;
-  
+  spontaneous?: SpontaneousResults;
+
   /** Sentiment analysis results from the sentiment pipeline */
-  sentimentAccuracy: SentimentResults;
-  
+  sentiment?: SentimentResults;
+
   /** Accuracy analysis results from the accuracy pipeline */
-  accuracy?: AccuracyResults;
-  
+  accord?: AccuracyResults;
+
   /** Comparison results from the comparison pipeline */
-  comparison: ComparisonResults;
-  
+  comparison?: ComparisonResults;
+
   /** Model identifiers for each LLM used in batch processing */
   llmVersions: Record<string, string>;
-  
+
   /** When the report data was generated */
   generatedAt: Date;
 }

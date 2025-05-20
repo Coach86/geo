@@ -29,13 +29,14 @@ export class WeeklyReportResponseDto {
     description: 'Sentiment and accuracy results per LLM and prompt',
     type: Object,
   })
-  sentimentAccuracy: {
+  sentiment: {
     results: Array<{
       llmProvider: string;
       promptIndex: number;
       sentiment: 'positive' | 'neutral' | 'negative';
       accuracy: number;
-      extractedFacts: string[];
+      extractedPositiveKeywords: string[];
+      extractedNegativeKeywords: string[];
     }>;
     summary: {
       overallSentiment: 'positive' | 'neutral' | 'negative';

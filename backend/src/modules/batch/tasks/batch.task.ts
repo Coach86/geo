@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { BatchService } from '../services/batch.service';
 import { CompanyBatchOrchestratorService } from '../services/company-batch-orchestrator.service';
+import { BatchExecutionService } from '../services/batch-execution.service';
 
 @Injectable()
 export class BatchTask {
@@ -13,6 +14,7 @@ export class BatchTask {
     private readonly configService: ConfigService,
     private readonly batchService: BatchService,
     private readonly batchOrchestratorService: CompanyBatchOrchestratorService,
+    private readonly batchExecutionService: BatchExecutionService,
   ) {
     this.batchEnabled = this.configService.get<boolean>('BATCH_ENABLED', true);
     this.logger.log(`Batch task initialized. Batch processing ${this.batchEnabled ? 'enabled' : 'disabled'}`);
@@ -72,6 +74,47 @@ export class BatchTask {
     } catch (error) {
       this.logger.error(`Company batch failed: ${error.message}`, error.stack);
       return { success: false, message: `Company batch failed: ${error.message}` };
+    }
+  }
+  
+  // Run every 15 minutes to check for stalled batch executions
+  @Cron('0 */15 * * * *')
+  async checkStalledBatchExecutions() {
+    this.logger.log('Checking for stalled batch executions...');
+    
+    try {
+      // Get current time minus 2 hours
+      const twoHoursAgo = new Date();
+      twoHoursAgo.setHours(twoHoursAgo.getHours() - 2);
+      
+      // Find batch executions that are still running but were created more than 2 hours ago
+      const stalledBatches = await this.batchExecutionService.findStalledBatchExecutions(twoHoursAgo);
+      
+      if (stalledBatches.length === 0) {
+        this.logger.log('No stalled batch executions found');
+        return;
+      }
+      
+      this.logger.warn(`Found ${stalledBatches.length} stalled batch executions`);
+      
+      // Mark each stalled batch as failed
+      for (const batch of stalledBatches) {
+        this.logger.warn(`Marking stalled batch ${batch.id} for company ${batch.companyId} as failed. Created at: ${batch.createdAt}`);
+        
+        try {
+          await this.batchExecutionService.updateBatchExecutionStatus(
+            batch.id, 
+            'failed', 
+            'Automatically marked as failed after running for more than 2 hours'
+          );
+        } catch (error) {
+          this.logger.error(`Failed to update stalled batch ${batch.id}: ${error.message}`, error.stack);
+        }
+      }
+      
+      this.logger.log(`Processed ${stalledBatches.length} stalled batch executions`);
+    } catch (error) {
+      this.logger.error(`Failed to check for stalled batch executions: ${error.message}`, error.stack);
     }
   }
 }

@@ -8,7 +8,12 @@ import {
   AccuracyPipelineResult,
   WebSearchSummary,
 } from '../interfaces/batch.interfaces';
-import { AnalyzerConfig, LlmModelConfig, PipelineType, PromptType } from '../interfaces/llm.interfaces';
+import {
+  AnalyzerConfig,
+  LlmModelConfig,
+  PipelineType,
+  PromptType,
+} from '../interfaces/llm.interfaces';
 import { BasePipelineService } from './base-pipeline.service';
 import { SystemPrompts, PromptTemplates, formatPrompt } from '../prompts/prompts';
 

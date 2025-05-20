@@ -25,7 +25,7 @@ export class PromptSetController {
   @ApiResponse({ status: 200, description: 'Return the prompt set' })
   @ApiResponse({ status: 404, description: 'Prompt set not found' })
   async getPromptSet(@Param('companyId') companyId: string) {
-    const promptSet = await this.promptSetModel.findOne({ companyId }).exec();
+    const promptSet = await this.promptSetModel.findOne({ companyId }).lean().exec();
 
     if (!promptSet) {
       throw new NotFoundException('Prompt set not found');

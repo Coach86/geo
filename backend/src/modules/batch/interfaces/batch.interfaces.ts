@@ -66,7 +66,8 @@ export interface SpontaneousResults {
  */
 export interface SentimentAnalysisResult {
   sentiment: 'positive' | 'neutral' | 'negative' | string;
-  extractedFacts: any[]; // Data from LLM can be initially varied
+  extractedPositiveKeywords: string[];
+  extractedNegativeKeywords: string[];
   accuracy: number;
 }
 
@@ -76,7 +77,8 @@ export interface SentimentPipelineResult {
   promptIndex: number;
   sentiment: 'positive' | 'neutral' | 'negative';
   accuracy: number;
-  extractedFacts: string[];
+  extractedPositiveKeywords: string[];
+  extractedNegativeKeywords: string[];
   originalPrompt?: string;
   llmResponse?: string;
   error?: string;
@@ -90,7 +92,7 @@ export interface SentimentResults {
   results: SentimentPipelineResult[];
   summary: {
     overallSentiment: 'positive' | 'neutral' | 'negative';
-    averageAccuracy: number;
+    overallSentimentPercentage: number;
   };
   webSearchSummary: WebSearchSummary;
 }

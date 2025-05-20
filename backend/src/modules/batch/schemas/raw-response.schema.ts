@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Schema as MongooseSchema } from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
-
+import { PromptType } from '../interfaces/llm.interfaces';
 export type RawResponseDocument = RawResponse & Document;
 
 @Schema({
@@ -9,24 +9,24 @@ export type RawResponseDocument = RawResponse & Document;
   timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' }, // Explicitly name timestamp fields
 })
 export class RawResponse {
-  @Prop({ 
-    type: String, 
+  @Prop({
+    type: String,
     default: () => uuidv4(),
     index: true,
   })
   id: string;
 
-  @Prop({ 
-    type: String, 
+  @Prop({
+    type: String,
     required: true,
-    index: true, 
+    index: true,
   })
   batchExecutionId: string;
 
-  @Prop({ 
-    type: String, 
+  @Prop({
+    type: String,
     required: true,
-    enum: ['spontaneous', 'direct', 'comparison', 'accuracy'], 
+    enum: PromptType,
   })
   promptType: string;
 
@@ -45,18 +45,18 @@ export class RawResponse {
   @Prop({ required: false })
   analyzerPrompt: string;
 
-  @Prop({ 
-    type: Object, 
-    required: false 
+  @Prop({
+    type: Object,
+    required: false,
   })
   analyzerResponse: any;
 
   @Prop({ required: false })
   analyzerResponseModel: string;
-  
+
   @Prop({ type: Date })
   createdAt: Date;
-  
+
   @Prop({ type: Date })
   updatedAt: Date;
 }

@@ -24,9 +24,7 @@ export const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ kpi }) => {
   const accordPercentage = getNumericValue(kpi.accord.value) * 10; // Assuming it's on a scale of 10
 
   // Color configurations based on status
-  const getToneColors = (
-    status: 'green' | 'yellow' | 'red',
-  ): { primary: string; secondary: string } => {
+  const getToneColors = (status: string): { primary: string; secondary: string } => {
     return status === 'green'
       ? { primary: '#0D47A1', secondary: '#2196F3' }
       : status === 'yellow'
@@ -34,9 +32,7 @@ export const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ kpi }) => {
         : { primary: '#AD1457', secondary: '#C2185B' };
   };
 
-  const getAccordColors = (
-    status: 'green' | 'yellow' | 'red',
-  ): { primary: string; secondary: string } => {
+  const getAccordColors = (status: string): { primary: string; secondary: string } => {
     return status === 'green'
       ? { primary: '#0D47A1', secondary: '#2196F3' }
       : status === 'yellow'

@@ -37,6 +37,12 @@ export class BatchExecution {
   })
   status: string;
   
+  @Prop({ 
+    type: String,
+    required: false
+  })
+  errorMessage?: string;
+  
   @Prop({ type: Date })
   createdAt: Date;
   

@@ -62,10 +62,18 @@ export interface BatchExecution {
   identityCard?: CompanyIdentityCard;
 }
 
+// Batch type enum
+export enum BatchType {
+  SPONTANEOUS = 'spontaneous',
+  SENTIMENT = 'sentiment',
+  COMPARISON = 'comparison',
+  ACCURACY = 'accuracy'
+}
+
 export interface BatchResult {
   id: string;
   batchExecutionId: string;
-  resultType: 'spontaneous' | 'sentiment' | 'comparison' | 'accuracy';
+  resultType: BatchType | string; // Support both enum and string for backward compatibility
   result: string | any; // Either JSON string or direct object
   createdAt: string;
 
@@ -153,7 +161,8 @@ export interface SentimentPipelineResult {
   llmProvider: string;
   promptIndex: number;
   sentiment: 'positive' | 'neutral' | 'negative';
-  extractedFacts: string[];
+  extractedPositiveKeywords: string[];
+  extractedNegativeKeywords: string[];
   originalPrompt?: string;
   llmResponse?: string;
   error?: string;

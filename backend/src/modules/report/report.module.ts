@@ -4,6 +4,8 @@ import { AdminReportController } from './controllers/admin-report.controller';
 import { PublicReportController } from './controllers/public-report.controller';
 import { ReportService } from './services/report.service';
 import { WeeklyBrandReport, WeeklyBrandReportSchema } from './schemas/weekly-brand-report.schema';
+import { BatchExecution, BatchExecutionSchema } from '../batch/schemas/batch-execution.schema';
+import { BatchResult, BatchResultSchema } from '../batch/schemas/batch-result.schema';
 import { IdentityCardModule } from '../identity-card/identity-card.module';
 import { AuthModule } from '../auth/auth.module';
 
@@ -17,15 +19,20 @@ import { ReportConverterService } from './services/report-converter.service';
 import { UserModule } from '../user/user.module';
 import { TokenAuthGuard } from '../auth/guards/token-auth.guard';
 import { TokenService } from '../auth/services/token.service';
+import { WeeklyBrandReportRepository } from './repositories/weekly-brand-report.repository';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: WeeklyBrandReport.name, schema: WeeklyBrandReportSchema },
+      { name: BatchExecution.name, schema: BatchExecutionSchema },
+      { name: BatchResult.name, schema: BatchResultSchema },
     ]),
     IdentityCardModule, // Import the IdentityCard module to access its service
     UserModule,
     forwardRef(() => AuthModule),
+    ConfigModule, // Add ConfigModule for ReportIntegrationService
   ],
   controllers: [AdminReportController, PublicReportController],
   providers: [
@@ -40,9 +47,12 @@ import { TokenService } from '../auth/services/token.service';
     ReportRetrievalService,
     ReportConverterService,
     
+    // Repositories
+    WeeklyBrandReportRepository,
+    
     // Guards
     TokenAuthGuard,
   ],
-  exports: [ReportService],
+  exports: [ReportService, ReportRetrievalService],
 })
 export class ReportModule {}

@@ -20,9 +20,10 @@ import {
   MenuItem,
   ListItemIcon,
   ListItemText,
+  Snackbar,
 } from '@mui/material';
-import { getBatchExecutions } from '../../utils/api';
-import { BatchExecution } from '../../utils/types';
+import { getBatchExecutions, generateReportFromBatch } from '../../utils/api';
+import { BatchExecution, BatchType } from '../../utils/types';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
@@ -34,11 +35,12 @@ import SentimentSatisfiedIcon from '@mui/icons-material/SentimentSatisfied';
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
 import FactCheckIcon from '@mui/icons-material/FactCheck';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
+import ArticleIcon from '@mui/icons-material/Article';
 
 interface BatchesTabProps {
   companyId: string;
   onRunNewBatch: () => void;
-  onRunSingleBatch: (batchType: 'spontaneous' | 'sentiment' | 'accuracy' | 'comparison') => void;
+  onRunSingleBatch: (batchType: BatchType) => void;
 }
 
 const BatchesTab: React.FC<BatchesTabProps> = ({ companyId, onRunNewBatch, onRunSingleBatch }) => {
@@ -49,6 +51,11 @@ const BatchesTab: React.FC<BatchesTabProps> = ({ companyId, onRunNewBatch, onRun
   const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(menuAnchorEl);
 
+  // States for report generation
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [reportSnackbarOpen, setReportSnackbarOpen] = useState(false);
+  const [reportSnackbarMessage, setReportSnackbarMessage] = useState('');
+
   const handleMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setMenuAnchorEl(event.currentTarget);
   };
@@ -57,7 +64,7 @@ const BatchesTab: React.FC<BatchesTabProps> = ({ companyId, onRunNewBatch, onRun
     setMenuAnchorEl(null);
   };
 
-  const handleRunSingleBatchType = (type: 'spontaneous' | 'sentiment' | 'accuracy' | 'comparison') => {
+  const handleRunSingleBatchType = (type: BatchType) => {
     onRunSingleBatch(type);
     handleMenuClose();
   };
@@ -82,6 +89,26 @@ const BatchesTab: React.FC<BatchesTabProps> = ({ companyId, onRunNewBatch, onRun
 
   const handleViewDetails = (batchId: string) => {
     navigate(`/batch-results/${batchId}`);
+  };
+
+  // Handle generation of report from batch execution without sending an email
+  const handleGenerateReport = async (batchId: string) => {
+    try {
+      setIsGeneratingReport(true);
+      const result = await generateReportFromBatch(batchId);
+
+      // Create a simple success message
+      const successMessage = `Report generated successfully! Report ID: ${result.id}`;
+
+      setReportSnackbarMessage(successMessage);
+      setReportSnackbarOpen(true);
+    } catch (error) {
+      console.error('Failed to generate report:', error);
+      setReportSnackbarMessage('Failed to generate report. Please try again.');
+      setReportSnackbarOpen(true);
+    } finally {
+      setIsGeneratingReport(false);
+    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -151,9 +178,9 @@ const BatchesTab: React.FC<BatchesTabProps> = ({ companyId, onRunNewBatch, onRun
             variant="contained"
             endIcon={<ArrowDropDownIcon />}
             onClick={handleMenuClick}
-            aria-controls={open ? "single-batch-menu" : undefined}
+            aria-controls={open ? 'single-batch-menu' : undefined}
             aria-haspopup="true"
-            aria-expanded={open ? "true" : undefined}
+            aria-expanded={open ? 'true' : undefined}
           >
             Run Single Analysis
           </Button>
@@ -166,25 +193,25 @@ const BatchesTab: React.FC<BatchesTabProps> = ({ companyId, onRunNewBatch, onRun
               'aria-labelledby': 'single-batch-button',
             }}
           >
-            <MenuItem onClick={() => handleRunSingleBatchType('spontaneous')}>
+            <MenuItem onClick={() => handleRunSingleBatchType(BatchType.SPONTANEOUS)}>
               <ListItemIcon>
                 <ModeCommentIcon fontSize="small" />
               </ListItemIcon>
               <ListItemText>Spontaneous Mentions</ListItemText>
             </MenuItem>
-            <MenuItem onClick={() => handleRunSingleBatchType('sentiment')}>
+            <MenuItem onClick={() => handleRunSingleBatchType(BatchType.SENTIMENT)}>
               <ListItemIcon>
                 <SentimentSatisfiedIcon fontSize="small" />
               </ListItemIcon>
               <ListItemText>Sentiment Analysis</ListItemText>
             </MenuItem>
-            <MenuItem onClick={() => handleRunSingleBatchType('accuracy')}>
+            <MenuItem onClick={() => handleRunSingleBatchType(BatchType.ACCURACY)}>
               <ListItemIcon>
                 <FactCheckIcon fontSize="small" />
               </ListItemIcon>
               <ListItemText>Accuracy Analysis</ListItemText>
             </MenuItem>
-            <MenuItem onClick={() => handleRunSingleBatchType('comparison')}>
+            <MenuItem onClick={() => handleRunSingleBatchType(BatchType.COMPARISON)}>
               <ListItemIcon>
                 <CompareArrowsIcon fontSize="small" />
               </ListItemIcon>
@@ -232,50 +259,51 @@ const BatchesTab: React.FC<BatchesTabProps> = ({ companyId, onRunNewBatch, onRun
             <TableBody>
               {batchExecutions.map((batch) => {
                 // Count result types
-                const resultTypes = batch.finalResults.reduce((acc, result) => {
-                  acc[result.resultType] = (acc[result.resultType] || 0) + 1;
-                  return acc;
-                }, {} as Record<string, number>);
+                const resultTypes = batch.finalResults.reduce(
+                  (acc, result) => {
+                    acc[result.resultType] = (acc[result.resultType] || 0) + 1;
+                    return acc;
+                  },
+                  {} as Record<string, number>,
+                );
 
                 return (
                   <TableRow key={batch.id} hover>
-                    <TableCell>
-                      {new Date(batch.executedAt).toLocaleString()}
-                    </TableCell>
+                    <TableCell>{new Date(batch.executedAt).toLocaleString()}</TableCell>
                     <TableCell>{getStatusChip(batch.status)}</TableCell>
                     <TableCell>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                        {resultTypes.spontaneous && (
+                        {resultTypes[BatchType.SPONTANEOUS] && (
                           <Chip
                             size="small"
-                            label={`Spontaneous: ${resultTypes.spontaneous}`}
+                            label={`Spontaneous: ${resultTypes[BatchType.SPONTANEOUS]}`}
                             variant="outlined"
                             color="info"
                             sx={{ mr: 1 }}
                           />
                         )}
-                        {resultTypes.sentiment && (
+                        {resultTypes[BatchType.SENTIMENT] && (
                           <Chip
                             size="small"
-                            label={`Sentiment: ${resultTypes.sentiment}`}
+                            label={`Sentiment: ${resultTypes[BatchType.SENTIMENT]}`}
                             variant="outlined"
                             color="success"
                             sx={{ mr: 1 }}
                           />
                         )}
-                        {resultTypes.accuracy && (
+                        {resultTypes[BatchType.ACCURACY] && (
                           <Chip
                             size="small"
-                            label={`Accuracy: ${resultTypes.accuracy}`}
+                            label={`Accuracy: ${resultTypes[BatchType.ACCURACY]}`}
                             variant="outlined"
                             color="secondary"
                             sx={{ mr: 1 }}
                           />
                         )}
-                        {resultTypes.comparison && (
+                        {resultTypes[BatchType.COMPARISON] && (
                           <Chip
                             size="small"
-                            label={`Comparison: ${resultTypes.comparison}`}
+                            label={`Comparison: ${resultTypes[BatchType.COMPARISON]}`}
                             variant="outlined"
                             color="warning"
                             sx={{ mr: 1 }}
@@ -284,14 +312,34 @@ const BatchesTab: React.FC<BatchesTabProps> = ({ companyId, onRunNewBatch, onRun
                       </Box>
                     </TableCell>
                     <TableCell align="right">
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        endIcon={<ChevronRightIcon />}
-                        onClick={() => handleViewDetails(batch.id)}
-                      >
-                        Details
-                      </Button>
+                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                        {batch.status === 'completed' && (
+                          <Tooltip title="Generate report without email">
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              color="secondary"
+                              startIcon={<ArticleIcon />}
+                              onClick={() => handleGenerateReport(batch.id)}
+                              disabled={isGeneratingReport}
+                            >
+                              {isGeneratingReport ? (
+                                <CircularProgress size={20} />
+                              ) : (
+                                'Generate Report'
+                              )}
+                            </Button>
+                          </Tooltip>
+                        )}
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          endIcon={<ChevronRightIcon />}
+                          onClick={() => handleViewDetails(batch.id)}
+                        >
+                          Details
+                        </Button>
+                      </Box>
                     </TableCell>
                   </TableRow>
                 );
@@ -300,6 +348,14 @@ const BatchesTab: React.FC<BatchesTabProps> = ({ companyId, onRunNewBatch, onRun
           </Table>
         </TableContainer>
       )}
+
+      {/* Snackbar for report generation notifications */}
+      <Snackbar
+        open={reportSnackbarOpen}
+        autoHideDuration={6000}
+        onClose={() => setReportSnackbarOpen(false)}
+        message={reportSnackbarMessage}
+      />
     </Box>
   );
 };

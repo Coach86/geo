@@ -31,7 +31,7 @@ export class ResendTokenResponseDto {
   message: string;
 }
 
-export class TokenDebugResponseDto {
+export class ReportTokenDebugResponseDto {
   @ApiProperty({
     description: 'The generated access token for debugging',
     example: '1a2b3c4d5e6f7g8h9i0j',

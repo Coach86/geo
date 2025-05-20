@@ -30,12 +30,12 @@ export interface KpiData {
   };
   tone: {
     value: string;
-    status: "green" | "yellow" | "red";
+    status: string;
     description: string;
   };
   accord: {
     value: string;
-    status: "green" | "yellow" | "red";
+    status: string;
     description: string;
   };
   arena: {
@@ -53,7 +53,6 @@ export interface PulseData {
 export interface ModelVisibility {
   model: string;
   value: number;
-  isAverage?: boolean;
 }
 
 // Tone section data
@@ -65,10 +64,9 @@ export interface ToneData {
 export interface SentimentData {
   model: string;
   sentiment: string;
-  status: "green" | "yellow" | "red";
-  positives: string;
-  negatives: string;
-  isAverage?: boolean;
+  status: string;
+  positiveKeywords: string[];
+  negativeKeywords: string[];
 }
 
 export interface QuestionData {
@@ -76,8 +74,9 @@ export interface QuestionData {
   results: {
     model: string;
     sentiment: string;
-    status: "green" | "yellow" | "red";
-    keywords: string;
+    status: string;
+    positiveKeywords: string[];
+    negativeKeywords: string[];
   }[];
 }
 
@@ -86,11 +85,11 @@ export interface AccordData {
   attributes: {
     name: string;
     rate: string;
-    alignment: "✅" | "⚠️" | "❌";
+    alignment: '✅' | '⚠️' | '❌';
   }[];
   score: {
     value: string;
-    status: "green" | "yellow" | "red";
+    status: 'green' | 'yellow' | 'red';
   };
 }
 
@@ -117,8 +116,8 @@ export interface CompetitorData {
   mistral: number;
   gemini: number;
   global: string;
-  size: "lg" | "md" | "sm";
-  sentiment: "positive" | "neutral" | "negative";
+  size: 'lg' | 'md' | 'sm';
+  sentiment: 'positive' | 'neutral' | 'negative';
 }
 
 export interface CompetitorBattleData {

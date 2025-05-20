@@ -251,7 +251,6 @@ export const getAllCompanyReports = async (
 ): Promise<{
   reports: {
     id: string;
-    weekStart: Date;
     generatedAt: Date;
   }[];
   total: number;
@@ -281,13 +280,28 @@ export const sendReportEmail = async (
 
 // Generate a token for a specific report
 export const generateReportToken = async (
-  reportId: string
-): Promise<{ 
+  reportId: string,
+): Promise<{
   token?: string;
   accessUrl?: string;
 }> => {
   // Call our new admin endpoint which handles all the logic
   const response = await authApi.post(`/reports/generate-token/${reportId}`);
+  return response.data;
+};
+
+// Generate a report from batch execution without sending email
+export const generateReportFromBatch = async (
+  batchExecutionId: string,
+): Promise<{
+  id: string;
+  companyId: string;
+  generatedAt: Date;
+  weekStart: Date;
+  includedTypes?: string[];
+  message: string;
+}> => {
+  const response = await authApi.post(`/reports/generate-from-batch/${batchExecutionId}`);
   return response.data;
 };
 

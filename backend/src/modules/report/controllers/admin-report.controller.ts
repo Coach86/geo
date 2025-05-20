@@ -25,9 +25,10 @@ import {
   ValidateTokenResponseDto,
   ResendTokenRequestDto,
   ResendTokenResponseDto,
-  TokenDebugResponseDto,
+  ReportTokenDebugResponseDto,
 } from '../dto/report-access-token.dto';
 import { ReportEmailDto, CompanyReportsResponseDto } from '../dto/report-email.dto';
+import { ReportContentResponseDto } from '../dto/report-content-response.dto';
 
 @ApiTags('admin-reports')
 @Controller('admin/reports')
@@ -99,17 +100,54 @@ export class AdminReportController {
     }
   }
 
+  @Post('generate-from-batch/:batchExecutionId')
+  @ApiOperation({ summary: 'Generate a report from a batch execution without sending an email' })
+  @ApiParam({ name: 'batchExecutionId', description: 'The ID of the batch execution' })
+  @ApiResponse({
+    status: 200,
+    description: 'Report generated successfully',
+    type: ReportContentResponseDto,
+  })
+  @ApiResponse({ status: 400, description: 'Invalid request' })
+  @ApiResponse({ status: 404, description: 'Batch execution not found' })
+  async generateReportFromBatch(@Param('batchExecutionId') batchExecutionId: string) {
+    try {
+      this.logger.log(`Generating report from batch execution ${batchExecutionId} without email`);
+
+      // Generate the report from the batch execution without sending an email
+      const report = await this.reportService.saveReportFromBatchExecutionNoEmail(batchExecutionId);
+
+      this.logger.log(
+        `Successfully generated report ${report.id} from batch execution ${batchExecutionId}`,
+      );
+
+      return {
+        id: report.id,
+        companyId: report.companyId,
+        generatedAt: report.generatedAt,
+        weekStart: report.weekStart,
+        message: `Report generated successfully from batch execution ${batchExecutionId}`,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to generate report from batch: ${error.message}`, error.stack);
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException(`Failed to generate report: ${error.message}`);
+    }
+  }
+
   @Post('generate-token/:reportId')
   @ApiOperation({ summary: 'Generate a token for a specific report - Admin view' })
   @ApiParam({ name: 'reportId', description: 'The ID of the report' })
   @ApiResponse({
     status: 200,
     description: 'Token generated successfully',
-    type: TokenDebugResponseDto,
+    type: ReportTokenDebugResponseDto,
   })
   @ApiResponse({ status: 400, description: 'Invalid request' })
   @ApiResponse({ status: 404, description: 'Report not found' })
-  async generateReportToken(@Param('reportId') reportId: string): Promise<TokenDebugResponseDto> {
+  async generateReportToken(@Param('reportId') reportId: string): Promise<ReportTokenDebugResponseDto> {
     try {
       this.logger.log(`Admin generating token for report ${reportId}`);
 

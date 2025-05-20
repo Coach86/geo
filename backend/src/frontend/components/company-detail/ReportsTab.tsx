@@ -33,7 +33,6 @@ interface ReportsTabProps {
 
 interface Report {
   id: string;
-  weekStart: Date;
   generatedAt: Date;
 }
 
@@ -82,18 +81,16 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ companyId, userEmail }) => {
 
     try {
       setSendingEmail(true);
-      const result = await sendReportEmail(
-        report.id,
-        companyId,
-        userEmail
-      );
+      const result = await sendReportEmail(report.id, companyId, userEmail);
 
       setSnackbarMessage(`Email sent successfully to ${userEmail}`);
       setSnackbarSeverity('success');
       setSnackbarOpen(true);
     } catch (err) {
       console.error('Error sending email:', err);
-      setSnackbarMessage(`Failed to send email: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setSnackbarMessage(
+        `Failed to send email: ${err instanceof Error ? err.message : 'Unknown error'}`,
+      );
       setSnackbarSeverity('error');
       setSnackbarOpen(true);
     } finally {
@@ -126,7 +123,7 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ companyId, userEmail }) => {
         selectedReport.id,
         companyId,
         emailInput,
-        subjectInput || undefined // Only send subject if not empty
+        subjectInput || undefined, // Only send subject if not empty
       );
 
       setDialogOpen(false);
@@ -135,25 +132,27 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ companyId, userEmail }) => {
       setSnackbarOpen(true);
     } catch (err) {
       console.error('Error sending email:', err);
-      setEmailError(`Failed to send email: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setEmailError(
+        `Failed to send email: ${err instanceof Error ? err.message : 'Unknown error'}`,
+      );
     } finally {
       setSendingEmail(false);
     }
   };
-  
+
   // Handle viewing report with admin token
   const handleViewReport = async (report: Report) => {
     try {
       setGeneratingToken(true);
-      
+
       // Call our new API endpoint that generates a token for this specific report
       // It will automatically look up the company and find the owner
       const response = await generateReportToken(report.id);
-      
+
       if (response.accessUrl) {
         // Open the report in a new tab
         window.open(response.accessUrl, '_blank');
-        
+
         setSnackbarMessage('Opening report in a new tab');
         setSnackbarSeverity('success');
         setSnackbarOpen(true);
@@ -162,7 +161,9 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ companyId, userEmail }) => {
       }
     } catch (err) {
       console.error('Error generating report token:', err);
-      setSnackbarMessage(`Failed to generate report access: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setSnackbarMessage(
+        `Failed to generate report access: ${err instanceof Error ? err.message : 'Unknown error'}`,
+      );
       setSnackbarSeverity('error');
       setSnackbarOpen(true);
     } finally {
@@ -225,7 +226,6 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ companyId, userEmail }) => {
           <TableBody>
             {reports.map((report) => (
               <TableRow key={report.id}>
-                <TableCell>{formatDate(report.weekStart)}</TableCell>
                 <TableCell>{formatDate(report.generatedAt)}</TableCell>
                 <TableCell align="right">
                   <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
@@ -273,7 +273,8 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ companyId, userEmail }) => {
         <DialogTitle>Send Report Email</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Enter an email address to send the report access link to. The report will be accessible for 24 hours after the email is sent.
+            Enter an email address to send the report access link to. The report will be accessible
+            for 24 hours after the email is sent.
           </DialogContentText>
           <TextField
             autoFocus

@@ -8,9 +8,9 @@ import { LlmProvider } from '../../llm/interfaces/llm-provider.enum';
  */
 export enum PromptType {
   SPONTANEOUS = 'spontaneous',
-  DIRECT = 'direct',
   COMPARISON = 'comparison',
-  ACCURACY = 'accuracy'
+  ACCURACY = 'accuracy',
+  SENTIMENT = 'sentiment',
 }
 
 /**
@@ -20,8 +20,9 @@ export enum PipelineType {
   SPONTANEOUS = 'spontaneous',
   SENTIMENT = 'sentiment',
   COMPARISON = 'comparison',
-  ACCURACY = 'accuracy'
+  ACCURACY = 'accuracy',
 }
+
 export interface LlmModelConfig {
   id: string;
   provider: LlmProvider;

@@ -50,25 +50,36 @@ export class BatchController {
     description: 'Company batch processing started successfully',
   })
   async processCompany(@Param('companyId') companyId: string) {
-    // Create a new batch execution record first
-    const batchExecution = await this.batchService.createBatchExecution(companyId);
+    try {
+      // Create a new batch execution record
+      const batchExecution = await this.batchService.createBatchExecution(companyId);
+      console.log(`[Batch] Created new batch execution ${batchExecution.id} for company ${companyId}`);
 
-    // Start the batch processing in the background (don't await)
-    this.batchService
-      .processCompany(companyId, batchExecution.id)
-      .then((result) => {
-        this.batchService.completeBatchExecution(batchExecution.id, result);
-      })
-      .catch((error) => {
-        this.batchService.failBatchExecution(batchExecution.id, error.message || 'Unknown error');
-      });
+      // Start the batch processing in the background (don't await)
+      this.batchService
+        .processCompany(companyId, batchExecution.id)
+        .then((result) => {
+          console.log(`[Batch] Completed batch execution ${batchExecution.id} for company ${companyId}`);
+          this.batchService.completeBatchExecution(batchExecution.id, result);
+        })
+        .catch((error) => {
+          console.log(`[Batch] Failed batch execution ${batchExecution.id} for company ${companyId}: ${error.message}`);
+          this.batchService.failBatchExecution(batchExecution.id, error.message || 'Unknown error');
+        });
 
-    // Return immediately with the batch execution ID
-    return {
-      success: true,
-      message: `Batch processing for company ${companyId} started`,
-      batchExecutionId: batchExecution.id,
-    };
+      // Return immediately with the batch execution ID
+      return {
+        success: true,
+        message: `Batch processing for company ${companyId} started`,
+        batchExecutionId: batchExecution.id,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to start batch processing for company ${companyId}: ${error.message}`,
+        error: error.message,
+      };
+    }
   }
 
   @Post('orchestrate/:companyId')

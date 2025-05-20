@@ -39,7 +39,7 @@ export class TokenService {
    * Validate an access token
    */
   async validateAccessToken(token: string): Promise<{ valid: boolean; userId?: string }> {
-    const accessToken = await this.accessTokenModel.findOne({ token }).exec();
+    const accessToken = await this.accessTokenModel.findOne({ token }).lean().exec();
 
     if (!accessToken) {
       this.logger.warn(`Access token not found: ${token.substring(0, 8)}...`);

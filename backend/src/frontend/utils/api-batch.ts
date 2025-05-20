@@ -125,63 +125,30 @@ export const runFullBatchAnalysis = async (
   companyId: string,
 ): Promise<{
   batchExecutionId: string;
-  results: {
-    spontaneous: SpontaneousResults;
-    sentiment: SentimentResults;
-    comparison: ComparisonResults;
-    accuracy?: AccuracyResults;
-  };
+  alreadyRunning?: boolean;
 }> => {
-  // Start the batch analysis process
-  const response = await authApi.post(`/batch/process/${companyId}`);
+  // Start the batch analysis process - check if a batch is already in progress first
+  try {
+    // This just starts the batch and gets the ID - doesn't wait for completion
+    const response = await authApi.post(`/batch/process/${companyId}`);
 
-  if (!response.data.success) {
-    throw new Error(response.data.error || 'Failed to run batch analysis');
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Failed to run batch analysis');
+    }
+
+    const batchExecutionId = response.data.batchExecutionId;
+    const alreadyRunning = response.data.alreadyRunning || false;
+    
+    // Return the ID and whether it was already running
+    return { 
+      batchExecutionId,
+      alreadyRunning 
+    };
+    
+  } catch (error) {
+    console.error('Error starting batch analysis:', error);
+    throw error;
   }
-
-  const batchExecutionId = response.data.batchExecutionId;
-
-  // Poll for completion
-  const batchExecution = await pollBatchExecution(batchExecutionId);
-
-  // Parse the results
-  const spontaneousResult = batchExecution.finalResults.find(
-    (r: BatchResult) => r.resultType === 'spontaneous',
-  );
-  const sentimentResult = batchExecution.finalResults.find(
-    (r: BatchResult) => r.resultType === 'sentiment',
-  );
-  const comparisonResult = batchExecution.finalResults.find(
-    (r: BatchResult) => r.resultType === 'comparison',
-  );
-  const accuracyResult = batchExecution.finalResults.find(
-    (r: BatchResult) => r.resultType === 'accuracy',
-  );
-
-  if (!spontaneousResult || !sentimentResult || !comparisonResult) {
-    throw new Error('Missing batch results. Not all pipeline results are available.');
-  }
-
-  const results: {
-    spontaneous: SpontaneousResults;
-    sentiment: SentimentResults;
-    comparison: ComparisonResults;
-    accuracy?: AccuracyResults;
-  } = {
-    spontaneous: JSON.parse(spontaneousResult.result),
-    sentiment: JSON.parse(sentimentResult.result),
-    comparison: JSON.parse(comparisonResult.result),
-  };
-  
-  // Accuracy results are optional
-  if (accuracyResult) {
-    results.accuracy = JSON.parse(accuracyResult.result);
-  }
-
-  return {
-    batchExecutionId,
-    results,
-  };
 };
 
 // Poll for batch execution completion

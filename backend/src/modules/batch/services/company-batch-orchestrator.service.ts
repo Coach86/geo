@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { BatchService } from './batch.service';
 import { BatchExecutionService } from './batch-execution.service';
 import { ReportService } from '../../report/services/report.service';
+import { BatchReportInput } from '../../report/interfaces/report-input.interfaces';
 import {
   AccuracyPipelineResult,
   AccuracyResults,
@@ -13,6 +14,7 @@ import {
   SentimentResults,
   SpontaneousPipelineResult,
   SpontaneousResults,
+  WeeklyBrandReport,
 } from '../interfaces/batch.interfaces';
 
 /**
@@ -90,17 +92,23 @@ export class CompanyBatchOrchestratorService {
       // Inject the batchExecutionId into the context
       const contextWithBatchExecId = { ...context, batchExecutionId };
 
-      // Run the three pipelines in parallel using the pipeline services via batch service
-      const [spontaneousResults, sentimentResults, comparisonResults] = await Promise.all([
+      // Run the four pipelines in parallel using the pipeline services via batch service
+      const pipelineResults = await Promise.all([
         this.batchService.runSpontaneousPipeline(contextWithBatchExecId),
         this.batchService.runSentimentPipeline(contextWithBatchExecId),
+        this.batchService.runAccuracyPipeline(contextWithBatchExecId),
         this.batchService.runComparisonPipeline(contextWithBatchExecId),
       ]);
+      const spontaneousResults = pipelineResults[0] as SpontaneousResults;
+      const sentimentResults = pipelineResults[1] as SentimentResults;
+      const accuracyResults = pipelineResults[2] as AccuracyResults;
+      const comparisonResults = pipelineResults[3] as ComparisonResults;
 
       // Get LLM versions
       const llmVersions = this.getLlmVersions([
         ...spontaneousResults.results,
         ...sentimentResults.results,
+        ...accuracyResults.results,
         ...comparisonResults.results,
       ]);
 
@@ -112,6 +120,7 @@ export class CompanyBatchOrchestratorService {
           spontaneousResults,
         ),
         this.batchExecutionService.saveBatchResult(batchExecutionId, 'sentiment', sentimentResults),
+        this.batchExecutionService.saveBatchResult(batchExecutionId, 'accuracy', accuracyResults),
         this.batchExecutionService.saveBatchResult(
           batchExecutionId,
           'comparison',
@@ -119,19 +128,20 @@ export class CompanyBatchOrchestratorService {
         ),
       ]);
 
-      // Create the weekly report
-      const report = {
+      // Create the weekly report input for the report module
+      const report: BatchReportInput = {
         companyId: context.companyId,
         weekStart,
         spontaneous: spontaneousResults,
-        sentimentAccuracy: sentimentResults,
+        sentiment: sentimentResults,
+        accord: accuracyResults,
         comparison: comparisonResults,
         llmVersions,
         generatedAt: new Date(),
       };
 
-      // Save the report - this will also trigger email sending
-      const savedReport = await this.reportService.saveReport(report as any);
+      // Save the report using the correct type and method
+      const savedReport = await this.reportService.saveReportFromBatch(report);
 
       // Mark the batch execution as completed
       await this.batchExecutionService.updateBatchExecutionStatus(batchExecutionId, 'completed');

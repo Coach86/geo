@@ -93,7 +93,6 @@ export class WeeklyBrandReport {
     modelVisibility: Array<{
       model: string;
       value: number;
-      isAverage?: boolean;
     }>;
   };
 
@@ -107,9 +106,8 @@ export class WeeklyBrandReport {
       model: string;
       sentiment: string;
       status: string;
-      positives: string;
-      negatives: string;
-      isAverage?: boolean;
+      positiveKeywords: string[];
+      negativeKeywords: string[];
     }>;
     questions: Array<{
       question: string;
@@ -117,7 +115,8 @@ export class WeeklyBrandReport {
         model: string;
         sentiment: string;
         status: string;
-        keywords: string;
+        positiveKeywords: string[];
+        negativeKeywords: string[];
       }>;
     }>;
   };

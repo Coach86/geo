@@ -9,17 +9,17 @@ interface ModelVisibility {
 interface SentimentResult {
   model: string;
   sentiment: string;
-  status: 'green' | 'yellow' | 'red';
-  positives: string;
-  negatives: string;
-  isAverage?: boolean;
+  status: string;
+  positiveKeywords: string[];
+  negativeKeywords: string[];
 }
 
 interface QuestionResult {
   model: string;
   sentiment: string;
-  status: 'green' | 'yellow' | 'red';
-  keywords: string;
+  status: string;
+  positiveKeywords: string[];
+  negativeKeywords: string[];
 }
 
 interface Question {
@@ -30,7 +30,7 @@ interface Question {
 interface AttributeItem {
   name: string;
   rate: string;
-  alignment: '✅' | '⚠️' | '❌';
+  alignment: string;
 }
 
 interface Competitor {
@@ -40,8 +40,8 @@ interface Competitor {
   mistral: number;
   gemini: number;
   global: string;
-  size: 'lg' | 'md' | 'sm';
-  sentiment: 'positive' | 'neutral' | 'negative';
+  size: string;
+  sentiment: string;
 }
 
 interface CompetitorComparison {
@@ -66,6 +66,9 @@ export class WeeklyBrandReport {
   @ApiProperty({ description: 'Brand name from identity card' })
   brand: string;
 
+  @ApiProperty({ description: 'Week start date' })
+  weekStart: Date;
+
   @ApiProperty({ description: 'Report metadata' })
   metadata: {
     url: string;
@@ -84,12 +87,12 @@ export class WeeklyBrandReport {
     };
     tone: {
       value: string;
-      status: 'green' | 'yellow' | 'red';
+      status: string;
       description: string;
     };
     accord: {
       value: string;
-      status: 'green' | 'yellow' | 'red';
+      status: string;
       description: string;
     };
     arena: {
@@ -102,7 +105,6 @@ export class WeeklyBrandReport {
   pulse: {
     promptsTested: number;
     modelVisibility: ModelVisibility[];
-    globalAverage: number;
   };
 
   @ApiProperty({ description: 'Tone section data' })
@@ -116,7 +118,7 @@ export class WeeklyBrandReport {
     attributes: AttributeItem[];
     score: {
       value: string;
-      status: 'green' | 'yellow' | 'red';
+      status: string;
     };
   };
 
