@@ -93,7 +93,9 @@ export class ReportService implements OnModuleInit {
     this.logger.debug(`Transforming report ${document.id} for company ${document.companyId}`);
     try {
       // Delegate to the converter service and adapt the type
-      return this.adaptReportType(this.converterService.convertDocumentToEntity(document, identityCard));
+      return this.adaptReportType(
+        this.converterService.convertDocumentToEntity(document, identityCard),
+      );
     } catch (error) {
       this.logger.error(`Error transforming report ${document.id}: ${error.message}`, error.stack);
       throw new Error(`Failed to transform report: ${error.message}`);
@@ -127,13 +129,6 @@ export class ReportService implements OnModuleInit {
 
   getCompetitorNames(comparison: any, defaultCompetitors?: string[]): string[] {
     return this.transformationService.getCompetitorNames(comparison, defaultCompetitors);
-  }
-
-  generateAttributesList(
-    sentimentData: SentimentResults,
-    identityCard: CompanyIdentityCard,
-  ): Array<{ name: string; rate: string; alignment: string }> {
-    return this.transformationService.generateAttributesList(identityCard, sentimentData);
   }
 
   // Report retrieval methods

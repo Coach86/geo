@@ -45,10 +45,18 @@ export class ReportConverterService {
     input: BatchReportInput,
     identityCard: CompanyIdentityCard,
   ): WeeklyBrandReportEntity['accord'] {
-    const accordValue = `${Math.round((input.accord?.summary?.averageAccuracy || 0) * 10)}/10`;
+    // Calculate average of attribute scores
+    const attributeScores = input.accord?.summary?.averageAttributeScores || {};
+    const scores = Object.values(attributeScores);
+    const avgScore = scores.length > 0 
+      ? scores.reduce((sum, score) => sum + score, 0) / scores.length 
+      : 0.5;
+      
+    const accordValue = `${Math.round(avgScore * 10)}/10`;
     const accordStatus = (
-      (input.accord?.summary?.averageAccuracy || 0) > 0.6 ? 'green' : 'yellow'
+      avgScore > 0.6 ? 'green' : 'yellow'
     ) as 'green' | 'yellow' | 'red';
+    
     const safeAttributes = this.transformationService.generateAttributesList(
       identityCard,
       input.accord,
@@ -101,10 +109,17 @@ export class ReportConverterService {
       input.sentiment?.summary?.overallSentiment || 'neutral',
     ) as 'green' | 'yellow' | 'red';
 
-    // Calculate accord score based on accuracy
-    const accordValue = `${Math.round((input.accord?.summary?.averageAccuracy || 0) * 10)}/10`;
+    // Calculate accord score based on attribute scores
+    const attributeScores = input.accord?.summary && (input.accord.summary as any).averageAttributeScores
+      ? Object.values((input.accord.summary as any).averageAttributeScores) as number[]
+      : [];
+    const avgScore = attributeScores.length > 0
+      ? attributeScores.reduce((sum, score) => sum + score, 0) / attributeScores.length
+      : 0;
+      
+    const accordValue = `${Math.round(avgScore * 10)}/10`;
     const accordStatus = (
-      (input.accord?.summary?.averageAccuracy || 0) > 0.6 ? 'green' : 'yellow'
+      avgScore > 0.6 ? 'green' : 'yellow'
     ) as 'green' | 'yellow' | 'red';
 
     return {

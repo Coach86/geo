@@ -371,17 +371,21 @@ export class ReportTransformationService {
     // Generate attributes from identity card or default values
     const attributes = this.generateAttributesList(identityCard, accuracyData);
 
-    // Calculate accuracy score from accuracyData if available, otherwise use sentimentData
-    const averageAccuracy = accuracyData?.summary?.averageAccuracy;
+    // Calculate overall accuracy score by averaging all attribute scores
+    const allScores = Object.values(accuracyData?.summary?.averageAttributeScores || {});
+    const averageScore =
+      allScores.length > 0
+        ? allScores.reduce((sum, score) => sum + score, 0) / allScores.length
+        : 0.5; // Default if no scores available
 
     // Format as percentage
-    const scoreValue = `${Math.round(averageAccuracy * 100)}%`;
+    const scoreValue = `${Math.round(averageScore * 100)}%`;
 
     // Determine status based on accuracy score
     let status = 'yellow';
-    if (averageAccuracy >= 0.75) {
+    if (averageScore >= 0.75) {
       status = 'green';
-    } else if (averageAccuracy < 0.4) {
+    } else if (averageScore < 0.4) {
       status = 'red';
     }
 
@@ -423,18 +427,32 @@ export class ReportTransformationService {
    */
   generateAttributesList(
     identityCard: CompanyIdentityCard,
-    data?: SentimentResults | AccuracyResults,
+    data?: AccuracyResults,
   ): Array<{ name: string; rate: string; alignment: '✅' | '⚠️' | '❌' }> {
     // If we have brand attributes from identity card, use those
     if (identityCard?.keyBrandAttributes && identityCard.keyBrandAttributes.length > 0) {
-      return identityCard.keyBrandAttributes.map((feature: string, index: number) => {
-        // Generate a fake score based on index (higher for first features)
-        const score = Math.round(80 - index * 10);
-        return {
-          name: `${feature}`,
-          rate: `${score}%`,
-          alignment: score > 60 ? '✅' : '⚠️',
-        };
+      return identityCard.keyBrandAttributes.map((feature: string) => {
+        // If we have accuracy data with attribute scores
+        if (data && 'summary' in data && data.summary && data.summary.averageAttributeScores) {
+          const attributeScores = data.summary.averageAttributeScores;
+          // Try to find this attribute in the scores (might need fuzzy matching in the future)
+          let score = attributeScores[feature] || 0;
+          score = Math.round(score * 100); // Convert to percentage
+
+          return {
+            name: `${feature}`,
+            rate: `${score}%`,
+            alignment: score > 70 ? '✅' : score > 40 ? '⚠️' : '❌',
+          };
+        } else {
+          // Fallback if no attribute scores
+          const score = 0; // Random score between 45-75%
+          return {
+            name: `An error occurred`,
+            rate: `${score}%`,
+            alignment: score > 60 ? '✅' : '⚠️',
+          };
+        }
       });
     }
 

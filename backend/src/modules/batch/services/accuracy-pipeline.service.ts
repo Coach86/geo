@@ -23,8 +23,7 @@ import { SystemPrompts, PromptTemplates, formatPrompt } from '../prompts/prompts
 export interface AccuracyResults {
   results: AccuracyPipelineResult[];
   summary: {
-    averageAccuracy: number;
-    factualHighlights: string[];
+    averageAttributeScores: Record<string, number>;
   };
   webSearchSummary: WebSearchSummary;
 }
@@ -95,7 +94,8 @@ export class AccuracyPipelineService extends BasePipelineService {
               const prompt = `
               ${formattedPrompts[i]}
               <context>
-              URL: ${context.websiteUrl}
+                Company Url: ${context.websiteUrl}
+                Market: ${context.market}
               </context>
               `;
               try {
@@ -111,7 +111,7 @@ export class AccuracyPipelineService extends BasePipelineService {
                 return await this.analyzeAccuracy(
                   modelConfig,
                   context.brandName,
-                  formattedPrompts[i],
+                  prompt,
                   llmResponse,
                   i,
                   context.keyBrandAttributes,
@@ -125,9 +125,8 @@ export class AccuracyPipelineService extends BasePipelineService {
                   llmProvider: modelConfig.provider,
                   llmModel: modelConfig.model,
                   promptIndex: i,
-                  accuracy: 0,
-                  factualInformation: [],
-                  originalPrompt: formattedPrompts[i],
+                  attributeScores: [],
+                  originalPrompt: prompt,
                   error: error.message,
                 };
               }
@@ -201,10 +200,13 @@ export class AccuracyPipelineService extends BasePipelineService {
 
     // Define the schema for structured output
     const schema = z.object({
-      accuracy: z.number().describe('Confidence score for the accuracy analysis'),
-      factualInformation: z
-        .array(z.string())
-        .describe('Key facts or information extracted from the response'),
+      attributeScores: z.array(
+        z.object({
+          attribute: z.string().describe('The specific brand attribute being evaluated'),
+          score: z.number().describe('Alignment score for this specific attribute (0-1)'),
+          evaluation: z.string().describe('Brief explanation for the assigned score'),
+        })
+      ).describe('Detailed scores for each individual key brand attribute'),
     });
 
     if (!keyBrandAttributes) {
@@ -237,8 +239,7 @@ export class AccuracyPipelineService extends BasePipelineService {
         llmProvider: modelConfig.provider,
         llmModel: modelConfig.model,
         promptIndex,
-        accuracy: result.accuracy,
-        factualInformation: result.factualInformation,
+        attributeScores: result.attributeScores || [],
         originalPrompt: prompt,
         llmResponse,
         // Include web search and citation information if available
@@ -320,9 +321,9 @@ export class AccuracyPipelineService extends BasePipelineService {
   }
 
   /**
-   * Analyze and compute average accuracy from the results
+   * Analyze attribute scores from the results
    * @param results Array of pipeline results
-   * @returns Summary with average accuracy
+   * @returns Summary with average attribute scores
    */
   private analyzeAccuracyResults(results: AccuracyPipelineResult[]): AccuracyResults['summary'] {
     // Filter out results with errors
@@ -330,38 +331,35 @@ export class AccuracyPipelineService extends BasePipelineService {
 
     if (validResults.length === 0) {
       return {
-        averageAccuracy: 0,
-        factualHighlights: [],
+        averageAttributeScores: {},
       };
     }
 
-    // Calculate average accuracy
-    let totalAccuracy = 0;
+    // Collect all attribute scores
+    const attributeTotals: Record<string, {total: number, count: number}> = {};
 
+    // Collect all attribute scores across all results
     for (const result of validResults) {
-      totalAccuracy += result.accuracy;
+      if (result.attributeScores && result.attributeScores.length > 0) {
+        for (const attrScore of result.attributeScores) {
+          if (!attributeTotals[attrScore.attribute]) {
+            attributeTotals[attrScore.attribute] = { total: 0, count: 0 };
+          }
+          attributeTotals[attrScore.attribute].total += attrScore.score;
+          attributeTotals[attrScore.attribute].count += 1;
+        }
+      }
     }
 
-    const averageAccuracy = totalAccuracy / validResults.length;
-
-    // Extract the most common factual information
-    const allFacts = validResults.flatMap((r) => r.factualInformation);
-    const factFrequency = new Map<string, number>();
-
-    allFacts.forEach((fact) => {
-      const count = factFrequency.get(fact) || 0;
-      factFrequency.set(fact, count + 1);
-    });
-
-    // Sort by frequency and take the top facts
-    const factualHighlights = [...factFrequency.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map((entry) => entry[0]);
+    // Calculate average score for each attribute
+    const averageAttributeScores: Record<string, number> = {};
+    
+    for (const [attribute, data] of Object.entries(attributeTotals)) {
+      averageAttributeScores[attribute] = data.total / data.count;
+    }
 
     return {
-      averageAccuracy,
-      factualHighlights,
+      averageAttributeScores,
     };
   }
 }

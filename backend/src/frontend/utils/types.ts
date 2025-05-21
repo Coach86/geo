@@ -205,11 +205,16 @@ export interface ComparisonResults {
   webSearchSummary?: WebSearchSummary;
 }
 
+export interface AttributeAccuracyScore {
+  attribute: string;
+  score: number;
+  evaluation: string;
+}
+
 export interface AccuracyPipelineResult {
   llmProvider: string;
   promptIndex: number;
-  accuracy: number;
-  factualInformation: string[];
+  attributeScores: AttributeAccuracyScore[];
   originalPrompt?: string;
   llmResponse?: string;
   error?: string;
@@ -223,8 +228,7 @@ export interface AccuracyPipelineResult {
 export interface AccuracyResults {
   results: AccuracyPipelineResult[];
   summary: {
-    averageAccuracy: number;
-    factualHighlights: string[];
+    averageAttributeScores: Record<string, number>;
   };
   webSearchSummary?: WebSearchSummary;
 }

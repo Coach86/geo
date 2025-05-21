@@ -333,7 +333,14 @@ const BatchResults: React.FC = () => {
                         <ListItem>
                           <ListItemText 
                             primary="Accuracy Analysis" 
-                            secondary={`Average accuracy: ${(accuracyResults.summary.averageAccuracy * 100).toFixed(1)}%`} 
+                            secondary={(() => {
+                              const scores = Object.values(accuracyResults.summary.averageAttributeScores);
+                              if (scores.length > 0) {
+                                const avg = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+                                return `Average accuracy: ${(avg * 100).toFixed(1)}%`;
+                              }
+                              return 'Attribute-based accuracy analysis';
+                            })()} 
                           />
                         </ListItem>
                       )}
