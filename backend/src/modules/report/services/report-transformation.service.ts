@@ -173,186 +173,46 @@ export class ReportTransformationService {
    * Format arena data
    */
   formatArenaData(
-    comparisonData?: ComparisonResults,
+    spontaneousData?: SpontaneousResults,
     competitors: string[] = [],
   ): {
     competitors: Array<{
       name: string;
-      chatgpt: number;
-      claude: number;
-      mistral: number;
-      gemini: number;
-      global: string;
       size: 'lg' | 'md' | 'sm';
-      sentiment: 'neutral' | 'positive' | 'negative';
-    }>;
-    battle: {
-      competitors: Array<{
-        name: string;
-        comparisons: Array<{
-          model: string;
-          positives: string[];
-          negatives: string[];
-        }>;
+      global: string;
+      modelsMentionsRate: Array<{
+        model: string;
+        mentionsRate: number;
       }>;
-    };
+    }>;
   } {
-    // Get the comparison results
-    const results = comparisonData ? comparisonData.results : [];
+    const allCompetitorNames = new Set([...competitors]);
 
-    if (results.length === 0) {
-      return {
-        competitors: [],
-        battle: { competitors: [] },
-      };
-    }
+    const models = Array.from(new Set(spontaneousData?.results?.map((r) => r.llmProvider) ?? []));
 
-    // Get competitors from comparison data or use provided competitors
-    const competitorSet = new Set<string>();
-    if (results.length > 0) {
-      results.forEach((r: any) => {
-        if (r.winner) competitorSet.add(r.winner);
-        if (r.competitor) competitorSet.add(r.competitor);
-      });
-    }
-    const competitorNames =
-      competitorSet.size > 0 ? Array.from(competitorSet) : (competitors || []).slice(0, 3);
-
-    if (!competitorNames || competitorNames.length === 0) {
-      return {
-        competitors: [],
-        battle: { competitors: [] },
-      };
-    }
-
-    // Get unique LLM providers from the results
-    const llmProviderSet = new Set<string>();
-    if (results.length > 0) {
-      results.forEach((r: any) => {
-        if (r.llmProvider) llmProviderSet.add(r.llmProvider);
-      });
-    }
-    const llmProviders =
-      llmProviderSet.size > 0
-        ? Array.from(llmProviderSet)
-        : ['OpenAI', 'Anthropic', 'Mistral', 'Gemini'];
-
-    // Create competitors for arena section
-    const formattedCompetitors = competitorNames.map((name, index) => {
-      const modelWins = {
-        chatgpt:
-          results.length > 0
-            ? results.filter(
-                (r: any) =>
-                  (r.winner === name || r.competitor === name) &&
-                  r.llmProvider.toLowerCase().includes('gpt'),
-              ).length
-            : index === 0
-              ? 2
-              : 1,
-        claude:
-          results.length > 0
-            ? results.filter(
-                (r: any) =>
-                  (r.winner === name || r.competitor === name) &&
-                  r.llmProvider.toLowerCase().includes('claude'),
-              ).length
-            : index === 0
-              ? 1
-              : 2,
-        mistral:
-          results.length > 0
-            ? results.filter(
-                (r: any) =>
-                  (r.winner === name || r.competitor === name) &&
-                  r.llmProvider.toLowerCase().includes('mistral'),
-              ).length
-            : index === 0
-              ? 2
-              : 1,
-        gemini:
-          results.length > 0
-            ? results.filter(
-                (r: any) =>
-                  (r.winner === name || r.competitor === name) &&
-                  r.llmProvider.toLowerCase().includes('gemini'),
-              ).length
-            : index === 0
-              ? 1
-              : 2,
-      };
-
-      // Calculate global percentage
-      const totalWins = Object.values(modelWins).reduce((sum, val) => sum + val, 0);
-      const totalPossible = Object.keys(modelWins).length || 1;
-      const globalPercentage = Math.round((totalWins / totalPossible) * 100);
-
-      return {
-        name,
-        chatgpt: modelWins.chatgpt || 0,
-        claude: modelWins.claude || 0,
-        mistral: modelWins.mistral || 0,
-        gemini: modelWins.gemini || 0,
-        global: `${globalPercentage}%`,
-        size: (index < 2 ? 'lg' : 'md') as 'lg' | 'md' | 'sm',
-        sentiment: (globalPercentage > 50
-          ? 'positive'
-          : globalPercentage > 30
-            ? 'neutral'
-            : 'negative') as 'positive' | 'neutral' | 'negative',
-      };
-    });
-
-    // Create battle data
-    const battleCompetitors = competitorNames.slice(0, 2).map((name) => {
-      // Create comparisons by model
-      const comparisons = llmProviders.map((provider) => {
-        // Get strengths for this competitor from this model
-        const modelStrengths =
-          results.length > 0
-            ? results
-                .filter((r: any) => r.competitor === name && r.llmProvider === provider)
-                .flatMap((r: any) => r.brandStrengths || [])
-            : [];
-
-        // Get weaknesses for this competitor from this model
-        const modelWeaknesses =
-          results.length > 0
-            ? results
-                .filter((r: any) => r.competitor === name && r.llmProvider === provider)
-                .flatMap((r: any) => r.brandWeaknesses || [])
-            : [];
-
-        // Use strengths and weaknesses directly
-        const positives =
-          modelStrengths.length > 0
-            ? modelStrengths.slice(0, 2)
-            : ['quality product', 'good service'];
-
-        const negatives =
-          modelWeaknesses.length > 0
-            ? modelWeaknesses.slice(0, 2)
-            : ['price point', 'limited options'];
-
+    const competitorsArray = Array.from(allCompetitorNames).map((name) => {
+      const modelsMentionsRate = models.map((model) => {
+        const modelResults = spontaneousData?.results?.filter((r) => r.llmProvider === model) ?? [];
+        const promptsTested = modelResults.length;
+        this.logger.debug(`name ${name}`);
+        const mentions = modelResults.filter((r) =>
+          r.topOfMind?.some((top) => top && name && name.toLowerCase().includes(top.toLowerCase())),
+        ).length;
+        this.logger.debug(`mentions ${mentions}`);
         return {
-          model: provider,
-          positives,
-          negatives,
+          model,
+          mentionsRate: promptsTested > 0 ? Math.round((mentions / promptsTested) * 100) : 0,
         };
       });
-
       return {
         name,
-        comparisons: comparisons.filter((c) => c.model), // Filter out empty models
+        size: 'lg' as 'lg' | 'md' | 'sm',
+        modelsMentionsRate,
+        global: `${Math.round(modelsMentionsRate?.reduce((sum, m) => sum + m.mentionsRate, 0) / modelsMentionsRate?.length)}%`,
       };
     });
 
-    return {
-      competitors: formattedCompetitors,
-      battle: {
-        competitors: battleCompetitors,
-      },
-    };
+    return { competitors: competitorsArray };
   }
 
   /**
@@ -476,6 +336,7 @@ export class ReportTransformationService {
       uniqueCompetitors.add(result.competitor);
     });
     this.logger.debug(`uniqueCompetitors ${JSON.stringify(uniqueCompetitors)}`);
+
     /*[
   {
     analysisByModel: [

@@ -1,47 +1,36 @@
-"use client"
+"use client";
 
 interface ArenaSectionProps {
   data: {
     competitors: {
-      name: string
-      chatgpt: number
-      claude: number
-      mistral: number
-      gemini: number
-      global: string
-      size: string
-      sentiment: string
-    }[]
-  }
+      name: string;
+      size: string;
+      global: string;
+      modelsMentionsRate: {
+        model: string;
+        mentionsRate: number;
+      }[];
+    }[];
+  };
 }
 
 export default function ArenaSection({ data }: ArenaSectionProps) {
   // Trier les concurrents par global en ordre décroissant (fixe, sans bouton)
   const sortedCompetitors = [...data.competitors].sort((a, b) => {
-    const aValue = Number.parseFloat(a.global.replace("%", ""))
-    const bValue = Number.parseFloat(b.global.replace("%", ""))
-    return bValue - aValue
-  })
+    const aValue = Number.parseFloat(a.global.replace("%", ""));
+    const bValue = Number.parseFloat(b.global.replace("%", ""));
+    return bValue - aValue;
+  });
 
   // Fonction pour s'assurer que les valeurs sont affichées avec le symbole %
   const formatPercentage = (value: string | number) => {
     if (typeof value === "string") {
       // Si la valeur est déjà une chaîne, vérifier si elle se termine par %
-      return value.endsWith("%") ? value : `${value}%`
+      return value.endsWith("%") ? value : `${value}%`;
     }
     // Si c'est un nombre, le convertir en chaîne et ajouter %
-    return `${value}%`
-  }
-
-  // Nouvelle palette de couleurs professionnelle pour Arena
-  const professionalColors = {
-    primary: "#805AD5", // Violet principal
-    secondary: "#9F7AEA", // Violet secondaire
-    tertiary: "#B794F4", // Violet tertiaire
-    light: "#D6BCFA", // Violet clair
-    lighter: "#E9D8FD", // Violet très clair
-    bg: "#FAF5FF", // Fond violet très pâle
-  }
+    return `${value}%`;
+  };
 
   // Fonction pour obtenir la couleur en fonction du sentiment - Style professionnel
   function getSentimentColor(sentiment: string, index: number) {
@@ -54,29 +43,32 @@ export default function ArenaSection({ data }: ArenaSectionProps) {
       "#B794F4", // Violet moyen
       "#D6BCFA",
       "#E9D8FD",
-    ]
+    ];
 
     // Utiliser l'index pour varier la teinte, avec un ajustement selon le sentiment
-    const baseIndex = index % violetShades.length
-    let colorIndex = baseIndex
+    const baseIndex = index % violetShades.length;
+    let colorIndex = baseIndex;
 
     if (sentiment === "positive") {
-      colorIndex = Math.min(baseIndex, 2) // Plus foncé pour positif
+      colorIndex = Math.min(baseIndex, 2); // Plus foncé pour positif
     } else if (sentiment === "negative") {
-      colorIndex = Math.min(baseIndex + 4, violetShades.length - 1) // Plus clair pour négatif
+      colorIndex = Math.min(baseIndex + 4, violetShades.length - 1); // Plus clair pour négatif
     } else {
-      colorIndex = Math.min(baseIndex + 2, violetShades.length - 1) // Moyen pour neutre
+      colorIndex = Math.min(baseIndex + 2, violetShades.length - 1); // Moyen pour neutre
     }
 
-    return violetShades[colorIndex]
+    return violetShades[colorIndex];
   }
 
   return (
     <div className="mb-16 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       <div className="px-6 py-5 border-b border-gray-100 bg-gray-50">
-        <h2 className="text-2xl font-bold text-gray-900">Arena — Competitive Landscape</h2>
+        <h2 className="text-2xl font-bold text-gray-900">
+          Arena — Competitive Landscape
+        </h2>
         <p className="text-sm text-gray-600 mt-1">
-          Surface competitive naming and intensity in models' responses (from Pulse prompts)
+          Surface competitive naming and intensity in models' responses (from
+          Pulse prompts)
         </p>
       </div>
 
@@ -86,16 +78,24 @@ export default function ArenaSection({ data }: ArenaSectionProps) {
           <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4 mb-6">
             <div>
               <div className="flex items-center mb-1">
-                <h3 className="text-3xl font-bold text-gray-900">{sortedCompetitors[0]?.name || "N/A"}</h3>
+                <h3 className="text-3xl font-bold text-gray-900">
+                  {sortedCompetitors[0]?.name || "N/A"}
+                </h3>
                 <span className="ml-2 px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded-full">
                   Top Competitor
                 </span>
               </div>
-              <p className="text-sm text-gray-600">with {sortedCompetitors[0]?.global || "N/A"} visibility</p>
+              <p className="text-sm text-gray-600">
+                with {sortedCompetitors[0]?.global || "N/A"} visibility
+              </p>
             </div>
             <div className="text-right">
-              <div className="text-sm font-medium text-gray-900">Competitors Analyzed</div>
-              <div className="text-2xl font-bold text-gray-900">{data.competitors.length}</div>
+              <div className="text-sm font-medium text-gray-900">
+                Competitors Analyzed
+              </div>
+              <div className="text-2xl font-bold text-gray-900">
+                {data.competitors.length}
+              </div>
             </div>
           </div>
         </div>
@@ -103,7 +103,9 @@ export default function ArenaSection({ data }: ArenaSectionProps) {
         {/* 2. Détails des résultats au milieu */}
         <div className="mb-8">
           <div className="max-w-full mx-auto">
-            <h4 className="text-lg font-semibold text-gray-800 mb-4">Competitor Comparison</h4>
+            <h4 className="text-lg font-semibold text-gray-800 mb-4">
+              Competitor Comparison
+            </h4>
             <div className="overflow-x-auto bg-white rounded-lg border border-gray-200">
               <table className="w-full min-w-[500px] border-collapse">
                 <thead>
@@ -111,18 +113,11 @@ export default function ArenaSection({ data }: ArenaSectionProps) {
                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 border-b-2 border-gray-200">
                       Brand
                     </th>
-                    <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700 border-b-2 border-gray-200">
-                      ChatGPT
-                    </th>
-                    <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700 border-b-2 border-gray-200">
-                      Claude
-                    </th>
-                    <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700 border-b-2 border-gray-200">
-                      Mistral
-                    </th>
-                    <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700 border-b-2 border-gray-200">
-                      Gemini
-                    </th>
+                    {data.competitors?.[0]?.modelsMentionsRate.map((model) => (
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 border-b-2 border-gray-200">
+                        {model.model}
+                      </th>
+                    ))}
                     <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700 border-b-2 border-gray-200">
                       Global %
                     </th>
@@ -130,33 +125,31 @@ export default function ArenaSection({ data }: ArenaSectionProps) {
                 </thead>
                 <tbody>
                   {sortedCompetitors.map((competitor, index) => {
-                    const color = getSentimentColor(competitor.sentiment, index)
+                    const color = getSentimentColor("positive", index);
 
                     return (
                       <tr key={index} className="hover:bg-gray-50">
                         <td className="px-4 py-3 border-b border-gray-200">
                           <div className="flex items-center">
-                            <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: color }}></div>
-                            <span className="font-medium">{competitor.name}</span>
+                            <div
+                              className="w-3 h-3 rounded-full mr-2"
+                              style={{ backgroundColor: color }}
+                            ></div>
+                            <span className="font-medium">
+                              {competitor.name}
+                            </span>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-center border-b border-gray-200">
-                          {formatPercentage(competitor.chatgpt)}
-                        </td>
-                        <td className="px-4 py-3 text-center border-b border-gray-200">
-                          {formatPercentage(competitor.claude)}
-                        </td>
-                        <td className="px-4 py-3 text-center border-b border-gray-200">
-                          {formatPercentage(competitor.mistral)}
-                        </td>
-                        <td className="px-4 py-3 text-center border-b border-gray-200">
-                          {formatPercentage(competitor.gemini)}
-                        </td>
+                        {competitor.modelsMentionsRate?.map((model) => (
+                          <td className="px-4 py-3 text-center border-b border-gray-200">
+                            {formatPercentage(model.mentionsRate)}
+                          </td>
+                        ))}
                         <td className="px-4 py-3 text-center border-b border-gray-200 font-bold">
                           {formatPercentage(competitor.global)}
                         </td>
                       </tr>
-                    )
+                    );
                   })}
                 </tbody>
               </table>
@@ -166,10 +159,13 @@ export default function ArenaSection({ data }: ArenaSectionProps) {
 
         {/* 3. Bloc définition et méthodologie en bas */}
         <div className="border-t border-gray-100 pt-6">
-          <h4 className="text-lg font-semibold text-gray-800 mb-4">What is Arena Analysis?</h4>
+          <h4 className="text-lg font-semibold text-gray-800 mb-4">
+            What is Arena Analysis?
+          </h4>
           <p className="text-gray-600 mb-4">
-            Arena analysis identifies which competitors are most frequently mentioned alongside your brand in AI
-            responses, and how your brand compares to them in terms of visibility and sentiment.
+            Arena analysis identifies which competitors are most frequently
+            mentioned alongside your brand in AI responses, and how your brand
+            compares to them in terms of visibility and sentiment.
           </p>
           <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
             <div className="flex items-start">
@@ -190,7 +186,9 @@ export default function ArenaSection({ data }: ArenaSectionProps) {
                 </svg>
               </a>
               <div className="ml-3">
-                <h5 className="text-sm font-medium text-blue-800">Methodology</h5>
+                <h5 className="text-sm font-medium text-blue-800">
+                  Methodology
+                </h5>
                 <ul className="mt-1 text-sm text-blue-700 list-disc pl-5 space-y-1">
                   <li>Competitors analyzed = {data.competitors.length}</li>
                   <li>Models tested = 4</li>
@@ -203,5 +201,5 @@ export default function ArenaSection({ data }: ArenaSectionProps) {
         </div>
       </div>
     </div>
-  )
+  );
 }

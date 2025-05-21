@@ -153,13 +153,12 @@ export class WeeklyBrandReport {
   arena: {
     competitors: Array<{
       name: string;
-      chatgpt: number;
-      claude: number;
-      mistral: number;
-      gemini: number;
       global: string;
+      modelsMentionsRate: Array<{
+        model: string;
+        mentionsRate: number;
+      }>;
       size: string;
-      sentiment: string;
     }>;
   };
 
