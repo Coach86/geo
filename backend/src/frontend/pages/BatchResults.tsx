@@ -35,10 +35,10 @@ import {
   getBatchExecution,
   getBatchExecutionRawResponses
 } from '../utils/api-batch';
-import SpontaneousTab from '../components/company-detail/SpontaneousTab';
-import SentimentTab from '../components/company-detail/SentimentTab';
-import AccuracyTab from '../components/company-detail/AccuracyTab';
-import ComparisonTab from '../components/company-detail/ComparisonTab';
+import SpontaneousTab from '../components/company-detail/tabs/SpontaneousTab';
+import SentimentTab from '../components/company-detail/tabs/SentimentTab';
+import AccuracyTab from '../components/company-detail/tabs/AccuracyTab';
+import ComparisonTab from '../components/company-detail/tabs/ComparisonTab';
 import {
   BatchExecution,
   BatchResult,

@@ -26,7 +26,7 @@ import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import SearchIcon from '@mui/icons-material/Search';
 import LinkIcon from '@mui/icons-material/Link';
-import { ComparisonResults, CompanyIdentityCard, ToolUseInfo, SourceCitation, BrandBattleAnalysis } from '../../utils/types';
+import { ComparisonResults, CompanyIdentityCard, ToolUseInfo, SourceCitation, BrandBattleAnalysis } from '../../../utils/types';
 
 interface ComparisonTabProps {
   results: ComparisonResults;
@@ -119,90 +119,31 @@ const ComparisonTab: React.FC<ComparisonTabProps> = ({ results, company }) => {
         </Grid>
 
         <Grid size={{ xs: 12 }}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Detailed Results by Competitor
-              </Typography>
-              <TableContainer component={Paper} sx={{ mt: 2 }}>
-                <Table sx={{ minWidth: 650 }} aria-label="comparison results table">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>LLM</TableCell>
-                      <TableCell>Competitor</TableCell>
-                      <TableCell>Strengths</TableCell>
-                      <TableCell>Weaknesses</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {detailedResults.map((result, index) => (
-                      <TableRow 
-                        key={index} 
-                        hover
-                      >
-                        <TableCell>{result.llmProvider}/{result.llmModel}</TableCell>
-                        <TableCell>{result.competitor}</TableCell>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                            {result.brandStrengths && result.brandStrengths.slice(0, 3).map((strength, idx) => (
-                              <Chip 
-                                key={idx} 
-                                label={strength.length > 40 ? `${strength.substring(0, 40)}...` : strength} 
-                                size="small" 
-                                color="primary"
-                                sx={{ mr: 0.5, mb: 0.5 }} 
-                              />
-                            ))}
-                            {result.brandStrengths && result.brandStrengths.length > 3 && (
-                              <Chip 
-                                label={`+${result.brandStrengths.length - 3} more`} 
-                                size="small" 
-                                variant="outlined" 
-                              />
-                            )}
-                          </Box>
-                        </TableCell>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                            {result.brandWeaknesses && result.brandWeaknesses.slice(0, 3).map((weakness, idx) => (
-                              <Chip 
-                                key={idx} 
-                                label={weakness.length > 40 ? `${weakness.substring(0, 40)}...` : weakness} 
-                                size="small" 
-                                color="error"
-                                sx={{ mr: 0.5, mb: 0.5 }} 
-                              />
-                            ))}
-                            {result.brandWeaknesses && result.brandWeaknesses.length > 3 && (
-                              <Chip 
-                                label={`+${result.brandWeaknesses.length - 3} more`} 
-                                size="small" 
-                                variant="outlined" 
-                              />
-                            )}
-                          </Box>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid size={{ xs: 12 }}>
           <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-            Detailed Comparisons & Raw Responses
+            Detailed Results
           </Typography>
           {detailedResults.map((result, index) => (
             <Accordion key={index} sx={{ mb: 1 }}>
               <AccordionSummary 
                 expandIcon={<ExpandMoreIcon />}
               >
-                <Typography>
-                  <strong>{result.llmProvider}/{result.llmModel}</strong> - Competitor: {result.competitor}
-                </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                  <Typography>
+                    <strong>{result.llmProvider}/{result.llmModel}</strong> - Competitor: {result.competitor}
+                  </Typography>
+                  <Typography variant="body2" sx={{ ml: 2, display: 'flex', gap: 1 }}>
+                    <Chip 
+                      size="small" 
+                      color="primary" 
+                      label={`${result.brandStrengths?.length || 0} strengths`}
+                    />
+                    <Chip 
+                      size="small" 
+                      color="error" 
+                      label={`${result.brandWeaknesses?.length || 0} weaknesses`}
+                    />
+                  </Typography>
+                </Box>
               </AccordionSummary>
               <AccordionDetails>
                 <Typography variant="subtitle2" gutterBottom>

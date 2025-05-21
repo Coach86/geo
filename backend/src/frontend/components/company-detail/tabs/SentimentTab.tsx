@@ -26,7 +26,7 @@ import SentimentNeutralIcon from '@mui/icons-material/SentimentNeutral';
 import SentimentVeryDissatisfiedIcon from '@mui/icons-material/SentimentVeryDissatisfied';
 import SearchIcon from '@mui/icons-material/Search';
 import LinkIcon from '@mui/icons-material/Link';
-import { SentimentResults, ToolUseInfo, SourceCitation } from '../../utils/types';
+import { SentimentResults, ToolUseInfo, SourceCitation } from '../../../utils/types';
 
 interface SentimentTabProps {
   results: SentimentResults;
@@ -104,83 +104,30 @@ const SentimentTab: React.FC<SentimentTabProps> = ({ results }) => {
         </Grid>
 
         <Grid size={{ xs: 12 }}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Detailed Results by LLM
-              </Typography>
-              <TableContainer component={Paper} sx={{ mt: 2 }}>
-                <Table sx={{ minWidth: 650 }} aria-label="sentiment results table">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>LLM</TableCell>
-                      <TableCell>Prompt #</TableCell>
-                      <TableCell align="center">Sentiment</TableCell>
-                      <TableCell>Key Facts</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {detailedResults.map((result, index) => (
-                      <TableRow key={index} hover>
-                        <TableCell>{result.llmProvider}</TableCell>
-                        <TableCell>{result.promptIndex + 1}</TableCell>
-                        <TableCell align="center">
-                          <Box
-                            sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                          >
-                            {renderSentimentIcon(result.sentiment)}
-                            <Typography
-                              sx={{
-                                ml: 1,
-                                textTransform: 'capitalize',
-                                color: getSentimentColor(result.sentiment),
-                              }}
-                            >
-                              {result.sentiment}
-                            </Typography>
-                          </Box>
-                        </TableCell>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                            {result.extractedPositiveKeywords.slice(0, 3).map((fact, idx) => (
-                              <Chip
-                                key={idx}
-                                label={fact.length > 40 ? `${fact.substring(0, 40)}...` : fact}
-                                size="small"
-                                sx={{ mr: 0.5, mb: 0.5 }}
-                              />
-                            ))}
-                            {result.extractedPositiveKeywords.length > 3 && (
-                              <Chip
-                                label={`+${result.extractedPositiveKeywords.length - 3} more`}
-                                size="small"
-                                variant="outlined"
-                              />
-                            )}
-                          </Box>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid size={{ xs: 12 }}>
           <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-            Extracted Facts & Raw Responses
+            Detailed Results
           </Typography>
           {detailedResults.map((result, index) => (
             <Accordion key={index} sx={{ mb: 1 }}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography>
-                  <strong>{result.llmProvider}</strong> - Prompt #{result.promptIndex + 1}
-                  <Box component="span" sx={{ ml: 1 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                  <Typography>
+                    <strong>{result.llmProvider}</strong> - Prompt #{result.promptIndex + 1}
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', ml: 2 }}>
                     {renderSentimentIcon(result.sentiment)}
+                    <Typography
+                      sx={{
+                        ml: 1,
+                        textTransform: 'capitalize',
+                        color: getSentimentColor(result.sentiment),
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      {result.sentiment}
+                    </Typography>
                   </Box>
-                </Typography>
+                </Box>
               </AccordionSummary>
               <AccordionDetails>
                 <Typography variant="subtitle2" gutterBottom>
