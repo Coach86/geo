@@ -125,17 +125,20 @@ export class WeeklyBrandReport {
   @ApiProperty({ description: 'Arena section data' })
   arena: {
     competitors: Competitor[];
-    battle: {
-      competitors: CompetitorComparison[];
-      chatgpt?: {
-        positives: string[];
-        negatives: string[];
-      };
-      claude?: {
-        positives: string[];
-        negatives: string[];
-      };
-    };
+  };
+
+  @ApiProperty({ description: 'Brand Battle section data' })
+  brandBattle: {
+    competitorAnalyses: {
+      competitor: string;
+      analysisByModel: {
+        model: string;
+        strengths: string[];
+        weaknesses: string[];
+      }[];
+    }[];
+    commonStrengths: string[];
+    commonWeaknesses: string[];
   };
 
   @ApiProperty({ description: 'Model identifiers for each LLM used' })

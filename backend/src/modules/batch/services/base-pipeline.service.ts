@@ -196,6 +196,7 @@ export abstract class BasePipelineService implements OnModuleInit {
    * @param originalPrompt Optional original prompt to store with the analyzer data
    * @param originalLlmResponse Optional original LLM response to store with the analyzer data
    * @param originalLlmModel Optional original LLM model to store with the analyzer data
+   * @param modelIdentifier Optional custom identifier for the model to ensure uniqueness (e.g., for competitors)
    * @returns The structured output
    */
   protected async getStructuredAnalysis<T>(
@@ -208,6 +209,7 @@ export abstract class BasePipelineService implements OnModuleInit {
     originalPrompt?: string,
     originalLlmResponse?: string,
     originalLlmModel?: string,
+    modelIdentifier?: string, // Added parameter for custom model identifier
   ): Promise<T> {
     let structuredResult: T;
     let analyzerResponseText: string;
@@ -275,7 +277,8 @@ export abstract class BasePipelineService implements OnModuleInit {
         }
         
         // Create a modelIdentifier to ensure each model gets its own raw response entry
-        const modelIdentifier = `${originalLlmModel}`;
+        // Use provided modelIdentifier if available, otherwise just use originalLlmModel
+        const uniqueModelId = modelIdentifier || `${originalLlmModel}`;
         
         // Store all data in a single document - this is now the ONLY place we store raw responses
         await this.rawResponseService.storeRawResponse(
@@ -288,7 +291,7 @@ export abstract class BasePipelineService implements OnModuleInit {
           userPrompt, // The analyzer prompt
           structuredResult, // The structured analyzer response
           analyzerModel, // The model used for analysis
-          modelIdentifier // Add model identifier to ensure uniqueness
+          uniqueModelId // Add model identifier to ensure uniqueness
         );
         
         this.logger.log(

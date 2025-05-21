@@ -13,6 +13,7 @@ import {
   SentimentResults,
   ComparisonResults,
   AccuracyResults,
+  BrandBattleAnalysis,
 } from '../../batch/interfaces/batch.interfaces';
 
 /**
@@ -205,11 +206,20 @@ export interface WeeklyBrandReportEntity {
   /** Arena section data */
   arena: {
     competitors: Competitor[];
-    battle: {
-      competitors: CompetitorComparison[];
-      chatgpt?: ModelComparison;
-      claude?: ModelComparison;
-    };
+  };
+
+  /** Brand Battle section data */
+  brandBattle: {
+    competitorAnalyses: {
+      competitor: string;
+      analysisByModel: {
+        model: string;
+        strengths: string[];
+        weaknesses: string[];
+      }[];
+    }[];
+    commonStrengths: string[];
+    commonWeaknesses: string[];
   };
 
   /** Model identifiers for each LLM used */

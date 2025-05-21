@@ -1,26 +1,39 @@
 "use client";
 
-interface ArenaBattleSectionProps {
+interface BrandBattleSectionProps {
   data: {
-    competitors: {
-      name: string;
-      comparisons: {
+    competitorAnalyses: {
+      competitor: string;
+      analysisByModel: {
         model: string;
-        positives: string[];
-        negatives: string[];
+        strengths: string[];
+        weaknesses: string[];
       }[];
     }[];
+    commonStrengths: string[];
+    commonWeaknesses: string[];
   };
 }
 
-export default function ArenaBattleSection({ data }: ArenaBattleSectionProps) {
-  // Si nous n'avons pas les données au format attendu, créer des données de démonstration
-  const competitors = data.competitors;
+export default function BrandBattleSection({ data }: BrandBattleSectionProps) {
+  // Get the competitors and their analysis data
+  const competitors = data.competitorAnalyses;
 
-  // Obtenir la liste unique des modèles
+  // Get unique list of models across all competitor analyses
   const models = Array.from(
-    new Set(competitors.flatMap((comp) => comp.comparisons.map((c) => c.model)))
+    new Set(
+      competitors.flatMap((comp) => comp.analysisByModel.map((c) => c.model))
+    )
   );
+
+  // count the number of strengths and weaknesses across all competitors
+  const strengths = competitors.flatMap((comp) =>
+    comp.analysisByModel.flatMap((c) => c.strengths)
+  );
+  const weaknesses = competitors.flatMap((comp) =>
+    comp.analysisByModel.flatMap((c) => c.weaknesses)
+  );
+  const totalStrengthsAndWeaknesses = strengths.length + weaknesses.length;
 
   return (
     <div className="mb-16 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -44,7 +57,9 @@ export default function ArenaBattleSection({ data }: ArenaBattleSectionProps) {
               <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
                 <h3 className="text-base font-bold text-gray-800">
                   Brand vs{" "}
-                  <span className="text-[#805AD5]">{competitor.name}</span>
+                  <span className="text-[#805AD5]">
+                    {competitor.competitor}
+                  </span>
                 </h3>
               </div>
 
@@ -67,7 +82,7 @@ export default function ArenaBattleSection({ data }: ArenaBattleSectionProps) {
                       </tr>
                     </thead>
                     <tbody>
-                      {/* Ligne des points positifs */}
+                      {/* Strengths row */}
                       <tr className="bg-[#E3F2FD]">
                         <td className="px-2 py-2 border-b border-gray-200 font-bold text-[#0D47A1] text-sm text-center">
                           <div
@@ -89,24 +104,24 @@ export default function ArenaBattleSection({ data }: ArenaBattleSectionProps) {
                           </div>
                         </td>
                         {models.map((model, mIndex) => {
-                          const comparison = competitor.comparisons.find(
-                            (c) => c.model === model
+                          const analysis = competitor.analysisByModel.find(
+                            (a) => a.model === model
                           );
                           return (
                             <td
                               key={mIndex}
                               className="px-2 py-2 border-b border-gray-200 text-xs"
                             >
-                              {comparison?.positives.map((positive, pIndex) => (
+                              {analysis?.strengths.map((strength, sIndex) => (
                                 <div
-                                  key={pIndex}
+                                  key={sIndex}
                                   className="mb-1 flex items-start"
                                 >
                                   <span className="text-[#2196F3] mr-1 mt-0.5 flex-shrink-0">
                                     •
                                   </span>
                                   <span className="text-gray-800">
-                                    {positive}
+                                    {strength}
                                   </span>
                                 </div>
                               ))}
@@ -114,7 +129,7 @@ export default function ArenaBattleSection({ data }: ArenaBattleSectionProps) {
                           );
                         })}
                       </tr>
-                      {/* Ligne des points négatifs */}
+                      {/* Weaknesses row */}
                       <tr className="bg-[#FCE4EC]">
                         <td className="px-2 py-2 font-bold text-[#AD1457] text-sm text-center">
                           <div
@@ -136,21 +151,21 @@ export default function ArenaBattleSection({ data }: ArenaBattleSectionProps) {
                           </div>
                         </td>
                         {models.map((model, mIndex) => {
-                          const comparison = competitor.comparisons.find(
-                            (c) => c.model === model
+                          const analysis = competitor.analysisByModel.find(
+                            (a) => a.model === model
                           );
                           return (
                             <td key={mIndex} className="px-2 py-2 text-xs">
-                              {comparison?.negatives.map((negative, nIndex) => (
+                              {analysis?.weaknesses.map((weakness, wIndex) => (
                                 <div
-                                  key={nIndex}
+                                  key={wIndex}
                                   className="mb-1 flex items-start"
                                 >
                                   <span className="text-[#C2185B] mr-1 mt-0.5 flex-shrink-0">
                                     •
                                   </span>
                                   <span className="text-gray-800">
-                                    {negative}
+                                    {weakness}
                                   </span>
                                 </div>
                               ))}
@@ -166,7 +181,55 @@ export default function ArenaBattleSection({ data }: ArenaBattleSectionProps) {
           ))}
         </div>
 
-        {/* Bloc définition et méthodologie en bas */}
+        {/* Common strengths and weaknesses section */}
+        {(data.commonStrengths.length > 0 ||
+          data.commonWeaknesses.length > 0) && (
+          <div className="mt-8 bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+            <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+              <h3 className="text-base font-bold text-gray-800">
+                Common Patterns Across Competitors
+              </h3>
+            </div>
+            <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              {data.commonStrengths.length > 0 && (
+                <div className="bg-[#E3F2FD] p-3 rounded-lg">
+                  <h4 className="font-semibold text-[#0D47A1] mb-2">
+                    Common Strengths
+                  </h4>
+                  <ul className="space-y-1">
+                    {data.commonStrengths.map((strength, index) => (
+                      <li key={index} className="flex items-start text-sm">
+                        <span className="text-[#2196F3] mr-1 mt-0.5 flex-shrink-0">
+                          •
+                        </span>
+                        <span className="text-gray-800">{strength}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {data.commonWeaknesses.length > 0 && (
+                <div className="bg-[#FCE4EC] p-3 rounded-lg">
+                  <h4 className="font-semibold text-[#AD1457] mb-2">
+                    Common Weaknesses
+                  </h4>
+                  <ul className="space-y-1">
+                    {data.commonWeaknesses.map((weakness, index) => (
+                      <li key={index} className="flex items-start text-sm">
+                        <span className="text-[#C2185B] mr-1 mt-0.5 flex-shrink-0">
+                          •
+                        </span>
+                        <span className="text-gray-800">{weakness}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Definition and methodology section */}
         <div className="border-t border-gray-100 pt-6 mt-8">
           <h4 className="text-lg font-semibold text-gray-800 mb-4">
             What is Brand Battle Analysis?
@@ -202,8 +265,11 @@ export default function ArenaBattleSection({ data }: ArenaBattleSectionProps) {
                 <ul className="mt-1 text-sm text-blue-700 list-disc pl-5 space-y-1">
                   <li>Competitors analyzed = {competitors.length}</li>
                   <li>Models tested = {models.length}</li>
-                  <li>Direct comparison prompts used</li>
-                  <li>Strengths and weaknesses extracted from responses</li>
+                  <li>Direct comparison prompts used: 1</li>
+                  <li>
+                    Strengths and weaknesses extracted from responses:{" "}
+                    {totalStrengthsAndWeaknesses}
+                  </li>
                 </ul>
               </div>
             </div>

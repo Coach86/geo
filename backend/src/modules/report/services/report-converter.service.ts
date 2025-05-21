@@ -49,15 +49,12 @@ export class ReportConverterService {
     // Calculate average of attribute scores
     const attributeScores = input.accord?.summary?.averageAttributeScores || {};
     const scores = Object.values(attributeScores);
-    const avgScore = scores.length > 0 
-      ? scores.reduce((sum, score) => sum + score, 0) / scores.length 
-      : 0.5;
-      
+    const avgScore =
+      scores.length > 0 ? scores.reduce((sum, score) => sum + score, 0) / scores.length : 0.5;
+
     const accordValue = `${Math.round(avgScore * 10)}/10`;
-    const accordStatus = (
-      avgScore > 0.6 ? 'green' : 'yellow'
-    ) as 'green' | 'yellow' | 'red';
-    
+    const accordStatus = (avgScore > 0.6 ? 'green' : 'yellow') as 'green' | 'yellow' | 'red';
+
     const safeAttributes = this.transformationService.generateAttributesList(
       identityCard,
       input.accord,
@@ -98,13 +95,10 @@ export class ReportConverterService {
     identityCard: CompanyIdentityCard,
   ): WeeklyBrandReportEntity {
     this.logger.debug(`Converting batch input to report entity for company ${input.companyId}`);
-    this.logger.debug(`input ${JSON.stringify(input)}`);
     // Get config data for models list by using the llmVersions keys
     const modelsList = Object.keys(input.llmVersions || {})
       .map((provider) => `${provider}`)
       .join(', ');
-
-    this.logger.debug(`input.sentiment ${JSON.stringify(input.sentiment?.summary)}`);
     // Format sentiment value and status with helper methods
     const sentimentValue = input.sentiment?.summary?.overallSentimentPercentage;
 
@@ -113,17 +107,17 @@ export class ReportConverterService {
     ) as 'green' | 'yellow' | 'red';
 
     // Calculate accord score based on attribute scores
-    const attributeScores = input.accord?.summary && (input.accord.summary as any).averageAttributeScores
-      ? Object.values((input.accord.summary as any).averageAttributeScores) as number[]
-      : [];
-    const avgScore = attributeScores.length > 0
-      ? attributeScores.reduce((sum, score) => sum + score, 0) / attributeScores.length
-      : 0;
-      
+    const attributeScores =
+      input.accord?.summary && (input.accord.summary as any).averageAttributeScores
+        ? (Object.values((input.accord.summary as any).averageAttributeScores) as number[])
+        : [];
+    const avgScore =
+      attributeScores.length > 0
+        ? attributeScores.reduce((sum, score) => sum + score, 0) / attributeScores.length
+        : 0;
+
     const accordValue = `${Math.round(avgScore * 10)}/10`;
-    const accordStatus = (
-      avgScore > 0.6 ? 'green' : 'yellow'
-    ) as 'green' | 'yellow' | 'red';
+    const accordStatus = (avgScore > 0.6 ? 'green' : 'yellow') as 'green' | 'yellow' | 'red';
 
     return {
       // Base fields
@@ -169,8 +163,15 @@ export class ReportConverterService {
       tone: this.getToneDataForReport(input),
       accord: this.getAccordDataForReport(input, identityCard),
       arena: this.getArenaDataForReport(input, identityCard),
+      brandBattle: this.getBrandBattleDataForReport(input),
       llmVersions: input.llmVersions || {},
     };
+  }
+
+  private getBrandBattleDataForReport(
+    input: BatchReportInput,
+  ): WeeklyBrandReportEntity['brandBattle'] {
+    return this.transformationService.getBrandBattleData(input.comparison);
   }
 
   /**
@@ -216,6 +217,11 @@ export class ReportConverterService {
           competitors: [],
           battle: { competitors: [] },
         },
+        brandBattle: document.brandBattle || {
+          competitorAnalyses: [],
+          commonStrengths: [],
+          commonWeaknesses: [],
+        },
         llmVersions: document.llmVersions,
       };
 
@@ -232,6 +238,7 @@ export class ReportConverterService {
       spontaneous: document.spontaneous,
       sentiment: document.sentiment,
       comparison: document.comparison,
+      brandBattle: document.brandBattle,
     };
 
     return this.convertBatchInputToReportEntity(batchInput, identityCard);
@@ -256,6 +263,7 @@ export class ReportConverterService {
       tone: reportEntity.tone,
       accord: reportEntity.accord,
       arena: reportEntity.arena,
+      brandBattle: reportEntity.brandBattle,
       // Only include raw data in development mode
       ...(process.env.NODE_ENV === 'development' &&
         reportEntity.rawData && {

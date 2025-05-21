@@ -42,6 +42,7 @@ export class ReportPersistenceService {
         tone: report.tone,
         accord: report.accord,
         arena: report.arena,
+        brandBattle: report.brandBattle,
         llmVersions: report.llmVersions || {},
         // Legacy raw data fields for backward compatibility
         spontaneous: report.rawData?.spontaneous,
