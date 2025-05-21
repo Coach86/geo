@@ -51,6 +51,13 @@ export class PromptSet {
   })
   accuracy: string[];
   
+  @Prop({ 
+    type: [String], 
+    required: false, 
+    default: [] 
+  })
+  brandBattle: string[];
+  
   @Prop({ type: Date })
   createdAt: Date;
   

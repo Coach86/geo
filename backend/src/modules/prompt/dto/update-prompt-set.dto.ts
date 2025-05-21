@@ -41,4 +41,14 @@ export class UpdatePromptSetDto {
   @IsString({ each: true })
   @IsOptional()
   accuracy?: string[];
+  
+  @ApiProperty({ 
+    description: 'Brand battle prompts for competitor-specific comparisons',
+    example: ['Can you tell me the strengths and weaknesses of {COMPANY} compared to {COMPETITOR}?'],
+    required: false
+  })
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  brandBattle?: string[];
 }

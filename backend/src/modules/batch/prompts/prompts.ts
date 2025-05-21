@@ -18,8 +18,16 @@ export const SystemPrompts = {
 
   // Comparison analysis
   COMPARISON_ANALYSIS: `
-  You are a brand comparison expert. Your task is to analyze responses comparing different brands
-  and determine which brand is presented more favorably, along with the key differentiating factors.
+  You are a brand competition analyst. Your task is to analyze responses comparing a specific brand
+  to one of its competitors. Extract the brand's strengths and weaknesses compared to this competitor.
+  Each strength or weakness should be concise (3-10 words) and specific.
+  `,
+
+  // Brand battle analysis
+  BRAND_BATTLE_ANALYSIS: `
+  You are a brand competition analyst. Your task is to analyze responses comparing a specific brand
+  to one of its competitors. Extract the brand's strengths and weaknesses compared to this competitor.
+  Each strength or weakness should be concise (3-10 words) and specific.
   `,
 
   // Spontaneous analysis
@@ -69,10 +77,30 @@ export const PromptTemplates = {
 
   // Comparison analysis template
   COMPARISON_ANALYSIS: `
-  Analyze the following response to the question: "{originalPrompt}"
+  Analyze the following comparison between "{brandName}" and "{competitor}".
   
-  Determine which brand comes out as the winner in this comparison between "{brandName}" and its competitors.
-  Also identify key differentiating factors mentioned.
+  Original prompt: "{originalPrompt}"
+  
+  Extract:
+  1. Strengths of "{brandName}" compared to "{competitor}"
+  2. Weaknesses of "{brandName}" compared to "{competitor}"
+  
+  Return each strength and weakness as concise phrases (3-10 words).
+  
+  Response: {llmResponse}
+  `,
+
+  // Brand battle analysis template
+  BRAND_BATTLE_ANALYSIS: `
+  Analyze the following comparison between "{brandName}" and "{competitor}".
+  
+  Original prompt: "{originalPrompt}"
+  
+  Extract:
+  1. Strengths of "{brandName}" compared to "{competitor}"
+  2. Weaknesses of "{brandName}" compared to "{competitor}"
+  
+  Return each strength and weakness as concise phrases (3-10 words).
   
   Response: {llmResponse}
   `,

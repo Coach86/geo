@@ -270,6 +270,7 @@ export class BatchService {
     return this.runPipeline('comparison', context);
   }
 
+
   /**
    * Internal method to process a company
    * @param context The company batch context
@@ -312,11 +313,18 @@ export class BatchService {
         ]);
 
       // Get LLM versions
+      const comparisonLlmResults = [];
+      
+      // Get comparison results - now only one format is used
+      if (comparisonResults && Array.isArray(comparisonResults.results)) {
+        comparisonLlmResults.push(...comparisonResults.results);
+      }
+      
       const llmVersions = this.getLlmVersions([
         ...spontaneousResults.results,
         ...sentimentResults.results,
         ...accuracyResults.results,
-        ...comparisonResults.results,
+        ...comparisonLlmResults,
       ]);
 
       this.logger.log(`Saving batch results for execution ${batchExecutionId}`);

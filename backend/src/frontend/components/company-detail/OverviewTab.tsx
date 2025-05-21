@@ -129,7 +129,8 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ company }) => {
           borderRadius: 1.5,
           boxShadow: 'none',
           border: `1px solid ${alpha(theme.palette.grey[500], 0.12)}`,
-          backgroundColor: alpha(theme.palette.grey[50], 0.5),
+          backgroundColor: theme.palette.background.paper,
+          color: theme.palette.text.primary,
         }}
       >
         <CardContent sx={{ p: 2.5 }}>
@@ -143,14 +144,14 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ company }) => {
           >
             <Typography 
               variant="body2" 
-              color="text.secondary"
+              color="text.primary"
               sx={{ 
                 fontSize: '0.75rem',
                 display: 'flex',
                 alignItems: 'center',
               }}
             >
-              <Box component="span" sx={{ fontWeight: 600, mr: 0.5, color: alpha(theme.palette.text.primary, 0.7) }}>
+              <Box component="span" sx={{ fontWeight: 600, mr: 0.5 }}>
                 Company ID:
               </Box>
               {company.id}
@@ -158,14 +159,14 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ company }) => {
             
             <Typography 
               variant="body2" 
-              color="text.secondary"
+              color="text.primary"
               sx={{ 
                 fontSize: '0.75rem',
                 display: 'flex',
                 alignItems: 'center',
               }}
             >
-              <Box component="span" sx={{ fontWeight: 600, mr: 0.5, color: alpha(theme.palette.text.primary, 0.7) }}>
+              <Box component="span" sx={{ fontWeight: 600, mr: 0.5 }}>
                 Created:
               </Box>
               {new Date(company.createdAt).toLocaleString()}
@@ -173,14 +174,14 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ company }) => {
             
             <Typography 
               variant="body2" 
-              color="text.secondary"
+              color="text.primary"
               sx={{ 
                 fontSize: '0.75rem',
                 display: 'flex',
                 alignItems: 'center',
               }}
             >
-              <Box component="span" sx={{ fontWeight: 600, mr: 0.5, color: alpha(theme.palette.text.primary, 0.7) }}>
+              <Box component="span" sx={{ fontWeight: 600, mr: 0.5 }}>
                 Last Updated:
               </Box>
               {new Date(company.updatedAt).toLocaleString()}

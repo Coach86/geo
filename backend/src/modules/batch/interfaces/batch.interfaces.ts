@@ -2,6 +2,22 @@
  * Interfaces for batch processing
  */
 
+/**
+ * Type definition for prompt set based on the schema definition
+ * in backend/src/modules/prompt/schemas/prompt-set.schema.ts
+ */
+export interface PromptSetType {
+  id?: string;
+  companyId?: string;
+  spontaneous: string[];
+  direct?: string[];
+  comparison: string[];
+  accuracy?: string[];
+  brandBattle?: string[];
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
 export interface CompanyBatchContext {
   companyId: string;
   brandName: string;
@@ -9,7 +25,7 @@ export interface CompanyBatchContext {
   market: string;
   websiteUrl: string;
   competitors: string[];
-  promptSet: any;
+  promptSet: PromptSetType;
   batchExecutionId?: string; // Optional ID of associated batch execution for storing raw responses
 }
 
@@ -142,12 +158,13 @@ export interface ComparisonPipelineResult {
   llmProvider: string;
   llmModel: string;
   promptIndex: number;
-  winner: string;
-  differentiators: string[];
+  competitor: string; // The specific competitor for this comparison
+  brandStrengths: string[]; // Strengths of the brand vs this competitor
+  brandWeaknesses: string[]; // Weaknesses of the brand vs this competitor
   originalPrompt?: string;
   llmResponse?: string;
   error?: string;
-  // Added fields for web search and citations
+  // Web search and citation fields
   usedWebSearch?: boolean;
   citations?: any[];
   toolUsage?: any[];
@@ -156,11 +173,27 @@ export interface ComparisonPipelineResult {
 export interface ComparisonResults {
   results: ComparisonPipelineResult[];
   summary: {
-    winRate: number;
-    keyDifferentiators: string[];
+    competitorAnalyses: BrandBattleAnalysis[];
+    commonStrengths: string[];
+    commonWeaknesses: string[];
   };
   webSearchSummary: WebSearchSummary;
 }
+
+/**
+ * Brand Battle Pipeline Interfaces
+ */
+export interface BrandBattleAnalysis {
+  competitor: string;
+  brandStrengths: string[]; // Strengths of the brand vs this competitor
+  brandWeaknesses: string[]; // Weaknesses of the brand vs this competitor
+}
+
+// Alias for backward compatibility, using the same structure as ComparisonPipelineResult
+export type BrandBattlePipelineResult = ComparisonPipelineResult;
+
+// Alias for backward compatibility, using the same structure as ComparisonResults
+export type BrandBattleResults = ComparisonResults;
 
 /**
  * Weekly Report Interface
@@ -171,7 +204,8 @@ export interface WeeklyBrandReport {
   spontaneous: SpontaneousResults;
   sentimentAccuracy: SentimentResults;
   accuracy?: AccuracyResults; // New field for accuracy results
-  comparison: ComparisonResults;
+  comparison: ComparisonResults; // Now contains the brand battle data
+  // Note: brandBattle field removed as it's now integrated into comparison
   llmVersions: Record<string, string>; // model identifiers
   generatedAt: Date;
 }

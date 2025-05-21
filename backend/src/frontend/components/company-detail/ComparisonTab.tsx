@@ -11,7 +11,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  LinearProgress,
   Accordion,
   AccordionSummary,
   AccordionDetails,
@@ -24,11 +23,10 @@ import {
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
-import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import SearchIcon from '@mui/icons-material/Search';
 import LinkIcon from '@mui/icons-material/Link';
-import { ComparisonResults, CompanyIdentityCard, ToolUseInfo, SourceCitation } from '../../utils/types';
+import { ComparisonResults, CompanyIdentityCard, ToolUseInfo, SourceCitation, BrandBattleAnalysis } from '../../utils/types';
 
 interface ComparisonTabProps {
   results: ComparisonResults;
@@ -38,11 +36,15 @@ interface ComparisonTabProps {
 const ComparisonTab: React.FC<ComparisonTabProps> = ({ results, company }) => {
   const { summary, results: detailedResults } = results;
   
-  // Function to check if the company is the winner in a comparison
-  const isCompanyWinner = (winner: string): boolean => {
-    const companyName = company.brandName.toLowerCase();
-    return winner.toLowerCase().includes(companyName);
+  // Function to check if we have results for a specific competitor
+  const hasCompetitorResults = (competitor: string): boolean => {
+    return detailedResults.some(r => r.competitor === competitor);
   };
+  
+  // Get unique competitors from the results
+  const competitorsSet = new Set<string>();
+  detailedResults.forEach(r => competitorsSet.add(r.competitor));
+  const competitors = Array.from(competitorsSet);
 
   return (
     <>
@@ -61,27 +63,28 @@ const ComparisonTab: React.FC<ComparisonTabProps> = ({ results, company }) => {
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
-                Win Rate
+                Common Strengths
               </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <EmojiEventsIcon 
-                  color={summary.winRate > 0.5 ? "primary" : "action"} 
-                  sx={{ fontSize: '3rem', mr: 2 }}
-                />
-                <Typography variant="h3" color="primary">
-                  {(summary.winRate * 100).toFixed(1)}%
-                </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 2 }}>
+                {summary.commonStrengths && summary.commonStrengths.length > 0 ? (
+                  summary.commonStrengths.map((strength, index) => (
+                    <Chip
+                      key={index}
+                      label={strength}
+                      color="primary"
+                      variant={index < 3 ? "filled" : "outlined"}
+                      icon={index < 3 ? <ArrowUpwardIcon /> : undefined}
+                    />
+                  ))
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    No common strengths found.
+                  </Typography>
+                )}
               </Box>
-              <Typography variant="body2" color="text.secondary" paragraph>
-                This represents how often your brand comes out ahead in comparisons.
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                These are the strengths that appear across multiple competitors.
               </Typography>
-              <Box sx={{ width: '100%', mt: 1 }}>
-                <LinearProgress 
-                  variant="determinate" 
-                  value={summary.winRate * 100} 
-                  sx={{ height: 10, borderRadius: 5 }}
-                />
-              </Box>
             </CardContent>
           </Card>
         </Grid>
@@ -90,27 +93,26 @@ const ComparisonTab: React.FC<ComparisonTabProps> = ({ results, company }) => {
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
-                Key Differentiators
+                Common Weaknesses
               </Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 2 }}>
-                {summary.keyDifferentiators.length > 0 ? (
-                  summary.keyDifferentiators.map((diff, index) => (
+                {summary.commonWeaknesses && summary.commonWeaknesses.length > 0 ? (
+                  summary.commonWeaknesses.map((weakness, index) => (
                     <Chip
                       key={index}
-                      label={diff}
-                      color={index < 3 ? "primary" : "default"}
+                      label={weakness}
+                      color="error"
                       variant={index < 3 ? "filled" : "outlined"}
-                      icon={index < 3 ? <ArrowUpwardIcon /> : undefined}
                     />
                   ))
                 ) : (
                   <Typography variant="body2" color="text.secondary">
-                    No key differentiators found.
+                    No common weaknesses found.
                   </Typography>
                 )}
               </Box>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-                These are the most frequently mentioned differentiating factors for your brand.
+                These are the weaknesses that appear across multiple competitors.
               </Typography>
             </CardContent>
           </Card>
@@ -120,16 +122,16 @@ const ComparisonTab: React.FC<ComparisonTabProps> = ({ results, company }) => {
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
-                Detailed Results by LLM
+                Detailed Results by Competitor
               </Typography>
               <TableContainer component={Paper} sx={{ mt: 2 }}>
                 <Table sx={{ minWidth: 650 }} aria-label="comparison results table">
                   <TableHead>
                     <TableRow>
                       <TableCell>LLM</TableCell>
-                      <TableCell>Prompt #</TableCell>
-                      <TableCell>Winner</TableCell>
-                      <TableCell>Differentiators</TableCell>
+                      <TableCell>Competitor</TableCell>
+                      <TableCell>Strengths</TableCell>
+                      <TableCell>Weaknesses</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -137,40 +139,43 @@ const ComparisonTab: React.FC<ComparisonTabProps> = ({ results, company }) => {
                       <TableRow 
                         key={index} 
                         hover
-                        sx={{ 
-                          backgroundColor: isCompanyWinner(result.winner) ? 'success.light' : undefined 
-                        }}
                       >
-                        <TableCell>{result.llmProvider}</TableCell>
-                        <TableCell>{result.promptIndex + 1}</TableCell>
+                        <TableCell>{result.llmProvider}/{result.llmModel}</TableCell>
+                        <TableCell>{result.competitor}</TableCell>
                         <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            {isCompanyWinner(result.winner) && (
-                              <EmojiEventsIcon color="primary" sx={{ mr: 1 }} />
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                            {result.brandStrengths && result.brandStrengths.slice(0, 3).map((strength, idx) => (
+                              <Chip 
+                                key={idx} 
+                                label={strength.length > 40 ? `${strength.substring(0, 40)}...` : strength} 
+                                size="small" 
+                                color="primary"
+                                sx={{ mr: 0.5, mb: 0.5 }} 
+                              />
+                            ))}
+                            {result.brandStrengths && result.brandStrengths.length > 3 && (
+                              <Chip 
+                                label={`+${result.brandStrengths.length - 3} more`} 
+                                size="small" 
+                                variant="outlined" 
+                              />
                             )}
-                            <Typography 
-                              sx={{ 
-                                fontWeight: isCompanyWinner(result.winner) ? 'bold' : 'normal',
-                                color: isCompanyWinner(result.winner) ? 'primary.main' : 'text.primary'
-                              }}
-                            >
-                              {result.winner}
-                            </Typography>
                           </Box>
                         </TableCell>
                         <TableCell>
                           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                            {result.differentiators.slice(0, 3).map((diff, idx) => (
+                            {result.brandWeaknesses && result.brandWeaknesses.slice(0, 3).map((weakness, idx) => (
                               <Chip 
                                 key={idx} 
-                                label={diff.length > 40 ? `${diff.substring(0, 40)}...` : diff} 
+                                label={weakness.length > 40 ? `${weakness.substring(0, 40)}...` : weakness} 
                                 size="small" 
+                                color="error"
                                 sx={{ mr: 0.5, mb: 0.5 }} 
                               />
                             ))}
-                            {result.differentiators.length > 3 && (
+                            {result.brandWeaknesses && result.brandWeaknesses.length > 3 && (
                               <Chip 
-                                label={`+${result.differentiators.length - 3} more`} 
+                                label={`+${result.brandWeaknesses.length - 3} more`} 
                                 size="small" 
                                 variant="outlined" 
                               />
@@ -194,47 +199,59 @@ const ComparisonTab: React.FC<ComparisonTabProps> = ({ results, company }) => {
             <Accordion key={index} sx={{ mb: 1 }}>
               <AccordionSummary 
                 expandIcon={<ExpandMoreIcon />}
-                sx={{ 
-                  backgroundColor: isCompanyWinner(result.winner) ? 'success.light' : undefined 
-                }}
               >
                 <Typography>
-                  <strong>{result.llmProvider}</strong> - Prompt #{result.promptIndex + 1}
-                  {isCompanyWinner(result.winner) && (
-                    <EmojiEventsIcon color="primary" fontSize="small" sx={{ ml: 1, verticalAlign: 'middle' }} />
-                  )}
+                  <strong>{result.llmProvider}/{result.llmModel}</strong> - Competitor: {result.competitor}
                 </Typography>
               </AccordionSummary>
               <AccordionDetails>
                 <Typography variant="subtitle2" gutterBottom>
-                  Winner:
+                  Competitor:
                 </Typography>
                 <Typography 
                   variant="body1" 
                   sx={{ 
                     fontWeight: 'bold', 
-                    mb: 2, 
-                    color: isCompanyWinner(result.winner) ? 'primary.main' : 'text.primary' 
+                    mb: 2
                   }}
                 >
-                  {result.winner}
+                  {result.competitor}
                 </Typography>
                 
                 <Typography variant="subtitle2" gutterBottom>
-                  Differentiators:
+                  Brand Strengths vs {result.competitor}:
                 </Typography>
                 <Box sx={{ mb: 2 }}>
-                  {result.differentiators.length > 0 ? (
+                  {result.brandStrengths && result.brandStrengths.length > 0 ? (
                     <ul style={{ margin: 0, paddingLeft: '1.5rem' }}>
-                      {result.differentiators.map((diff, idx) => (
+                      {result.brandStrengths.map((strength, idx) => (
                         <li key={idx}>
-                          <Typography variant="body2">{diff}</Typography>
+                          <Typography variant="body2">{strength}</Typography>
                         </li>
                       ))}
                     </ul>
                   ) : (
                     <Typography variant="body2" color="text.secondary">
-                      No differentiators specified.
+                      No strengths specified.
+                    </Typography>
+                  )}
+                </Box>
+                
+                <Typography variant="subtitle2" gutterBottom>
+                  Brand Weaknesses vs {result.competitor}:
+                </Typography>
+                <Box sx={{ mb: 2 }}>
+                  {result.brandWeaknesses && result.brandWeaknesses.length > 0 ? (
+                    <ul style={{ margin: 0, paddingLeft: '1.5rem' }}>
+                      {result.brandWeaknesses.map((weakness, idx) => (
+                        <li key={idx}>
+                          <Typography variant="body2">{weakness}</Typography>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      No weaknesses specified.
                     </Typography>
                   )}
                 </Box>

@@ -62,14 +62,11 @@ export class AccuracyPipelineService extends BasePipelineService {
     this.logger.log(`Running accuracy pipeline for ${context.companyId} (${context.brandName})`);
 
     try {
-      // Get the prompts for this pipeline - could be array or JSON string
-      const promptsRaw = context.promptSet?.accuracy || [];
-      const prompts: string[] = Array.isArray(promptsRaw)
-        ? promptsRaw
-        : JSON.parse(typeof promptsRaw === 'string' ? promptsRaw : '[]');
-
+      // Get the prompts for this pipeline
+      const prompts = context.promptSet?.accuracy || [];
+      
       if (!prompts.length) {
-        throw new Error('No direct brand prompts found for this company');
+        throw new Error('No accuracy prompts found for this company');
       }
 
       // Format the prompts to include the company name

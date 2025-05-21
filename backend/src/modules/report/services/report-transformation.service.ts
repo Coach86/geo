@@ -204,7 +204,10 @@ export class ReportTransformationService {
       };
     };
   } {
-    if (!comparisonData?.results) {
+    // Get the comparison results
+    const results = comparisonData ? comparisonData.results : [];
+
+    if (results.length === 0) {
       return {
         competitors: [],
         battle: { competitors: [] },
@@ -213,9 +216,10 @@ export class ReportTransformationService {
 
     // Get competitors from comparison data or use provided competitors
     const competitorSet = new Set<string>();
-    if (comparisonData?.results && comparisonData.results.length > 0) {
-      comparisonData.results.forEach((r: any) => {
+    if (results.length > 0) {
+      results.forEach((r: any) => {
         if (r.winner) competitorSet.add(r.winner);
+        if (r.competitor) competitorSet.add(r.competitor);
       });
     }
     const competitorNames =
@@ -230,8 +234,8 @@ export class ReportTransformationService {
 
     // Get unique LLM providers from the results
     const llmProviderSet = new Set<string>();
-    if (comparisonData?.results && comparisonData.results.length > 0) {
-      comparisonData.results.forEach((r: any) => {
+    if (results.length > 0) {
+      results.forEach((r: any) => {
         if (r.llmProvider) llmProviderSet.add(r.llmProvider);
       });
     }
@@ -243,30 +247,30 @@ export class ReportTransformationService {
     // Create competitors for arena section
     const formattedCompetitors = competitorNames.map((name, index) => {
       const modelWins = {
-        chatgpt: comparisonData.results
-          ? comparisonData.results.filter(
-              (r: any) => r.winner === name && r.llmProvider.toLowerCase().includes('gpt'),
+        chatgpt: results.length > 0
+          ? results.filter(
+              (r: any) => (r.winner === name || r.competitor === name) && r.llmProvider.toLowerCase().includes('gpt'),
             ).length
           : index === 0
             ? 2
             : 1,
-        claude: comparisonData.results
-          ? comparisonData.results.filter(
-              (r: any) => r.winner === name && r.llmProvider.toLowerCase().includes('claude'),
+        claude: results.length > 0
+          ? results.filter(
+              (r: any) => (r.winner === name || r.competitor === name) && r.llmProvider.toLowerCase().includes('claude'),
             ).length
           : index === 0
             ? 1
             : 2,
-        mistral: comparisonData.results
-          ? comparisonData.results.filter(
-              (r: any) => r.winner === name && r.llmProvider.toLowerCase().includes('mistral'),
+        mistral: results.length > 0
+          ? results.filter(
+              (r: any) => (r.winner === name || r.competitor === name) && r.llmProvider.toLowerCase().includes('mistral'),
             ).length
           : index === 0
             ? 2
             : 1,
-        gemini: comparisonData.results
-          ? comparisonData.results.filter(
-              (r: any) => r.winner === name && r.llmProvider.toLowerCase().includes('gemini'),
+        gemini: results.length > 0
+          ? results.filter(
+              (r: any) => (r.winner === name || r.competitor === name) && r.llmProvider.toLowerCase().includes('gemini'),
             ).length
           : index === 0
             ? 1
@@ -298,33 +302,28 @@ export class ReportTransformationService {
     const battleCompetitors = competitorNames.slice(0, 2).map((name) => {
       // Create comparisons by model
       const comparisons = llmProviders.map((provider) => {
-        // Get differentiators for this competitor from this model
-        const modelDiffs = comparisonData.results
-          ? comparisonData.results
-              .filter((r: any) => r.winner === name && r.llmProvider === provider)
-              .flatMap((r: any) => r.differentiators || [])
+        // Get strengths for this competitor from this model
+        const modelStrengths = results.length > 0
+          ? results
+              .filter((r: any) => r.competitor === name && r.llmProvider === provider)
+              .flatMap((r: any) => r.brandStrengths || [])
+          : [];
+          
+        // Get weaknesses for this competitor from this model
+        const modelWeaknesses = results.length > 0
+          ? results
+              .filter((r: any) => r.competitor === name && r.llmProvider === provider)
+              .flatMap((r: any) => r.brandWeaknesses || [])
           : [];
 
-        // Split into positives and negatives
-        const positives =
-          modelDiffs.length > 0
-            ? modelDiffs
-                .filter(
-                  (d: string) =>
-                    !d.toLowerCase().includes('however') && !d.toLowerCase().includes('but'),
-                )
-                .slice(0, 2)
-            : ['quality product', 'good service'];
+        // Use strengths and weaknesses directly
+        const positives = modelStrengths.length > 0
+          ? modelStrengths.slice(0, 2)
+          : ['quality product', 'good service'];
 
-        const negatives =
-          modelDiffs.length > 0
-            ? modelDiffs
-                .filter(
-                  (d: string) =>
-                    d.toLowerCase().includes('however') || d.toLowerCase().includes('but'),
-                )
-                .slice(0, 2)
-            : ['price point', 'limited options'];
+        const negatives = modelWeaknesses.length > 0
+          ? modelWeaknesses.slice(0, 2)
+          : ['price point', 'limited options'];
 
         return {
           model: provider,

@@ -4,12 +4,18 @@ import { z } from 'zod';
 import { LlmService } from '../../llm/services/llm.service';
 import { RawResponseService } from './raw-response.service';
 import {
+  BrandBattleAnalysis,
+  BrandBattlePipelineResult,
   CompanyBatchContext,
-  ComparisonPipelineResult,
   ComparisonResults,
   WebSearchSummary,
 } from '../interfaces/batch.interfaces';
-import { AnalyzerConfig, LlmModelConfig, PipelineType, PromptType } from '../interfaces/llm.interfaces';
+import {
+  AnalyzerConfig,
+  LlmModelConfig,
+  PipelineType,
+  PromptType,
+} from '../interfaces/llm.interfaces';
 import { BasePipelineService } from './base-pipeline.service';
 import { SystemPrompts, PromptTemplates, formatPrompt } from '../prompts/prompts';
 
@@ -39,19 +45,18 @@ export class ComparisonPipelineService extends BasePipelineService {
   /**
    * Run the comparison pipeline for a company
    * @param context Company batch context
-   * @returns Pipeline results
+   * @returns Comparison results with brand battle data
    */
   async run(context: CompanyBatchContext): Promise<ComparisonResults> {
-    this.logger.log(`Running comparison pipeline for ${context.companyId} (${context.brandName})`);
+    this.logger.log(
+      `Running brand battle pipeline for ${context.companyId} (${context.brandName})`,
+    );
 
     try {
-      // Get the prompts for this pipeline and the competitors - could be array or JSON string
-      const promptsRaw = context.promptSet?.comparison || [];
-      const prompts: string[] = Array.isArray(promptsRaw)
-        ? promptsRaw
-        : JSON.parse(typeof promptsRaw === 'string' ? promptsRaw : '[]');
+      // Get comparison prompts
+      const comparisonPrompts = context.promptSet?.brandBattle || [];
 
-      if (!prompts.length) {
+      if (!comparisonPrompts.length) {
         throw new Error('No comparison prompts found for this company');
       }
 
@@ -59,99 +64,22 @@ export class ComparisonPipelineService extends BasePipelineService {
       const competitors = context.competitors || [];
 
       if (competitors.length === 0) {
-        this.logger.warn(
-          `No competitors specified for ${context.companyId}. Using generic comparison.`,
+        this.logger.error(
+          `No competitors specified for ${context.companyId}. Brand battle requires competitors.`,
         );
+        throw new Error('Brand battle requires competitors to be specified');
       }
 
-      // Format the competitors string for prompts
-      const competitorsStr =
-        competitors.length > 0 ? competitors.join(', ') : 'other companies in the industry';
-
-      // Format the prompts to include the company name and competitors
-      const formattedPrompts = prompts.map((prompt) =>
-        prompt.replace(/{COMPANY}/g, context.brandName).replace(/{COMPETITORS}/g, competitorsStr),
-      );
-
-      // Get the enabled LLM models
-      const enabledModels = this.getEnabledModels();
-
-      if (enabledModels.length === 0) {
-        throw new Error('No enabled LLM models found in configuration');
-      }
-
-      // Create tasks for each model and prompt
-      const tasks = [];
-
-      for (const modelConfig of enabledModels) {
-        for (let i = 0; i < formattedPrompts.length; i++) {
-          tasks.push(
-            this.limiter(async () => {
-              try {
-                // Step 1: Execute the prompt with this model
-                const llmResponse = await this.executePrompt(
-                  modelConfig,
-                  formattedPrompts[i],
-                  context.batchExecutionId, // Pass batch execution ID for storing raw responses
-                  i, // Pass prompt index
-                );
-
-                // Step 2: Analyze the response
-                return await this.analyzeResponse(
-                  modelConfig,
-                  context.brandName,
-                  competitors,
-                  formattedPrompts[i],
-                  llmResponse,
-                  i,
-                );
-              } catch (error) {
-                this.logger.error(
-                  `Error in comparison pipeline for ${context.brandName} with ${modelConfig.provider}/${modelConfig.model} on prompt ${i}: ${error.message}`,
-                  error.stack,
-                );
-                return {
-                  llmProvider: modelConfig.provider,
-                  llmModel: modelConfig.model,
-                  promptIndex: i,
-                  winner: 'unknown',
-                  differentiators: [],
-                  originalPrompt: formattedPrompts[i],
-                  error: error.message,
-                };
-              }
-            }),
-          );
-        }
-      }
-
-      // Run all tasks
-      const results = await Promise.all(tasks);
-
-      // Analyze and summarize results
-      const summary = this.analyzeComparisonResults(context.brandName, results);
-
-      // Generate web search summary
-      const webSearchSummary = this.createWebSearchSummary(results);
+      const comparisonResults = await this.runComparison(context, comparisonPrompts, competitors);
 
       this.logger.log(
-        `Completed comparison pipeline for ${context.companyId} with ${results.length} results`,
+        `Completed comparison pipeline for ${context.companyId} with ${comparisonResults.results.length} results`,
       );
 
-      if (webSearchSummary.usedWebSearch) {
-        this.logger.log(
-          `Web search was used in ${webSearchSummary.webSearchCount} responses with ${webSearchSummary.consultedWebsites.length} websites consulted`,
-        );
-      }
-
-      return {
-        results,
-        summary,
-        webSearchSummary,
-      };
+      return comparisonResults;
     } catch (error) {
       this.logger.error(
-        `Failed to run comparison pipeline for ${context.companyId}: ${error.message}`,
+        `Failed to run brand battle pipeline for ${context.companyId}: ${error.message}`,
         error.stack,
       );
       throw error;
@@ -159,88 +87,18 @@ export class ComparisonPipelineService extends BasePipelineService {
   }
 
   /**
-   * Analyze the LLM response to determine the winner and differentiators
-   * @param modelName The LLM model that generated the response
-   * @param brandName The company brand name
-   * @param competitors List of competitor names
-   * @param prompt The original prompt
-   * @param llmResponse The response from the LLM
-   * @param promptIndex The index of the prompt
-   * @returns Analysis of the LLM response
-   */
-  private async analyzeResponse(
-    modelConfig: LlmModelConfig,
-    brandName: string,
-    competitors: string[],
-    prompt: string,
-    llmResponseObj: any, // Changed to accept the full response object
-    promptIndex: number,
-  ): Promise<ComparisonPipelineResult> {
-    this.logger.log(
-      `Analyzing comparison response from ${modelConfig.provider}/${modelConfig.model} for ${brandName}`,
-    );
-
-    // Extract the text from the response object
-    const llmResponse =
-      typeof llmResponseObj === 'string'
-        ? llmResponseObj
-        : llmResponseObj.text || JSON.stringify(llmResponseObj);
-
-    // Extract metadata if available
-    const metadata = llmResponseObj.metadata || {};
-
-    // Define the schema for structured output
-    const schema = z.object({
-      winner: z.string().describe('The brand/company that came out ahead in the comparison'),
-      differentiators: z.array(z.string()).describe('Key factors that differentiate the brands'),
-    });
-
-    // Format the user prompt using the template
-    const userPrompt = formatPrompt(PromptTemplates.COMPARISON_ANALYSIS, {
-      originalPrompt: prompt,
-      brandName,
-      llmResponse,
-    });
-
-    try {
-      // Use the base class method for structured analysis with fallback
-      const result = await this.getStructuredAnalysis(
-        userPrompt,
-        schema,
-        SystemPrompts.COMPARISON_ANALYSIS,
-        llmResponseObj.batchExecutionId, // Pass the batch execution ID if available
-        promptIndex, // Pass the prompt index
-        PromptType.COMPARISON, // Pass the prompt type
-        prompt, // Pass the original prompt
-        llmResponse, // Pass the original LLM response
-        modelConfig.model, // Pass the original LLM model
-      );
-
-      return {
-        llmProvider: modelConfig.provider,
-        llmModel: modelConfig.model,
-        promptIndex,
-        winner: result.winner,
-        differentiators: result.differentiators,
-        originalPrompt: prompt,
-        llmResponse,
-        // Include web search and citation information if available
-        usedWebSearch: metadata.usedWebSearch || false,
-        citations: metadata.annotations || [],
-        toolUsage: metadata.toolUsage || [],
-      };
-    } catch (error) {
-      this.logger.error(`All analyzers failed for comparison analysis: ${error.message}`);
-      throw error;
-    }
-  }
-
-  /**
    * Create a summary of web search usage in the results
-   * @param results Array of pipeline results
+   * @param results Array of comparison pipeline results
    * @returns Web search summary
    */
-  private createWebSearchSummary(results: ComparisonPipelineResult[]): WebSearchSummary {
+  private createWebSearchSummary(
+    results: Array<{
+      usedWebSearch?: boolean;
+      citations?: unknown[];
+      toolUsage?: unknown[];
+      error?: string;
+    }>,
+  ): WebSearchSummary {
     // Filter out results with errors
     const validResults = results.filter((r) => !r.error);
 
@@ -263,7 +121,8 @@ export class ComparisonPipelineService extends BasePipelineService {
     for (const result of webSearchResults) {
       // Check citations
       if (result.citations && result.citations.length > 0) {
-        for (const citation of result.citations) {
+        for (const citationUnknown of result.citations) {
+          const citation = citationUnknown as { url?: string };
           if (citation.url) {
             // Extract the domain from the URL
             try {
@@ -279,7 +138,8 @@ export class ComparisonPipelineService extends BasePipelineService {
 
       // Check tool usage
       if (result.toolUsage && result.toolUsage.length > 0) {
-        for (const tool of result.toolUsage) {
+        for (const toolUnknown of result.toolUsage) {
+          const tool = toolUnknown as { execution_details?: { urls?: string[] } };
           // Check if there are execution details with URLs
           if (tool.execution_details?.urls && Array.isArray(tool.execution_details.urls)) {
             for (const url of tool.execution_details.urls) {
@@ -303,55 +163,331 @@ export class ComparisonPipelineService extends BasePipelineService {
   }
 
   /**
-   * Analyze and summarize the results of the comparison pipeline
+   * Run the comparison pipeline for a company against each competitor
+   * @param context Company batch context
+   * @param prompts Array of brand battle prompts
+   * @param competitors Array of competitor names
+   * @returns Comparison results with brand battle data
+   */
+  private async runComparison(
+    context: CompanyBatchContext,
+    prompts: string[],
+    competitors: string[],
+  ): Promise<ComparisonResults> {
+    this.logger.log(
+      `Running comparison for ${context.companyId} against ${competitors.length} competitors`,
+    );
+
+    // Get the enabled LLM models
+    const enabledModels = this.getEnabledModels();
+
+    if (enabledModels.length === 0) {
+      throw new Error('No enabled LLM models found in configuration');
+    }
+
+    // Create tasks for each model, prompt, and competitor
+    const tasks = [];
+
+    for (const modelConfig of enabledModels) {
+      for (let promptIndex = 0; promptIndex < prompts.length; promptIndex++) {
+        for (const competitor of competitors) {
+          const formattedPrompt = prompts[promptIndex]
+            .replace(/{COMPANY}/g, context.brandName)
+            .replace(/{COMPETITOR}/g, competitor);
+
+          tasks.push(
+            this.limiter(async () => {
+              try {
+                // Execute the prompt with this model
+                const llmResponse = await this.executePrompt(
+                  modelConfig,
+                  formattedPrompt,
+                  context.batchExecutionId,
+                  promptIndex,
+                );
+
+                // Analyze the response
+                return await this.analyzeComparisonResponse(
+                  modelConfig,
+                  context.brandName,
+                  competitor,
+                  formattedPrompt,
+                  llmResponse,
+                  promptIndex,
+                );
+              } catch (error) {
+                this.logger.error(
+                  `Error in brand battle for ${context.brandName} vs ${competitor} with ${modelConfig.provider}/${modelConfig.model} on prompt ${promptIndex}: ${error.message}`,
+                  error.stack,
+                );
+                return {
+                  llmProvider: modelConfig.provider,
+                  llmModel: modelConfig.model,
+                  promptIndex,
+                  competitor,
+                  brandStrengths: [],
+                  brandWeaknesses: [],
+                  originalPrompt: formattedPrompt,
+                  error: error.message,
+                };
+              }
+            }),
+          );
+        }
+      }
+    }
+
+    // Run all tasks
+    const results = await Promise.all(tasks);
+
+    // Analyze and summarize comparison results
+    const competitorAnalyses = this.analyzeComparisonResults(
+      context.brandName,
+      competitors,
+      results,
+    );
+
+    // Find common strengths and weaknesses across all competitors
+    const commonStrengths = this.findCommonItems(results.map((r) => r.brandStrengths || []));
+    const commonWeaknesses = this.findCommonItems(results.map((r) => r.brandWeaknesses || []));
+
+    // Generate web search summary
+    const webSearchSummary = this.createWebSearchSummary(results);
+
+    return {
+      results,
+      summary: {
+        competitorAnalyses,
+        commonStrengths,
+        commonWeaknesses,
+      },
+      webSearchSummary,
+    };
+  }
+
+  /**
+   * Analyze the LLM response for comparison to extract strengths and weaknesses
+   * @param modelConfig The LLM model configuration
+   * @param brandName The company brand name
+   * @param competitor The competitor name
+   * @param prompt The original prompt
+   * @param llmResponseObj The response from the LLM
+   * @param promptIndex The index of the prompt
+   * @returns Analysis of the LLM response for comparison
+   */
+  private async analyzeComparisonResponse(
+    modelConfig: LlmModelConfig,
+    brandName: string,
+    competitor: string,
+    prompt: string,
+    llmResponseObj:
+      | {
+          text?: string;
+          metadata?: { usedWebSearch?: boolean; annotations?: unknown[]; toolUsage?: unknown[] };
+          batchExecutionId?: string;
+        }
+      | string,
+    promptIndex: number,
+  ): Promise<{
+    llmProvider: string;
+    llmModel: string;
+    promptIndex: number;
+    competitor: string;
+    brandStrengths: string[];
+    brandWeaknesses: string[];
+    originalPrompt: string;
+    llmResponse: string;
+    usedWebSearch?: boolean;
+    citations?: unknown[];
+    toolUsage?: unknown[];
+    error?: string;
+  }> {
+    this.logger.log(
+      `Analyzing comparison response from ${modelConfig.provider}/${modelConfig.model} for ${brandName} vs ${competitor}`,
+    );
+
+    // Extract the text from the response object
+    const llmResponse =
+      typeof llmResponseObj === 'string'
+        ? llmResponseObj
+        : llmResponseObj.text || JSON.stringify(llmResponseObj);
+
+    // Extract metadata if available
+    const metadata = typeof llmResponseObj === 'string' ? {} : llmResponseObj.metadata || {};
+
+    // Define the schema for structured output
+    const schema = z.object({
+      brandStrengths: z
+        .array(z.string())
+        .describe(`Strengths of ${brandName} compared to ${competitor}`),
+      brandWeaknesses: z
+        .array(z.string())
+        .describe(`Weaknesses of ${brandName} compared to ${competitor}`),
+    });
+
+    // Format the user prompt using the template
+    const userPrompt = formatPrompt(PromptTemplates.BRAND_BATTLE_ANALYSIS, {
+      originalPrompt: prompt,
+      brandName,
+      competitor,
+      llmResponse,
+    });
+
+    try {
+      // Use the base class method for structured analysis with fallback
+      const result = await this.getStructuredAnalysis(
+        userPrompt,
+        schema,
+        SystemPrompts.COMPARISON_ANALYSIS,
+        typeof llmResponseObj === 'string' ? undefined : llmResponseObj.batchExecutionId,
+        promptIndex,
+        PromptType.COMPARISON,
+        prompt,
+        llmResponse,
+        modelConfig.model,
+      );
+
+      return {
+        llmProvider: modelConfig.provider,
+        llmModel: modelConfig.model,
+        promptIndex,
+        competitor,
+        brandStrengths: result.brandStrengths,
+        brandWeaknesses: result.brandWeaknesses,
+        originalPrompt: prompt,
+        llmResponse,
+        // Include web search and citation information if available
+        usedWebSearch: metadata.usedWebSearch || false,
+        citations: metadata.annotations || ([] as unknown[]),
+        toolUsage: metadata.toolUsage || ([] as unknown[]),
+      };
+    } catch (error) {
+      this.logger.error(`All analyzers failed for comparison analysis: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Analyze and summarize comparison results
    * @param brandName The company's brand name
-   * @param results Array of pipeline results
-   * @returns Summary statistics
+   * @param competitors List of competitor names
+   * @param results Array of comparison pipeline results
+   * @returns Array of competitor analyses
    */
   private analyzeComparisonResults(
     brandName: string,
-    results: ComparisonPipelineResult[],
-  ): ComparisonResults['summary'] {
-    // Filter out results with errors
-    const validResults = results.filter((r) => !r.error);
+    competitors: string[],
+    results: Array<{
+      competitor: string;
+      brandStrengths: string[];
+      brandWeaknesses: string[];
+      error?: string;
+    }>,
+  ): BrandBattleAnalysis[] {
+    // Create a competitor analysis for each competitor
+    return competitors.map((competitor) => {
+      // Filter results for this specific competitor and exclude errors
+      const competitorResults = results.filter((r) => r.competitor === competitor && !r.error);
 
-    if (validResults.length === 0) {
+      if (competitorResults.length === 0) {
+        return {
+          competitor,
+          brandStrengths: [],
+          brandWeaknesses: [],
+        };
+      }
+
+      // Collect all strengths and weaknesses across results for this competitor
+      const allStrengths: string[] = [];
+      const allWeaknesses: string[] = [];
+
+      for (const result of competitorResults) {
+        if (result.brandStrengths) {
+          allStrengths.push(...result.brandStrengths);
+        }
+        if (result.brandWeaknesses) {
+          allWeaknesses.push(...result.brandWeaknesses);
+        }
+      }
+
+      // Count occurrences of each strength and weakness
+      const strengthCounts: Record<string, number> = {};
+      const weaknessCounts: Record<string, number> = {};
+
+      for (const strength of allStrengths) {
+        const normalized = strength.toLowerCase();
+        strengthCounts[normalized] = (strengthCounts[normalized] || 0) + 1;
+      }
+
+      for (const weakness of allWeaknesses) {
+        const normalized = weakness.toLowerCase();
+        weaknessCounts[normalized] = (weaknessCounts[normalized] || 0) + 1;
+      }
+
+      // Sort by count and take top strengths and weaknesses
+      const topStrengths = Object.entries(strengthCounts)
+        .sort((a: [string, number], b: [string, number]) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([strength]) => strength);
+
+      const topWeaknesses = Object.entries(weaknessCounts)
+        .sort((a: [string, number], b: [string, number]) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([weakness]) => weakness);
+
       return {
-        winRate: 0,
-        keyDifferentiators: [],
+        competitor,
+        brandStrengths: topStrengths,
+        brandWeaknesses: topWeaknesses,
       };
-    }
+    });
+  }
 
-    // Calculate win rate for the company
-    const normalizedBrandName = brandName.toLowerCase();
-    let winCount = 0;
+  /**
+   * Find common items that appear across multiple arrays
+   * @param arrays Array of string arrays
+   * @returns Array of common items
+   */
+  private findCommonItems(arrays: string[][]): string[] {
+    if (arrays.length === 0) return [];
+    if (arrays.length === 1) return arrays[0];
 
-    for (const result of validResults) {
-      if (result.winner && result.winner.toLowerCase().includes(normalizedBrandName)) {
-        winCount++;
+    // Filter out empty arrays
+    const nonEmptyArrays = arrays.filter((arr) => arr.length > 0);
+    if (nonEmptyArrays.length === 0) return [];
+
+    // Count occurrences of each item across all arrays
+    const itemCounts: Record<string, number> = {};
+    const itemSeen: Record<string, Set<number>> = {}; // Track which arrays each item appears in
+
+    for (let i = 0; i < nonEmptyArrays.length; i++) {
+      const array = nonEmptyArrays[i];
+      const seenInThisArray = new Set<string>();
+
+      for (const item of array) {
+        const normalized = item.toLowerCase();
+
+        // Only count each item once per array
+        if (!seenInThisArray.has(normalized)) {
+          seenInThisArray.add(normalized);
+          itemCounts[normalized] = (itemCounts[normalized] || 0) + 1;
+
+          // Track which arrays this item appears in
+          if (!itemSeen[normalized]) {
+            itemSeen[normalized] = new Set();
+          }
+          itemSeen[normalized].add(i);
+        }
       }
     }
 
-    const winRate = winCount / validResults.length;
+    // Find items that appear in at least half of the arrays
+    const threshold = Math.ceil(nonEmptyArrays.length / 2);
+    const commonItems = Object.entries(itemCounts)
+      .filter(([_, count]) => count >= threshold)
+      .sort((a, b) => b[1] - a[1]) // Sort by frequency
+      .map(([item]) => item);
 
-    // Count differentiators across all results
-    const differentiatorCounts: Record<string, number> = {};
-    for (const result of validResults) {
-      for (const diff of result.differentiators) {
-        const normalizedDiff = diff.toLowerCase();
-        differentiatorCounts[normalizedDiff] = (differentiatorCounts[normalizedDiff] || 0) + 1;
-      }
-    }
-
-    // Sort by count and take top differentiators
-    const keyDifferentiators = Object.entries(differentiatorCounts)
-      .sort((a: [string, number], b: [string, number]) => b[1] - a[1])
-      .slice(0, 10)
-      .map(([diff]) => diff);
-
-    return {
-      winRate,
-      keyDifferentiators,
-    };
+    return commonItems;
   }
 }

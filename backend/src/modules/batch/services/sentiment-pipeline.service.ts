@@ -50,12 +50,9 @@ export class SentimentPipelineService extends BasePipelineService {
     this.logger.log(`Running sentiment pipeline for ${context.companyId} (${context.brandName})`);
 
     try {
-      // Get the prompts for this pipeline - could be array or JSON string
-      const promptsRaw = context.promptSet?.direct || [];
-      const prompts: string[] = Array.isArray(promptsRaw)
-        ? promptsRaw
-        : JSON.parse(typeof promptsRaw === 'string' ? promptsRaw : '[]');
-
+      // Get the prompts for this pipeline
+      const prompts = context.promptSet?.direct || [];
+      
       if (!prompts.length) {
         throw new Error('No direct brand prompts found for this company');
       }

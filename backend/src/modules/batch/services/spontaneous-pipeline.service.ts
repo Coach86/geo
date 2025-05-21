@@ -48,12 +48,9 @@ export class SpontaneousPipelineService extends BasePipelineService {
     this.logger.log(`Running spontaneous pipeline for ${context.companyId} (${context.brandName})`);
 
     try {
-      // Get the prompts for this pipeline - could be array or JSON string
-      const promptsRaw = context.promptSet?.spontaneous || [];
-      const prompts: string[] = Array.isArray(promptsRaw)
-        ? promptsRaw
-        : JSON.parse(typeof promptsRaw === 'string' ? promptsRaw : '[]');
-
+      // Get the prompts for this pipeline
+      const prompts = context.promptSet?.spontaneous || [];
+      
       if (!prompts.length) {
         throw new Error('No spontaneous prompts found for this company');
       }
