@@ -100,8 +100,8 @@ const BatchesTab: React.FC<BatchesTabProps> = ({ companyId, onRunNewBatch, onRun
   const handleGenerateReport = async (batchId: string) => {
     try {
       // Add this batch ID to the list of batches that are generating reports
-      setGeneratingReportIds(prevIds => [...prevIds, batchId]);
-      
+      setGeneratingReportIds((prevIds) => [...prevIds, batchId]);
+
       const result = await generateReportFromBatch(batchId);
 
       // Create a simple success message
@@ -115,7 +115,7 @@ const BatchesTab: React.FC<BatchesTabProps> = ({ companyId, onRunNewBatch, onRun
       setReportSnackbarOpen(true);
     } finally {
       // Remove this batch ID from the list when done
-      setGeneratingReportIds(prevIds => prevIds.filter(id => id !== batchId));
+      setGeneratingReportIds((prevIds) => prevIds.filter((id) => id !== batchId));
     }
   };
 
@@ -249,25 +249,25 @@ const BatchesTab: React.FC<BatchesTabProps> = ({ companyId, onRunNewBatch, onRun
               <ListItemIcon>
                 <ModeCommentIcon fontSize="small" />
               </ListItemIcon>
-              <ListItemText>Spontaneous Mentions</ListItemText>
+              <ListItemText>Pulse</ListItemText>
             </MenuItem>
             <MenuItem onClick={() => handleRunSingleBatchType(BatchType.SENTIMENT)}>
               <ListItemIcon>
                 <SentimentSatisfiedIcon fontSize="small" />
               </ListItemIcon>
-              <ListItemText>Sentiment Analysis</ListItemText>
+              <ListItemText>Tone</ListItemText>
             </MenuItem>
             <MenuItem onClick={() => handleRunSingleBatchType(BatchType.ACCURACY)}>
               <ListItemIcon>
                 <FactCheckIcon fontSize="small" />
               </ListItemIcon>
-              <ListItemText>Accuracy Analysis</ListItemText>
+              <ListItemText>Accord</ListItemText>
             </MenuItem>
             <MenuItem onClick={() => handleRunSingleBatchType(BatchType.COMPARISON)}>
               <ListItemIcon>
                 <CompareArrowsIcon fontSize="small" />
               </ListItemIcon>
-              <ListItemText>Competitive Comparison</ListItemText>
+              <ListItemText>Battle</ListItemText>
             </MenuItem>
           </Menu>
         </Box>

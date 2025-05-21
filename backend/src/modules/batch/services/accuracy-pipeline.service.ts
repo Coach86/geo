@@ -264,6 +264,7 @@ export class AccuracyPipelineService extends BasePipelineService {
         usedWebSearch: false,
         webSearchCount: 0,
         consultedWebsites: [],
+        consultedWebsiteCounts: [],
       };
     }
 
@@ -272,8 +273,17 @@ export class AccuracyPipelineService extends BasePipelineService {
     const webSearchCount = webSearchResults.length;
     const usedWebSearch = webSearchCount > 0;
 
-    // Collect unique websites consulted from citations and tool usage
-    const websites = new Set<string>();
+    // Use a Map to count occurrences of each normalized domain
+    const websiteCounts = new Map<string, number>();
+    
+    // Helper function to normalize and store domain
+    const processDomain = (domain: string): void => {
+      // Normalize domain: remove www. prefix and convert to lowercase
+      const normalizedDomain = domain.toLowerCase().replace(/^www\./, '');
+      
+      // Increment the count for this domain
+      websiteCounts.set(normalizedDomain, (websiteCounts.get(normalizedDomain) || 0) + 1);
+    };
 
     for (const result of webSearchResults) {
       // Check citations
@@ -283,10 +293,10 @@ export class AccuracyPipelineService extends BasePipelineService {
             // Extract the domain from the URL
             try {
               const url = new URL(citation.url);
-              websites.add(url.hostname);
+              processDomain(url.hostname);
             } catch (e) {
               // If URL parsing fails, just use the raw URL
-              websites.add(citation.url);
+              processDomain(citation.url);
             }
           }
         }
@@ -300,9 +310,9 @@ export class AccuracyPipelineService extends BasePipelineService {
             for (const url of tool.execution_details.urls) {
               try {
                 const parsedUrl = new URL(url);
-                websites.add(parsedUrl.hostname);
+                processDomain(parsedUrl.hostname);
               } catch (e) {
-                websites.add(url);
+                processDomain(url);
               }
             }
           }
@@ -310,10 +320,19 @@ export class AccuracyPipelineService extends BasePipelineService {
       }
     }
 
+    // Convert the Map to an array of WebsiteCount objects
+    const consultedWebsiteCounts = Array.from(websiteCounts.entries())
+      .map(([domain, count]) => ({ domain, count }))
+      .sort((a, b) => b.count - a.count); // Sort by count, descending
+
+    // Get unique domains for backward compatibility
+    const consultedWebsites = consultedWebsiteCounts.map(item => item.domain);
+
     return {
       usedWebSearch,
       webSearchCount,
-      consultedWebsites: Array.from(websites),
+      consultedWebsites,
+      consultedWebsiteCounts,
     };
   }
 

@@ -49,10 +49,16 @@ export interface SpontaneousPipelineResult {
   llmResponseObj?: any; // Complete response object with provider-specific metadata
 }
 
+export interface WebsiteCount {
+  domain: string;
+  count: number;
+}
+
 export interface WebSearchSummary {
   usedWebSearch: boolean;
   webSearchCount: number;
   consultedWebsites: string[];
+  consultedWebsiteCounts?: WebsiteCount[]; // New field with domain counts
 }
 
 export interface ModelBreakdown {

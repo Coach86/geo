@@ -39,7 +39,7 @@ const AccuracyTab: React.FC<AccuracyTabProps> = ({ results }) => {
       <Box sx={{ mb: 3 }}>
         <Typography variant="h5" gutterBottom>
           <FactCheckIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-          Accuracy Analysis
+          Accord — Brand Compliance
         </Typography>
         <Typography variant="body2" color="text.secondary">
           This analysis evaluates the factual accuracy of information about your brand across
@@ -84,7 +84,7 @@ const AccuracyTab: React.FC<AccuracyTabProps> = ({ results }) => {
             </CardContent>
           </Card>
         </Grid>
-        
+
         <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardContent>
@@ -94,30 +94,30 @@ const AccuracyTab: React.FC<AccuracyTabProps> = ({ results }) => {
               {(() => {
                 // Get all unique attributes
                 const attributes = Object.keys(summary.averageAttributeScores);
-                
+
                 // Get all unique models
                 const modelSet = new Set<string>();
-                detailedResults.forEach(result => {
+                detailedResults.forEach((result) => {
                   modelSet.add(result.llmProvider);
                 });
                 const models = Array.from(modelSet);
-                
+
                 // Create a model-to-attribute score mapping
                 const modelAttributeScores: Record<string, Record<string, number>> = {};
-                
+
                 // Initialize scores
-                models.forEach(model => {
+                models.forEach((model) => {
                   modelAttributeScores[model] = {};
-                  attributes.forEach(attr => {
+                  attributes.forEach((attr) => {
                     modelAttributeScores[model][attr] = 0;
                   });
                 });
-                
+
                 // Fill in scores from results
-                detailedResults.forEach(result => {
+                detailedResults.forEach((result) => {
                   const model = result.llmProvider;
                   if (result.attributeScores) {
-                    result.attributeScores.forEach(attrScore => {
+                    result.attributeScores.forEach((attrScore) => {
                       const attr = attrScore.attribute;
                       if (!modelAttributeScores[model][attr]) {
                         modelAttributeScores[model][attr] = 0;
@@ -127,7 +127,7 @@ const AccuracyTab: React.FC<AccuracyTabProps> = ({ results }) => {
                     });
                   }
                 });
-                
+
                 if (attributes.length === 0 || models.length === 0) {
                   return (
                     <Typography variant="body2" color="text.secondary">
@@ -135,7 +135,7 @@ const AccuracyTab: React.FC<AccuracyTabProps> = ({ results }) => {
                     </Typography>
                   );
                 }
-                
+
                 // Render the attribute scores matrix
                 return (
                   <TableContainer component={Paper} variant="outlined">
@@ -148,7 +148,9 @@ const AccuracyTab: React.FC<AccuracyTabProps> = ({ results }) => {
                               {model}
                             </TableCell>
                           ))}
-                          <TableCell align="center" sx={{ fontWeight: 'bold' }}>Average</TableCell>
+                          <TableCell align="center" sx={{ fontWeight: 'bold' }}>
+                            Average
+                          </TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -159,8 +161,8 @@ const AccuracyTab: React.FC<AccuracyTabProps> = ({ results }) => {
                               const score = modelAttributeScores[model][attr] || 0;
                               return (
                                 <TableCell key={modelIdx} align="center">
-                                  <Box 
-                                    sx={{ 
+                                  <Box
+                                    sx={{
                                       display: 'inline-block',
                                       backgroundColor: (() => {
                                         // Color scale from red to green
@@ -182,8 +184,8 @@ const AccuracyTab: React.FC<AccuracyTabProps> = ({ results }) => {
                               );
                             })}
                             <TableCell align="center" sx={{ fontWeight: 'bold' }}>
-                              <Box 
-                                sx={{ 
+                              <Box
+                                sx={{
                                   display: 'inline-block',
                                   backgroundColor: (() => {
                                     const avgScore = summary.averageAttributeScores[attr] || 0;
@@ -194,7 +196,8 @@ const AccuracyTab: React.FC<AccuracyTabProps> = ({ results }) => {
                                     if (avgScore >= 0.2) return '#ff9800'; // Poor
                                     return '#f44336'; // Bad
                                   })(),
-                                  color: summary.averageAttributeScores[attr] > 0.5 ? 'white' : 'black',
+                                  color:
+                                    summary.averageAttributeScores[attr] > 0.5 ? 'white' : 'black',
                                   borderRadius: '4px',
                                   padding: '2px 6px',
                                   minWidth: '40px',
@@ -221,7 +224,14 @@ const AccuracyTab: React.FC<AccuracyTabProps> = ({ results }) => {
           {detailedResults.map((result, index) => (
             <Accordion key={index} sx={{ mb: 1 }}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    width: '100%',
+                    alignItems: 'center',
+                  }}
+                >
                   <Typography>
                     <strong>{result.llmProvider}</strong> - Prompt #{result.promptIndex + 1}
                   </Typography>

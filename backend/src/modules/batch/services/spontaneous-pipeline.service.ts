@@ -275,6 +275,7 @@ export class SpontaneousPipelineService extends BasePipelineService {
         usedWebSearch: false,
         webSearchCount: 0,
         consultedWebsites: [],
+        consultedWebsiteCounts: [],
       };
     }
 
@@ -283,8 +284,17 @@ export class SpontaneousPipelineService extends BasePipelineService {
     const webSearchCount = webSearchResults.length;
     const usedWebSearch = webSearchCount > 0;
 
-    // Collect unique websites consulted from metadata and citations
-    const websites = new Set<string>();
+    // Use a Map to count occurrences of each normalized domain
+    const websiteCounts = new Map<string, number>();
+    
+    // Helper function to normalize and store domain
+    const processDomain = (domain: string): void => {
+      // Normalize domain: remove www. prefix and convert to lowercase
+      const normalizedDomain = domain.toLowerCase().replace(/^www\./, '');
+      
+      // Increment the count for this domain
+      websiteCounts.set(normalizedDomain, (websiteCounts.get(normalizedDomain) || 0) + 1);
+    };
 
     for (const result of webSearchResults) {
       // First check for structured URLs in responseMetadata which is the most reliable source
@@ -302,10 +312,10 @@ export class SpontaneousPipelineService extends BasePipelineService {
               if (webResult.type === 'web_search_result' && webResult.url) {
                 try {
                   const url = new URL(webResult.url);
-                  websites.add(url.hostname);
+                  processDomain(url.hostname);
                 } catch (e) {
                   // If URL parsing fails, just use the raw URL
-                  websites.add(webResult.url);
+                  processDomain(webResult.url);
                 }
               }
             }
@@ -320,9 +330,9 @@ export class SpontaneousPipelineService extends BasePipelineService {
           if (webResult.url) {
             try {
               const url = new URL(webResult.url);
-              websites.add(url.hostname);
+              processDomain(url.hostname);
             } catch (e) {
-              websites.add(webResult.url);
+              processDomain(webResult.url);
             }
           }
         }
@@ -335,9 +345,9 @@ export class SpontaneousPipelineService extends BasePipelineService {
           if (webResult.url) {
             try {
               const url = new URL(webResult.url);
-              websites.add(url.hostname);
+              processDomain(url.hostname);
             } catch (e) {
-              websites.add(webResult.url);
+              processDomain(webResult.url);
             }
           }
         }
@@ -349,24 +359,24 @@ export class SpontaneousPipelineService extends BasePipelineService {
           if (citation.url) {
             try {
               const url = new URL(citation.url);
-              websites.add(url.hostname);
+              processDomain(url.hostname);
             } catch (e) {
-              websites.add(citation.url);
+              processDomain(citation.url);
             }
           }
         }
       }
 
       // Last resort: Check tool usage for URLs in execution_details
-      if (websites.size === 0 && result.toolUsage && result.toolUsage.length > 0) {
+      if (websiteCounts.size === 0 && result.toolUsage && result.toolUsage.length > 0) {
         for (const tool of result.toolUsage) {
           if (tool.execution_details?.urls && Array.isArray(tool.execution_details.urls)) {
             for (const url of tool.execution_details.urls) {
               try {
                 const parsedUrl = new URL(url);
-                websites.add(parsedUrl.hostname);
+                processDomain(parsedUrl.hostname);
               } catch (e) {
-                websites.add(url);
+                processDomain(url);
               }
             }
           }
@@ -374,10 +384,19 @@ export class SpontaneousPipelineService extends BasePipelineService {
       }
     }
 
+    // Convert the Map to an array of WebsiteCount objects
+    const consultedWebsiteCounts = Array.from(websiteCounts.entries())
+      .map(([domain, count]) => ({ domain, count }))
+      .sort((a, b) => b.count - a.count); // Sort by count, descending
+
+    // Get unique domains for backward compatibility
+    const consultedWebsites = consultedWebsiteCounts.map(item => item.domain);
+
     return {
       usedWebSearch,
       webSearchCount,
-      consultedWebsites: Array.from(websites),
+      consultedWebsites,
+      consultedWebsiteCounts,
     };
   }
 

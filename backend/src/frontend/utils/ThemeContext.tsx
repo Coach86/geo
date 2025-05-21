@@ -28,8 +28,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   const toggleTheme = () => {
+    localStorage.setItem('themeMode', mode === 'light' ? 'dark' : 'light');
     setMode((prevMode) => (prevMode === 'light' ? 'dark' : 'light'));
-    localStorage.setItem('themeMode', mode);
   };
 
   const theme = createTheme({
