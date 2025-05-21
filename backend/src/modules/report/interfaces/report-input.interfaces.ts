@@ -8,6 +8,7 @@ import {
   SentimentResults,
   ComparisonResults,
   AccuracyResults,
+  BrandBattleResults,
 } from '../../batch/interfaces/batch.interfaces';
 
 /**
@@ -34,12 +35,15 @@ export interface BatchReportInput {
   /** Comparison results from the comparison pipeline */
   comparison?: ComparisonResults;
 
+  /** Brand Battle results from the brand battle pipeline */
+  brandBattle?: BrandBattleResults;
+
   /** Model identifiers for each LLM used in batch processing */
   llmVersions: Record<string, string>;
 
   /** When the report data was generated */
   generatedAt: Date;
-  
+
   /** Batch execution ID that generated this report */
   batchExecutionId?: string;
 }

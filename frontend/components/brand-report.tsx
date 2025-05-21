@@ -6,7 +6,7 @@ import PulseSection from "./report-sections/pulse-section";
 import ToneSection from "./report-sections/tone-section";
 import AccordSection from "./report-sections/accord-section";
 import ArenaSection from "./report-sections/arena-section";
-import ArenaBattleSection from "./report-sections/arena-battle-section";
+import BrandBattleSection from "./report-sections/brand-battle-section";
 import LiftSection from "./report-sections/lift-section";
 import TraceSection from "./report-sections/trace-section";
 import { ChevronUp } from "lucide-react";
@@ -282,14 +282,14 @@ export default function BrandReport({ data }: BrandReportProps) {
             </AnimatedSection>
           )}
 
-          {data.arena?.battle && (
+          {data.brandBattle && (
             <AnimatedSection delay={0.9}>
               <motion.div
-                data-section="battle"
+                data-section="brand-battle"
                 whileHover={{ scale: 1.01 }}
                 transition={{ duration: 0.3 }}
               >
-                <ArenaBattleSection data={data.arena.battle} />
+                <BrandBattleSection data={data.brandBattle} />
               </motion.div>
             </AnimatedSection>
           )}

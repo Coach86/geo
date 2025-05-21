@@ -34,9 +34,9 @@ export class ReportRetrievalService {
         this.logger.warn(`Report not found with ID ${reportId}`);
         throw new NotFoundException(`Report not found with ID ${reportId}`);
       }
-      
+
       this.logger.log(`Found report with ID ${reportId}, company ${document.companyId}`);
-      
+
       // Get identity card for additional company data if needed
       try {
         const identityCard = await this.identityCardService.findById(document.companyId);
@@ -49,7 +49,7 @@ export class ReportRetrievalService {
           `Could not find identity card for company ${document.companyId}, returning minimal report data`,
         );
       }
-      
+
       // If identity card is not available, create a minimal entity
       return {
         id: document.id,
@@ -63,36 +63,40 @@ export class ReportRetrievalService {
           flag: '',
           competitors: '',
           date: document.weekStart.toISOString().split('T')[0],
-          models: ''
+          models: '',
         },
         kpi: document.kpi || {
           pulse: { value: '0%', description: 'Global Visibility Score' },
           tone: { value: '0', status: 'yellow', description: 'Overall sentiment' },
           accord: { value: '0/10', status: 'yellow', description: 'Brand compliance' },
-          arena: { competitors: [], description: 'Top competitors' }
+          arena: { competitors: [], description: 'Top competitors' },
         },
         pulse: document.pulse || {
           promptsTested: 0,
-          modelVisibility: []
+          modelVisibility: [],
         },
         tone: document.tone || {
           sentiments: [],
-          questions: []
+          questions: [],
         },
         accord: document.accord || {
           attributes: [],
-          score: { value: '0/10', status: 'yellow' }
+          score: { value: '0/10', status: 'yellow' },
         },
         arena: document.arena || {
           competitors: [],
-          battle: { competitors: [] }
+        },
+        brandBattle: document.brandBattle || {
+          competitorAnalyses: [],
+          commonStrengths: [],
+          commonWeaknesses: [],
         },
         llmVersions: document.llmVersions || {},
         rawData: {
           spontaneous: document.spontaneous,
           sentiment: document.sentiment,
-          comparison: document.comparison
-        }
+          comparison: document.comparison,
+        },
       };
     } catch (error) {
       if (error instanceof NotFoundException) {
@@ -111,11 +115,11 @@ export class ReportRetrievalService {
   async getLatestReport(companyId: string): Promise<WeeklyBrandReportEntity> {
     try {
       const document = await this.weeklyReportRepository.findLatestByCompanyIdLean(companyId);
-        
+
       if (!document) {
         throw new NotFoundException(`No reports found for company ${companyId}`);
       }
-      
+
       // Once we have the latest report, use the same logic as getReportById
       return this.getReportById(document.id);
     } catch (error) {

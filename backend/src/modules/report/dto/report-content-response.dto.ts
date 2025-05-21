@@ -24,7 +24,10 @@ export class ReportContentResponseDto {
   @ApiProperty({ description: 'When the report was generated' })
   generatedAt: Date;
 
-  @ApiProperty({ description: 'ID of the batch execution that generated this report', required: false })
+  @ApiProperty({
+    description: 'ID of the batch execution that generated this report',
+    required: false,
+  })
   batchExecutionId?: string;
 
   // Brand name - corresponds to identity card's brandName
@@ -93,11 +96,25 @@ export class ReportContentResponseDto {
   @ApiProperty({ description: 'Arena section data', type: 'object', additionalProperties: true })
   arena: {
     competitors: Competitor[];
-    battle: {
-      competitors: CompetitorComparison[];
-      chatgpt?: ModelComparison;
-      claude?: ModelComparison;
-    };
+  };
+
+  // Brand Battle section - competitor analysis
+  @ApiProperty({
+    description: 'Brand Battle section data',
+    type: 'object',
+    additionalProperties: true,
+  })
+  brandBattle: {
+    competitorAnalyses: {
+      competitor: string;
+      analysisByModel: {
+        model: string;
+        strengths: string[];
+        weaknesses: string[];
+      }[];
+    }[];
+    commonStrengths: string[];
+    commonWeaknesses: string[];
   };
 
   // Raw data for debugging (only visible in development)

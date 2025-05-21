@@ -161,24 +161,24 @@ export class WeeklyBrandReport {
       size: string;
       sentiment: string;
     }>;
-    battle: {
-      competitors: Array<{
-        name: string;
-        comparisons: Array<{
-          model: string;
-          positives: string[];
-          negatives: string[];
-        }>;
-      }>;
-      chatgpt?: {
-        positives: string[];
-        negatives: string[];
-      };
-      claude?: {
-        positives: string[];
-        negatives: string[];
-      };
-    };
+  };
+
+  @Prop({
+    type: Object,
+    required: false,
+    default: {},
+  })
+  brandBattle: {
+    competitorAnalyses: {
+      competitor: string;
+      analysisByModel: {
+        model: string;
+        strengths: string[];
+        weaknesses: string[];
+      }[];
+    }[];
+    commonStrengths: string[];
+    commonWeaknesses: string[];
   };
 
   // Original data fields for backward compatibility

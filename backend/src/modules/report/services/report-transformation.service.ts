@@ -6,6 +6,7 @@ import {
 } from '@/modules/batch/interfaces/batch.interfaces';
 import { Injectable, Logger } from '@nestjs/common';
 import { CompanyIdentityCard } from '@/modules/identity-card/entities/company-identity-card.entity';
+import { WeeklyBrandReportEntity } from '../interfaces/report-types';
 /**
  * Service responsible for transforming raw data into typed, display-ready formats
  * Handles type safety, data formatting, and structure transformations
@@ -194,14 +195,6 @@ export class ReportTransformationService {
           negatives: string[];
         }>;
       }>;
-      chatgpt?: {
-        positives: string[];
-        negatives: string[];
-      };
-      claude?: {
-        positives: string[];
-        negatives: string[];
-      };
     };
   } {
     // Get the comparison results
@@ -247,34 +240,46 @@ export class ReportTransformationService {
     // Create competitors for arena section
     const formattedCompetitors = competitorNames.map((name, index) => {
       const modelWins = {
-        chatgpt: results.length > 0
-          ? results.filter(
-              (r: any) => (r.winner === name || r.competitor === name) && r.llmProvider.toLowerCase().includes('gpt'),
-            ).length
-          : index === 0
-            ? 2
-            : 1,
-        claude: results.length > 0
-          ? results.filter(
-              (r: any) => (r.winner === name || r.competitor === name) && r.llmProvider.toLowerCase().includes('claude'),
-            ).length
-          : index === 0
-            ? 1
-            : 2,
-        mistral: results.length > 0
-          ? results.filter(
-              (r: any) => (r.winner === name || r.competitor === name) && r.llmProvider.toLowerCase().includes('mistral'),
-            ).length
-          : index === 0
-            ? 2
-            : 1,
-        gemini: results.length > 0
-          ? results.filter(
-              (r: any) => (r.winner === name || r.competitor === name) && r.llmProvider.toLowerCase().includes('gemini'),
-            ).length
-          : index === 0
-            ? 1
-            : 2,
+        chatgpt:
+          results.length > 0
+            ? results.filter(
+                (r: any) =>
+                  (r.winner === name || r.competitor === name) &&
+                  r.llmProvider.toLowerCase().includes('gpt'),
+              ).length
+            : index === 0
+              ? 2
+              : 1,
+        claude:
+          results.length > 0
+            ? results.filter(
+                (r: any) =>
+                  (r.winner === name || r.competitor === name) &&
+                  r.llmProvider.toLowerCase().includes('claude'),
+              ).length
+            : index === 0
+              ? 1
+              : 2,
+        mistral:
+          results.length > 0
+            ? results.filter(
+                (r: any) =>
+                  (r.winner === name || r.competitor === name) &&
+                  r.llmProvider.toLowerCase().includes('mistral'),
+              ).length
+            : index === 0
+              ? 2
+              : 1,
+        gemini:
+          results.length > 0
+            ? results.filter(
+                (r: any) =>
+                  (r.winner === name || r.competitor === name) &&
+                  r.llmProvider.toLowerCase().includes('gemini'),
+              ).length
+            : index === 0
+              ? 1
+              : 2,
       };
 
       // Calculate global percentage
@@ -303,27 +308,31 @@ export class ReportTransformationService {
       // Create comparisons by model
       const comparisons = llmProviders.map((provider) => {
         // Get strengths for this competitor from this model
-        const modelStrengths = results.length > 0
-          ? results
-              .filter((r: any) => r.competitor === name && r.llmProvider === provider)
-              .flatMap((r: any) => r.brandStrengths || [])
-          : [];
-          
+        const modelStrengths =
+          results.length > 0
+            ? results
+                .filter((r: any) => r.competitor === name && r.llmProvider === provider)
+                .flatMap((r: any) => r.brandStrengths || [])
+            : [];
+
         // Get weaknesses for this competitor from this model
-        const modelWeaknesses = results.length > 0
-          ? results
-              .filter((r: any) => r.competitor === name && r.llmProvider === provider)
-              .flatMap((r: any) => r.brandWeaknesses || [])
-          : [];
+        const modelWeaknesses =
+          results.length > 0
+            ? results
+                .filter((r: any) => r.competitor === name && r.llmProvider === provider)
+                .flatMap((r: any) => r.brandWeaknesses || [])
+            : [];
 
         // Use strengths and weaknesses directly
-        const positives = modelStrengths.length > 0
-          ? modelStrengths.slice(0, 2)
-          : ['quality product', 'good service'];
+        const positives =
+          modelStrengths.length > 0
+            ? modelStrengths.slice(0, 2)
+            : ['quality product', 'good service'];
 
-        const negatives = modelWeaknesses.length > 0
-          ? modelWeaknesses.slice(0, 2)
-          : ['price point', 'limited options'];
+        const negatives =
+          modelWeaknesses.length > 0
+            ? modelWeaknesses.slice(0, 2)
+            : ['price point', 'limited options'];
 
         return {
           model: provider,
@@ -342,14 +351,6 @@ export class ReportTransformationService {
       competitors: formattedCompetitors,
       battle: {
         competitors: battleCompetitors,
-        chatgpt: {
-          positives: ['innovative features', 'quality design'],
-          negatives: ['price point', 'learning curve'],
-        },
-        claude: {
-          positives: ['customer support', 'reliability'],
-          negatives: ['fewer integrations', 'less accessible'],
-        },
       },
     };
   }
@@ -456,5 +457,79 @@ export class ReportTransformationService {
     }
 
     throw new Error('No attributes found');
+  }
+
+  /**
+   * Helper to get brand battle data
+   */
+  getBrandBattleData(comparison?: ComparisonResults): WeeklyBrandReportEntity['brandBattle'] {
+    if (!comparison) {
+      return {
+        competitorAnalyses: [],
+        commonStrengths: [],
+        commonWeaknesses: [],
+      };
+    }
+    this.logger.debug(`comparison ${JSON.stringify(comparison)}`);
+    const uniqueCompetitors = new Set<string>();
+    comparison.results.forEach((result) => {
+      uniqueCompetitors.add(result.competitor);
+    });
+    this.logger.debug(`uniqueCompetitors ${JSON.stringify(uniqueCompetitors)}`);
+    /*[
+  {
+    analysisByModel: [
+      { model: 'OpenAI', strengths: [], weaknesses: [] },
+      { model: 'OpenAI', strengths: [], weaknesses: [] },
+      { model: 'OpenAI', strengths: [], weaknesses: [] },
+      { model: 'OpenAI', strengths: [], weaknesses: [] },
+      { model: 'OpenAI', strengths: [], weaknesses: [] },
+      { model: 'OpenAI', strengths: [], weaknesses: [] },
+      { model: 'OpenAI', strengths: [], weaknesses: [] },
+      { model: 'OpenAI', strengths: [], weaknesses: [] },
+      { model: 'Anthropic', strengths: [], weaknesses: [] },
+      { model: 'Anthropic', strengths: [], weaknesses: [] },
+      { model: 'Anthropic', strengths: [], weaknesses: [] },
+      { model: 'Anthropic', strengths: [], weaknesses: [] },
+      { model: 'Anthropic', strengths: [], weaknesses: [] },
+      { model: 'Anthropic', strengths: [], weaknesses: [] },
+      { model: 'Anthropic', strengths: [], weaknesses: [] },
+      { model: 'Anthropic', strengths: [], weaknesses: [] },
+      { model: 'Perplexity', strengths: [], weaknesses: [] },
+      { model: 'Perplexity', strengths: [], weaknesses: [] },
+      { model: 'Perplexity', strengths: [], weaknesses: [] },
+      { model: 'Perplexity', strengths: [], weaknesses: [] },
+      { model: 'Perplexity', strengths: [], weaknesses: [] },
+      { model: 'Perplexity', strengths: [], weaknesses: [] },
+      { model: 'Perplexity', strengths: [], weaknesses: [] },
+      { model: 'Perplexity', strengths: [], weaknesses: [] },
+    ],
+  },
+];*/
+    const competitorAnalyses = Array.from(uniqueCompetitors).map((competitor) => {
+      const analysisByModel = comparison.results
+        .filter((result) => result.competitor === competitor)
+        .map((result) => ({
+          model: result.llmProvider,
+          strengths: result.brandStrengths || [],
+          weaknesses: result.brandWeaknesses || [],
+        }));
+
+      return {
+        competitor: competitor,
+        analysisByModel: analysisByModel,
+      };
+    });
+
+    this.logger.debug(`competitorAnalyses ${JSON.stringify(competitorAnalyses)}`);
+
+    const commonStrengths = comparison.summary.commonStrengths;
+    const commonWeaknesses = comparison.summary.commonWeaknesses;
+
+    return {
+      competitorAnalyses: competitorAnalyses,
+      commonStrengths: commonStrengths,
+      commonWeaknesses: commonWeaknesses,
+    };
   }
 }

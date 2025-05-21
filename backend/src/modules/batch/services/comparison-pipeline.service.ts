@@ -193,7 +193,9 @@ export class ComparisonPipelineService extends BasePipelineService {
         for (const competitor of competitors) {
           const formattedPrompt = prompts[promptIndex]
             .replace(/{COMPANY}/g, context.brandName)
-            .replace(/{COMPETITOR}/g, competitor);
+            .replace(/{COMPETITOR}/g, competitor).concat(`
+              <context>${context.brandName}'s URL: ${context.websiteUrl}</context>
+              `);
 
           tasks.push(
             this.limiter(async () => {
@@ -335,6 +337,7 @@ export class ComparisonPipelineService extends BasePipelineService {
 
     try {
       // Use the base class method for structured analysis with fallback
+      // Pass competitor information to make raw responses unique per competitor
       const result = await this.getStructuredAnalysis(
         userPrompt,
         schema,
@@ -345,6 +348,8 @@ export class ComparisonPipelineService extends BasePipelineService {
         prompt,
         llmResponse,
         modelConfig.model,
+        // Add competitor as part of the model identifier to ensure uniqueness per competitor
+        `${modelConfig.model}_${competitor}`,
       );
 
       return {
