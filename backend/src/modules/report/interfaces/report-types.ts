@@ -104,13 +104,12 @@ export interface AttributeItem {
 
 export interface Competitor {
   name: string;
-  chatgpt: number;
-  claude: number;
-  mistral: number;
-  gemini: number;
-  global: string;
   size: 'sm' | 'md' | 'lg' | string;
-  sentiment: 'positive' | 'neutral' | 'negative' | string;
+  global: string;
+  modelsMentionsRate: {
+    model: string;
+    mentionsRate: number;
+  }[];
 }
 
 export interface CompetitorComparison {

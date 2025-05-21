@@ -73,9 +73,8 @@ export class ReportConverterService {
     identityCard: CompanyIdentityCard,
   ): WeeklyBrandReportEntity['arena'] {
     // Only pass the comparison data, regardless of format
-    const comparisonData = input.comparison;
     const formattedArena = this.transformationService.formatArenaData(
-      comparisonData as ComparisonResults,
+      input.spontaneous,
       identityCard?.competitors || [],
     );
     return formattedArena;

@@ -35,13 +35,12 @@ interface AttributeItem {
 
 interface Competitor {
   name: string;
-  chatgpt: number;
-  claude: number;
-  mistral: number;
-  gemini: number;
-  global: string;
   size: string;
-  sentiment: string;
+  global: string;
+  modelsMentionsRate: {
+    model: string;
+    mentionsRate: number;
+  }[];
 }
 
 interface CompetitorComparison {

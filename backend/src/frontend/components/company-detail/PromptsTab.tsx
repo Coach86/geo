@@ -74,9 +74,11 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
   const [accuracyPrompts, setAccuracyPrompts] = useState<string[]>(
     Array.isArray(promptSet.accuracy) ? promptSet.accuracy : JSON.parse(promptSet.accuracy || '[]'),
   );
-  
+
   const [brandBattlePrompts, setBrandBattlePrompts] = useState<string[]>(
-    Array.isArray(promptSet.brandBattle) ? promptSet.brandBattle : JSON.parse(promptSet.brandBattle || '[]'),
+    Array.isArray(promptSet.brandBattle)
+      ? promptSet.brandBattle
+      : JSON.parse(promptSet.brandBattle || '[]'),
   );
 
   // Fetch prompt templates
@@ -136,9 +138,11 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
       setAccuracyPrompts(
         Array.isArray(result.accuracy) ? result.accuracy : JSON.parse(result.accuracy || '[]'),
       );
-      
+
       setBrandBattlePrompts(
-        Array.isArray(result.brandBattle) ? result.brandBattle : JSON.parse(result.brandBattle || '[]'),
+        Array.isArray(result.brandBattle)
+          ? result.brandBattle
+          : JSON.parse(result.brandBattle || '[]'),
       );
 
       // Clear the templates cache so they'll be refreshed next time
@@ -480,16 +484,6 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
                 sx={{ minWidth: '80px' }}
               />
               <Tab
-                icon={<CompareArrowsIcon sx={{ fontSize: '1.1rem' }} />}
-                label={
-                  <Typography sx={{ fontSize: '0.85rem', ml: 0.5 }}>
-                    Comparison ({comparisonPrompts.length})
-                  </Typography>
-                }
-                value={PromptTabValue.COMPARISON}
-                sx={{ minWidth: '80px' }}
-              />
-              <Tab
                 icon={<FactCheckIcon sx={{ fontSize: '1.1rem' }} />}
                 label={
                   <Typography sx={{ fontSize: '0.85rem', ml: 0.5 }}>
@@ -586,7 +580,7 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
                 onUpdate={setAccuracyPrompts}
               />
             )}
-            
+
             {currentTab === PromptTabValue.BRAND_BATTLE && (
               <EditablePrompts
                 companyId={promptSet.companyId}
