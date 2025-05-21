@@ -96,17 +96,32 @@ const SpontaneousTab: React.FC<SpontaneousTabProps> = ({ results }) => {
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
                     {webSearchSummary.consultedWebsites.length > 0 ? (
                       <>
-                        {/* Display only the top 5 websites */}
-                        {webSearchSummary.consultedWebsites.slice(0, 5).map((website, index) => (
-                          <Chip
-                            key={index}
-                            label={website}
-                            color={index < 3 ? "secondary" : "default"}
-                            variant={index < 3 ? "filled" : "outlined"}
-                            size="small"
-                            icon={<LinkIcon />}
-                          />
-                        ))}
+                        {/* Display websites with counts if available, otherwise just websites */}
+                        {webSearchSummary.consultedWebsiteCounts ? (
+                          // Display top 5 websites with counts
+                          webSearchSummary.consultedWebsiteCounts.slice(0, 5).map((item, index) => (
+                            <Chip
+                              key={index}
+                              label={`${item.domain} (${item.count})`}
+                              color={index < 3 ? "secondary" : "default"}
+                              variant={index < 3 ? "filled" : "outlined"}
+                              size="small"
+                              icon={<LinkIcon />}
+                            />
+                          ))
+                        ) : (
+                          // Fallback to displaying just domains without counts
+                          webSearchSummary.consultedWebsites.slice(0, 5).map((website, index) => (
+                            <Chip
+                              key={index}
+                              label={website}
+                              color={index < 3 ? "secondary" : "default"}
+                              variant={index < 3 ? "filled" : "outlined"}
+                              size="small"
+                              icon={<LinkIcon />}
+                            />
+                          ))
+                        )}
                         
                         {/* Show a "+X more" chip if there are more than 5 websites */}
                         {webSearchSummary.consultedWebsites.length > 5 && (

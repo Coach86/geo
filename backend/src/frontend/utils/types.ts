@@ -132,10 +132,16 @@ export interface SpontaneousPipelineResult {
   webSearchQueries?: WebSearchQuery[]; // Added for direct access to web search queries
 }
 
+export interface WebsiteCount {
+  domain: string;
+  count: number;
+}
+
 export interface WebSearchSummary {
   usedWebSearch: boolean;
   webSearchCount: number;
   consultedWebsites: string[];
+  consultedWebsiteCounts?: WebsiteCount[]; // New field with domain counts
 }
 
 export interface WebSearchQuery {
