@@ -27,13 +27,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, []);
 
-  // Save theme preference to localStorage when it changes
-  useEffect(() => {
-    localStorage.setItem('themeMode', mode);
-  }, [mode]);
-
   const toggleTheme = () => {
     setMode((prevMode) => (prevMode === 'light' ? 'dark' : 'light'));
+    localStorage.setItem('themeMode', mode);
   };
 
   const theme = createTheme({

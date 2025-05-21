@@ -391,6 +391,7 @@ export class SpontaneousPipelineService extends BasePipelineService {
       return {
         mentionRate: 0,
         topMentions: [],
+        topMentionCounts: [],
       };
     }
 
@@ -407,15 +408,23 @@ export class SpontaneousPipelineService extends BasePipelineService {
       }
     }
 
-    // Sort by mention count
-    const sortedMentions = Object.entries(mentions)
+    // Sort by mention count and prepare data arrays
+    const sortedMentionEntries = Object.entries(mentions)
       .sort((a: [string, number], b: [string, number]) => b[1] - a[1])
-      .slice(0, 10)
-      .map(([brand]) => brand);
+      .slice(0, 10);
+    
+    const sortedMentions = sortedMentionEntries.map(([brand]) => brand);
+    
+    // Create mention counts array for frontend
+    const topMentionCounts = sortedMentionEntries.map(([mention, count]) => ({
+      mention,
+      count,
+    }));
 
     return {
       mentionRate,
       topMentions: sortedMentions,
+      topMentionCounts,
     };
   }
 

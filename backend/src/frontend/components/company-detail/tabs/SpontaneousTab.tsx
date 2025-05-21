@@ -142,14 +142,27 @@ const SpontaneousTab: React.FC<SpontaneousTabProps> = ({ results }) => {
               </Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 2 }}>
                 {summary.topMentions.length > 0 ? (
-                  summary.topMentions.map((mention, index) => (
-                    <Chip
-                      key={index}
-                      label={mention}
-                      color={index < 3 ? "primary" : "default"}
-                      variant={index < 3 ? "filled" : "outlined"}
-                    />
-                  ))
+                  summary.topMentionCounts ? (
+                    // Display mentions with counts if available
+                    summary.topMentionCounts.map((item, index) => (
+                      <Chip
+                        key={index}
+                        label={`${item.mention} (${item.count})`}
+                        color={index < 3 ? "primary" : "default"}
+                        variant={index < 3 ? "filled" : "outlined"}
+                      />
+                    ))
+                  ) : (
+                    // Fallback to displaying just mentions without counts
+                    summary.topMentions.map((mention, index) => (
+                      <Chip
+                        key={index}
+                        label={mention}
+                        color={index < 3 ? "primary" : "default"}
+                        variant={index < 3 ? "filled" : "outlined"}
+                      />
+                    ))
+                  )
                 ) : (
                   <Typography variant="body2" color="text.secondary">
                     No top mentions found.
