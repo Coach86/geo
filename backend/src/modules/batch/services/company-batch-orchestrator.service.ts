@@ -8,7 +8,6 @@ import {
   AccuracyPipelineResult,
   AccuracyResults,
   CompanyBatchContext,
-  ComparisonPipelineResult,
   ComparisonResults,
   SentimentPipelineResult,
   SentimentResults,
@@ -102,6 +101,7 @@ export class CompanyBatchOrchestratorService {
       const spontaneousResults = pipelineResults[0] as SpontaneousResults;
       const sentimentResults = pipelineResults[1] as SentimentResults;
       const accuracyResults = pipelineResults[2] as AccuracyResults;
+      // The comparison pipeline now only returns ComparisonResults
       const comparisonResults = pipelineResults[3] as ComparisonResults;
 
       // Get LLM versions

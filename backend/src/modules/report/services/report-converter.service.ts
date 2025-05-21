@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ComparisonResults } from '@/modules/batch/interfaces/batch.interfaces';
 import { BatchReportInput } from '../interfaces/report-input.interfaces';
 import { ReportTransformationService } from './report-transformation.service';
 import { CompanyIdentityCard } from '@/modules/identity-card/entities/company-identity-card.entity';
@@ -74,8 +75,10 @@ export class ReportConverterService {
     input: BatchReportInput,
     identityCard: CompanyIdentityCard,
   ): WeeklyBrandReportEntity['arena'] {
+    // Only pass the comparison data, regardless of format
+    const comparisonData = input.comparison;
     const formattedArena = this.transformationService.formatArenaData(
-      input.comparison,
+      comparisonData as ComparisonResults,
       identityCard?.competitors || [],
     );
     return formattedArena;

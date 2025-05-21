@@ -19,6 +19,6 @@ export function directUserPrompt({
       ### Prompts:
       - What do you think of ${brandName}?
       - What are the main strenghts and weaknesses of ${brandName}?
-      - What do clients and reviews say about ${brandName}?
+      - What do clients and reviews say about ${brandName} and it's products?
     `;
 }

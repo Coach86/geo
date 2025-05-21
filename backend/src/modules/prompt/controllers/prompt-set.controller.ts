@@ -9,6 +9,7 @@ import { spontaneousSystemPrompt, spontaneousUserPrompt } from '../services/spon
 import { directSystemPrompt, directUserPrompt } from '../services/direct-prompts';
 import { comparisonSystemPrompt, comparisonUserPrompt } from '../services/comparison-prompts';
 import { accuracySystemPrompt, accuracyUserPrompt } from '../services/accuracy-prompts';
+import { brandBattleSystemPrompt, brandBattleUserPrompt } from '../services/brand-battle-prompts';
 
 @ApiTags('prompt-sets')
 @Controller('admin/prompt-set')
@@ -37,6 +38,7 @@ export class PromptSetController {
       direct: promptSet.direct,
       comparison: promptSet.comparison,
       accuracy: promptSet.accuracy,
+      brandBattle: promptSet.brandBattle,
       updatedAt: promptSet.updatedAt instanceof Date ? promptSet.updatedAt : new Date(),
       createdAt: promptSet.createdAt instanceof Date ? promptSet.createdAt : new Date(),
     };
@@ -83,6 +85,7 @@ export class PromptSetController {
       const directPromptCount = promptSet?.direct?.length || 3;
       const comparisonPromptCount = promptSet?.comparison?.length || 5;
       const accuracyPromptCount = promptSet?.accuracy?.length || 3;
+      const brandBattlePromptCount = promptSet?.brandBattle?.length || 1;
 
       // Get the example prompt templates filled with this company's data
       const spontaneousTemplate = {
@@ -128,11 +131,22 @@ export class PromptSetController {
         }),
       };
 
+      const brandBattleTemplate = {
+        systemPrompt: brandBattleSystemPrompt,
+        userPrompt: brandBattleUserPrompt({
+          market: company.market,
+          brandName: company.brandName,
+          competitors: company.competitors,
+          count: brandBattlePromptCount,
+        }),
+      };
+
       return {
         spontaneous: spontaneousTemplate,
         direct: directTemplate,
         comparison: comparisonTemplate,
         accuracy: accuracyTemplate,
+        brandBattle: brandBattleTemplate,
       };
     } catch (error) {
       if (error instanceof NotFoundException) {

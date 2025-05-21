@@ -1,32 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Typography, 
-  Box, 
-  Card, 
-  CardContent, 
-  Tabs, 
-  Tab, 
-  Paper, 
-  Button, 
-  Dialog, 
-  DialogTitle, 
-  DialogContent, 
-  DialogActions, 
-  DialogContentText, 
-  CircularProgress, 
-  IconButton, 
-  Tooltip, 
-  Accordion, 
-  AccordionSummary, 
+import {
+  Typography,
+  Box,
+  Card,
+  CardContent,
+  Tabs,
+  Tab,
+  Paper,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  DialogContentText,
+  CircularProgress,
+  IconButton,
+  Tooltip,
+  Accordion,
+  AccordionSummary,
   AccordionDetails,
   useTheme,
-  alpha
+  alpha,
 } from '@mui/material';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
 import FactCheckIcon from '@mui/icons-material/FactCheck';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import SportsMmaIcon from '@mui/icons-material/SportsMma';
 import CodeIcon from '@mui/icons-material/Code';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -43,6 +44,7 @@ enum PromptTabValue {
   SPONTANEOUS = 'spontaneous',
   COMPARISON = 'comparison',
   ACCURACY = 'accuracy',
+  BRAND_BATTLE = 'brand-battle',
 }
 
 const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
@@ -57,26 +59,26 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
 
   // Handle both direct arrays and JSON strings
   const [directPrompts, setDirectPrompts] = useState<string[]>(
-    Array.isArray(promptSet.direct) 
-      ? promptSet.direct 
-      : JSON.parse(promptSet.direct || '[]')
+    Array.isArray(promptSet.direct) ? promptSet.direct : JSON.parse(promptSet.direct || '[]'),
   );
   const [spontaneousPrompts, setSpontaneousPrompts] = useState<string[]>(
-    Array.isArray(promptSet.spontaneous) 
-      ? promptSet.spontaneous 
-      : JSON.parse(promptSet.spontaneous || '[]')
+    Array.isArray(promptSet.spontaneous)
+      ? promptSet.spontaneous
+      : JSON.parse(promptSet.spontaneous || '[]'),
   );
   const [comparisonPrompts, setComparisonPrompts] = useState<string[]>(
-    Array.isArray(promptSet.comparison) 
-      ? promptSet.comparison 
-      : JSON.parse(promptSet.comparison || '[]')
+    Array.isArray(promptSet.comparison)
+      ? promptSet.comparison
+      : JSON.parse(promptSet.comparison || '[]'),
   );
   const [accuracyPrompts, setAccuracyPrompts] = useState<string[]>(
-    Array.isArray(promptSet.accuracy) 
-      ? promptSet.accuracy 
-      : JSON.parse(promptSet.accuracy || '[]')
+    Array.isArray(promptSet.accuracy) ? promptSet.accuracy : JSON.parse(promptSet.accuracy || '[]'),
   );
   
+  const [brandBattlePrompts, setBrandBattlePrompts] = useState<string[]>(
+    Array.isArray(promptSet.brandBattle) ? promptSet.brandBattle : JSON.parse(promptSet.brandBattle || '[]'),
+  );
+
   // Fetch prompt templates
   useEffect(() => {
     const fetchTemplates = async () => {
@@ -86,13 +88,13 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
           const templates = await getPromptTemplates(promptSet.companyId);
           setPromptTemplates(templates);
         } catch (error) {
-          console.error("Failed to fetch prompt templates:", error);
+          console.error('Failed to fetch prompt templates:', error);
         } finally {
           setIsLoadingTemplates(false);
         }
       }
     };
-    
+
     fetchTemplates();
   }, [templateDialogOpen, promptSet.companyId, promptTemplates]);
 
@@ -112,33 +114,33 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
     try {
       setIsRegenerating(true);
       setConfirmDialogOpen(false);
-      
+
       // Call the API to regenerate prompts
       const result = await regeneratePromptSet(promptSet.companyId);
       setRegeneratedPromptSet(result);
-      
+
       // Update local state with new prompts
       setDirectPrompts(
-        Array.isArray(result.direct) 
-          ? result.direct 
-          : JSON.parse(result.direct || '[]')
+        Array.isArray(result.direct) ? result.direct : JSON.parse(result.direct || '[]'),
       );
       setSpontaneousPrompts(
-        Array.isArray(result.spontaneous) 
-          ? result.spontaneous 
-          : JSON.parse(result.spontaneous || '[]')
+        Array.isArray(result.spontaneous)
+          ? result.spontaneous
+          : JSON.parse(result.spontaneous || '[]'),
       );
       setComparisonPrompts(
-        Array.isArray(result.comparison) 
-          ? result.comparison 
-          : JSON.parse(result.comparison || '[]')
+        Array.isArray(result.comparison)
+          ? result.comparison
+          : JSON.parse(result.comparison || '[]'),
       );
       setAccuracyPrompts(
-        Array.isArray(result.accuracy) 
-          ? result.accuracy 
-          : JSON.parse(result.accuracy || '[]')
+        Array.isArray(result.accuracy) ? result.accuracy : JSON.parse(result.accuracy || '[]'),
       );
       
+      setBrandBattlePrompts(
+        Array.isArray(result.brandBattle) ? result.brandBattle : JSON.parse(result.brandBattle || '[]'),
+      );
+
       // Clear the templates cache so they'll be refreshed next time
       setPromptTemplates(null);
     } catch (error) {
@@ -147,19 +149,19 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
       setIsRegenerating(false);
     }
   };
-  
+
   const handleOpenTemplateDialog = () => {
     setTemplateDialogOpen(true);
   };
-  
+
   const handleCloseTemplateDialog = () => {
     setTemplateDialogOpen(false);
   };
-  
+
   // Helper to get the current template based on the active tab
   const getCurrentTemplate = () => {
     if (!promptTemplates) return null;
-    
+
     switch (currentTab) {
       case PromptTabValue.DIRECT:
         return promptTemplates.direct;
@@ -169,6 +171,8 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
         return promptTemplates.comparison;
       case PromptTabValue.ACCURACY:
         return promptTemplates.accuracy;
+      case PromptTabValue.BRAND_BATTLE:
+        return promptTemplates.brandBattle;
       default:
         return null;
     }
@@ -184,13 +188,13 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
         PaperProps={{
           sx: {
             borderRadius: 2,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.12)'
-          }
+            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          },
         }}
       >
-        <DialogTitle 
+        <DialogTitle
           id="regenerate-prompts-dialog-title"
-          sx={{ 
+          sx={{
             pb: 1,
             pt: 2,
             fontWeight: 600,
@@ -201,36 +205,37 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
         </DialogTitle>
         <DialogContent>
           <DialogContentText sx={{ fontSize: '0.875rem' }}>
-            This will delete all current prompts and generate new ones using AI. Any customizations you've made will be lost. This process may take a minute to complete.
+            This will delete all current prompts and generate new ones using AI. Any customizations
+            you've made will be lost. This process may take a minute to complete.
           </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5 }}>
-          <Button 
-            onClick={handleCloseConfirmDialog} 
+          <Button
+            onClick={handleCloseConfirmDialog}
             color="primary"
-            sx={{ 
+            sx={{
               textTransform: 'none',
               fontWeight: 500,
               fontSize: '0.875rem',
               color: theme.palette.text.secondary,
-              px: 2
+              px: 2,
             }}
           >
             Cancel
           </Button>
-          <Button 
-            onClick={handleRegeneratePrompts} 
-            color="primary" 
+          <Button
+            onClick={handleRegeneratePrompts}
+            color="primary"
             variant="contained"
             startIcon={<RefreshIcon sx={{ fontSize: '1rem' }} />}
             disabled={isRegenerating}
-            sx={{ 
+            sx={{
               textTransform: 'none',
               fontWeight: 600,
               fontSize: '0.875rem',
               boxShadow: 1,
               borderRadius: 1,
-              px: 2
+              px: 2,
             }}
           >
             {isRegenerating ? 'Regenerating...' : 'Regenerate'}
@@ -264,40 +269,41 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
           ) : promptTemplates ? (
             <Box>
               <Typography variant="subtitle1" gutterBottom>
-                These are the base prompt templates used to generate the prompts for {currentTab} analysis.
+                These are the base prompt templates used to generate the prompts for {currentTab}{' '}
+                analysis.
               </Typography>
-              
+
               <Accordion defaultExpanded sx={{ mb: 2 }}>
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                   <Typography variant="subtitle1">System Prompt</Typography>
                 </AccordionSummary>
                 <AccordionDetails>
-                  <Paper 
-                    variant="outlined" 
-                    sx={{ 
-                      p: 2, 
-                      fontFamily: 'monospace', 
-                      whiteSpace: 'pre-wrap', 
-                      backgroundColor: 'rgba(0, 0, 0, 0.04)' 
+                  <Paper
+                    variant="outlined"
+                    sx={{
+                      p: 2,
+                      fontFamily: 'monospace',
+                      whiteSpace: 'pre-wrap',
+                      backgroundColor: 'rgba(0, 0, 0, 0.04)',
                     }}
                   >
                     {getCurrentTemplate()?.systemPrompt || 'No system prompt available'}
                   </Paper>
                 </AccordionDetails>
               </Accordion>
-              
+
               <Accordion defaultExpanded>
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                   <Typography variant="subtitle1">User Prompt</Typography>
                 </AccordionSummary>
                 <AccordionDetails>
-                  <Paper 
-                    variant="outlined" 
-                    sx={{ 
-                      p: 2, 
-                      fontFamily: 'monospace', 
-                      whiteSpace: 'pre-wrap', 
-                      backgroundColor: 'rgba(0, 0, 0, 0.04)' 
+                  <Paper
+                    variant="outlined"
+                    sx={{
+                      p: 2,
+                      fontFamily: 'monospace',
+                      whiteSpace: 'pre-wrap',
+                      backgroundColor: 'rgba(0, 0, 0, 0.04)',
                     }}
                   >
                     {getCurrentTemplate()?.userPrompt || 'No user prompt available'}
@@ -311,21 +317,23 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
         </DialogContent>
       </Dialog>
 
-      <Box sx={{ 
-        width: '100%',
-        maxWidth: '95vw', 
-        mb: 3, 
-        display: 'flex', 
-        flexDirection: {xs: 'column', sm: 'row'}, 
-        justifyContent: 'space-between', 
-        alignItems: {xs: 'flex-start', sm: 'center'},
-        gap: 2
-      }}>
+      <Box
+        sx={{
+          width: '100%',
+          maxWidth: '95vw',
+          mb: 3,
+          display: 'flex',
+          flexDirection: { xs: 'column', sm: 'row' },
+          justifyContent: 'space-between',
+          alignItems: { xs: 'flex-start', sm: 'center' },
+          gap: 2,
+        }}
+      >
         <Box>
-          <Typography 
-            variant="h6" 
+          <Typography
+            variant="h6"
             gutterBottom
-            sx={{ 
+            sx={{
               fontWeight: 600,
               fontSize: '1rem',
               color: theme.palette.text.primary,
@@ -333,19 +341,19 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
               alignItems: 'center',
             }}
           >
-            <ChatBubbleOutlineIcon 
-              sx={{ 
-                fontSize: '1.1rem', 
+            <ChatBubbleOutlineIcon
+              sx={{
+                fontSize: '1.1rem',
                 color: theme.palette.primary.main,
-                mr: 1 
-              }} 
+                mr: 1,
+              }}
             />
             Generated Analysis Prompts
           </Typography>
-          <Typography 
-            variant="body2" 
+          <Typography
+            variant="body2"
             color="text.secondary"
-            sx={{ 
+            sx={{
               fontSize: '0.875rem',
               opacity: 0.85,
             }}
@@ -354,7 +362,7 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
             batch processes.
           </Typography>
         </Box>
-        
+
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
           <Tooltip title="View template prompts used to generate these prompts">
             <Button
@@ -362,11 +370,11 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
               color="secondary"
               startIcon={<CodeIcon sx={{ fontSize: '0.9rem' }} />}
               onClick={handleOpenTemplateDialog}
-              sx={{ 
+              sx={{
                 borderRadius: 1,
                 textTransform: 'none',
                 fontWeight: 500,
-                fontSize: {xs: '0.75rem', sm: '0.875rem'},
+                fontSize: { xs: '0.75rem', sm: '0.875rem' },
                 py: 0.75,
                 whiteSpace: 'nowrap',
                 minWidth: 'fit-content',
@@ -376,18 +384,24 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
               View Templates
             </Button>
           </Tooltip>
-          
+
           <Button
             variant="outlined"
             color="primary"
-            startIcon={isRegenerating ? <CircularProgress size={16} /> : <RefreshIcon sx={{ fontSize: '0.9rem' }} />}
+            startIcon={
+              isRegenerating ? (
+                <CircularProgress size={16} />
+              ) : (
+                <RefreshIcon sx={{ fontSize: '0.9rem' }} />
+              )
+            }
             onClick={handleOpenConfirmDialog}
             disabled={isRegenerating}
-            sx={{ 
+            sx={{
               borderRadius: 1,
               textTransform: 'none',
               fontWeight: 500,
-              fontSize: {xs: '0.75rem', sm: '0.875rem'},
+              fontSize: { xs: '0.75rem', sm: '0.875rem' },
               py: 0.75,
               whiteSpace: 'nowrap',
               minWidth: 'fit-content',
@@ -399,27 +413,29 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
         </Box>
       </Box>
 
-      <Box 
-        sx={{ 
-          width: '100%', 
+      <Box
+        sx={{
+          width: '100%',
           mb: 3,
           borderRadius: 1.5,
           boxShadow: 'none',
           border: `1px solid ${alpha(theme.palette.grey[500], 0.12)}`,
         }}
       >
-        <Box sx={{ 
-          width: '100%', 
-          overflowX: 'auto', 
-          WebkitOverflowScrolling: 'touch',
-          '::-webkit-scrollbar': {
-            height: '8px',
-          },
-          '::-webkit-scrollbar-thumb': {
-            borderRadius: '4px',
-            backgroundColor: alpha(theme.palette.grey[500], 0.3),
-          },
-        }}>
+        <Box
+          sx={{
+            width: '100%',
+            overflowX: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            '::-webkit-scrollbar': {
+              height: '8px',
+            },
+            '::-webkit-scrollbar-thumb': {
+              borderRadius: '4px',
+              backgroundColor: alpha(theme.palette.grey[500], 0.3),
+            },
+          }}
+        >
           <Box sx={{ minWidth: '500px' }}>
             <Tabs
               value={currentTab}
@@ -445,26 +461,52 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
             >
               <Tab
                 icon={<QuestionAnswerIcon sx={{ fontSize: '1.1rem' }} />}
-                label={<Typography sx={{ fontSize: '0.85rem', ml: 0.5 }}>Spontaneous ({spontaneousPrompts.length})</Typography>}
+                label={
+                  <Typography sx={{ fontSize: '0.85rem', ml: 0.5 }}>
+                    Tone ({spontaneousPrompts.length})
+                  </Typography>
+                }
                 value={PromptTabValue.SPONTANEOUS}
                 sx={{ minWidth: '80px' }}
               />
               <Tab
                 icon={<ChatBubbleOutlineIcon sx={{ fontSize: '1.1rem' }} />}
-                label={<Typography sx={{ fontSize: '0.85rem', ml: 0.5 }}>Direct ({directPrompts.length})</Typography>}
+                label={
+                  <Typography sx={{ fontSize: '0.85rem', ml: 0.5 }}>
+                    Sentiment ({directPrompts.length})
+                  </Typography>
+                }
                 value={PromptTabValue.DIRECT}
                 sx={{ minWidth: '80px' }}
               />
               <Tab
                 icon={<CompareArrowsIcon sx={{ fontSize: '1.1rem' }} />}
-                label={<Typography sx={{ fontSize: '0.85rem', ml: 0.5 }}>Comparison ({comparisonPrompts.length})</Typography>}
+                label={
+                  <Typography sx={{ fontSize: '0.85rem', ml: 0.5 }}>
+                    Comparison ({comparisonPrompts.length})
+                  </Typography>
+                }
                 value={PromptTabValue.COMPARISON}
                 sx={{ minWidth: '80px' }}
               />
               <Tab
                 icon={<FactCheckIcon sx={{ fontSize: '1.1rem' }} />}
-                label={<Typography sx={{ fontSize: '0.85rem', ml: 0.5 }}>Accuracy ({accuracyPrompts.length})</Typography>}
+                label={
+                  <Typography sx={{ fontSize: '0.85rem', ml: 0.5 }}>
+                    Accord ({accuracyPrompts.length})
+                  </Typography>
+                }
                 value={PromptTabValue.ACCURACY}
+                sx={{ minWidth: '80px' }}
+              />
+              <Tab
+                icon={<SportsMmaIcon sx={{ fontSize: '1.1rem' }} />}
+                label={
+                  <Typography sx={{ fontSize: '0.85rem', ml: 0.5 }}>
+                    Brand Battle ({brandBattlePrompts.length})
+                  </Typography>
+                }
+                value={PromptTabValue.BRAND_BATTLE}
                 sx={{ minWidth: '80px' }}
               />
             </Tabs>
@@ -475,9 +517,9 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
       {isRegenerating ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', my: 8 }}>
           <CircularProgress size={40} />
-          <Typography 
-            variant="h6" 
-            sx={{ 
+          <Typography
+            variant="h6"
+            sx={{
               ml: 2,
               fontSize: '1rem',
               fontWeight: 500,
@@ -489,7 +531,7 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
         </Box>
       ) : (
         <Card
-          sx={{ 
+          sx={{
             borderRadius: 1.5,
             boxShadow: 'none',
             border: `1px solid ${alpha(theme.palette.grey[500], 0.12)}`,
@@ -542,6 +584,18 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
                 promptType="accuracy"
                 description="These prompts evaluate the factual accuracy of information about the company."
                 onUpdate={setAccuracyPrompts}
+              />
+            )}
+            
+            {currentTab === PromptTabValue.BRAND_BATTLE && (
+              <EditablePrompts
+                companyId={promptSet.companyId}
+                title="Brand Battle Prompts"
+                icon={<SportsMmaIcon color="primary" sx={{ mr: 1 }} />}
+                prompts={brandBattlePrompts}
+                promptType="brand-battle"
+                description="These prompts compare the brand directly against each competitor to identify strengths and weaknesses."
+                onUpdate={setBrandBattlePrompts}
               />
             )}
           </CardContent>

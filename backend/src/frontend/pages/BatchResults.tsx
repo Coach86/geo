@@ -348,7 +348,7 @@ const BatchResults: React.FC = () => {
                         <ListItem>
                           <ListItemText 
                             primary="Competitor Comparison Analysis" 
-                            secondary={`Win rate: ${(comparisonResults.summary.winRate * 100).toFixed(1)}%`} 
+                            secondary={`${comparisonResults.summary.competitorAnalyses.length} competitors analyzed`} 
                           />
                         </ListItem>
                       )}

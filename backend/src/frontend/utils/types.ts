@@ -35,6 +35,7 @@ export interface PromptSet {
   comparison: string[] | string; // Either direct string[] or for backward compatibility string JSON
   spontaneous: string[] | string; // Either direct string[] or for backward compatibility string JSON
   accuracy?: string[] | string; // Either direct string[] or for backward compatibility string JSON
+  brandBattle?: string[] | string; // Either direct string[] or for backward compatibility string JSON
   createdAt: string;
   updatedAt: string;
 }
@@ -50,6 +51,7 @@ export interface PromptTemplates {
   direct: PromptTemplate;
   comparison: PromptTemplate;
   accuracy: PromptTemplate;
+  brandBattle?: PromptTemplate;
 }
 
 // Batch Execution interfaces
@@ -101,7 +103,7 @@ export interface ToolUseInfo {
 export interface RawResponse {
   id: string;
   batchExecutionId: string;
-  promptType: 'spontaneous' | 'direct' | 'comparison' | 'accuracy';
+  promptType: 'spontaneous' | 'direct' | 'comparison' | 'accuracy' | 'brand-battle';
   promptIndex: number;
   originalPrompt: string;
   llmResponse: string;
@@ -183,9 +185,11 @@ export interface SentimentResults {
 
 export interface ComparisonPipelineResult {
   llmProvider: string;
+  llmModel: string;
   promptIndex: number;
-  winner: string;
-  differentiators: string[];
+  competitor: string;  // The competitor being compared against
+  brandStrengths: string[];  // Strengths of the brand vs this competitor
+  brandWeaknesses: string[];  // Weaknesses of the brand vs this competitor
   originalPrompt?: string;
   llmResponse?: string;
   error?: string;
@@ -193,14 +197,21 @@ export interface ComparisonPipelineResult {
   usedWebSearch?: boolean;
   citations?: SourceCitation[];
   toolUsage?: ToolUseInfo[];
-  webSearchQueries?: WebSearchQuery[]; // Added for direct access to web search queries
+  webSearchQueries?: WebSearchQuery[];
+}
+
+export interface BrandBattleAnalysis {
+  competitor: string;
+  brandStrengths: string[];
+  brandWeaknesses: string[];
 }
 
 export interface ComparisonResults {
   results: ComparisonPipelineResult[];
   summary: {
-    winRate: number;
-    keyDifferentiators: string[];
+    competitorAnalyses: BrandBattleAnalysis[];
+    commonStrengths: string[];
+    commonWeaknesses: string[];
   };
   webSearchSummary?: WebSearchSummary;
 }

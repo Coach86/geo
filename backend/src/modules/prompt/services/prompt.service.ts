@@ -11,6 +11,7 @@ import { spontaneousSystemPrompt, spontaneousUserPrompt } from './spontaneous-pr
 import { directSystemPrompt, directUserPrompt } from './direct-prompts';
 import { comparisonSystemPrompt, comparisonUserPrompt } from './comparison-prompts';
 import { accuracySystemPrompt, accuracyUserPrompt } from './accuracy-prompts';
+import { brandBattleSystemPrompt, brandBattleUserPrompt } from './brand-battle-prompts';
 import { CompanyIdentityCard } from '../../identity-card/entities/company-identity-card.entity';
 import { PromptSet, PromptSetDocument } from '../schemas/prompt-set.schema';
 import { IdentityCardRepository } from '../../identity-card/repositories/identity-card.repository';
@@ -23,6 +24,7 @@ export class PromptService implements OnModuleInit {
   private directPromptCount: number;
   private comparisonPromptCount: number;
   private accuracyPromptCount: number;
+  private brandBattlePromptCount: number;
 
   constructor(
     private readonly promptSetRepository: PromptSetRepository,
@@ -37,10 +39,12 @@ export class PromptService implements OnModuleInit {
     this.directPromptCount = this.configService.get<number>('DIRECT_PROMPTS', 3);
     this.comparisonPromptCount = this.configService.get<number>('COMP_PROMPTS', 5);
     this.accuracyPromptCount = this.configService.get<number>('ACCURACY_PROMPTS', 3);
+    this.brandBattlePromptCount = this.configService.get<number>('BRAND_BATTLE_PROMPTS', 1);
 
     this.logger.log(
       `Initialized with ${this.spontPromptCount} spontaneous prompts, ${this.directPromptCount} direct prompts, ` +
-        `${this.comparisonPromptCount} comparison prompts, ${this.accuracyPromptCount} accuracy prompts`,
+        `${this.comparisonPromptCount} comparison prompts, ${this.accuracyPromptCount} accuracy prompts, ` +
+        `${this.brandBattlePromptCount} brand battle prompts`,
     );
   }
 
@@ -112,6 +116,7 @@ export class PromptService implements OnModuleInit {
         direct: promptSet.direct,
         comparison: promptSet.comparison,
         accuracy: promptSet.accuracy,
+        brandBattle: promptSet.brandBattle,
       });
 
       this.logger.log(`Successfully generated prompts for company ${event.companyId}`);
@@ -136,7 +141,7 @@ export class PromptService implements OnModuleInit {
     const websiteUrl = company.website;
     const market = company.market;
     // Generate all prompts using LLM
-    const [spontaneous, direct, comparison, accuracy] = await Promise.all([
+    const [spontaneous, direct, comparison, accuracy, brandBattle] = await Promise.all([
       this.generateSpontaneousPrompts(
         websiteUrl,
         industry,
@@ -155,9 +160,10 @@ export class PromptService implements OnModuleInit {
         this.comparisonPromptCount,
       ),
       this.generateAccuracyPrompts(brandName, market, this.accuracyPromptCount),
+      this.generateBrandBattlePrompts(brandName, competitors, market, this.brandBattlePromptCount),
     ]);
 
-    return { spontaneous, direct, comparison, accuracy };
+    return { spontaneous, direct, comparison, accuracy, brandBattle };
   }
 
   private async generateSpontaneousPrompts(
@@ -272,6 +278,45 @@ export class PromptService implements OnModuleInit {
 
     return result.prompts;
   }
+  
+  /**
+   * Generate brand battle prompts for competitor-specific comparisons
+   * @param brandName Company brand name
+   * @param competitors List of competitors
+   * @param market Market where the company operates
+   * @param count Number of prompts to generate
+   * @returns Array of brand battle prompts
+   */
+  private async generateBrandBattlePrompts(
+    brandName: string,
+    competitors: string[],
+    market: string,
+    count: number,
+  ): Promise<string[]> {
+    // Use default competitors if none provided
+    const competitorList =
+      competitors && competitors.length > 0 ? competitors : ['competitors in the industry'];
+
+    // Define our schema for the LLM output
+    const promptsSchema = z.object({
+      prompts: z.array(z.string()),
+    });
+
+    // Call LLM with structured output processing
+    const result = await this.llmService.getStructuredOutput(
+      LlmProvider.OpenAI,
+      brandBattleUserPrompt({
+        market,
+        brandName,
+        competitors: competitorList,
+        count,
+      }),
+      promptsSchema,
+      { systemPrompt: brandBattleSystemPrompt },
+    );
+
+    return result.prompts;
+  }
 
   /**
    * Update prompt set for a company
@@ -286,6 +331,7 @@ export class PromptService implements OnModuleInit {
       direct?: string[];
       comparison?: string[];
       accuracy?: string[];
+      brandBattle?: string[];
     },
   ) {
     this.logger.log(`Updating prompts for company: ${companyId}`);
@@ -317,6 +363,10 @@ export class PromptService implements OnModuleInit {
       if (updatedPrompts.accuracy !== undefined) {
         updateData.accuracy = updatedPrompts.accuracy;
       }
+      
+      if (updatedPrompts.brandBattle !== undefined) {
+        updateData.brandBattle = updatedPrompts.brandBattle;
+      }
 
       // Only update if there are changes
       if (Object.keys(updateData).length === 0) {
@@ -327,6 +377,7 @@ export class PromptService implements OnModuleInit {
           direct: existingPromptSet.direct,
           comparison: existingPromptSet.comparison,
           accuracy: existingPromptSet.accuracy,
+          brandBattle: existingPromptSet.brandBattle,
           updatedAt:
             existingPromptSet.updatedAt instanceof Date ? existingPromptSet.updatedAt : new Date(),
           createdAt:
@@ -351,6 +402,7 @@ export class PromptService implements OnModuleInit {
         direct: updatedPromptSet.direct,
         comparison: updatedPromptSet.comparison,
         accuracy: updatedPromptSet.accuracy,
+        brandBattle: updatedPromptSet.brandBattle,
         updatedAt:
           updatedPromptSet.updatedAt instanceof Date ? updatedPromptSet.updatedAt : new Date(),
         createdAt:
@@ -409,6 +461,7 @@ export class PromptService implements OnModuleInit {
           direct: promptSet.direct,
           comparison: promptSet.comparison,
           accuracy: promptSet.accuracy,
+          brandBattle: promptSet.brandBattle,
         });
 
         if (!result) {
@@ -425,6 +478,7 @@ export class PromptService implements OnModuleInit {
           direct: promptSet.direct,
           comparison: promptSet.comparison,
           accuracy: promptSet.accuracy,
+          brandBattle: promptSet.brandBattle,
         });
       }
 
@@ -436,6 +490,7 @@ export class PromptService implements OnModuleInit {
         direct: result.direct,
         comparison: result.comparison,
         accuracy: result.accuracy,
+        brandBattle: result.brandBattle,
         updatedAt: result.updatedAt instanceof Date ? result.updatedAt : new Date(),
         createdAt: result.createdAt instanceof Date ? result.createdAt : new Date(),
       };

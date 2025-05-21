@@ -20,6 +20,8 @@ import {
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
+import FactCheckIcon from '@mui/icons-material/FactCheck';
+import SportsMmaIcon from '@mui/icons-material/SportsMma';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
@@ -31,7 +33,7 @@ interface EditablePromptsProps {
   title: string;
   icon: React.ReactNode;
   prompts: string[];
-  promptType: 'direct' | 'spontaneous' | 'comparison' | 'accuracy';
+  promptType: 'direct' | 'spontaneous' | 'comparison' | 'accuracy' | 'brand-battle';
   description: string;
   onUpdate: (newPrompts: string[]) => void;
 }
@@ -58,6 +60,10 @@ const EditablePrompts: React.FC<EditablePromptsProps> = ({
         return <QuestionAnswerIcon color="primary" />;
       case 'comparison':
         return <CompareArrowsIcon color="primary" />;
+      case 'accuracy':
+        return <FactCheckIcon color="primary" />;
+      case 'brand-battle':
+        return <SportsMmaIcon color="primary" />;
       default:
         return null;
     }
@@ -83,15 +89,18 @@ const EditablePrompts: React.FC<EditablePromptsProps> = ({
 
       // Build the update object with the correct property
       const updateData: any = {};
-      updateData[promptType] = filteredPrompts;
+      
+      // Handle the special case for brand-battle which maps to brandBattle in the API
+      const promptTypeKey = promptType === 'brand-battle' ? 'brandBattle' : promptType;
+      updateData[promptTypeKey] = filteredPrompts;
 
       // Update the prompts
       const updatedPromptSet = await updatePromptSet(companyId, updateData);
 
       // Get the updated prompts, which could be an array directly or a JSON string
-      const updatedPrompts = Array.isArray(updatedPromptSet[promptType])
-        ? updatedPromptSet[promptType] 
-        : JSON.parse(updatedPromptSet[promptType] || '[]');
+      const updatedPrompts = Array.isArray(updatedPromptSet[promptTypeKey])
+        ? updatedPromptSet[promptTypeKey] 
+        : JSON.parse(updatedPromptSet[promptTypeKey] || '[]');
 
       // Call the onUpdate callback with the new prompts
       onUpdate(updatedPrompts);
