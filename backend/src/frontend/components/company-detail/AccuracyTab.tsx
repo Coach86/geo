@@ -54,7 +54,14 @@ const AccuracyTab: React.FC<AccuracyTabProps> = ({ results }) => {
                 Overall Accuracy
               </Typography>
               <Typography variant="h3" color="primary" sx={{ mb: 2 }}>
-                {(summary.averageAccuracy * 100).toFixed(1)}%
+                {(() => {
+                  const scores = Object.values(summary.averageAttributeScores);
+                  if (scores.length > 0) {
+                    const avg = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+                    return (avg * 100).toFixed(1) + '%';
+                  }
+                  return 'N/A';
+                })()}
               </Typography>
               <Typography variant="body2" color="text.secondary" paragraph>
                 This represents the average accuracy of information about your brand across all LLMs.
@@ -62,7 +69,13 @@ const AccuracyTab: React.FC<AccuracyTabProps> = ({ results }) => {
               <Box sx={{ width: '100%', mt: 1 }}>
                 <LinearProgress 
                   variant="determinate" 
-                  value={summary.averageAccuracy * 100} 
+                  value={(() => {
+                    const scores = Object.values(summary.averageAttributeScores);
+                    if (scores.length > 0) {
+                      return (scores.reduce((sum, score) => sum + score, 0) / scores.length) * 100;
+                    }
+                    return 0;
+                  })()} 
                   sx={{ height: 10, borderRadius: 5 }}
                 />
               </Box>
@@ -83,7 +96,7 @@ const AccuracyTab: React.FC<AccuracyTabProps> = ({ results }) => {
                       <TableCell>LLM</TableCell>
                       <TableCell>Prompt #</TableCell>
                       <TableCell align="center">Accuracy</TableCell>
-                      <TableCell>Key Facts</TableCell>
+                      <TableCell>Key Attributes</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -92,25 +105,41 @@ const AccuracyTab: React.FC<AccuracyTabProps> = ({ results }) => {
                         <TableCell>{result.llmProvider}</TableCell>
                         <TableCell>{result.promptIndex + 1}</TableCell>
                         <TableCell align="center">
-                          {(result.accuracy * 100).toFixed(1)}%
+                          {(() => {
+                            if (result.attributeScores && result.attributeScores.length > 0) {
+                              const avgScore = result.attributeScores.reduce((sum, attr) => sum + attr.score, 0) / result.attributeScores.length;
+                              return (avgScore * 100).toFixed(1) + '%';
+                            }
+                            return 'N/A';
+                          })()}
                         </TableCell>
                         <TableCell>
                           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                            {result.factualInformation.slice(0, 3).map((fact, idx) => (
-                              <Chip 
-                                key={idx} 
-                                label={fact.length > 40 ? `${fact.substring(0, 40)}...` : fact} 
-                                size="small" 
-                                sx={{ mr: 0.5, mb: 0.5 }} 
-                              />
-                            ))}
-                            {result.factualInformation.length > 3 && (
-                              <Chip 
-                                label={`+${result.factualInformation.length - 3} more`} 
-                                size="small" 
-                                variant="outlined" 
-                              />
-                            )}
+                            {(() => {
+                              if (result.attributeScores && result.attributeScores.length > 0) {
+                                const attributes = result.attributeScores.slice(0, 3);
+                                return (
+                                  <>
+                                    {attributes.map((attr, idx) => (
+                                      <Chip 
+                                        key={idx} 
+                                        label={`${attr.attribute}: ${(attr.score * 100).toFixed(0)}%`} 
+                                        size="small" 
+                                        sx={{ mr: 0.5, mb: 0.5 }} 
+                                      />
+                                    ))}
+                                    {result.attributeScores.length > 3 && (
+                                      <Chip 
+                                        label={`+${result.attributeScores.length - 3} more`} 
+                                        size="small" 
+                                        variant="outlined" 
+                                      />
+                                    )}
+                                  </>
+                                );
+                              }
+                              return <Typography variant="body2">No attributes available</Typography>;
+                            })()}
                           </Box>
                         </TableCell>
                       </TableRow>
@@ -124,34 +153,59 @@ const AccuracyTab: React.FC<AccuracyTabProps> = ({ results }) => {
 
         <Grid size={{ xs: 12 }}>
           <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-            Extracted Facts & Raw Responses
+            Attribute Evaluations & Raw Responses
           </Typography>
           {detailedResults.map((result, index) => (
             <Accordion key={index} sx={{ mb: 1 }}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Typography>
                   <strong>{result.llmProvider}</strong> - Prompt #{result.promptIndex + 1} - 
-                  <strong> Accuracy: {(result.accuracy * 100).toFixed(1)}%</strong>
+                  <strong> Accuracy: {(() => {
+                    if (result.attributeScores && result.attributeScores.length > 0) {
+                      const avgScore = result.attributeScores.reduce((sum, attr) => sum + attr.score, 0) / result.attributeScores.length;
+                      return (avgScore * 100).toFixed(1) + '%';
+                    }
+                    return 'N/A';
+                  })()}</strong>
                 </Typography>
               </AccordionSummary>
               <AccordionDetails>
                 <Typography variant="subtitle2" gutterBottom>
-                  Extracted Facts:
+                  Attribute Evaluations:
                 </Typography>
                 <Box sx={{ mb: 2 }}>
-                  {result.factualInformation.length > 0 ? (
-                    <ul style={{ margin: 0, paddingLeft: '1.5rem' }}>
-                      {result.factualInformation.map((fact, idx) => (
-                        <li key={idx}>
-                          <Typography variant="body2">{fact}</Typography>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <Typography variant="body2" color="text.secondary">
-                      No facts extracted.
-                    </Typography>
-                  )}
+                  {(() => {
+                    if (result.attributeScores && result.attributeScores.length > 0) {
+                      return (
+                        <TableContainer component={Paper} variant="outlined" sx={{ mb: 2 }}>
+                          <Table size="small">
+                            <TableHead>
+                              <TableRow>
+                                <TableCell>Attribute</TableCell>
+                                <TableCell align="center">Score</TableCell>
+                                <TableCell>Evaluation</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {result.attributeScores.map((attr, idx) => (
+                                <TableRow key={idx}>
+                                  <TableCell><strong>{attr.attribute}</strong></TableCell>
+                                  <TableCell align="center">{(attr.score * 100).toFixed(0)}%</TableCell>
+                                  <TableCell>{attr.evaluation}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
+                      );
+                    }
+                    
+                    return (
+                      <Typography variant="body2" color="text.secondary">
+                        No attribute evaluations available.
+                      </Typography>
+                    );
+                  })()}
                 </Box>
                 
                 <Typography variant="subtitle2" gutterBottom>

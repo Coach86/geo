@@ -47,14 +47,22 @@ export const PromptTemplates = {
   
   The known key attributes of "{brandName}" are: "{keyBrandAttributes}"
   
-  Evaluate how accurate the information presented about "{brandName}" appears to be compared to these key attributes.
-  Rate the accuracy on a scale from 0 to 1, where:
-  - 0 means completely inaccurate (contradicts the key attributes or contains false information)
-  - 0.5 means partially accurate (contains a mix of accurate and questionable information)
-  - 1 means highly accurate (aligns with the key attributes and contains verifiable information)
+  Individually evaluate each key brand attribute for how well it's addressed in the response.
+  For each attribute, provide:
+  1. A score from 0 to 1 representing alignment/closeness/compliance between the response and this specific attribute
+  2. A brief explanation of why you gave this score
   
-  Also extract key facts or statements from the response that influenced your accuracy rating,
-  highlighting where the response correctly or incorrectly represents the brand attributes.
+  Your response must follow this JSON format exactly:
+  {
+    "attributeScores": [
+      {
+        "attribute": "Attribute 1",
+        "score": 0.8,
+        "evaluation": "Brief explanation for this score"
+      },
+      // One entry for each key attribute
+    ]
+  }
   
   Response: {llmResponse}
   `,
