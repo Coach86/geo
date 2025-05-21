@@ -150,11 +150,17 @@ export interface ProviderWebSearchQueries {
   queries: WebSearchQuery[];
 }
 
+export interface MentionCount {
+  mention: string;
+  count: number;
+}
+
 export interface SpontaneousResults {
   results: SpontaneousPipelineResult[];
   summary: {
     mentionRate: number;
     topMentions: string[];
+    topMentionCounts?: MentionCount[]; // Added field for mention counts
   };
   webSearchSummary?: WebSearchSummary;
 }

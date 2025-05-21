@@ -69,14 +69,20 @@ export interface BrandVisibilitySummary {
   modelBreakdown: ModelBreakdown[]; // Per-model breakdown data
 }
 
+export interface MentionCount {
+  mention: string;
+  count: number;
+}
+
 export interface SpontaneousResults {
   results: SpontaneousPipelineResult[];
   summary: {
     mentionRate: number;
     topMentions: string[];
+    topMentionCounts?: MentionCount[]; // Added field for mention counts
   };
   webSearchSummary: WebSearchSummary;
-  brandVisibility?: BrandVisibilitySummary; // New field for UI dashboard data
+  brandVisibility?: BrandVisibilitySummary; // Field for UI dashboard data
 }
 
 /**
