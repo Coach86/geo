@@ -65,10 +65,10 @@ import {
 // Components for each tab
 import OverviewTab from '../components/company-detail/OverviewTab';
 import PromptsTab from '../components/company-detail/PromptsTab';
-import SpontaneousTab from '../components/company-detail/SpontaneousTab';
-import SentimentTab from '../components/company-detail/SentimentTab';
-import ComparisonTab from '../components/company-detail/ComparisonTab';
-import AccuracyTab from '../components/company-detail/AccuracyTab';
+import SpontaneousTab from '../components/company-detail/tabs/SpontaneousTab';
+import SentimentTab from '../components/company-detail/tabs/SentimentTab';
+import ComparisonTab from '../components/company-detail/tabs/ComparisonTab';
+import AccuracyTab from '../components/company-detail/tabs/AccuracyTab';
 import BatchesTab from '../components/company-detail/BatchesTab';
 import ReportsTab from '../components/company-detail/ReportsTab';
 

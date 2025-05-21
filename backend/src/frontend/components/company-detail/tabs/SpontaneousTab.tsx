@@ -28,7 +28,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import SearchIcon from '@mui/icons-material/Search';
 import LinkIcon from '@mui/icons-material/Link';
-import { SpontaneousResults } from '../../utils/types';
+import { SpontaneousResults } from '../../../utils/types';
 
 interface SpontaneousTabProps {
   results: SpontaneousResults;
@@ -89,7 +89,6 @@ const SpontaneousTab: React.FC<SpontaneousTabProps> = ({ results }) => {
                     Number of responses that used web search
                   </Typography>
                   
-                  {/* Top Search Queries section has been removed */}
                   <Divider sx={{ mt: 3, mb: 2 }} />
                   <Typography variant="subtitle2" gutterBottom>
                     Consulted Websites:
@@ -165,91 +164,8 @@ const SpontaneousTab: React.FC<SpontaneousTabProps> = ({ results }) => {
         </Grid>
 
         <Grid size={{ xs: 12 }}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Detailed Results by LLM
-              </Typography>
-              <TableContainer component={Paper} sx={{ mt: 2 }}>
-                <Table sx={{ minWidth: 650 }} aria-label="spontaneous results table">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>LLM</TableCell>
-                      <TableCell>Prompt #</TableCell>
-                      <TableCell align="center">Mentioned</TableCell>
-                      <TableCell>Top-of-Mind Brands</TableCell>
-                      <TableCell align="center">Web Search</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {detailedResults.map((result, index) => (
-                      <TableRow key={index} hover>
-                        <TableCell>{result.llmProvider}</TableCell>
-                        <TableCell>{result.promptIndex + 1}</TableCell>
-                        <TableCell align="center">
-                          {result.mentioned ?
-                            <CheckCircleIcon color="success" /> :
-                            <CancelIcon color="error" />
-                          }
-                        </TableCell>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                            {result.topOfMind.slice(0, 5).map((brand, idx) => (
-                              <Chip
-                                key={idx}
-                                label={brand}
-                                size="small"
-                                sx={{ mr: 0.5, mb: 0.5 }}
-                              />
-                            ))}
-                            {result.topOfMind.length > 5 && (
-                              <Chip
-                                label={`+${result.topOfMind.length - 5} more`}
-                                size="small"
-                                variant="outlined"
-                              />
-                            )}
-                          </Box>
-                        </TableCell>
-                        <TableCell align="center">
-                          {result.usedWebSearch ? (
-                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
-                              <Chip
-                                icon={<SearchIcon />}
-                                label={result.citations?.length || 0}
-                                size="small"
-                                color="primary"
-                                sx={{ mb: 0.5 }}
-                              />
-                              <Typography variant="caption" color="text.secondary">
-                                {result.citations && result.citations.length > 0 
-                                  ? `${Array.from(new Set(result.citations.map(c => {
-                                    try {
-                                      const url = new URL(c.url);
-                                      return url.hostname;
-                                    } catch (e) {
-                                      return c.url;
-                                    }
-                                  }))).length} sites` 
-                                  : 'No sites'}
-                              </Typography>
-                            </Box>
-                          ) : 
-                          <CancelIcon color="disabled" fontSize="small" />
-                          }
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid size={{ xs: 12 }}>
           <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-            Raw Responses
+            Detailed Results
           </Typography>
           {detailedResults.map((result, index) => (
             <Accordion key={index} sx={{ mb: 1 }}>
@@ -257,7 +173,11 @@ const SpontaneousTab: React.FC<SpontaneousTabProps> = ({ results }) => {
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                   <Typography>
                     <strong>{result.llmProvider}</strong> - Prompt #{result.promptIndex + 1}
-                    {result.mentioned && <CheckCircleIcon color="success" fontSize="small" sx={{ ml: 1 }} />}
+                    {result.mentioned ? (
+                      <CheckCircleIcon color="success" fontSize="small" sx={{ ml: 1 }} />
+                    ) : (
+                      <CancelIcon color="error" fontSize="small" sx={{ ml: 1 }} />
+                    )}
                   </Typography>
                   <Box>
                     {result.usedWebSearch && (
@@ -270,12 +190,11 @@ const SpontaneousTab: React.FC<SpontaneousTabProps> = ({ results }) => {
                         sx={{ mr: 1 }}
                       />
                     )}
-                    {result.citations && result.citations.length > 0 && (
+                    {result.topOfMind.length > 0 && (
                       <Chip
-                        icon={<LinkIcon />}
-                        label={`${result.citations.length} Citations`}
+                        label={`${result.topOfMind.length} brands`}
                         size="small"
-                        color="secondary"
+                        color="default"
                         variant="outlined"
                       />
                     )}
@@ -283,6 +202,25 @@ const SpontaneousTab: React.FC<SpontaneousTabProps> = ({ results }) => {
                 </Box>
               </AccordionSummary>
               <AccordionDetails>
+                {result.topOfMind.length > 0 && (
+                  <>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Top-of-Mind Brands:
+                    </Typography>
+                    <Box sx={{ mb: 2, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {result.topOfMind.map((brand, idx) => (
+                        <Chip
+                          key={idx}
+                          label={brand}
+                          size="small"
+                          sx={{ mr: 0.5, mb: 0.5 }}
+                        />
+                      ))}
+                    </Box>
+                    <Divider sx={{ my: 2 }} />
+                  </>
+                )}
+                
                 <Typography variant="subtitle2" gutterBottom>
                   Question:
                 </Typography>
@@ -293,7 +231,7 @@ const SpontaneousTab: React.FC<SpontaneousTabProps> = ({ results }) => {
                 <Typography variant="subtitle2" gutterBottom>
                   Answer:
                 </Typography>
-                <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', maxHeight: 'none', overflow: 'visible' }}>
+                <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', maxHeight: 'none', overflow: 'visible', mb: 2 }}>
                   {result.llmResponse || 'No response available.'}
                 </Typography>
                 
