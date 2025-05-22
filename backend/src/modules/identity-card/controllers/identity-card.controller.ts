@@ -141,7 +141,7 @@ export class IdentityCardController {
     response.url = identityCard.website; // Alias for frontend
     response.industry = identityCard.industry;
     response.market = identityCard.market || 'Global'; // Add market field with default
-    response.language = identityCard.language || 'en'; // Add language field with default
+    response.language = identityCard.language; // Add language field without default
     response.shortDescription = identityCard.shortDescription;
     response.fullDescription = identityCard.fullDescription;
     response.longDescription = identityCard.fullDescription; // Alias for frontend

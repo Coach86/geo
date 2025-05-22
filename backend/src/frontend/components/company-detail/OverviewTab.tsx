@@ -18,10 +18,11 @@ import {
 import StarIcon from '@mui/icons-material/Star';
 import GroupIcon from '@mui/icons-material/Group';
 import PublicIcon from '@mui/icons-material/Public';
+import LanguageIcon from '@mui/icons-material/Language';
 import { CompanyIdentityCard } from '../../utils/types';
 import EditableKeyFeatures from './EditableKeyFeatures';
 import EditableCompetitors from './EditableCompetitors';
-import { getFormattedMarket } from '../../utils/constants';
+import { getFormattedMarket, getFormattedLanguage } from '../../utils/constants';
 
 interface OverviewTabProps {
   company: CompanyIdentityCard;
@@ -56,21 +57,38 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ company }) => {
             >
               Company Description
             </Typography>
-            <Chip 
-              icon={<PublicIcon sx={{ fontSize: '0.9rem' }} />}
-              label={getFormattedMarket(company.market)} 
-              variant="outlined" 
-              size="small"
-              sx={{ 
-                borderRadius: 1,
-                height: 28,
-                '& .MuiChip-label': { 
-                  px: 1,
-                  fontSize: '0.75rem',
-                  fontWeight: 500
-                }
-              }} 
-            />
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Chip 
+                icon={<PublicIcon sx={{ fontSize: '0.9rem' }} />}
+                label={getFormattedMarket(company.market)} 
+                variant="outlined" 
+                size="small"
+                sx={{ 
+                  borderRadius: 1,
+                  height: 28,
+                  '& .MuiChip-label': { 
+                    px: 1,
+                    fontSize: '0.75rem',
+                    fontWeight: 500
+                  }
+                }} 
+              />
+              <Chip 
+                icon={<LanguageIcon sx={{ fontSize: '0.9rem' }} />}
+                label={company.language ? getFormattedLanguage(company.language) : '🌐 (?)'} 
+                variant="outlined" 
+                size="small"
+                sx={{ 
+                  borderRadius: 1,
+                  height: 28,
+                  '& .MuiChip-label': { 
+                    px: 1,
+                    fontSize: '0.75rem',
+                    fontWeight: 500
+                  }
+                }} 
+              />
+            </Box>
           </Box>
           <Typography 
             variant="body1" 

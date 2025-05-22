@@ -39,7 +39,7 @@ const CompanyCreation: React.FC = () => {
   const [url, setUrl] = useState('');
   const [market, setMarket] = useState('');
   const [marketError, setMarketError] = useState<string | null>(null);
-  const [language, setLanguage] = useState('en');
+  const [language, setLanguage] = useState('');
   const [languageError, setLanguageError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -370,7 +370,7 @@ const CompanyCreation: React.FC = () => {
                     Market: {getMarketWithFlag(company.market)}
                   </Typography>
                   <Typography variant="body2" color="text.secondary" gutterBottom>
-                    Language: {getFormattedLanguage(company.language || 'en')}
+                    Language: {company.language ? getFormattedLanguage(company.language) : '🌐 (?)'}
                   </Typography>
                   <Divider sx={{ my: 2 }} />
                   <Typography variant="body1" paragraph>
