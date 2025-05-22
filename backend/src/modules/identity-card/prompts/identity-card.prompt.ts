@@ -6,9 +6,11 @@ import { ScrapedWebsite } from '../../../utils/url-scraper';
 export function buildIdentityCardPrompt({
   url,
   scrapedData,
+  language,
 }: {
   url: string;
   scrapedData: ScrapedWebsite;
+  language: string;
 }): string {
   // Check if we have meaningful scraped data to include
   const hasScrapedData =
@@ -33,18 +35,23 @@ export function buildIdentityCardPrompt({
   }
 
   return `
-    I need to generate a comprehensive company identity card for the company at ${url}.
+    ## GOAL:
+    Your goal is to generate a comprehensive company identity card for the company at ${url}.
 
     IMPORTANT: You have the capability to search the web. First, search the web for up-to-date information about this company.
     Look for the company's official website, about pages, LinkedIn, social media, press releases, and other reliable sources.
     ${hasScrapedData ? promptWithScrapedData : ''}
 
+    ## INSTRUCTIONS:
     Based on your web search${hasScrapedData ? ' AND the scraped data above' : ''}, please analyze the company and provide the following in JSON format:
     1. The company's brand name
     2. The industry or sector they operate in
     3. A short description (1-2 sentences)
     4. A full description (2-3 paragraphs)
     5. 4-6 key brand attributes of the company
+
+    ## OUTPUT LANGUAGE:
+    **Output language MUST BE ${language}**
 
     Return your analysis as a valid JSON object with the following structure:
   `;
@@ -59,12 +66,14 @@ export function buildCompetitorsPrompt({
   brandName,
   industry,
   market,
+  language,
 }: {
   url: string;
   scrapedData: ScrapedWebsite;
   brandName: string;
   industry: string;
   market: string;
+  language: string;
 }): string {
   // Check if we have meaningful scraped data to include
   const hasScrapedData =
@@ -100,6 +109,9 @@ export function buildCompetitorsPrompt({
     Based on your web search${hasScrapedData ? ' AND the scraped data above' : ''}, please identify 3-5 direct competitors of ${brandName}.
     Return the biggest competitors (per revenues and/or market share, traffic, etc.) in order of importance.
     These should be actual company names that compete in the same market space, not generic categories.
+
+    ## OUTPUT LANGUAGE:
+    **Output language MUST BE ${language}**
 
     ## OUTPUT:
     Return your analysis as a valid JSON object with the following structure:

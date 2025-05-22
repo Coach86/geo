@@ -3,7 +3,10 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserDocument } from '../schemas/user.schema';
 import { User as UserEntity } from '../entities/user.entity';
-import { IdentityCard, IdentityCardDocument } from '../../identity-card/schemas/identity-card.schema';
+import {
+  IdentityCard,
+  IdentityCardDocument,
+} from '../../identity-card/schemas/identity-card.schema';
 
 @Injectable()
 export class UserRepository {
@@ -73,7 +76,7 @@ export class UserRepository {
    */
   async remove(userId: string): Promise<void> {
     const result = await this.userModel.deleteOne({ id: userId }).exec();
-    
+
     if (result.deletedCount === 0) {
       throw new NotFoundException(`User with ID ${userId} not found`);
     }
@@ -98,16 +101,16 @@ export class UserRepository {
       updatedAt: document.updatedAt instanceof Date ? document.updatedAt : new Date(),
     };
   }
-  
+
   /**
    * Map database document to entity with company relationship
    */
   async mapToEntityWithCompanies(document: UserDocument): Promise<UserEntity> {
     const entity = this.mapToEntity(document);
     const companies = await this.findCompaniesForUser(document.id);
-    
+
     if (companies && companies.length > 0) {
-      entity.companies = companies.map(company => ({
+      entity.companies = companies.map((company) => ({
         companyId: company.id,
         brandName: company.brandName,
         website: company.website,
@@ -119,9 +122,10 @@ export class UserRepository {
         competitors: company.competitors,
         updatedAt: company.updatedAt instanceof Date ? company.updatedAt : new Date(),
         userId: company.userId,
+        language: company.language,
       }));
     }
-    
+
     return entity;
   }
 }

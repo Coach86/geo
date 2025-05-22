@@ -59,7 +59,7 @@ export class PromptService implements OnModuleInit {
       if (!document) {
         return null;
       }
-      
+
       // Map the document to the entity format
       return this.identityCardRepository.mapToEntity(document);
     } catch (error) {
@@ -104,6 +104,7 @@ export class PromptService implements OnModuleInit {
         updatedAt: companyRaw.updatedAt instanceof Date ? companyRaw.updatedAt : new Date(),
         userId: companyRaw.userId,
         market: companyRaw.market,
+        language: companyRaw.language,
       };
 
       const promptSet = await this.generatePromptSet(company);
@@ -140,6 +141,7 @@ export class PromptService implements OnModuleInit {
     const keyBrandAttributes = company.keyBrandAttributes;
     const websiteUrl = company.website;
     const market = company.market;
+    const language = company.language;
     // Generate all prompts using LLM
     const [spontaneous, direct, comparison, accuracy, brandBattle] = await Promise.all([
       this.generateSpontaneousPrompts(
@@ -147,20 +149,34 @@ export class PromptService implements OnModuleInit {
         industry,
         brandName,
         market,
+        language,
         this.spontPromptCount,
         competitors,
       ),
-      this.generateDirectBrandPrompts(brandName, market, this.directPromptCount, websiteUrl),
+      this.generateDirectBrandPrompts(
+        brandName,
+        market,
+        language,
+        this.directPromptCount,
+        websiteUrl,
+      ),
       this.generateComparisonPrompts(
         brandName,
         competitors,
         industry,
         keyBrandAttributes,
         market,
+        language,
         this.comparisonPromptCount,
       ),
-      this.generateAccuracyPrompts(brandName, market, this.accuracyPromptCount),
-      this.generateBrandBattlePrompts(brandName, competitors, market, this.brandBattlePromptCount),
+      this.generateAccuracyPrompts(brandName, market, language, this.accuracyPromptCount),
+      this.generateBrandBattlePrompts(
+        brandName,
+        competitors,
+        market,
+        language,
+        this.brandBattlePromptCount,
+      ),
     ]);
 
     return { spontaneous, direct, comparison, accuracy, brandBattle };
@@ -171,6 +187,7 @@ export class PromptService implements OnModuleInit {
     industry: string,
     brandName: string,
     market: string,
+    language: string,
     count: number,
     competitors: string[],
   ): Promise<string[]> {
@@ -182,7 +199,15 @@ export class PromptService implements OnModuleInit {
     // Call LLM with structured output processing
     const result = await this.llmService.getStructuredOutput(
       LlmProvider.OpenAI,
-      spontaneousUserPrompt({ market, websiteUrl, industry, brandName, count, competitors }),
+      spontaneousUserPrompt({
+        market,
+        websiteUrl,
+        industry,
+        brandName,
+        count,
+        competitors,
+        language,
+      }),
       promptsSchema,
       { systemPrompt: spontaneousSystemPrompt },
     );
@@ -193,6 +218,7 @@ export class PromptService implements OnModuleInit {
   private async generateDirectBrandPrompts(
     brandName: string,
     market: string,
+    language: string,
     count: number,
     websiteUrl: string,
   ): Promise<string[]> {
@@ -204,7 +230,7 @@ export class PromptService implements OnModuleInit {
     // Call LLM with structured output processing
     const result = await this.llmService.getStructuredOutput(
       LlmProvider.OpenAI,
-      directUserPrompt({ market, brandName, count, websiteUrl }),
+      directUserPrompt({ market, brandName, count, websiteUrl, language }),
       promptsSchema,
       { systemPrompt: directSystemPrompt },
     );
@@ -218,6 +244,7 @@ export class PromptService implements OnModuleInit {
     industry: string,
     keyBrandAttributes: string[],
     market: string,
+    language: string,
     count: number,
   ): Promise<string[]> {
     // Use default competitors if none provided
@@ -239,6 +266,7 @@ export class PromptService implements OnModuleInit {
         industry,
         keyBrandAttributes,
         count,
+        language,
       }),
       promptsSchema,
       { systemPrompt: comparisonSystemPrompt },
@@ -257,6 +285,7 @@ export class PromptService implements OnModuleInit {
   private async generateAccuracyPrompts(
     brandName: string,
     market: string,
+    language: string,
     count: number,
   ): Promise<string[]> {
     // Define our schema for the LLM output
@@ -269,6 +298,7 @@ export class PromptService implements OnModuleInit {
       LlmProvider.OpenAI,
       accuracyUserPrompt({
         market,
+        language,
         brandName,
         count,
       }),
@@ -278,7 +308,7 @@ export class PromptService implements OnModuleInit {
 
     return result.prompts;
   }
-  
+
   /**
    * Generate brand battle prompts for competitor-specific comparisons
    * @param brandName Company brand name
@@ -291,6 +321,7 @@ export class PromptService implements OnModuleInit {
     brandName: string,
     competitors: string[],
     market: string,
+    language: string,
     count: number,
   ): Promise<string[]> {
     // Use default competitors if none provided
@@ -310,6 +341,7 @@ export class PromptService implements OnModuleInit {
         brandName,
         competitors: competitorList,
         count,
+        language,
       }),
       promptsSchema,
       { systemPrompt: brandBattleSystemPrompt },
@@ -363,7 +395,7 @@ export class PromptService implements OnModuleInit {
       if (updatedPrompts.accuracy !== undefined) {
         updateData.accuracy = updatedPrompts.accuracy;
       }
-      
+
       if (updatedPrompts.brandBattle !== undefined) {
         updateData.brandBattle = updatedPrompts.brandBattle;
       }
@@ -386,7 +418,10 @@ export class PromptService implements OnModuleInit {
       }
 
       // Update the prompt set
-      const updatedPromptSet = await this.promptSetRepository.updateByCompanyId(companyId, updateData);
+      const updatedPromptSet = await this.promptSetRepository.updateByCompanyId(
+        companyId,
+        updateData,
+      );
 
       if (!updatedPromptSet) {
         throw new NotFoundException(
@@ -444,6 +479,7 @@ export class PromptService implements OnModuleInit {
         updatedAt: companyRaw.updatedAt instanceof Date ? companyRaw.updatedAt : new Date(),
         userId: companyRaw.userId,
         market: companyRaw.market,
+        language: companyRaw.language,
       };
 
       // Generate new prompt set

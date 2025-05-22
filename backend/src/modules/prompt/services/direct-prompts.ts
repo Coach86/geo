@@ -3,18 +3,20 @@ export const directSystemPrompt = `You are a prompt engineering expert specializ
 
 type DirectUserPromptParams = {
   market: string;
+  language: string;
   brandName: string;
   count: number;
   websiteUrl: string;
 };
 export function directUserPrompt({
   market,
+  language,
   brandName,
   count,
   websiteUrl,
 }: DirectUserPromptParams): string {
   return `
-      Translate the following prompts (${count}) to the language of the market: ${market}.
+      Translate the following prompts (${count}) to ${language}.
       Use a conversational, everyday language.
 
       ### Prompts:

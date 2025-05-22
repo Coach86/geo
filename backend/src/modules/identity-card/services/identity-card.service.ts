@@ -105,6 +105,7 @@ export class IdentityCardService {
           scrapedData,
           createIdentityCardDto.url,
           createIdentityCardDto.data.market,
+          createIdentityCardDto.data.language || 'en',
           createIdentityCardDto.userId,
         );
       } else if (createIdentityCardDto.data) {
@@ -124,6 +125,7 @@ export class IdentityCardService {
           fullDescription: createIdentityCardDto.data.fullDescription || '',
           keyBrandAttributes: createIdentityCardDto.data.keyBrandAttributes || [],
           competitors: createIdentityCardDto.data.competitors || [],
+          language: createIdentityCardDto.data.language || 'en',
           userId: createIdentityCardDto.userId,
           updatedAt: new Date(),
         };
@@ -142,6 +144,7 @@ export class IdentityCardService {
         fullDescription: identityCard.fullDescription,
         keyBrandAttributes: identityCard.keyBrandAttributes,
         competitors: identityCard.competitors,
+        language: identityCard.language,
         data: {},
       };
 
@@ -221,11 +224,12 @@ export class IdentityCardService {
     scrapedData: ScrapedWebsite,
     url: string,
     market: string,
+    language: string,
     userId: string,
   ): Promise<CompanyIdentityCard> {
     try {
       // Step 1: Generate the main identity card using the default provider
-      const mainIdentityCard = await this.generateMainIdentityCard(scrapedData, url);
+      const mainIdentityCard = await this.generateMainIdentityCard(scrapedData, url, language);
 
       // Step 2: Generate competitors using Perplexity
       const competitors = await this.generateCompetitors(
@@ -234,6 +238,7 @@ export class IdentityCardService {
         mainIdentityCard.brandName,
         mainIdentityCard.industry,
         market,
+        language,
       );
 
       // Step 3: Combine results into a complete identity card
@@ -247,6 +252,7 @@ export class IdentityCardService {
         fullDescription: mainIdentityCard.fullDescription,
         keyBrandAttributes: mainIdentityCard.keyBrandAttributes,
         competitors: competitors,
+        language: language,
         userId: userId,
         updatedAt: new Date(),
       };
@@ -265,10 +271,11 @@ export class IdentityCardService {
   private async generateMainIdentityCard(
     scrapedData: ScrapedWebsite,
     url: string,
+    language: string,
   ): Promise<LlmSummaryResult> {
     try {
       // Build prompt for the main identity card
-      const prompt = buildIdentityCardPrompt({ url, scrapedData });
+      const prompt = buildIdentityCardPrompt({ url, scrapedData, language });
       const systemPrompt = getIdentityCardSystemPrompt();
 
       // Call the LLM with structured output
@@ -298,6 +305,7 @@ export class IdentityCardService {
     brandName: string,
     industry: string,
     market: string,
+    language: string,
   ): Promise<string[]> {
     try {
       // Build prompt for competitors
@@ -307,6 +315,7 @@ export class IdentityCardService {
         brandName,
         industry,
         market,
+        language,
       });
       const systemPrompt = getCompetitorsSystemPrompt();
 
