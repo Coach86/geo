@@ -70,7 +70,7 @@ export enum BatchType {
   SPONTANEOUS = 'spontaneous',
   SENTIMENT = 'sentiment',
   COMPARISON = 'comparison',
-  ACCURACY = 'accuracy'
+  ACCURACY = 'accuracy',
 }
 
 export interface BatchResult {
@@ -192,6 +192,7 @@ export interface SentimentResults {
   results: SentimentPipelineResult[];
   summary: {
     overallSentiment: 'positive' | 'neutral' | 'negative';
+    overallSentimentPercentage: number;
   };
   webSearchSummary?: WebSearchSummary;
 }
@@ -200,9 +201,9 @@ export interface ComparisonPipelineResult {
   llmProvider: string;
   llmModel: string;
   promptIndex: number;
-  competitor: string;  // The competitor being compared against
-  brandStrengths: string[];  // Strengths of the brand vs this competitor
-  brandWeaknesses: string[];  // Weaknesses of the brand vs this competitor
+  competitor: string; // The competitor being compared against
+  brandStrengths: string[]; // Strengths of the brand vs this competitor
+  brandWeaknesses: string[]; // Weaknesses of the brand vs this competitor
   originalPrompt?: string;
   llmResponse?: string;
   error?: string;
