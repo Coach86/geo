@@ -4,6 +4,7 @@ export const spontaneousSystemPrompt = `You are a market-research assistant who 
 // User prompt for spontaneous prompts
 type SpontaneousUserPromptParams = {
   market: string;
+  language: string;
   websiteUrl: string;
   industry: string;
   brandName: string;
@@ -12,6 +13,7 @@ type SpontaneousUserPromptParams = {
 };
 export function spontaneousUserPrompt({
   market,
+  language,
   websiteUrl,
   industry,
   brandName,
@@ -23,7 +25,6 @@ export function spontaneousUserPrompt({
       ### Context:
       - Website URL: ${websiteUrl}
       - Company/Brandname: ${brandName} in the ${industry} industry.
-      - Language to generate prompts in: ${market}
       - Market that needs to be targeted: ${market}
       - Current date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
       - Competitors: ${competitors.join(', ')}
@@ -54,5 +55,7 @@ export function spontaneousUserPrompt({
         4. ¿Qué bici pillo si soy novato?
         5. ¿Marca de bicis que mola en España?
 
+      ## OUTPUT LANGUAGE:
+      **Language to generate prompts MUST BE ${language}**
     `;
 }

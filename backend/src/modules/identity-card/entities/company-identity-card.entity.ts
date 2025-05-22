@@ -35,4 +35,7 @@ export class CompanyIdentityCard {
 
   @ApiProperty({ description: 'ID of the user who owns this company', nullable: true })
   userId: string;
+
+  @ApiProperty({ description: 'Language of the company', nullable: true })
+  language: string;
 }

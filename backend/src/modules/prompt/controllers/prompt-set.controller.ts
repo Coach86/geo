@@ -92,6 +92,7 @@ export class PromptSetController {
         systemPrompt: spontaneousSystemPrompt,
         userPrompt: spontaneousUserPrompt({
           market: company.market,
+          language: company.language,
           websiteUrl: company.website,
           industry: company.industry,
           brandName: company.brandName,
@@ -104,6 +105,7 @@ export class PromptSetController {
         systemPrompt: directSystemPrompt,
         userPrompt: directUserPrompt({
           market: company.market,
+          language: company.language,
           brandName: company.brandName,
           count: directPromptCount,
           websiteUrl: company.website,
@@ -114,6 +116,7 @@ export class PromptSetController {
         systemPrompt: comparisonSystemPrompt,
         userPrompt: comparisonUserPrompt({
           market: company.market,
+          language: company.language,
           brandName: company.brandName,
           competitors: company.competitors,
           industry: company.industry,
@@ -126,6 +129,7 @@ export class PromptSetController {
         systemPrompt: accuracySystemPrompt,
         userPrompt: accuracyUserPrompt({
           market: company.market,
+          language: company.language,
           brandName: company.brandName,
           count: accuracyPromptCount,
         }),
@@ -135,6 +139,7 @@ export class PromptSetController {
         systemPrompt: brandBattleSystemPrompt,
         userPrompt: brandBattleUserPrompt({
           market: company.market,
+          language: company.language,
           brandName: company.brandName,
           competitors: company.competitors,
           count: brandBattlePromptCount,

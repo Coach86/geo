@@ -9,6 +9,7 @@ export const CompanyIdentityCardSchema = z.object({
   fullDescription: z.string(),
   keyBrandAttributes: z.array(z.string()),
   competitors: z.array(z.string()),
+  language: z.string(),
   updatedAt: z.date().optional(),
 });
 
@@ -26,6 +27,7 @@ export const CreateIdentityCardInputSchema = z
         fullDescription: z.string().optional(),
         keyBrandAttributes: z.array(z.string()).optional(),
         competitors: z.array(z.string()).optional(),
+        language: z.string().optional(),
       })
       .optional(),
   })

@@ -16,11 +16,13 @@ The questions should be specifically about strengths and weaknesses of the brand
  */
 export const brandBattleUserPrompt = ({
   market,
+  language,
   brandName,
   competitors,
   count = 1,
 }: {
   market: string;
+  language: string;
   brandName: string;
   competitors: string[];
   count?: number;
@@ -29,14 +31,16 @@ export const brandBattleUserPrompt = ({
 Generate ${count} prompt${count > 1 ? 's' : ''} specifically comparing ${brandName} with each of its competitors.
 I need questions that ask about the strengths and weaknesses of ${brandName} compared to each individual competitor.
 
-Create one standardized question template that will be asked for each competitor, focusing on the relative strengths and weaknesses.
-The template should contain "{COMPETITOR}" as a placeholder for each competitor's name.
+## Instructions
+- Create one standardized question template that will be asked for each competitor, focusing on the relative strengths and weaknesses.
+- The template should contain "{COMPETITOR}" as a placeholder for each competitor's name.
+- The question should be in ${language}.
 
+## Context:
 The brand's competitors are: ${competitors.join(', ')}
+The market is ${market}. 
 
-The market is ${market}, so the prompts should be in ${market === 'fr' ? 'French' : market === 'es' ? 'Spanish' : market === 'de' ? 'German' : 'English'}.
-
-Example format (but use ${market === 'fr' ? 'French' : market === 'es' ? 'Spanish' : market === 'de' ? 'German' : 'English'}):
+## Example format
 "Can you tell me the strengths and weaknesses of ${brandName} compared to {COMPETITOR}?"
 
 Return the result as a JSON object with a 'prompts' array containing ${count} generated prompt${count > 1 ? 's' : ''}.

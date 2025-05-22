@@ -104,6 +104,7 @@ export class IdentityCardRepository {
       competitors: document.competitors,
       updatedAt: document.updatedAt instanceof Date ? document.updatedAt : new Date(),
       userId: document.userId,
+      language: document.language,
     };
   }
 }
