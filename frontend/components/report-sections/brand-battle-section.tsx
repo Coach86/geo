@@ -1,6 +1,7 @@
 "use client";
 
 interface BrandBattleSectionProps {
+  brand: string;
   data: {
     competitorAnalyses: {
       competitor: string;
@@ -15,7 +16,10 @@ interface BrandBattleSectionProps {
   };
 }
 
-export default function BrandBattleSection({ data }: BrandBattleSectionProps) {
+export default function BrandBattleSection({
+  brand,
+  data,
+}: BrandBattleSectionProps) {
   // Get the competitors and their analysis data
   const competitors = data.competitorAnalyses;
 
@@ -56,7 +60,7 @@ export default function BrandBattleSection({ data }: BrandBattleSectionProps) {
             >
               <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
                 <h3 className="text-base font-bold text-gray-800">
-                  Brand vs{" "}
+                  {brand} vs{" "}
                   <span className="text-[#805AD5]">
                     {competitor.competitor}
                   </span>

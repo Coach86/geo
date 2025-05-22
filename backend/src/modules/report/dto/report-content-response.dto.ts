@@ -63,7 +63,7 @@ export class ReportContentResponseDto {
       description: string; // Description of the KPI
     };
     arena: {
-      competitors: string[]; // List of main competitors
+      competitors: Competitor[]; // List of main competitors
       description: string; // Description of the KPI
     };
   };

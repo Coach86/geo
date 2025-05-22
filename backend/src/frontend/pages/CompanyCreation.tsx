@@ -28,7 +28,7 @@ import PersonIcon from '@mui/icons-material/Person';
 import { createCompanyFromUrl, waitForPromptSet } from '../utils/api';
 import { CompanyIdentityCard, PromptSet } from '../utils/types';
 import { User } from '../utils/types';
-import { MARKETS, getFormattedMarket } from '../utils/constants';
+import { MARKETS, getFormattedMarket, LANGUAGES, getFormattedLanguage } from '../utils/constants';
 import { getUsers } from '../utils/api';
 
 const steps = ['Enter URL', 'Generate Identity Card', 'Generate Prompts', 'Complete'];
@@ -39,6 +39,8 @@ const CompanyCreation: React.FC = () => {
   const [url, setUrl] = useState('');
   const [market, setMarket] = useState('');
   const [marketError, setMarketError] = useState<string | null>(null);
+  const [language, setLanguage] = useState('en');
+  const [languageError, setLanguageError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [company, setCompany] = useState<CompanyIdentityCard | null>(null);
@@ -111,10 +113,9 @@ const CompanyCreation: React.FC = () => {
 
     try {
       // If no protocol, add https:// for validation
-      const urlToValidate = (!url.startsWith('http://') && !url.startsWith('https://')) 
-        ? `https://${url}` 
-        : url;
-      
+      const urlToValidate =
+        !url.startsWith('http://') && !url.startsWith('https://') ? `https://${url}` : url;
+
       new URL(urlToValidate);
       return true;
     } catch (e) {
@@ -139,10 +140,19 @@ const CompanyCreation: React.FC = () => {
     return true;
   };
 
+  const validateLanguage = (): boolean => {
+    if (!language) {
+      setLanguageError('Please select a language');
+      return false;
+    }
+    return true;
+  };
+
   const handleCreateCompany = async () => {
     if (!validateUrl()) return;
     if (!validateUser()) return;
     if (!validateMarket()) return;
+    if (!validateLanguage()) return;
 
     try {
       setLoading(true);
@@ -150,7 +160,7 @@ const CompanyCreation: React.FC = () => {
       setActiveStep(1);
 
       // Step 1: Create the company identity card
-      const newCompany = await createCompanyFromUrl(url, selectedUserId, market);
+      const newCompany = await createCompanyFromUrl(url, selectedUserId, market, language);
       setCompany(newCompany);
       setActiveStep(2);
 
@@ -226,7 +236,7 @@ const CompanyCreation: React.FC = () => {
             </FormControl>
 
             <Typography variant="subtitle2" gutterBottom>
-              2. Enter the company website URL and market
+              2. Enter the company website URL, market, and language
             </Typography>
             <TextField
               fullWidth
@@ -236,7 +246,7 @@ const CompanyCreation: React.FC = () => {
               value={url}
               onChange={handleUrlChange}
               error={!!urlError}
-              helperText={urlError || "Enter the company website URL (e.g., example.com)"}
+              helperText={urlError || 'Enter the company website URL (e.g., example.com)'}
               sx={{ mb: 2 }}
               disabled={loading}
             />
@@ -261,6 +271,30 @@ const CompanyCreation: React.FC = () => {
               </Select>
               <FormHelperText>
                 {marketError || 'Select the primary geographical market for this company'}
+              </FormHelperText>
+            </FormControl>
+            <FormControl fullWidth sx={{ mb: 3 }} error={!!languageError} required>
+              <InputLabel id="language-select-label">Language</InputLabel>
+              <Select
+                labelId="language-select-label"
+                id="language-select"
+                value={language}
+                onChange={(e) => {
+                  setLanguage(e.target.value);
+                  setLanguageError(null);
+                }}
+                label="Language"
+                disabled={loading}
+              >
+                {Object.keys(LANGUAGES).map((languageCode) => (
+                  <MenuItem key={languageCode} value={languageCode}>
+                    {getFormattedLanguage(languageCode)}
+                  </MenuItem>
+                ))}
+              </Select>
+              <FormHelperText>
+                {languageError ||
+                  'Select the language for identity card, prompts and analysis generation'}
               </FormHelperText>
             </FormControl>
 
@@ -334,6 +368,9 @@ const CompanyCreation: React.FC = () => {
                   </Typography>
                   <Typography variant="body2" color="text.secondary" gutterBottom>
                     Market: {getMarketWithFlag(company.market)}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    Language: {getFormattedLanguage(company.language || 'en')}
                   </Typography>
                   <Divider sx={{ my: 2 }} />
                   <Typography variant="body1" paragraph>

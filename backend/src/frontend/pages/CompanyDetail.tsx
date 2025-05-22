@@ -464,7 +464,7 @@ const CompanyDetail: React.FC = () => {
             sx={{ textTransform: 'none' }}
           />
           <Tab
-            label="Batches"
+            label="Analysis"
             value={TabValue.BATCHES}
             icon={<HistoryIcon />}
             iconPosition="start"

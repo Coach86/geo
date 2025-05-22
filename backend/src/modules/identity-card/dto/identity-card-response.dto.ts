@@ -21,6 +21,11 @@ export class IdentityCardResponseDto {
   })
   market: string;
 
+  @ApiProperty({
+    description: 'Language for the identity card (e.g., "en", "fr", "es")',
+  })
+  language: string;
+
   @ApiProperty({ description: 'Short description of the company' })
   shortDescription: string;
 

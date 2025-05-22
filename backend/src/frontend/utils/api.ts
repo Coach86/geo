@@ -34,8 +34,9 @@ export const createCompanyFromUrl = async (
   url: string,
   userId?: string,
   market?: string,
+  language?: string,
 ): Promise<CompanyIdentityCard> => {
-  const response = await authApi.post('/identity-card/from-url', { url, userId, market });
+  const response = await authApi.post('/identity-card/from-url', { url, userId, market, language });
   return response.data;
 };
 

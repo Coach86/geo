@@ -289,7 +289,10 @@ export default function BrandReport({ data }: BrandReportProps) {
                 whileHover={{ scale: 1.01 }}
                 transition={{ duration: 0.3 }}
               >
-                <BrandBattleSection data={data.brandBattle} />
+                <BrandBattleSection
+                  brand={data.brand}
+                  data={data.brandBattle}
+                />
               </motion.div>
             </AnimatedSection>
           )}

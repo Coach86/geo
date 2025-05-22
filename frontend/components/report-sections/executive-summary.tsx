@@ -19,7 +19,15 @@ interface ExecutiveSummaryProps {
       description: string;
     };
     arena: {
-      competitors: string[];
+      competitors: {
+        name: string;
+        size: string;
+        global: string;
+        modelsMentionsRate: {
+          model: string;
+          mentionsRate: number;
+        }[];
+      }[];
       description: string;
     };
   };
@@ -289,19 +297,31 @@ export default function ExecutiveSummary({ kpi }: ExecutiveSummaryProps) {
             </div>
 
             <div className="space-y-2 mb-2">
-              {kpi.arena.competitors.slice(0, 3).map((competitor, index) => (
-                <div key={index} className="flex justify-between items-center">
-                  <div className="flex items-center">
-                    <div className="w-5 h-5 flex items-center justify-center rounded-full bg-[#805AD5] text-white text-xs font-bold mr-2">
-                      {index + 1}
+              {kpi.arena.competitors
+                .sort(
+                  (a, b) =>
+                    Number(b.global?.replace("%", "") ?? 0) -
+                    Number(a.global?.replace("%", "") ?? 0)
+                )
+                .slice(0, 3)
+                .map((competitor, index) => (
+                  <div
+                    key={index}
+                    className="flex justify-between items-center"
+                  >
+                    <div className="flex items-center">
+                      <div className="w-5 h-5 flex items-center justify-center rounded-full bg-[#805AD5] text-white text-xs font-bold mr-2">
+                        {index + 1}
+                      </div>
+                      <span className="text-sm font-medium">
+                        {competitor.name}
+                      </span>
                     </div>
-                    <span className="text-sm font-medium">{competitor}</span>
+                    <span className="text-sm font-bold text-[#805AD5]">
+                      {competitor.global}
+                    </span>
                   </div>
-                  <span className="text-sm font-bold text-[#805AD5]">
-                    {56 - index * 5}%
-                  </span>
-                </div>
-              ))}
+                ))}
             </div>
 
             <div className="mt-4 pt-4 border-t border-gray-200">

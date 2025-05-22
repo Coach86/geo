@@ -151,10 +151,7 @@ export class ReportConverterService {
           description: 'Brand compliance with provided attributes',
         },
         arena: {
-          competitors: this.transformationService.getCompetitorNames(
-            input.comparison,
-            identityCard?.competitors,
-          ),
+          competitors: this.getArenaDataForReport(input, identityCard)?.competitors,
           description: 'Top competitors mentioned by AI models',
         },
       },

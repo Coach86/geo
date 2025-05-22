@@ -52,7 +52,7 @@ export class SentimentPipelineService extends BasePipelineService {
     try {
       // Get the prompts for this pipeline
       const prompts = context.promptSet?.direct || [];
-      
+
       if (!prompts.length) {
         throw new Error('No direct brand prompts found for this company');
       }
@@ -76,8 +76,9 @@ export class SentimentPipelineService extends BasePipelineService {
         for (let i = 0; i < formattedPrompts.length; i++) {
           const websiteUrl = context.websiteUrl || '';
           const market = context.market || '';
-          const executionPrompt = `
-                ${formattedPrompts[i]} 
+          const originalPrompt = formattedPrompts[i];
+          const injectedPrompt = `
+                ${originalPrompt} 
                 <context>
                 Company Url: ${websiteUrl}
                 Market: ${market}
@@ -88,7 +89,7 @@ export class SentimentPipelineService extends BasePipelineService {
                 // Step 1: Execute the prompt with this model
                 const llmResponse = await this.executePrompt(
                   modelConfig,
-                  executionPrompt,
+                  injectedPrompt,
                   context.batchExecutionId, // Pass batch execution ID for storing raw responses
                   i, // Pass prompt index
                 );
@@ -97,7 +98,7 @@ export class SentimentPipelineService extends BasePipelineService {
                 return await this.analyzeResponse(
                   modelConfig,
                   context.brandName || '',
-                  executionPrompt,
+                  originalPrompt,
                   llmResponse,
                   i,
                 );
@@ -114,7 +115,7 @@ export class SentimentPipelineService extends BasePipelineService {
                   accuracy: 0,
                   extractedPositiveKeywords: [],
                   extractedNegativeKeywords: [],
-                  originalPrompt: executionPrompt,
+                  originalPrompt,
                   error: error.message,
                 };
               }
@@ -287,7 +288,10 @@ export class SentimentPipelineService extends BasePipelineService {
         for (const tool of result.toolUsage) {
           if (tool && tool.execution_details) {
             // Check if there are execution details with URLs
-            if (Array.isArray(tool.execution_details.urls) && tool.execution_details.urls.length > 0) {
+            if (
+              Array.isArray(tool.execution_details.urls) &&
+              tool.execution_details.urls.length > 0
+            ) {
               for (const url of tool.execution_details.urls) {
                 if (url) {
                   try {
@@ -336,13 +340,12 @@ export class SentimentPipelineService extends BasePipelineService {
     for (const result of validResults) {
       // Handle cases where sentiment might be undefined or not matching expected values
       const sentiment = result.sentiment || 'neutral';
-      
+
       if (sentiment === 'positive') positiveCount++;
       else if (sentiment === 'neutral') neutralCount++;
       else if (sentiment === 'negative') negativeCount++;
-      
-      overallSentimentPercentage +=
-        sentiment === 'positive' ? 1 : sentiment === 'neutral' ? 0 : -1;
+
+      overallSentimentPercentage += sentiment === 'positive' ? 1 : sentiment === 'neutral' ? 0 : -1;
     }
     overallSentimentPercentage = overallSentimentPercentage / validResults.length;
 

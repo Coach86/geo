@@ -30,6 +30,9 @@ export class IdentityCard {
   market: string;
 
   @Prop({ required: true })
+  language: string;
+
+  @Prop({ required: true })
   shortDescription: string;
 
   @Prop({ required: true })
