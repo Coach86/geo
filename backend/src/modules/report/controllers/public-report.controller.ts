@@ -76,7 +76,7 @@ export class PublicReportController {
       }
       
       // First, get the report to find out which company it belongs to
-      const report = await this.reportService.getReportById(reportId);
+      const report: any = await this.reportService.getReportById(reportId);
       const companyId = report.companyId;
       
       this.logger.log(`Report ${reportId} belongs to company ${companyId}, verifying user ownership`);

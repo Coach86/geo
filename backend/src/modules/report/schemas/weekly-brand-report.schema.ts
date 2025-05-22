@@ -217,6 +217,18 @@ export class WeeklyBrandReport {
   })
   llmVersions: Record<string, string>;
 
+  @Prop({
+    type: Object,
+    required: false,
+    default: {},
+  })
+  trace: {
+    consultedWebsites: Array<{
+      url: string;
+      count: number;
+    }>;
+  };
+
   @Prop({ type: Date })
   createdAt: Date;
 

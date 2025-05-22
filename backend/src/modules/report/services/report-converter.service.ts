@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ComparisonResults } from '@/modules/batch/interfaces/batch.interfaces';
+import { ComparisonResults, WebSearchSummary } from '@/modules/batch/interfaces/batch.interfaces';
 import { BatchReportInput } from '../interfaces/report-input.interfaces';
 import { ReportTransformationService } from './report-transformation.service';
 import { CompanyIdentityCard } from '@/modules/identity-card/entities/company-identity-card.entity';
@@ -25,6 +25,54 @@ export class ReportConverterService {
 
   private formatPercentage(value?: number): number {
     return value ? Math.round(value * 100) : 0;
+  }
+
+  private normalizeUrl(url: string): string {
+    return url
+      .toLowerCase()
+      .replace(/^https?:\/\//, '')
+      .replace(/^www\./, '')
+      .replace(/\/+$/, '');
+  }
+
+  private getTraceDataForReport(input: BatchReportInput): {
+    consultedWebsites: Array<{ url: string; count: number }>;
+  } {
+    const urlCounts = new Map<string, number>();
+
+    const processWebsites = (webSearchSummary: WebSearchSummary) => {
+      if (
+        webSearchSummary?.consultedWebsites &&
+        Array.isArray(webSearchSummary.consultedWebsites)
+      ) {
+        webSearchSummary.consultedWebsites.forEach((url: string) => {
+          const normalizedUrl = this.normalizeUrl(url);
+          urlCounts.set(normalizedUrl, (urlCounts.get(normalizedUrl) || 0) + 1);
+        });
+      }
+    };
+
+    if (input.spontaneous?.webSearchSummary) {
+      processWebsites(input.spontaneous.webSearchSummary);
+    }
+
+    if (input.sentiment?.webSearchSummary) {
+      processWebsites(input.sentiment.webSearchSummary);
+    }
+
+    if (input.comparison?.webSearchSummary) {
+      processWebsites(input.comparison.webSearchSummary);
+    }
+
+    if (input.accord?.webSearchSummary) {
+      processWebsites(input.accord.webSearchSummary);
+    }
+
+    const sortedWebsites = Array.from(urlCounts.entries())
+      .map(([url, count]) => ({ url, count }))
+      .sort((a, b) => b.count - a.count);
+
+    return { consultedWebsites: sortedWebsites };
   }
 
   private getPulseDataForReport(input: BatchReportInput): WeeklyBrandReportEntity['pulse'] {
@@ -160,6 +208,7 @@ export class ReportConverterService {
       accord: this.getAccordDataForReport(input, identityCard),
       arena: this.getArenaDataForReport(input, identityCard),
       brandBattle: this.getBrandBattleDataForReport(input),
+      trace: this.getTraceDataForReport(input),
       llmVersions: input.llmVersions || {},
     };
   }
@@ -218,6 +267,9 @@ export class ReportConverterService {
           commonStrengths: [],
           commonWeaknesses: [],
         },
+        trace: document.trace || {
+          consultedWebsites: [],
+        },
         llmVersions: document.llmVersions,
       };
 
@@ -260,6 +312,7 @@ export class ReportConverterService {
       accord: reportEntity.accord,
       arena: reportEntity.arena,
       brandBattle: reportEntity.brandBattle,
+      trace: reportEntity.trace,
       // Only include raw data in development mode
       ...(process.env.NODE_ENV === 'development' &&
         reportEntity.rawData && {

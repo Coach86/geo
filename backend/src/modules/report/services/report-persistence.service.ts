@@ -44,6 +44,7 @@ export class ReportPersistenceService {
         arena: report.arena,
         brandBattle: report.brandBattle,
         llmVersions: report.llmVersions || {},
+        trace: report.trace,
         // Legacy raw data fields for backward compatibility
         spontaneous: report.rawData?.spontaneous,
         sentiment: report.rawData?.sentiment,

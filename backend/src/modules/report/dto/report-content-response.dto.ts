@@ -117,6 +117,19 @@ export class ReportContentResponseDto {
     commonWeaknesses: string[];
   };
 
+  // Trace section - consulted websites analysis
+  @ApiProperty({
+    description: 'Trace section data',
+    type: 'object',
+    additionalProperties: true,
+  })
+  trace: {
+    consultedWebsites: Array<{
+      url: string;
+      count: number;
+    }>;
+  };
+
   // Raw data for debugging (only visible in development)
   @ApiProperty({
     description: 'Raw data from database (for debugging)',

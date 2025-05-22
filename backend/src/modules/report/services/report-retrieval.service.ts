@@ -91,6 +91,9 @@ export class ReportRetrievalService {
           commonStrengths: [],
           commonWeaknesses: [],
         },
+        trace: document.trace || {
+          consultedWebsites: [],
+        },
         llmVersions: document.llmVersions || {},
         rawData: {
           spontaneous: document.spontaneous,
