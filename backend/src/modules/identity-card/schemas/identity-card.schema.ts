@@ -29,7 +29,7 @@ export class IdentityCard {
   @Prop({ required: true })
   market: string;
 
-  @Prop({ required: true })
+  @Prop({ required: false })
   language: string;
 
   @Prop({ required: true })

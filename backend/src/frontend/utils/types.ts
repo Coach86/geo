@@ -4,7 +4,7 @@ export interface CompanyIdentityCard {
   brandName: string;
   industry: string;
   market: string;
-  language: string;
+  language?: string;
   shortDescription: string;
   longDescription?: string;
   keyBrandAttributes: string[];
