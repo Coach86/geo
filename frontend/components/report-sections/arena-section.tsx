@@ -15,6 +15,15 @@ interface ArenaSectionProps {
 }
 
 export default function ArenaSection({ data }: ArenaSectionProps) {
+  // Count the number of unique models tested
+  const uniqueModels = [
+    ...new Set(
+      data.competitors.flatMap((competitor) =>
+        competitor.modelsMentionsRate.map((model) => model.model)
+      )
+    ),
+  ];
+
   // Trier les concurrents par global en ordre décroissant (fixe, sans bouton)
   const sortedCompetitors = [...data.competitors].sort((a, b) => {
     const aValue = Number.parseFloat(a.global.replace("%", ""));
@@ -191,9 +200,8 @@ export default function ArenaSection({ data }: ArenaSectionProps) {
                 </h5>
                 <ul className="mt-1 text-sm text-blue-700 list-disc pl-5 space-y-1">
                   <li>Competitors analyzed = {data.competitors.length}</li>
-                  <li>Models tested = 4</li>
+                  <li>Models tested = {uniqueModels.length}</li>
                   <li>Bubble size indicates mention frequency</li>
-                  <li>Color indicates sentiment (darker = more positive)</li>
                 </ul>
               </div>
             </div>
