@@ -19,15 +19,18 @@ export interface BatchStatus {
 export interface UseBatchEventsReturn {
   activeBatches: Map<string, BatchStatus>;
   hasActiveBatches: boolean;
+  hasRecentSuccess: boolean;
   subscribeToBatch: (batchExecutionId: string) => void;
   unsubscribeFromBatch: (batchExecutionId: string) => void;
   clearBatch: (batchExecutionId: string) => void;
   clearAllBatches: () => void;
+  clearSuccessState: () => void;
 }
 
 export const useBatchEvents = (): UseBatchEventsReturn => {
   const [activeBatches, setActiveBatches] = useState<Map<string, BatchStatus>>(new Map());
   const [subscriptions] = useState<Map<string, () => void>>(new Map());
+  const [hasRecentSuccess, setHasRecentSuccess] = useState<boolean>(false);
   const updateBatchStatusRef = useRef<((event: BatchEvent) => void) | null>(null);
 
   // Update batch status based on events
@@ -44,6 +47,8 @@ export const useBatchEvents = (): UseBatchEventsReturn => {
         case 'batch_started':
           status = 'started';
           progress = 0;
+          // Clear success state when new batch starts
+          setHasRecentSuccess(false);
           break;
         case 'pipeline_started':
           status = 'processing';
@@ -53,6 +58,8 @@ export const useBatchEvents = (): UseBatchEventsReturn => {
           // For single pipeline batches, pipeline_completed means the batch is done
           status = 'completed';
           progress = 100;
+          // Set success state
+          setHasRecentSuccess(true);
           // Show browser notification
           showBatchCompletionNotification(
             event.companyName,
@@ -63,6 +70,8 @@ export const useBatchEvents = (): UseBatchEventsReturn => {
         case 'batch_completed':
           status = 'completed';
           progress = 100;
+          // Set success state
+          setHasRecentSuccess(true);
           // Show browser notification
           showBatchCompletionNotification(event.companyName, event.pipelineType || 'batch', true);
           break;
@@ -146,6 +155,11 @@ export const useBatchEvents = (): UseBatchEventsReturn => {
     setActiveBatches(new Map());
   }, [subscriptions]);
 
+  // Clear success state
+  const clearSuccessState = useCallback(() => {
+    setHasRecentSuccess(false);
+  }, []);
+
   // Subscribe to global events (for notifications) - only once
   useEffect(() => {
     console.log('useBatchEvents - Setting up global subscription');
@@ -206,9 +220,11 @@ export const useBatchEvents = (): UseBatchEventsReturn => {
   return {
     activeBatches,
     hasActiveBatches,
+    hasRecentSuccess,
     subscribeToBatch,
     unsubscribeFromBatch,
     clearBatch,
     clearAllBatches,
+    clearSuccessState,
   };
 };

@@ -56,13 +56,25 @@ const StaticDotIcon = styled(Box)(({ theme }) => ({
   borderRadius: '50%',
 }));
 
+// Styled component for the success dot icon (green and static)
+const SuccessDotIcon = styled(Box)(({ theme }) => ({
+  width: 16, // 2x bigger (8px -> 16px)
+  height: 16,
+  backgroundColor: '#4caf50', // Green color
+  borderRadius: '50%',
+}));
+
 const BatchNotificationDot: React.FC = () => {
   const theme = useTheme();
-  const { activeBatches, hasActiveBatches, clearBatch } = useBatchEvents();
+  const { activeBatches, hasActiveBatches, hasRecentSuccess, clearBatch, clearSuccessState } = useBatchEvents();
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
+    // Clear success state when user clicks on the notification
+    if (hasRecentSuccess) {
+      clearSuccessState();
+    }
   };
 
   const handleClose = () => {
@@ -114,23 +126,35 @@ const BatchNotificationDot: React.FC = () => {
   }));
   console.log('BatchNotificationDot - Batch statuses received:', batchStatuses);
 
-  // Choose dot icon style based on whether there are active batches
-  const DotIcon = hasActiveBatches ? PulsatingDotIcon : StaticDotIcon;
+  // Choose dot icon style based on priority: active batches > recent success > no activity
+  const DotIcon = hasActiveBatches 
+    ? PulsatingDotIcon 
+    : hasRecentSuccess 
+    ? SuccessDotIcon 
+    : StaticDotIcon;
 
   console.log(
     'BatchNotificationDot - RENDER: hasActiveBatches:',
     hasActiveBatches,
+    'hasRecentSuccess:',
+    hasRecentSuccess,
     'batchArray.length:',
     batchArray.length,
   );
   console.log(
-    'BatchNotificationDot - RENDER: DotIcon is PulsatingDotIcon:',
-    DotIcon === PulsatingDotIcon,
+    'BatchNotificationDot - RENDER: DotIcon is:',
+    DotIcon === PulsatingDotIcon ? 'Pulsating (Orange)' :
+    DotIcon === SuccessDotIcon ? 'Success (Green)' :
+    'Static (Gray)',
   );
 
   return (
     <>
-      <Tooltip title="Analysis Notifications">
+      <Tooltip title={
+        hasActiveBatches ? "Active batch processing" :
+        hasRecentSuccess ? "Recent batch completed successfully (click to dismiss)" :
+        "No recent batch activity"
+      }>
         <IconButton
           onClick={handleClick}
           aria-label="batch notifications"

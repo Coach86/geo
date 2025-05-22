@@ -193,9 +193,13 @@ export class ComparisonPipelineService extends BasePipelineService {
         for (const competitor of competitors) {
           const formattedPrompt = prompts[promptIndex]
             .replace(/{COMPANY}/g, context.brandName)
-            .replace(/{COMPETITOR}/g, competitor).concat(`
-              <context>${context.brandName}'s URL: ${context.websiteUrl}</context>
-              `);
+            .replace(/{COMPETITOR}/g, competitor);
+
+          const injectedPrompt = `${formattedPrompt}
+          <context>
+            ${context.brandName}'s URL: ${context.websiteUrl}
+          </context>
+          `;
 
           tasks.push(
             this.limiter(async () => {
@@ -203,7 +207,7 @@ export class ComparisonPipelineService extends BasePipelineService {
                 // Execute the prompt with this model
                 const llmResponse = await this.executePrompt(
                   modelConfig,
-                  formattedPrompt,
+                  injectedPrompt,
                   context.batchExecutionId,
                   promptIndex,
                 );

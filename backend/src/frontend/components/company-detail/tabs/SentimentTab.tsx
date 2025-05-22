@@ -93,7 +93,7 @@ const SentimentTab: React.FC<SentimentTabProps> = ({ results }) => {
                     color: getSentimentColor(summary.overallSentiment),
                   }}
                 >
-                  {summary.overallSentiment}
+                  {summary.overallSentiment} {Math.round(summary.overallSentimentPercentage * 100)}%
                 </Typography>
               </Box>
               <Typography variant="body2" color="text.secondary">
@@ -110,7 +110,14 @@ const SentimentTab: React.FC<SentimentTabProps> = ({ results }) => {
           {detailedResults.map((result, index) => (
             <Accordion key={index} sx={{ mb: 1 }}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    width: '100%',
+                    alignItems: 'center',
+                  }}
+                >
                   <Typography>
                     <strong>{result.llmProvider}</strong> - Prompt #{result.promptIndex + 1}
                   </Typography>
@@ -121,7 +128,7 @@ const SentimentTab: React.FC<SentimentTabProps> = ({ results }) => {
                         ml: 1,
                         textTransform: 'capitalize',
                         color: getSentimentColor(result.sentiment),
-                        fontWeight: 'bold'
+                        fontWeight: 'bold',
                       }}
                     >
                       {result.sentiment}

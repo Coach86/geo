@@ -14,7 +14,8 @@ export function directUserPrompt({
   websiteUrl,
 }: DirectUserPromptParams): string {
   return `
-      Translate the following prompts (${count}) to the language of the market: ${market}
+      Translate the following prompts (${count}) to the language of the market: ${market}.
+      Use a conversational, everyday language.
 
       ### Prompts:
       - What do you think of ${brandName}?

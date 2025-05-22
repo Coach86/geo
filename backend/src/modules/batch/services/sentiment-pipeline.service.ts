@@ -344,11 +344,11 @@ export class SentimentPipelineService extends BasePipelineService {
       if (sentiment === 'positive') positiveCount++;
       else if (sentiment === 'neutral') neutralCount++;
       else if (sentiment === 'negative') negativeCount++;
-
+      this.logger.log(`Sentiment: ${sentiment}`);
       overallSentimentPercentage += sentiment === 'positive' ? 1 : sentiment === 'neutral' ? 0 : -1;
     }
     overallSentimentPercentage = overallSentimentPercentage / validResults.length;
-
+    this.logger.log(`Overall sentiment percentage: ${overallSentimentPercentage}`);
     // Determine overall sentiment
     let overallSentiment: 'positive' | 'neutral' | 'negative';
     if (positiveCount > neutralCount && positiveCount > negativeCount) {
