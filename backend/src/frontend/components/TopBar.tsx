@@ -13,6 +13,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import SettingsIcon from '@mui/icons-material/Settings';
 import { useNavigate } from 'react-router-dom';
 import { logout } from '../utils/auth';
+import BatchNotificationDot from './BatchNotificationDot';
 
 const APPBAR_HEIGHT = 64;
 
@@ -54,6 +55,9 @@ const TopBar: React.FC = () => {
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {/* Batch Notification Dot */}
+          <BatchNotificationDot />
+
           <Tooltip title="Settings">
             <IconButton 
               onClick={handleSettings} 

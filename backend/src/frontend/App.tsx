@@ -14,6 +14,8 @@ import UserCreation from './pages/UserCreation';
 import EmailPreview from './pages/email-preview';
 import Config from './pages/Config';
 import { ThemeProvider } from './utils/ThemeContext';
+import { socketManager } from './utils/socket';
+import { requestNotificationPermission } from './utils/notifications';
 
 const App: React.FC = () => {
   // Load Public Sans font
@@ -31,6 +33,34 @@ const App: React.FC = () => {
       // Append it to the head
       document.head.appendChild(link);
     }
+  }, []);
+
+  // Initialize socket connection and notification permissions
+  useEffect(() => {
+    const initializeApp = async () => {
+      // Initialize socket connection (always required)
+      try {
+        await socketManager.connect();
+        console.log('Socket connection established');
+      } catch (error) {
+        console.error('Failed to establish socket connection:', error);
+      }
+
+      // Request notification permission (optional, for batch completion alerts only)
+      try {
+        await requestNotificationPermission();
+        console.log('Notification permission requested');
+      } catch (error) {
+        console.warn('Notification permission not granted, browser notifications will be disabled:', error);
+      }
+    };
+
+    initializeApp();
+
+    // Cleanup on unmount
+    return () => {
+      socketManager.disconnect();
+    };
   }, []);
 
   return (
