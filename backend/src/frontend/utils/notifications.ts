@@ -82,6 +82,26 @@ export const showNotification = (
 };
 
 /**
+ * Show a batch start notification
+ * @param companyName Name of the company
+ * @param batchType Type of batch that is starting
+ */
+export const showBatchStartNotification = (
+  companyName: string,
+  batchType: string,
+): Notification | null => {
+  console.log('Showing batch start notification for:', companyName, batchType);
+  const title = `Batch Analysis Started: ${companyName}`;
+  const body = `The ${batchType} analysis for ${companyName} has been initiated and is processing.`;
+
+  return showNotification(title, {
+    body,
+    tag: `batch-start-${companyName}-${Date.now()}`, // Unique tag
+    requireInteraction: false, // Auto-dismiss after a few seconds
+  });
+};
+
+/**
  * Show a batch completion notification
  * @param companyName Name of the company
  * @param batchType Type of batch that completed

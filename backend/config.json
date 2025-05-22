@@ -40,31 +40,31 @@
   "analyzerConfig": {
     "spontaneous": {
       "runsPerModel": 1,
-      "primary": {
+      "fallback": {
         "provider": "Anthropic",
         "model": "claude-3-7-sonnet-20250219"
       },
-      "fallback": {
+      "primary": {
         "provider": "OpenAI",
         "model": "gpt-4o"
       }
     },
     "sentiment": {
-      "primary": {
+      "fallback": {
         "provider": "Anthropic",
         "model": "claude-3-7-sonnet-20250219"
       },
-      "fallback": {
+      "primary": {
         "provider": "OpenAI",
         "model": "gpt-4o"
       }
     },
     "comparison": {
-      "primary": {
+      "fallback": {
         "provider": "Anthropic",
         "model": "claude-3-7-sonnet-20250219"
       },
-      "fallback": {
+      "primary": {
         "provider": "OpenAI",
         "model": "gpt-4o"
       }

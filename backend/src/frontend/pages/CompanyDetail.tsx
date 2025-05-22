@@ -23,6 +23,7 @@ import {
   IconButton,
   Tooltip,
   styled,
+  Snackbar,
 } from '@mui/material';
 import BusinessIcon from '@mui/icons-material/Business';
 import CategoryIcon from '@mui/icons-material/Category';
@@ -62,6 +63,7 @@ import {
 } from '../utils/types';
 import { socketManager, BatchEvent } from '../utils/socket';
 import { useBatchEvents } from '../hooks/useBatchEvents';
+import { showBatchStartNotification } from '../utils/notifications';
 
 // Components for each tab
 import OverviewTab from '../components/company-detail/OverviewTab';
@@ -95,6 +97,8 @@ const CompanyDetail: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<TabValue>(TabValue.OVERVIEW);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
 
   // Batch events hook for notifications and UI updates
   const { subscribeToBatch } = useBatchEvents();
@@ -148,10 +152,21 @@ const CompanyDetail: React.FC = () => {
     setSearchParams({ tab: newValue });
   };
 
+  const showSnackbarNotification = (message: string) => {
+    setSnackbarMessage(message);
+    setSnackbarOpen(true);
+  };
+
   const handleRunBatchAnalysis = async () => {
     if (!id) return;
 
     try {
+      // Show start notifications
+      if (company) {
+        showBatchStartNotification(company.brandName, 'full batch');
+        showSnackbarNotification(`Starting full batch analysis for ${company.brandName}...`);
+      }
+
       const { batchExecutionId } = await runFullBatchAnalysis(id);
 
       // Subscribe to batch events for UI updates and notifications
@@ -174,6 +189,12 @@ const CompanyDetail: React.FC = () => {
     if (!id) return;
 
     try {
+      // Show start notifications
+      if (company) {
+        showBatchStartNotification(company.brandName, 'full batch with email');
+        showSnackbarNotification(`Starting full batch analysis with email for ${company.brandName}...`);
+      }
+
       const result = await runBatchWithEmailNotification(id);
 
       if (!result.success) {
@@ -216,6 +237,12 @@ const CompanyDetail: React.FC = () => {
     if (!id) return;
 
     try {
+      // Show start notifications
+      if (company) {
+        showBatchStartNotification(company.brandName, type);
+        showSnackbarNotification(`Starting ${type} analysis for ${company.brandName}...`);
+      }
+
       let result;
 
       // Run the appropriate pipeline and get results with batch execution ID
@@ -523,6 +550,15 @@ const CompanyDetail: React.FC = () => {
           {currentTab === TabValue.OVERVIEW && renderAnalysisButtons()}
         </Box>
       </Box>
+
+      {/* Snackbar for in-app notifications */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={4000}
+        onClose={() => setSnackbarOpen(false)}
+        message={snackbarMessage}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
     </>
   );
 };
