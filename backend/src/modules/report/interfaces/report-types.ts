@@ -221,6 +221,14 @@ export interface WeeklyBrandReportEntity {
     commonWeaknesses: string[];
   };
 
+  /** Trace section data */
+  trace: {
+    consultedWebsites: Array<{
+      url: string;
+      count: number;
+    }>;
+  };
+
   /** Model identifiers for each LLM used */
   llmVersions?: Record<string, string>;
 
@@ -403,6 +411,24 @@ export interface ReportContentResponseDto {
       chatgpt?: ModelComparison;
       claude?: ModelComparison;
     };
+  };
+  brandBattle: {
+    competitorAnalyses: {
+      competitor: string;
+      analysisByModel: {
+        model: string;
+        strengths: string[];
+        weaknesses: string[];
+      }[];
+    }[];
+    commonStrengths: string[];
+    commonWeaknesses: string[];
+  };
+  trace: {
+    consultedWebsites: Array<{
+      url: string;
+      count: number;
+    }>;
   };
   rawData?: {
     spontaneous: any;
