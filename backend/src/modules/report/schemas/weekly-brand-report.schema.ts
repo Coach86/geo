@@ -85,7 +85,15 @@ export class WeeklyBrandReport {
       description: string;
     };
     arena: {
-      competitors: string[];
+      competitors: Array<{
+        name: string;
+        global: string;
+        modelsMentionsRate: Array<{
+          model: string;
+          mentionsRate: number;
+        }>;
+        size: string;
+      }>;
       description: string;
     };
   };

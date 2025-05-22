@@ -176,7 +176,7 @@ export interface WeeklyBrandReportEntity {
       description: string;
     };
     arena: {
-      competitors: string[];
+      competitors: Competitor[];
       description: string;
     };
   };

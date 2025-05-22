@@ -64,7 +64,11 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ companyId, userEmail }) => {
       try {
         setLoading(true);
         const result = await getAllCompanyReports(companyId);
-        setReports(result.reports);
+        setReports(
+          result.reports?.sort(
+            (a, b) => new Date(b.generatedAt).getTime() - new Date(a.generatedAt).getTime(),
+          ) || [],
+        );
         setError(null);
       } catch (err) {
         console.error('Error fetching reports:', err);
@@ -217,15 +221,16 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ companyId, userEmail }) => {
   };
 
   return (
-    <Box 
+    <Box
       style={{ width: '100%' }}
-      sx={{ 
-        maxWidth: '100%'
-      }}>
-      <Typography 
-        variant="h6" 
+      sx={{
+        maxWidth: '100%',
+      }}
+    >
+      <Typography
+        variant="h6"
         gutterBottom
-        sx={{ 
+        sx={{
           fontWeight: 600,
           fontSize: '1rem',
           color: theme.palette.text.primary,
@@ -234,52 +239,58 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ companyId, userEmail }) => {
           mb: 2,
         }}
       >
-        <EmailIcon 
-          sx={{ 
-            fontSize: '1.1rem', 
+        <EmailIcon
+          sx={{
+            fontSize: '1.1rem',
             color: theme.palette.primary.main,
-            mr: 1 
-          }} 
+            mr: 1,
+          }}
         />
         Generated Reports
       </Typography>
-      <Box sx={{ 
-        mb: 3, 
-        borderRadius: 1.5,
-        boxShadow: 'none', 
-        border: `1px solid ${alpha(theme.palette.grey[500], 0.12)}`,
-        width: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        flex: 1
-      }}>
-        <Box sx={{ 
-          width: '100%', 
-          p: 2,
-          flex: 1,
+      <Box
+        sx={{
+          mb: 3,
+          borderRadius: 1.5,
+          boxShadow: 'none',
+          border: `1px solid ${alpha(theme.palette.grey[500], 0.12)}`,
+          width: '100%',
           display: 'flex',
-          flexDirection: 'column'
-        }}>
-          <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 600 }}>Report History</Typography>
-          
+          flexDirection: 'column',
+          flex: 1,
+        }}
+      >
+        <Box
+          sx={{
+            width: '100%',
+            p: 2,
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 600 }}>
+            Report History
+          </Typography>
+
           {reports.map((report) => (
-            <Box 
-              key={report.id} 
-              sx={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
+            <Box
+              key={report.id}
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
                 alignItems: 'center',
                 py: 1.5,
                 borderBottom: `1px solid ${alpha(theme.palette.grey[500], 0.12)}`,
                 '&:last-child': {
-                  borderBottom: 'none'
-                }
+                  borderBottom: 'none',
+                },
               }}
             >
               <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
                 {formatDate(report.generatedAt)}
               </Typography>
-              
+
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Tooltip title="View Report">
                   <IconButton
@@ -287,44 +298,44 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ companyId, userEmail }) => {
                     onClick={() => handleViewReport(report)}
                     disabled={generatingToken}
                     color="secondary"
-                    sx={{ 
+                    sx={{
                       p: 1,
-                      border: `1px solid ${alpha(theme.palette.secondary.main, 0.5)}` 
+                      border: `1px solid ${alpha(theme.palette.secondary.main, 0.5)}`,
                     }}
                   >
                     <VisibilityIcon sx={{ fontSize: '1rem' }} />
                   </IconButton>
                 </Tooltip>
-                
+
                 {userEmail && (
                   <Tooltip title="Send to Owner">
                     <IconButton
                       size="small"
                       onClick={() => handleSendToOwner(report)}
                       disabled={sendingEmail || generatingToken}
-                      sx={{ 
+                      sx={{
                         p: 1,
-                        border: `1px solid ${alpha(theme.palette.primary.main, 0.5)}` 
+                        border: `1px solid ${alpha(theme.palette.primary.main, 0.5)}`,
                       }}
                     >
                       <PersonIcon sx={{ fontSize: '1rem' }} />
                     </IconButton>
                   </Tooltip>
                 )}
-                
+
                 <Tooltip title="Send Email">
                   <IconButton
                     size="small"
                     color="primary"
                     onClick={() => handleOpenEmailDialog(report)}
                     disabled={sendingEmail || generatingToken}
-                    sx={{ 
+                    sx={{
                       p: 1,
                       backgroundColor: theme.palette.primary.main,
                       color: 'white',
                       '&:hover': {
-                        backgroundColor: theme.palette.primary.dark
-                      }
+                        backgroundColor: theme.palette.primary.dark,
+                      },
                     }}
                   >
                     <EmailIcon sx={{ fontSize: '1rem' }} />
@@ -337,18 +348,18 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ companyId, userEmail }) => {
       </Box>
 
       {/* Email Dialog */}
-      <Dialog 
-        open={dialogOpen} 
+      <Dialog
+        open={dialogOpen}
         onClose={() => setDialogOpen(false)}
         PaperProps={{
           sx: {
             borderRadius: 2,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.12)'
-          }
+            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          },
         }}
       >
-        <DialogTitle 
-          sx={{ 
+        <DialogTitle
+          sx={{
             pb: 1,
             pt: 2,
             fontWeight: 600,
@@ -373,7 +384,7 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ companyId, userEmail }) => {
             onChange={(e) => setEmailInput(e.target.value)}
             error={!!emailError}
             helperText={emailError}
-            sx={{ 
+            sx={{
               mt: 2,
               '& .MuiOutlinedInput-root': {
                 borderRadius: 1,
@@ -381,15 +392,15 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ companyId, userEmail }) => {
                 '&:hover': {
                   '& .MuiOutlinedInput-notchedOutline': {
                     borderColor: alpha(theme.palette.primary.main, 0.5),
-                  }
+                  },
                 },
                 '&.Mui-focused': {
                   '& .MuiOutlinedInput-notchedOutline': {
                     borderColor: theme.palette.primary.main,
                     borderWidth: 1,
-                  }
-                }
-              }
+                  },
+                },
+              },
             }}
           />
           <TextField
@@ -400,7 +411,7 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ companyId, userEmail }) => {
             variant="outlined"
             value={subjectInput}
             onChange={(e) => setSubjectInput(e.target.value)}
-            sx={{ 
+            sx={{
               mt: 2,
               '& .MuiOutlinedInput-root': {
                 borderRadius: 1,
@@ -408,28 +419,28 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ companyId, userEmail }) => {
                 '&:hover': {
                   '& .MuiOutlinedInput-notchedOutline': {
                     borderColor: alpha(theme.palette.primary.main, 0.5),
-                  }
+                  },
                 },
                 '&.Mui-focused': {
                   '& .MuiOutlinedInput-notchedOutline': {
                     borderColor: theme.palette.primary.main,
                     borderWidth: 1,
-                  }
-                }
-              }
+                  },
+                },
+              },
             }}
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5 }}>
-          <Button 
-            onClick={() => setDialogOpen(false)} 
+          <Button
+            onClick={() => setDialogOpen(false)}
             disabled={sendingEmail}
-            sx={{ 
+            sx={{
               textTransform: 'none',
               fontWeight: 500,
               fontSize: '0.875rem',
               color: theme.palette.text.secondary,
-              px: 2
+              px: 2,
             }}
           >
             Cancel
@@ -439,14 +450,20 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ companyId, userEmail }) => {
             variant="contained"
             color="primary"
             disabled={sendingEmail}
-            startIcon={sendingEmail ? <CircularProgress size={16} /> : <EmailIcon sx={{ fontSize: '1rem' }} />}
-            sx={{ 
+            startIcon={
+              sendingEmail ? (
+                <CircularProgress size={16} />
+              ) : (
+                <EmailIcon sx={{ fontSize: '1rem' }} />
+              )
+            }
+            sx={{
               textTransform: 'none',
               fontWeight: 600,
               fontSize: '0.875rem',
               boxShadow: 1,
               borderRadius: 1,
-              px: 2
+              px: 2,
             }}
           >
             {sendingEmail ? 'Sending...' : 'Send Email'}

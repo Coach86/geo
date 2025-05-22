@@ -106,20 +106,31 @@ const BatchNotificationDot: React.FC = () => {
   };
 
   const batchArray = Array.from(activeBatches.values());
-  
+
   // Debug: log the actual batch statuses
-  const batchStatuses = batchArray.map(batch => ({ id: batch.batchExecutionId.slice(-4), status: batch.status }));
+  const batchStatuses = batchArray.map((batch) => ({
+    id: batch.batchExecutionId.slice(-4),
+    status: batch.status,
+  }));
   console.log('BatchNotificationDot - Batch statuses received:', batchStatuses);
 
   // Choose dot icon style based on whether there are active batches
   const DotIcon = hasActiveBatches ? PulsatingDotIcon : StaticDotIcon;
 
-  console.log('BatchNotificationDot - RENDER: hasActiveBatches:', hasActiveBatches, 'batchArray.length:', batchArray.length);
-  console.log('BatchNotificationDot - RENDER: DotIcon is PulsatingDotIcon:', DotIcon === PulsatingDotIcon);
+  console.log(
+    'BatchNotificationDot - RENDER: hasActiveBatches:',
+    hasActiveBatches,
+    'batchArray.length:',
+    batchArray.length,
+  );
+  console.log(
+    'BatchNotificationDot - RENDER: DotIcon is PulsatingDotIcon:',
+    DotIcon === PulsatingDotIcon,
+  );
 
   return (
     <>
-      <Tooltip title="Batch Notifications">
+      <Tooltip title="Analysis Notifications">
         <IconButton
           onClick={handleClick}
           aria-label="batch notifications"
@@ -156,7 +167,7 @@ const BatchNotificationDot: React.FC = () => {
       >
         <Box sx={{ p: 2 }}>
           <Typography variant="h6" gutterBottom>
-            Active Batch Operations
+            Active Analysis Operations
           </Typography>
 
           <List dense>

@@ -270,16 +270,12 @@ export class ReportTransformationService {
   /**
    * Helper to extract competitor names from comparison results or use default list
    */
-  getCompetitorNames(comparison: any, defaultCompetitors?: string[]): string[] {
-    if (comparison?.summary?.keyDifferentiators?.length > 0) {
-      return comparison.summary.keyDifferentiators.slice(0, 3);
-    }
-
+  getCompetitorNames(comparison: ComparisonResults, defaultCompetitors?: string[]): string[] {
     if (defaultCompetitors && defaultCompetitors.length > 0) {
       return defaultCompetitors.slice(0, 3);
     }
 
-    return ['Competitor A', 'Competitor B', 'Competitor C'];
+    return [];
   }
 
   /**

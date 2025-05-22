@@ -64,7 +64,7 @@ export class AccuracyPipelineService extends BasePipelineService {
     try {
       // Get the prompts for this pipeline
       const prompts = context.promptSet?.accuracy || [];
-      
+
       if (!prompts.length) {
         throw new Error('No accuracy prompts found for this company');
       }
@@ -88,8 +88,9 @@ export class AccuracyPipelineService extends BasePipelineService {
         for (let i = 0; i < formattedPrompts.length; i++) {
           tasks.push(
             this.limiter(async () => {
-              const prompt = `
-              ${formattedPrompts[i]}
+              const originalPrompt = formattedPrompts[i];
+              const injectedPrompt = `
+              ${originalPrompt}
               <context>
                 Company Url: ${context.websiteUrl}
                 Market: ${context.market}
@@ -99,7 +100,7 @@ export class AccuracyPipelineService extends BasePipelineService {
                 // Step 1: Execute the prompt with this model
                 const llmResponse = await this.executePrompt(
                   modelConfig,
-                  prompt,
+                  injectedPrompt,
                   context.batchExecutionId, // Pass batch execution ID for storing raw responses
                   i, // Pass prompt index
                 );
@@ -108,7 +109,7 @@ export class AccuracyPipelineService extends BasePipelineService {
                 return await this.analyzeAccuracy(
                   modelConfig,
                   context.brandName,
-                  prompt,
+                  originalPrompt,
                   llmResponse,
                   i,
                   context.keyBrandAttributes,
@@ -123,7 +124,7 @@ export class AccuracyPipelineService extends BasePipelineService {
                   llmModel: modelConfig.model,
                   promptIndex: i,
                   attributeScores: [],
-                  originalPrompt: prompt,
+                  originalPrompt,
                   error: error.message,
                 };
               }
@@ -197,13 +198,15 @@ export class AccuracyPipelineService extends BasePipelineService {
 
     // Define the schema for structured output
     const schema = z.object({
-      attributeScores: z.array(
-        z.object({
-          attribute: z.string().describe('The specific brand attribute being evaluated'),
-          score: z.number().describe('Alignment score for this specific attribute (0-1)'),
-          evaluation: z.string().describe('Brief explanation for the assigned score'),
-        })
-      ).describe('Detailed scores for each individual key brand attribute'),
+      attributeScores: z
+        .array(
+          z.object({
+            attribute: z.string().describe('The specific brand attribute being evaluated'),
+            score: z.number().describe('Alignment score for this specific attribute (0-1)'),
+            evaluation: z.string().describe('Brief explanation for the assigned score'),
+          }),
+        )
+        .describe('Detailed scores for each individual key brand attribute'),
     });
 
     if (!keyBrandAttributes) {
@@ -275,12 +278,12 @@ export class AccuracyPipelineService extends BasePipelineService {
 
     // Use a Map to count occurrences of each normalized domain
     const websiteCounts = new Map<string, number>();
-    
+
     // Helper function to normalize and store domain
     const processDomain = (domain: string): void => {
       // Normalize domain: remove www. prefix and convert to lowercase
       const normalizedDomain = domain.toLowerCase().replace(/^www\./, '');
-      
+
       // Increment the count for this domain
       websiteCounts.set(normalizedDomain, (websiteCounts.get(normalizedDomain) || 0) + 1);
     };
@@ -326,7 +329,7 @@ export class AccuracyPipelineService extends BasePipelineService {
       .sort((a, b) => b.count - a.count); // Sort by count, descending
 
     // Get unique domains for backward compatibility
-    const consultedWebsites = consultedWebsiteCounts.map(item => item.domain);
+    const consultedWebsites = consultedWebsiteCounts.map((item) => item.domain);
 
     return {
       usedWebSearch,
@@ -352,7 +355,7 @@ export class AccuracyPipelineService extends BasePipelineService {
     }
 
     // Collect all attribute scores
-    const attributeTotals: Record<string, {total: number, count: number}> = {};
+    const attributeTotals: Record<string, { total: number; count: number }> = {};
 
     // Collect all attribute scores across all results
     for (const result of validResults) {
@@ -369,7 +372,7 @@ export class AccuracyPipelineService extends BasePipelineService {
 
     // Calculate average score for each attribute
     const averageAttributeScores: Record<string, number> = {};
-    
+
     for (const [attribute, data] of Object.entries(attributeTotals)) {
       averageAttributeScores[attribute] = data.total / data.count;
     }

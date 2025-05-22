@@ -39,6 +39,15 @@ export class IdentityCardDataDto {
   @MaxLength(100)
   market?: string;
 
+  @ApiPropertyOptional({
+    description: 'Language for the identity card (e.g., "en", "fr", "es")',
+  })
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  @MaxLength(10)
+  language?: string;
+
   @ApiPropertyOptional({ description: 'Short description of the company' })
   @IsOptional()
   @IsString()

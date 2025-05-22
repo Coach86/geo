@@ -48,7 +48,7 @@ export class IdentityCardController {
   })
   @ApiResponse({ status: 400, description: 'Bad request.' })
   async createFromUrl(
-    @Body() body: { url: string; userId?: string; market: string },
+    @Body() body: { url: string; userId?: string; market: string; language?: string },
   ): Promise<IdentityCardResponseDto> {
     const createDto = new CreateIdentityCardDto();
     createDto.url = body.url;
@@ -66,6 +66,10 @@ export class IdentityCardController {
       createDto.data = {};
     }
     createDto.data.market = body.market;
+    
+    if (body.language) {
+      createDto.data.language = body.language;
+    }
 
     const identityCard = await this.identityCardService.create(createDto);
     return this.mapToResponseDto(identityCard);
@@ -137,6 +141,7 @@ export class IdentityCardController {
     response.url = identityCard.website; // Alias for frontend
     response.industry = identityCard.industry;
     response.market = identityCard.market || 'Global'; // Add market field with default
+    response.language = identityCard.language || 'en'; // Add language field with default
     response.shortDescription = identityCard.shortDescription;
     response.fullDescription = identityCard.fullDescription;
     response.longDescription = identityCard.fullDescription; // Alias for frontend
