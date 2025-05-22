@@ -22,6 +22,7 @@ import { RawResponse, RawResponseSchema } from './schemas/raw-response.schema';
 import { BatchExecutionRepository } from './repositories/batch-execution.repository';
 import { BatchResultRepository } from './repositories/batch-result.repository';
 import { RawResponseRepository } from './repositories/raw-response.repository';
+import { BatchEventsGateway } from './gateways/batch-events.gateway';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { RawResponseRepository } from './repositories/raw-response.repository';
     BatchExecutionRepository,
     BatchResultRepository,
     RawResponseRepository,
+    BatchEventsGateway,
   ],
   exports: [
     BatchService,
@@ -58,6 +60,7 @@ import { RawResponseRepository } from './repositories/raw-response.repository';
     BatchExecutionRepository,
     BatchResultRepository,
     RawResponseRepository,
+    BatchEventsGateway,
   ],
 })
 export class BatchModule {}

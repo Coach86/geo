@@ -4,6 +4,7 @@ import { IsOptional, IsString } from 'class-validator';
 import { BatchService } from '../services/batch.service';
 import { BatchTask } from '../tasks/batch.task';
 import { CompanyBatchOrchestratorService } from '../services/company-batch-orchestrator.service';
+import { BatchEventsGateway } from '../gateways/batch-events.gateway';
 
 class BatchRunDto {
   @IsString()
@@ -18,6 +19,7 @@ export class BatchController {
     private readonly batchService: BatchService,
     private readonly batchTask: BatchTask,
     private readonly batchOrchestratorService: CompanyBatchOrchestratorService,
+    private readonly batchEventsGateway: BatchEventsGateway,
   ) {}
 
   @Post('run')
@@ -51,9 +53,23 @@ export class BatchController {
   })
   async processCompany(@Param('companyId') companyId: string) {
     try {
+      // Get company context to access brandName
+      const companyContext = await this.batchService.getCompanyBatchContext(companyId);
+      if (!companyContext) {
+        throw new NotFoundException(`Company context not found for ID: ${companyId}`);
+      }
+
       // Create a new batch execution record
       const batchExecution = await this.batchService.createBatchExecution(companyId);
       console.log(`[Batch] Created new batch execution ${batchExecution.id} for company ${companyId}`);
+
+      // Emit batch started event
+      this.batchEventsGateway.emitBatchStarted(
+        batchExecution.id,
+        companyId,
+        companyContext.brandName,
+        'full'
+      );
 
       // Start the batch processing in the background (don't await)
       this.batchService
@@ -61,10 +77,27 @@ export class BatchController {
         .then((result) => {
           console.log(`[Batch] Completed batch execution ${batchExecution.id} for company ${companyId}`);
           this.batchService.completeBatchExecution(batchExecution.id, result);
+          
+          // Emit batch completed event
+          this.batchEventsGateway.emitBatchCompleted(
+            batchExecution.id,
+            companyId,
+            companyContext.brandName,
+            'full'
+          );
         })
         .catch((error) => {
           console.log(`[Batch] Failed batch execution ${batchExecution.id} for company ${companyId}: ${error.message}`);
           this.batchService.failBatchExecution(batchExecution.id, error.message || 'Unknown error');
+          
+          // Emit batch failed event
+          this.batchEventsGateway.emitBatchFailed(
+            batchExecution.id,
+            companyId,
+            companyContext.brandName,
+            'full',
+            error.message || 'Unknown error'
+          );
         });
 
       // Return immediately with the batch execution ID
@@ -121,6 +154,14 @@ export class BatchController {
     );
     const batchExecutionId = batchExecution.id;
 
+    // Emit batch started event
+    this.batchEventsGateway.emitBatchStarted(
+      batchExecutionId,
+      companyId,
+      companyContext.brandName,
+      'spontaneous'
+    );
+
     // Process in background
     this.processSpontaneousPipeline(companyContext, batchExecutionId);
 
@@ -138,6 +179,14 @@ export class BatchController {
     const contextWithExecId = { ...companyContext, batchExecutionId };
 
     try {
+      // Emit pipeline started event
+      this.batchEventsGateway.emitPipelineStarted(
+        batchExecutionId,
+        companyContext.companyId,
+        companyContext.brandName,
+        'spontaneous'
+      );
+
       // Run pipeline
       const result = await this.batchService.runSpontaneousPipeline(contextWithExecId);
 
@@ -146,9 +195,39 @@ export class BatchController {
 
       // Mark batch execution as completed
       await this.batchService.completeSinglePipelineBatchExecution(batchExecutionId);
+
+      // Emit completion events
+      this.batchEventsGateway.emitPipelineCompleted(
+        batchExecutionId,
+        companyContext.companyId,
+        companyContext.brandName,
+        'spontaneous'
+      );
+      this.batchEventsGateway.emitBatchCompleted(
+        batchExecutionId,
+        companyContext.companyId,
+        companyContext.brandName,
+        'spontaneous'
+      );
     } catch (error) {
       // Mark batch execution as failed
       await this.batchService.failSinglePipelineBatchExecution(batchExecutionId, error.message);
+
+      // Emit failure events
+      this.batchEventsGateway.emitPipelineFailed(
+        batchExecutionId,
+        companyContext.companyId,
+        companyContext.brandName,
+        'spontaneous',
+        error.message
+      );
+      this.batchEventsGateway.emitBatchFailed(
+        batchExecutionId,
+        companyContext.companyId,
+        companyContext.brandName,
+        'spontaneous',
+        error.message
+      );
     }
   }
 
@@ -173,6 +252,14 @@ export class BatchController {
     );
     const batchExecutionId = batchExecution.id;
 
+    // Emit batch started event
+    this.batchEventsGateway.emitBatchStarted(
+      batchExecutionId,
+      companyId,
+      companyContext.brandName,
+      'sentiment'
+    );
+
     // Process in background
     this.processSentimentPipeline(companyContext, batchExecutionId);
 
@@ -190,6 +277,14 @@ export class BatchController {
     const contextWithExecId = { ...companyContext, batchExecutionId };
 
     try {
+      // Emit pipeline started event
+      this.batchEventsGateway.emitPipelineStarted(
+        batchExecutionId,
+        companyContext.companyId,
+        companyContext.brandName,
+        'sentiment'
+      );
+
       // Run pipeline
       const result = await this.batchService.runSentimentPipeline(contextWithExecId);
 
@@ -198,9 +293,39 @@ export class BatchController {
 
       // Mark batch execution as completed
       await this.batchService.completeSinglePipelineBatchExecution(batchExecutionId);
+
+      // Emit completion events
+      this.batchEventsGateway.emitPipelineCompleted(
+        batchExecutionId,
+        companyContext.companyId,
+        companyContext.brandName,
+        'sentiment'
+      );
+      this.batchEventsGateway.emitBatchCompleted(
+        batchExecutionId,
+        companyContext.companyId,
+        companyContext.brandName,
+        'sentiment'
+      );
     } catch (error) {
       // Mark batch execution as failed
       await this.batchService.failSinglePipelineBatchExecution(batchExecutionId, error.message);
+
+      // Emit failure events
+      this.batchEventsGateway.emitPipelineFailed(
+        batchExecutionId,
+        companyContext.companyId,
+        companyContext.brandName,
+        'sentiment',
+        error.message
+      );
+      this.batchEventsGateway.emitBatchFailed(
+        batchExecutionId,
+        companyContext.companyId,
+        companyContext.brandName,
+        'sentiment',
+        error.message
+      );
     }
   }
 
@@ -225,6 +350,14 @@ export class BatchController {
     );
     const batchExecutionId = batchExecution.id;
 
+    // Emit batch started event
+    this.batchEventsGateway.emitBatchStarted(
+      batchExecutionId,
+      companyId,
+      companyContext.brandName,
+      'comparison'
+    );
+
     // Process in background
     this.processComparisonPipeline(companyContext, batchExecutionId);
 
@@ -242,6 +375,14 @@ export class BatchController {
     const contextWithExecId = { ...companyContext, batchExecutionId };
 
     try {
+      // Emit pipeline started event
+      this.batchEventsGateway.emitPipelineStarted(
+        batchExecutionId,
+        companyContext.companyId,
+        companyContext.brandName,
+        'comparison'
+      );
+
       // Run pipeline
       const result = await this.batchService.runComparisonPipeline(contextWithExecId);
 
@@ -250,9 +391,39 @@ export class BatchController {
 
       // Mark batch execution as completed
       await this.batchService.completeSinglePipelineBatchExecution(batchExecutionId);
+
+      // Emit completion events
+      this.batchEventsGateway.emitPipelineCompleted(
+        batchExecutionId,
+        companyContext.companyId,
+        companyContext.brandName,
+        'comparison'
+      );
+      this.batchEventsGateway.emitBatchCompleted(
+        batchExecutionId,
+        companyContext.companyId,
+        companyContext.brandName,
+        'comparison'
+      );
     } catch (error) {
       // Mark batch execution as failed
       await this.batchService.failSinglePipelineBatchExecution(batchExecutionId, error.message);
+
+      // Emit failure events
+      this.batchEventsGateway.emitPipelineFailed(
+        batchExecutionId,
+        companyContext.companyId,
+        companyContext.brandName,
+        'comparison',
+        error.message
+      );
+      this.batchEventsGateway.emitBatchFailed(
+        batchExecutionId,
+        companyContext.companyId,
+        companyContext.brandName,
+        'comparison',
+        error.message
+      );
     }
   }
 
@@ -277,6 +448,14 @@ export class BatchController {
     );
     const batchExecutionId = batchExecution.id;
 
+    // Emit batch started event
+    this.batchEventsGateway.emitBatchStarted(
+      batchExecutionId,
+      companyId,
+      companyContext.brandName,
+      'accuracy'
+    );
+
     // Process in background
     this.processAccuracyPipeline(companyContext, batchExecutionId);
 
@@ -294,6 +473,14 @@ export class BatchController {
     const contextWithExecId = { ...companyContext, batchExecutionId };
 
     try {
+      // Emit pipeline started event
+      this.batchEventsGateway.emitPipelineStarted(
+        batchExecutionId,
+        companyContext.companyId,
+        companyContext.brandName,
+        'accuracy'
+      );
+
       // Run pipeline
       const result = await this.batchService.runAccuracyPipeline(contextWithExecId);
 
@@ -302,9 +489,39 @@ export class BatchController {
 
       // Mark batch execution as completed
       await this.batchService.completeSinglePipelineBatchExecution(batchExecutionId);
+
+      // Emit completion events
+      this.batchEventsGateway.emitPipelineCompleted(
+        batchExecutionId,
+        companyContext.companyId,
+        companyContext.brandName,
+        'accuracy'
+      );
+      this.batchEventsGateway.emitBatchCompleted(
+        batchExecutionId,
+        companyContext.companyId,
+        companyContext.brandName,
+        'accuracy'
+      );
     } catch (error) {
       // Mark batch execution as failed
       await this.batchService.failSinglePipelineBatchExecution(batchExecutionId, error.message);
+
+      // Emit failure events
+      this.batchEventsGateway.emitPipelineFailed(
+        batchExecutionId,
+        companyContext.companyId,
+        companyContext.brandName,
+        'accuracy',
+        error.message
+      );
+      this.batchEventsGateway.emitBatchFailed(
+        batchExecutionId,
+        companyContext.companyId,
+        companyContext.brandName,
+        'accuracy',
+        error.message
+      );
     }
   }
 }

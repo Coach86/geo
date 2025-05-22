@@ -51,6 +51,8 @@ import {
   runFullBatchAnalysis,
 } from '../utils/api-batch';
 import authApi from '../utils/auth';
+import { requestNotificationPermission } from '../utils/notifications';
+import { useBatchEvents } from '../hooks/useBatchEvents';
 import {
   BatchType,
   CompanyIdentityCard,
@@ -60,8 +62,6 @@ import {
   ComparisonResults,
   AccuracyResults,
 } from '../utils/types';
-import { socketManager, BatchEvent } from '../utils/socket';
-import { useBatchEvents } from '../hooks/useBatchEvents';
 
 // Components for each tab
 import OverviewTab from '../components/company-detail/OverviewTab';
@@ -96,14 +96,14 @@ const CompanyDetail: React.FC = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Batch events hook for notifications and UI updates
-  const { subscribeToBatch } = useBatchEvents();
-
   // Batch results
   const [spontaneousResults, setSpontaneousResults] = useState<SpontaneousResults | null>(null);
   const [sentimentResults, setSentimentResults] = useState<SentimentResults | null>(null);
   const [comparisonResults, setComparisonResults] = useState<ComparisonResults | null>(null);
   const [accuracyResults, setAccuracyResults] = useState<AccuracyResults | null>(null);
+
+  // Use batch events hook for socket-based updates
+  const { subscribeToBatch } = useBatchEvents();
 
   // Initialize tab from URL search params
   useEffect(() => {
@@ -114,6 +114,14 @@ const CompanyDetail: React.FC = () => {
   }, [searchParams]);
 
   // Fetch company data and prompt set
+  // Request notification permission when component mounts
+  useEffect(() => {
+    // Request notification permission if not already granted
+    requestNotificationPermission().then(permission => {
+      console.log(`Notification permission: ${permission}`);
+    });
+  }, []);
+  
   useEffect(() => {
     const fetchData = async () => {
       if (!id) return;
@@ -152,43 +160,260 @@ const CompanyDetail: React.FC = () => {
     if (!id) return;
 
     try {
+      // Run the full batch analysis (returns immediately with batchExecutionId)
       const { batchExecutionId } = await runFullBatchAnalysis(id);
-
-      // Subscribe to batch events for UI updates and notifications
+      
+      // Subscribe to batch events for real-time updates
       subscribeToBatch(batchExecutionId);
+      
+      console.log(`Started full batch analysis with ID: ${batchExecutionId}`);
 
-      // Subscribe to specific events for navigation
-      socketManager.subscribeToBatchEvents(batchExecutionId, (event: BatchEvent) => {
-        if (event.eventType === 'batch_completed') {
-          // Switch to batches tab after completion
-          setCurrentTab(TabValue.BATCHES);
-          setSearchParams({ tab: TabValue.BATCHES });
+        // If a batch is already running, update the UI to reflect this
+        if (alreadyRunning) {
+          setBatchStage('processing');
+          setBatchProgress(40); // Set higher progress since it's already running
         }
-      });
-    } catch (error) {
-      console.error('Failed to run batch analysis:', error);
+
+        // Set progress to show we're polling
+        setBatchProgress(30);
+
+        // Poll for completion with progress updates
+        let pollCount = 0;
+        const maxPolls = 30; // 5 minutes with 10-second interval
+        const pollInterval = 10000; // 10 seconds
+
+        const pollForResults = async () => {
+          const intervalId = setInterval(async () => {
+            try {
+              // Update progress to show polling activity
+              setBatchProgress(30 + Math.min(50 * (pollCount / maxPolls), 50)); // Progress from 30% to 80%
+
+              // Get batch execution status
+              const batchExecution = await getBatchExecution(batchExecutionId);
+
+              // If completed or failed, clear interval and proceed
+              if (batchExecution.status === 'completed' || batchExecution.status === 'failed') {
+                clearInterval(intervalId);
+
+                if (batchExecution.status === 'failed') {
+                  throw new Error('Batch execution failed');
+                }
+
+                // Parse the results
+                const spontaneousResult = batchExecution.finalResults.find(
+                  (r: any) => r.resultType === BatchType.SPONTANEOUS,
+                );
+                const sentimentResult = batchExecution.finalResults.find(
+                  (r: any) => r.resultType === BatchType.SENTIMENT,
+                );
+                const comparisonResult = batchExecution.finalResults.find(
+                  (r: any) => r.resultType === BatchType.COMPARISON,
+                );
+
+                if (batchType === 'full') {
+                  if (!spontaneousResult || !sentimentResult || !comparisonResult) {
+                    throw new Error(
+                      'Missing batch results. Not all pipeline results are available.',
+                    );
+                  }
+                } else if (batchType === BatchType.SPONTANEOUS && !spontaneousResult) {
+                  throw new Error('Spontaneous analysis failed.');
+                } else if (batchType === BatchType.SENTIMENT && !sentimentResult) {
+                  throw new Error('Sentiment analysis failed.');
+                } else if (batchType === BatchType.COMPARISON && !comparisonResult) {
+                  throw new Error('Comparison analysis failed.');
+                } else if (batchType === BatchType.ACCURACY) {
+                  const accuracyResult = batchExecution.finalResults.find(
+                    (r: any) => r.resultType === BatchType.ACCURACY,
+                  );
+                  if (!accuracyResult) {
+                    throw new Error('Accuracy analysis failed.');
+                  }
+                }
+
+                // Only parse and set results if present
+                if (spontaneousResult) {
+                  setSpontaneousResults(JSON.parse(spontaneousResult.result));
+                }
+                if (sentimentResult) {
+                  setSentimentResults(JSON.parse(sentimentResult.result));
+                }
+                if (comparisonResult) {
+                  setComparisonResults(JSON.parse(comparisonResult.result));
+                }
+                // Add the accuracy result handling
+                const accuracyResult = batchExecution.finalResults.find(
+                  (r: any) => r.resultType === BatchType.ACCURACY,
+                );
+                if (accuracyResult) {
+                  setAccuracyResults(JSON.parse(accuracyResult.result));
+                }
+
+                // Finalize
+                setBatchStage('finalizing');
+                setBatchProgress(90);
+
+                // Complete
+                setTimeout(() => {
+                  setBatchStage('completed');
+                  setBatchProgress(100);
+
+                  // Show a browser notification if the company name is available
+                  if (company?.brandName) {
+                    showBatchCompletionNotification(
+                      company.brandName,
+                      batchType === 'full' ? 'Full batch' : batchType,
+                      true
+                    );
+                  }
+
+                  // Switch to batches tab after completion
+                  setCurrentTab(TabValue.BATCHES);
+                  setSearchParams({ tab: TabValue.BATCHES });
+                }, 500);
+              }
+
+              pollCount++;
+              if (pollCount >= maxPolls) {
+                clearInterval(intervalId);
+                throw new Error('Batch execution timed out');
+              }
+            } catch (error) {
+              clearInterval(intervalId);
+              console.error('Polling error:', error);
+              setBatchStage('error');
+              setBatchError(
+                'Failed to complete the batch analysis. Please check the batch status later.',
+              );
+              
+              // Show error notification
+              if (company?.brandName) {
+                showBatchCompletionNotification(
+                  company.brandName,
+                  batchType === 'full' ? 'Full batch' : batchType,
+                  false
+                );
+              }
+            }
+          }, pollInterval);
+        };
+
+        // Start polling
+        pollForResults();
+      } catch (error) {
+        console.error('Failed to run batch analysis:', error);
+        setBatchStage('error');
+        setBatchError('Failed to complete the batch analysis. Please try again later.');
+        
+        // Show error notification
+        if (company?.brandName) {
+          showBatchCompletionNotification(
+            company.brandName,
+            batchType === 'full' ? 'Full batch' : batchType,
+            false
+          );
+        }
+      }
+    } catch (err) {
+      console.error('Failed to run batch analysis:', err);
+      setBatchStage('error');
+      setBatchError('Failed to complete the batch analysis. Please try again later.');
+      
+      // Show error notification
+      if (company?.brandName) {
+        showBatchCompletionNotification(
+          company.brandName,
+          batchType === 'full' ? 'Full batch' : batchType,
+          false
+        );
+      }
     }
   };
 
   const handleRunBatchWithEmail = async () => {
     if (!id) return;
+    setBatchType('full'); // Set batch type
 
     try {
-      const result = await runBatchWithEmailNotification(id);
+      // Initialize batch processing
+      setBatchProcessing(true);
+      setBatchStage('initializing');
+      setBatchProgress(10);
+      setBatchError(undefined);
 
-      if (!result.success) {
-        throw new Error(result.message || 'Failed to complete the batch process');
+      try {
+        // Run orchestrated batch with email notification
+        setBatchStage('email-notification');
+        setBatchProgress(30);
+
+        // This call runs all pipelines, creates a report, and sends an email notification
+        const result = await runBatchWithEmailNotification(id);
+
+        if (!result.success) {
+          throw new Error(result.message || 'Failed to complete the batch process');
+        }
+
+        // Update UI state with results - we don't have direct access to the results here
+        // so we'll show a message that the email has been sent
+
+        // Finalize
+        setBatchStage('finalizing');
+        setBatchProgress(90);
+
+        // Complete
+        setTimeout(() => {
+          setBatchStage('completed');
+          setBatchProgress(100);
+
+          // Show a browser notification if the company name is available
+          if (company?.brandName) {
+            showBatchCompletionNotification(
+              company.brandName,
+              'Email batch report',
+              true
+            );
+          }
+
+          // Switch to batches tab after completion
+          setCurrentTab(TabValue.BATCHES);
+          setSearchParams({ tab: TabValue.BATCHES });
+        }, 500);
+      } catch (error) {
+        console.error('Failed to run batch with email notification:', error);
+        setBatchStage('error');
+        setBatchError('Failed to complete the process. Please try again later.');
+        
+        // Show error notification
+        if (company?.brandName) {
+          showBatchCompletionNotification(
+            company.brandName,
+            'Email batch report',
+            false
+          );
+        }
       }
-
-      // Note: The email batch doesn't return a batchExecutionId directly
-      // The batch events will be picked up by the global event listener
-
-      // Switch to batches tab after completion
-      setCurrentTab(TabValue.BATCHES);
-      setSearchParams({ tab: TabValue.BATCHES });
-    } catch (error) {
-      console.error('Failed to run batch with email notification:', error);
+    } catch (err) {
+      console.error('Failed to run batch with email notification:', err);
+      setBatchStage('error');
+      setBatchError('Failed to complete the process. Please try again later.');
+      
+      // Show error notification
+      if (company?.brandName) {
+        showBatchCompletionNotification(
+          company.brandName,
+          'Email batch report',
+          false
+        );
+      }
     }
+  };
+
+  const handleBatchCompleted = () => {
+    setBatchProcessing(false);
+
+    // Switch to batches tab
+    setCurrentTab(TabValue.BATCHES);
+    setSearchParams({ tab: TabValue.BATCHES });
   };
 
   const handleDeleteClick = () => {
@@ -214,38 +439,110 @@ const CompanyDetail: React.FC = () => {
 
   const handleRunSingleBatch = async (type: BatchType) => {
     if (!id) return;
+    setBatchType(type); // Set batch type
 
     try {
-      let result;
+      // Initialize batch processing
+      setBatchProcessing(true);
+      setBatchStage('initializing');
+      setBatchProgress(10);
+      setBatchError(undefined);
 
-      // Run the appropriate pipeline and get results with batch execution ID
-      switch (type) {
-        case BatchType.SPONTANEOUS:
-          result = await runSpontaneousPipeline(id);
-          setSpontaneousResults(result);
-          break;
-        case BatchType.SENTIMENT:
-          result = await runSentimentPipeline(id);
-          setSentimentResults(result);
-          break;
-        case BatchType.COMPARISON:
-          result = await runComparisonPipeline(id);
-          setComparisonResults(result);
-          break;
-        case BatchType.ACCURACY:
-          result = await runAccuracyPipeline(id);
-          setAccuracyResults(result);
-          break;
+      try {
+        // Indicate we're starting the pipeline
+        setBatchStage('processing');
+        setBatchProgress(20);
+
+        // Start the appropriate pipeline (will poll internally)
+        // The frontend API functions now handle the polling internally
+        let result;
+
+        // Show polling progress while waiting
+        // Create a progress interval for visual feedback
+        const progressInterval = setInterval(() => {
+          setBatchProgress((prev) => {
+            // Progress from 20% to 80% during polling
+            return prev < 80 ? prev + 1 : prev;
+          });
+        }, 1000); // Update every second
+
+        try {
+          switch (type) {
+            case BatchType.SPONTANEOUS:
+              result = await runSpontaneousPipeline(id);
+              setSpontaneousResults(result);
+              break;
+            case BatchType.SENTIMENT:
+              result = await runSentimentPipeline(id);
+              setSentimentResults(result);
+              break;
+            case BatchType.COMPARISON:
+              result = await runComparisonPipeline(id);
+              setComparisonResults(result);
+              break;
+            case BatchType.ACCURACY:
+              result = await runAccuracyPipeline(id);
+              setAccuracyResults(result);
+              break;
+          }
+
+          // Clear the progress interval
+          clearInterval(progressInterval);
+
+          // Finalize
+          setBatchStage('finalizing');
+          setBatchProgress(90);
+
+          // Complete
+          setTimeout(() => {
+            setBatchStage('completed');
+            setBatchProgress(100);
+
+            // Show a browser notification if the company name is available
+            if (company?.brandName) {
+              showBatchCompletionNotification(
+                company.brandName,
+                type,
+                true
+              );
+            }
+
+            // Switch to batches tab after completion
+            setCurrentTab(TabValue.BATCHES);
+            setSearchParams({ tab: TabValue.BATCHES });
+          }, 500);
+        } catch (error) {
+          // Clear the progress interval if there's an error
+          clearInterval(progressInterval);
+          throw error;
+        }
+      } catch (error) {
+        console.error(`Failed to run ${type} batch:`, error);
+        setBatchStage('error');
+        setBatchError(`Failed to complete the ${type} analysis. Please try again later.`);
+        
+        // Show error notification
+        if (company?.brandName) {
+          showBatchCompletionNotification(
+            company.brandName,
+            type,
+            false
+          );
+        }
       }
-
-      // Note: Single pipeline results don't return batchExecutionId directly
-      // The batch events will be picked up by the global event listener
-
-      // Switch to batches tab after completion
-      setCurrentTab(TabValue.BATCHES);
-      setSearchParams({ tab: TabValue.BATCHES });
-    } catch (error) {
-      console.error(`Failed to run ${type} batch:`, error);
+    } catch (err) {
+      console.error(`Failed to run ${type} batch:`, err);
+      setBatchStage('error');
+      setBatchError(`Failed to complete the ${type} analysis. Please try again later.`);
+      
+      // Show error notification
+      if (company?.brandName) {
+        showBatchCompletionNotification(
+          company.brandName,
+          type,
+          false
+        );
+      }
     }
   };
 
@@ -325,6 +622,7 @@ const CompanyDetail: React.FC = () => {
                 color="primary"
                 startIcon={<PlayArrowIcon />}
                 onClick={handleRunBatchAnalysis}
+                disabled={batchProcessing}
                 size="large"
               >
                 {hasAllResults ? 'Refresh Analysis' : 'Run Analysis'}
@@ -335,6 +633,7 @@ const CompanyDetail: React.FC = () => {
                 color="secondary"
                 startIcon={<EmailIcon />}
                 onClick={handleRunBatchWithEmail}
+                disabled={batchProcessing}
                 size="large"
               >
                 Analysis + Email Report

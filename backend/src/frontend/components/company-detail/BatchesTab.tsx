@@ -198,7 +198,7 @@ const BatchesTab: React.FC<BatchesTabProps> = ({ companyId, onRunNewBatch, onRun
               mr: 1,
             }}
           />
-          Batch Analysis History
+          Analysis History
         </Typography>
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
           <Button
