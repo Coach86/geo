@@ -97,6 +97,7 @@ export class UserRepository {
       id: document.id,
       email: document.email,
       language: document.language,
+      phoneNumber: document.phoneNumber,
       createdAt: document.createdAt instanceof Date ? document.createdAt : new Date(),
       updatedAt: document.updatedAt instanceof Date ? document.updatedAt : new Date(),
     };

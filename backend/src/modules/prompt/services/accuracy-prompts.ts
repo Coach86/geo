@@ -5,19 +5,7 @@
 /**
  * System prompt for generating accuracy analysis prompts
  */
-export const accuracySystemPrompt = `You are an expert marketing strategist tasked with generating questions that help assess
-the factual accuracy of claims about a brand. Your goal is to create questions that will help analyze how accurately 
-information about a brand is represented across different models.
-
-The questions you generate should:
-- Focus on assessing factual accuracy of information about the brand
-- Include questions that can be verified with objective information
-- Cover core business aspects like products, services, industry positioning, and key differentiators
-- Be specific enough to evaluate the correctness of responses but open-ended enough to allow for detailed answers
-- NOT lead the response toward any particular sentiment
-- Be appropriate for the brand's market and industry context
-
-Create questions that will help determine how accurately a model represents factual information about the brand.`;
+export const accuracySystemPrompt = `You are an impartial analyst specializing in brand auditing.`;
 
 /**
  * User prompt template for generating accuracy analysis prompts
@@ -26,28 +14,52 @@ export const accuracyUserPrompt = ({
   market,
   language,
   brandName,
+  brandAttributes,
   count,
 }: {
   market: string;
   language: string;
   brandName: string;
+  brandAttributes: string[];
   count: number;
-}) => `Generate ${count} distinct questions to evaluate the factual accuracy of information about ${brandName}, 
-a company operating in the ${market} market. 
+}) => `
+## Your task:
+generate exactly ${count} factual questions in ${language} aimed at verifying the presence and accuracy of the publicly associated attributes of a company.
 
-## Language:
-**Question should be generated in ${language}.**
+## PARAMETERS
+- Brand name: ${brandName}
+- Relevant market (if applicable): ${market}
+- List of claimed attributes: ${brandAttributes.join(', ')}
 
-## Instructions:
-The questions should focus on assessing how accurately factual information about ${brandName} is presented, citing the market (${market}), including:
-- Core product/service offerings
-- Key business facts
-- Company history and background
-- Market positioning
-- Differentiating factors
+## GENERAL CONSTRAINTS
+1. The questions must enable confirmation or disproof of each listed attribute (even if the result is “information not found”).
+2. Use a journalistic, neutral, and clear style; avoid marketing jargon.
+3. Explicitly encourage the consultation of verifiable public sources: annual reports, official databases, specialized press, certifications, government statistics, etc.
+4. Each question must address a single topic (no compound questions) to ensure analytical clarity.
+5. Output the five questions as a numbered list only, nothing else.
 
-## Format:
-Return your response in the language of the market: ${language} as a valid JSON object with this structure:
+## MANDATORY STRUCTURE (fixed order)
+1. How do {{Brand}}'s products or services truly stand out from those of its competitors?
+2. How is {{Brand}} positioned within the {{Market}}, and what are its main differentiating factors?
+3. to be generated automatically by the AI
+4. to be generated automatically by the AI
+5. to be generated automatically by the AI
+
+## RULES FOR QUESTIONS 3 TO 5
+1. Do not rephrase or duplicate questions 1 and 2.
+2. Cover diverse angles:
+- at least one question about the products or services (other than #1)
+- at least one question about market positioning/market share (other than #2)
+– at least one question about a measurable impact (CSR, finances, certifications, governance…)
+3. Each question must target a single attribute or angle to avoid multiple-answer prompts.
+
+### ILLUSTRATIVE EXAMPLES FOR QUESTIONS 3–5 (do not copy verbatim)
+1. What public indicators confirm that {{Brand}} has reduced its carbon footprint by 30% since 2022, as stated in {{Brand_attributes}}?
+2. Do data from Prism’Emploi confirm {{Brand}}’s market share in the premium temporary work segment?
+3. Do external certifications (ISO 45001, Great Place to Work, etc.) concretely validate the human-centered approach claimed by {{Brand}}?
+
+## FORMAT:
+Return your response in ${language} ; as a valid JSON object with this structure:
 {
   "prompts": [
     "Question 1 text here",

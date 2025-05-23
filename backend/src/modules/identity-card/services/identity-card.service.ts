@@ -218,6 +218,57 @@ export class IdentityCardService {
   }
 
   /**
+   * Analyze URL and return identity card data without saving to database
+   */
+  async analyzeFromUrl(
+    url: string,
+    market: string,
+    language: string = 'en',
+    userId: string,
+  ): Promise<CompanyIdentityCard> {
+    try {
+      let scrapedData: ScrapedWebsite | undefined;
+
+      try {
+        // Try all URL variants for scraping
+        scrapedData = await tryFetchAndScrapeWithVariants(url);
+        if (scrapedData) {
+          this.logger.log(`Successfully scraped data from ${scrapedData.url}`);
+        } else {
+          throw new Error('All URL variants failed');
+        }
+      } catch (scrapingError) {
+        // Log the error but continue without scraped data
+        this.logger.warn(
+          `Failed to scrape URL ${url}: ${scrapingError.message}`,
+        );
+        // Create empty ScrapedWebsite object
+        scrapedData = {
+          title: '',
+          description: '',
+          keywords: [],
+          content: '',
+          url: url,
+        };
+      }
+
+      // Generate identity card data without saving
+      const identityCard = await this.generateIdentityCardWithCompetitors(
+        scrapedData,
+        url,
+        market,
+        language,
+        userId,
+      );
+
+      return identityCard;
+    } catch (error) {
+      this.logger.error(`Failed to analyze URL ${url}: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
    * Generate identity card with competitors using two separate LLM calls
    */
   private async generateIdentityCardWithCompetitors(

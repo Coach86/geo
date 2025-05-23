@@ -8,6 +8,7 @@
 // Export main templates
 export { default as BrandIntelligenceReport } from './templates/BrandIntelligenceReport';
 export { default as ReportAccessEmail } from './templates/ReportAccessEmail';
+export { default as MagicLinkEmail } from './templates/MagicLinkEmail';
 
 // Export individual components
 export { default as Layout } from './components/Layout';

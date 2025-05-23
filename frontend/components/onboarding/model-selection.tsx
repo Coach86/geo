@@ -45,7 +45,7 @@ export default function ModelSelection() {
     const updatedModels = [...formData.llmModels]
     const modelIndex = updatedModels.findIndex((model) => model.id === modelId)
 
-    if (modelIndex !== -1) {
+    if (modelIndex !== -1 && !updatedModels[modelIndex].comingSoon) {
       updatedModels[modelIndex].selected = !updatedModels[modelIndex].selected
       updateFormData({ llmModels: updatedModels })
     }
@@ -60,11 +60,13 @@ export default function ModelSelection() {
     updateFormData({ llmModels: updatedModels })
   }
 
-  // Select all models
+  // Select all models (excluding coming soon)
   const selectAllModels = () => {
     const updatedModels = [...formData.llmModels]
     updatedModels.forEach((model) => {
-      model.selected = true
+      if (!model.comingSoon) {
+        model.selected = true
+      }
     })
     updateFormData({ llmModels: updatedModels })
   }
@@ -87,8 +89,8 @@ export default function ModelSelection() {
     )
   })
 
-  // Count selected models
-  const selectedModelsCount = formData.llmModels.filter((model) => model.selected).length
+  // Count selected models (excluding coming soon)
+  const selectedModelsCount = formData.llmModels.filter((model) => model.selected && !model.comingSoon).length
 
   // Determine plan impact based on selected models count
   const getModelPlanImpact = () => {
@@ -493,10 +495,11 @@ export default function ModelSelection() {
                         className={`
                           ${index % 2 === 0 ? "bg-white" : "bg-gray-50"} 
                           ${model.selected ? "bg-accent-50 border-l-4 border-l-accent-500" : "border-l-4 border-l-transparent"} 
-                          ${hoveredRow === model.id ? "bg-gray-100" : ""}
+                          ${hoveredRow === model.id && !model.comingSoon ? "bg-gray-100" : ""}
+                          ${model.comingSoon ? "opacity-60" : ""}
                           transition-colors duration-100
                         `}
-                        onMouseEnter={() => setHoveredRow(model.id)}
+                        onMouseEnter={() => !model.comingSoon && setHoveredRow(model.id)}
                         onMouseLeave={() => setHoveredRow(null)}
                       >
                         <td className="p-3 border-b border-gray-200">
@@ -509,9 +512,14 @@ export default function ModelSelection() {
                             <div className="min-w-0">
                               <div className="font-medium text-sm flex items-center gap-1.5 truncate">
                                 {model.name}
-                                {model.new && (
+                                {model.new && !model.comingSoon && (
                                   <Badge className="bg-green-100 text-green-700 px-1 py-0 text-[10px] flex-shrink-0">
                                     New
+                                  </Badge>
+                                )}
+                                {model.comingSoon && (
+                                  <Badge className="bg-gray-100 text-gray-700 px-1 py-0 text-[10px] flex-shrink-0">
+                                    Coming Soon
                                   </Badge>
                                 )}
                               </div>
@@ -550,6 +558,7 @@ export default function ModelSelection() {
                             <Switch
                               checked={model.selected}
                               onCheckedChange={() => toggleModel(model.id)}
+                              disabled={model.comingSoon}
                               className="data-[state=checked]:bg-accent-600"
                             />
                           </div>
@@ -659,10 +668,11 @@ export default function ModelSelection() {
                         className={`
                           ${index % 2 === 0 ? "bg-white" : "bg-gray-50"} 
                           ${model.selected ? "bg-accent-50 border-l-4 border-l-accent-500" : "border-l-4 border-l-transparent"} 
-                          ${hoveredRow === model.id ? "bg-gray-100" : ""}
+                          ${hoveredRow === model.id && !model.comingSoon ? "bg-gray-100" : ""}
+                          ${model.comingSoon ? "opacity-60" : ""}
                           transition-colors duration-100
                         `}
-                        onMouseEnter={() => setHoveredRow(model.id)}
+                        onMouseEnter={() => !model.comingSoon && setHoveredRow(model.id)}
                         onMouseLeave={() => setHoveredRow(null)}
                       >
                         <td className="p-3 border-b border-gray-200">
@@ -675,7 +685,7 @@ export default function ModelSelection() {
                             <div>
                               <div className="font-medium text-sm flex items-center gap-1.5">
                                 {model.name}
-                                {model.new && (
+                                {model.new && !model.comingSoon && (
                                   <TooltipProvider>
                                     <Tooltip>
                                       <TooltipTrigger asChild>
@@ -683,6 +693,18 @@ export default function ModelSelection() {
                                       </TooltipTrigger>
                                       <TooltipContent>
                                         <p>Recently released model</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                )}
+                                {model.comingSoon && (
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Badge className="bg-gray-100 text-gray-700 px-1 py-0 text-[10px]">Coming Soon</Badge>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>This model will be available soon</p>
                                       </TooltipContent>
                                     </Tooltip>
                                   </TooltipProvider>
@@ -729,6 +751,7 @@ export default function ModelSelection() {
                             <Switch
                               checked={model.selected}
                               onCheckedChange={() => toggleModel(model.id)}
+                              disabled={model.comingSoon}
                               className="data-[state=checked]:bg-accent-600"
                             />
                           </div>

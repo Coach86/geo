@@ -131,6 +131,7 @@ export class PromptSetController {
           market: company.market,
           language: company.language,
           brandName: company.brandName,
+          brandAttributes: company.keyBrandAttributes,
           count: accuracyPromptCount,
         }),
       };

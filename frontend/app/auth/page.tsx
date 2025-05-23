@@ -8,6 +8,7 @@ import Link from "next/link";
 import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { sendMagicLink } from "@/lib/auth-api";
 
 export default function AuthPage() {
   const router = useRouter();
@@ -16,22 +17,35 @@ export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isMagicLinkSent, setIsMagicLinkSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleEmailSubmit = (e: React.FormEvent) => {
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(null);
 
-    // Simulate sending magic link
-    setTimeout(() => {
+    try {
+      const response = await sendMagicLink(email);
+      
+      if (response.success) {
+        setIsMagicLinkSent(true);
+        // Store user ID for potential use later
+        localStorage.setItem('pendingUserId', response.userId);
+      } else {
+        setError(response.message || 'Failed to send magic link');
+      }
+    } catch (error) {
+      console.error('Magic link error:', error);
+      setError(error instanceof Error ? error.message : 'Failed to send magic link');
+    } finally {
       setIsLoading(false);
-      setIsMagicLinkSent(true);
-    }, 1500);
+    }
   };
 
   const handleGoogleSignIn = () => {
     setIsLoading(true);
 
-    // Simulate Google sign-in
+    // TODO: Implement Google OAuth integration
     setTimeout(() => {
       setIsLoading(false);
       // Redirect to onboarding with the URL parameter
@@ -40,8 +54,9 @@ export default function AuthPage() {
   };
 
   const handleMagicLinkContinue = () => {
-    // Redirect to onboarding with the URL parameter
-    router.push(`/onboarding?url=${encodeURIComponent(urlParam)}`);
+    // This button is now just for show - users should click the link in their email
+    // The actual magic link will go to /auth/verify
+    alert('Please check your email and click the magic link to continue.');
   };
 
   return (
@@ -64,6 +79,13 @@ export default function AuthPage() {
 
           {!isMagicLinkSent ? (
             <>
+              {error && (
+                <div className="bg-red-50 text-red-700 p-4 rounded-lg mb-6">
+                  <p className="font-medium">Error</p>
+                  <p className="text-sm mt-1">{error}</p>
+                </div>
+              )}
+              
               <form onSubmit={handleEmailSubmit} className="mb-6">
                 <div className="mb-4">
                   <label

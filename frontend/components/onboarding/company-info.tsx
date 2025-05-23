@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useOnboarding } from "@/providers/onboarding-provider"
+import { useAuth } from "@/providers/auth-provider"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent } from "@/components/ui/card"
@@ -23,6 +24,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { FeatureComparisonDialog } from "@/components/shared/dialogs/feature-comparison-dialog"
+import { analyzeWebsite, type IdentityCardResponse } from "@/lib/auth-api"
 
 // Map of countries to their default languages
 const countryToLanguage: Record<string, string[]> = {
@@ -93,12 +95,24 @@ const languages = [
 export default function CompanyInfo() {
   const router = useRouter()
   const { formData, updateFormData } = useOnboarding()
+  const { token, isAuthenticated, isLoading: authLoading } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [isScraped, setIsScraped] = useState(false)
   const [showCountrySelector, setShowCountrySelector] = useState(false)
   const [selectedCountryForLanguages, setSelectedCountryForLanguages] = useState<string | null>(null)
   const [planImpact, setPlanImpact] = useState<string>("Starter")
   const [showPricingDialog, setShowPricingDialog] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [hasAnalyzed, setHasAnalyzed] = useState(false)
+
+  // Debug auth state
+  useEffect(() => {
+    console.log('CompanyInfo auth state:', { 
+      token: token ? 'present' : 'missing', 
+      isAuthenticated, 
+      authLoading 
+    })
+  }, [token, isAuthenticated, authLoading])
 
   // Fonction pour ajouter un nouveau marché
   const addMarket = (country: string) => {
@@ -164,45 +178,52 @@ export default function CompanyInfo() {
     }
   }, [formData.markets])
 
-  // Simuler le scraping du site web
-  useEffect(() => {
-    // Only run this effect if we have a website URL and haven't scraped yet
-    if (formData.website && !isScraped) {
-      // Set loading state
-      setIsLoading(true)
-
-      // Simulate API call delay with a fixed timeout
-      const timer = setTimeout(() => {
-        // Mock data that would be returned from scraping
-        const scrapedData = {
-          brandName: formData.website.includes("example.com")
-            ? "Example Company"
-            : formData.website
-                .replace(/https?:\/\/(www\.)?/, "")
-                .split(".")[0]
-                .charAt(0)
-                .toUpperCase() +
-              formData.website
-                .replace(/https?:\/\/(www\.)?/, "")
-                .split(".")[0]
-                .slice(1),
-          description:
-            "A leading provider of innovative solutions for businesses looking to optimize their operations and drive growth in the digital age.",
-          industry: "Technology",
+  // Handle website analysis with continue button
+  const handleAnalyzeWebsite = async () => {
+    if (!formData.website || !token || hasAnalyzed) return
+    
+    setIsLoading(true)
+    setError(null)
+    
+    try {
+      // Get the primary market and language for analysis
+      const primaryMarket = formData.markets[0]?.country || 'United States'
+      const primaryLanguage = formData.markets[0]?.languages[0] || 'English'
+      
+      const identityCard = await analyzeWebsite(
+        {
+          url: formData.website,
+          market: primaryMarket,
+          language: primaryLanguage,
+        },
+        token
+      )
+      
+      console.log('Identity card response:', identityCard)
+      console.log('Key brand attributes:', identityCard.keyBrandAttributes)
+      console.log('Competitors:', identityCard.competitors)
+      
+      // Update form data with the real identity card data
+      updateFormData({
+        brandName: identityCard.brandName || '',
+        description: identityCard.shortDescription || '',
+        industry: identityCard.industry || '',
+        analyzedData: {
+          keyBrandAttributes: identityCard.keyBrandAttributes || [],
+          competitors: identityCard.competitors || [],
+          fullDescription: identityCard.fullDescription || identityCard.longDescription || '',
         }
-
-        // Update form data with scraped data
-        updateFormData(scrapedData)
-
-        // Update states to indicate scraping is complete
-        setIsLoading(false)
-        setIsScraped(true)
-      }, 1500)
-
-      // Clean up the timer if the component unmounts
-      return () => clearTimeout(timer)
+      })
+      
+      setIsScraped(true)
+      setHasAnalyzed(true)
+    } catch (err) {
+      console.error('Identity card creation failed:', err)
+      setError(err instanceof Error ? err.message : 'Failed to analyze website')
+    } finally {
+      setIsLoading(false)
     }
-  }, [formData.website, isScraped, updateFormData])
+  }
 
   // Obtenir le label d'un pays à partir de sa valeur
   const getCountryLabel = (countryValue: string) => {
@@ -233,17 +254,77 @@ export default function CompanyInfo() {
             <label htmlFor="website" className="block text-sm font-medium text-gray-700 mb-1">
               What is your company website?
             </label>
-            <div className="relative">
+            <div className="relative mb-4">
               <Input
                 id="website"
                 type="url"
                 placeholder="https://example.com"
                 className="h-12 pl-10 text-base input-focus"
                 value={formData.website}
-                onChange={(e) => updateFormData({ website: e.target.value })}
+                onChange={(e) => {
+                  updateFormData({ website: e.target.value })
+                  setHasAnalyzed(false)
+                  setIsScraped(false)
+                  setError(null)
+                }}
+                disabled={isLoading}
               />
               <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
             </div>
+            
+            {/* Continue Button */}
+            {formData.website && !hasAnalyzed && (
+              <Button
+                onClick={handleAnalyzeWebsite}
+                disabled={isLoading || !token || authLoading}
+                className="w-full h-12 text-base font-medium"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                    Analyzing your website...
+                  </>
+                ) : authLoading ? (
+                  <>
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                    Checking authentication...
+                  </>
+                ) : !token ? (
+                  'Authentication required'
+                ) : (
+                  <>
+                    Continue
+                    <ArrowRight className="h-5 w-5 ml-2" />
+                  </>
+                )}
+              </Button>
+            )}
+            
+            {/* Debug info */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="mt-2 text-xs text-gray-500 bg-gray-50 p-2 rounded">
+                Debug: token={token ? 'present' : 'missing'}, auth={isAuthenticated ? 'yes' : 'no'}, loading={authLoading ? 'yes' : 'no'}
+              </div>
+            )}
+            
+            {/* Error Message */}
+            {error && (
+              <div className="mt-4 p-3 border border-red-200 bg-red-50 rounded-md flex items-start">
+                <AlertCircle className="h-5 w-5 text-red-500 mr-2 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-red-700">Analysis Failed</p>
+                  <p className="text-xs text-red-600 mt-1">{error}</p>
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0 mt-2 text-xs text-red-700 hover:text-red-900"
+                    onClick={handleAnalyzeWebsite}
+                  >
+                    Try again
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
