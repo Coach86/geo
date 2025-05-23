@@ -103,13 +103,17 @@ const AccuracyTab: React.FC<AccuracyTabProps> = ({ results }) => {
                 const models = Array.from(modelSet);
 
                 // Create a model-to-attribute score mapping
-                const modelAttributeScores: Record<string, Record<string, number>> = {};
+                // Refactored: Track both sum and count for averaging
+                const modelAttributeScores: Record<
+                  string,
+                  Record<string, { sum: number; count: number }>
+                > = {};
 
-                // Initialize scores
+                // Initialize scores and counts
                 models.forEach((model) => {
                   modelAttributeScores[model] = {};
                   attributes.forEach((attr) => {
-                    modelAttributeScores[model][attr] = 0;
+                    modelAttributeScores[model][attr] = { sum: 0, count: 0 };
                   });
                 });
 
@@ -120,10 +124,10 @@ const AccuracyTab: React.FC<AccuracyTabProps> = ({ results }) => {
                     result.attributeScores.forEach((attrScore) => {
                       const attr = attrScore.attribute;
                       if (!modelAttributeScores[model][attr]) {
-                        modelAttributeScores[model][attr] = 0;
+                        modelAttributeScores[model][attr] = { sum: 0, count: 0 };
                       }
-                      // Add the score, we'll calculate the average later
-                      modelAttributeScores[model][attr] = attrScore.score;
+                      modelAttributeScores[model][attr].sum += attrScore.score;
+                      modelAttributeScores[model][attr].count += 1;
                     });
                   }
                 });
@@ -158,7 +162,11 @@ const AccuracyTab: React.FC<AccuracyTabProps> = ({ results }) => {
                           <TableRow key={attrIdx} hover>
                             <TableCell sx={{ fontWeight: 'medium' }}>{attr}</TableCell>
                             {models.map((model, modelIdx) => {
-                              const score = modelAttributeScores[model][attr] || 0;
+                              const scoreObj = modelAttributeScores[model][attr] || {
+                                sum: 0,
+                                count: 0,
+                              };
+                              const avg = scoreObj.count > 0 ? scoreObj.sum / scoreObj.count : 0;
                               return (
                                 <TableCell key={modelIdx} align="center">
                                   <Box
@@ -166,19 +174,19 @@ const AccuracyTab: React.FC<AccuracyTabProps> = ({ results }) => {
                                       display: 'inline-block',
                                       backgroundColor: (() => {
                                         // Color scale from red to green
-                                        if (score >= 0.8) return '#4caf50'; // Good
-                                        if (score >= 0.6) return '#8bc34a'; // Acceptable
-                                        if (score >= 0.4) return '#ffeb3b'; // Warning
-                                        if (score >= 0.2) return '#ff9800'; // Poor
+                                        if (avg >= 0.8) return '#4caf50'; // Good
+                                        if (avg >= 0.6) return '#8bc34a'; // Acceptable
+                                        if (avg >= 0.4) return '#ffeb3b'; // Warning
+                                        if (avg >= 0.2) return '#ff9800'; // Poor
                                         return '#f44336'; // Bad
                                       })(),
-                                      color: score > 0.5 ? 'white' : 'black',
+                                      color: avg > 0.5 ? 'white' : 'black',
                                       borderRadius: '4px',
                                       padding: '2px 6px',
                                       minWidth: '40px',
                                     }}
                                   >
-                                    {(score * 100).toFixed(0)}%
+                                    {(avg * 100).toFixed(0)}%
                                   </Box>
                                 </TableCell>
                               );
