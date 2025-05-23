@@ -1,4 +1,4 @@
-import BrandReport from "@/components/brand-report";
+import BrandReport from "@/components/reports/brand-report";
 
 export default function Home() {
   return (

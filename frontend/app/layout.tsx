@@ -1,35 +1,44 @@
-import type React from "react";
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import { ThemeProvider } from "@/components/theme-provider";
-import SaasSidebar from "@/components/saas-sidebar";
+import type React from "react"
+import type { Metadata } from "next"
+import { Plus_Jakarta_Sans, Roboto_Mono } from "next/font/google"
+import "./globals.css"
+import { ThemeProvider } from "@/providers/theme-provider"
 
-const inter = Inter({ subsets: ["latin"] });
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-plus-jakarta",
+  display: "swap",
+})
+
+const robotoMono = Roboto_Mono({
+  subsets: ["latin"],
+  variable: "--font-roboto-mono",
+  display: "swap",
+})
 
 export const metadata: Metadata = {
-  title: "Contexte.ai — Brand Intelligence Report",
-  description: "Brand Intelligence in the LLM Era",
+  title: "GPT Rush - AI Brand Perception Analysis",
+  description: "Discover what AI models tell about your brand. Get actionable insights on how AI perceives your brand.",
   generator: "v0.dev",
-};
+}
 
 export default function RootLayout({
   children,
-}: {
-  children: React.ReactNode;
-}) {
+}: Readonly<{
+  children: React.ReactNode
+}>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className={`${plusJakartaSans.variable} ${robotoMono.variable} font-sans`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
           enableSystem
           disableTransitionOnChange
         >
-          <main>{children}</main>
+          {children}
         </ThemeProvider>
       </body>
     </html>
-  );
+  )
 }

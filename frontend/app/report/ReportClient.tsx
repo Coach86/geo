@@ -11,7 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import BrandReport from "@/components/brand-report";
+import BrandReport from "@/components/reports/brand-report";
 
 // Interface for report data with required fields for the brand report
 interface ReportData {
