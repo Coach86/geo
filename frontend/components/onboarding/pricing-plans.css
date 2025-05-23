@@ -1,0 +1,62 @@
+/* Smooth transitions for pricing cards */
+.pricing-card {
+  transition: all 0.3s ease;
+}
+
+.pricing-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Highlight animation for recommended plan */
+@keyframes pulse-border {
+  0% {
+    box-shadow: 0 0 0 0 rgba(123, 97, 255, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(123, 97, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(123, 97, 255, 0);
+  }
+}
+
+.recommended-plan {
+  animation: pulse-border 2s infinite;
+}
+
+/* Improve table appearance */
+.feature-table th,
+.feature-table td {
+  padding: 0.75rem;
+  text-align: center;
+}
+
+.feature-table th:first-child,
+.feature-table td:first-child {
+  text-align: left;
+}
+
+.feature-table tr:nth-child(even) {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Improve mobile tabs */
+.mobile-tabs [data-state="active"] {
+  background-color: #f5f3ff;
+  color: #6d28d9;
+  font-weight: 500;
+}
+
+/* Improve feature list */
+.feature-list li {
+  position: relative;
+  padding-left: 1.5rem;
+}
+
+.feature-list li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: #7b61ff;
+}

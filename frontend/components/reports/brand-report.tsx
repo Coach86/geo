@@ -1,14 +1,14 @@
 "use client";
 
-import ReportHeader from "./report-sections/report-header";
-import ExecutiveSummary from "./report-sections/executive-summary";
-import PulseSection from "./report-sections/pulse-section";
-import ToneSection from "./report-sections/tone-section";
-import AccordSection from "./report-sections/accord-section";
-import ArenaSection from "./report-sections/arena-section";
-import BrandBattleSection from "./report-sections/brand-battle-section";
-import LiftSection from "./report-sections/lift-section";
-import TraceSection from "./report-sections/trace-section";
+import ReportHeader from "./sections/report-header";
+import ExecutiveSummary from "./sections/executive-summary";
+import PulseSection from "./sections/pulse-section";
+import ToneSection from "./sections/tone-section";
+import AccordSection from "./sections/accord-section";
+import ArenaSection from "./sections/arena-section";
+import BrandBattleSection from "./sections/brand-battle-section";
+import LiftSection from "./sections/lift-section";
+import TraceSection from "./sections/trace-section";
 import { ChevronUp } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
