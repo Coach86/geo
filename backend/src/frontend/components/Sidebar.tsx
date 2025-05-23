@@ -13,12 +13,12 @@ import {
   Stack,
   alpha,
 } from '@mui/material';
-import BusinessIcon from '@mui/icons-material/Business';
 import PeopleIcon from '@mui/icons-material/People';
 import AppIcon from '@mui/icons-material/Apps';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import { useThemeContext } from '../utils/ThemeContext';
+import logo from '../assets/logo-small.png';
 
 const DRAWER_WIDTH = 280;
 
@@ -55,50 +55,7 @@ const Sidebar: React.FC = () => {
           alignItems: 'center',
         }}
       >
-        <Box
-          sx={{
-            width: 32,
-            height: 32,
-            mr: 1.5,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <svg
-            width="32"
-            height="32"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            style={{ display: 'block' }}
-          >
-            <path
-              d="M12 2L2 7L12 12L22 7L12 2Z"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <path
-              d="M2 17L12 22L22 17"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <path
-              d="M2 12L12 17L22 12"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </Box>
-        <Typography variant="h6" sx={{ color: theme.palette.text.primary, fontWeight: 700 }}>
-          YOMA
-        </Typography>
+        <img src={logo} alt="Logo" style={{ width: '50%' }} />
       </Box>
 
       {/* Navigation */}

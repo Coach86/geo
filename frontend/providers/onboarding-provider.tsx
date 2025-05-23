@@ -46,6 +46,7 @@ export type FormData = {
     recommended: boolean
     new: boolean
     selected: boolean
+    comingSoon?: boolean
   }[]
   email: string
   phoneNumber: string
@@ -53,6 +54,11 @@ export type FormData = {
   country?: string
   language?: string
   isEditing?: boolean
+  analyzedData?: {
+    keyBrandAttributes: string[]
+    competitors: string[]
+    fullDescription?: string
+  }
 }
 
 // Define the context type
@@ -65,6 +71,7 @@ type OnboardingContextType = {
   savedConfigs: FormData[]
   addNewConfig: () => void
   setEditingMode: (isEditing: boolean, configId?: string) => void
+  canNavigateFromStep: (stepNumber: number) => boolean
 }
 
 // Default form data
@@ -135,6 +142,7 @@ const defaultFormData: FormData = {
       recommended: true,
       new: false,
       selected: false,
+      comingSoon: true,
     },
     {
       id: "gemini15pro",
@@ -149,6 +157,7 @@ const defaultFormData: FormData = {
       recommended: true,
       new: true,
       selected: false,
+      comingSoon: true,
     },
     {
       id: "perplexity",
@@ -177,6 +186,7 @@ const defaultFormData: FormData = {
       recommended: false,
       new: false,
       selected: false,
+      comingSoon: true,
     },
     {
       id: "llama3",
@@ -191,6 +201,7 @@ const defaultFormData: FormData = {
       recommended: false,
       new: true,
       selected: false,
+      comingSoon: true,
     },
     {
       id: "grok15",
@@ -205,6 +216,7 @@ const defaultFormData: FormData = {
       recommended: false,
       new: true,
       selected: false,
+      comingSoon: true,
     },
     {
       id: "gpt35turbo",
@@ -219,6 +231,7 @@ const defaultFormData: FormData = {
       recommended: false,
       new: false,
       selected: false,
+      comingSoon: true,
     },
     {
       id: "claude3sonnet",
@@ -247,6 +260,7 @@ const defaultFormData: FormData = {
       recommended: false,
       new: true,
       selected: false,
+      comingSoon: true,
     },
   ],
   email: "",
@@ -265,6 +279,7 @@ const OnboardingContext = createContext<OnboardingContextType>({
   savedConfigs: [],
   addNewConfig: () => {},
   setEditingMode: () => {},
+  canNavigateFromStep: () => true,
 })
 
 // Create a provider component
@@ -280,6 +295,20 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   // Load data from localStorage on initial render
   useEffect(() => {
     try {
+      // Check if this is a new version that requires localStorage reset
+      const currentVersion = "v2.0-models-update"
+      const savedVersion = localStorage.getItem("onboardingVersion")
+      
+      if (savedVersion !== currentVersion) {
+        // Clear old data and set new version
+        localStorage.removeItem("onboardingStep")
+        localStorage.removeItem("onboardingData")
+        localStorage.removeItem("savedConfigs")
+        localStorage.setItem("onboardingVersion", currentVersion)
+        console.log("Cleared old onboarding data due to version update")
+        return
+      }
+
       const savedStep = localStorage.getItem("onboardingStep")
       const savedData = localStorage.getItem("onboardingData")
       const savedConfigsData = localStorage.getItem("savedConfigs")
@@ -289,11 +318,41 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       }
 
       if (savedData) {
-        setFormData(JSON.parse(savedData))
+        const parsedData = JSON.parse(savedData)
+        // Merge with default data to ensure new properties like comingSoon are applied
+        const mergedData = {
+          ...defaultFormData,
+          ...parsedData,
+          // Ensure llmModels are properly merged with comingSoon properties
+          llmModels: defaultFormData.llmModels.map(defaultModel => {
+            const savedModel = parsedData.llmModels?.find((m: any) => m.id === defaultModel.id)
+            return {
+              ...defaultModel,
+              ...savedModel,
+              // Force comingSoon from defaults (this is the important part)
+              comingSoon: defaultModel.comingSoon
+            }
+          })
+        }
+        setFormData(mergedData)
       }
 
       if (savedConfigsData) {
-        setSavedConfigs(JSON.parse(savedConfigsData))
+        const parsedConfigs = JSON.parse(savedConfigsData)
+        // Update saved configs to include comingSoon properties
+        const updatedConfigs = parsedConfigs.map((config: any) => ({
+          ...config,
+          llmModels: defaultFormData.llmModels.map(defaultModel => {
+            const savedModel = config.llmModels?.find((m: any) => m.id === defaultModel.id)
+            return {
+              ...defaultModel,
+              ...savedModel,
+              // Force comingSoon from defaults
+              comingSoon: defaultModel.comingSoon
+            }
+          })
+        }))
+        setSavedConfigs(updatedConfigs)
       }
     } catch (error) {
       console.error("Error loading onboarding data from localStorage:", error)
@@ -393,6 +452,19 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  // Function to check if navigation from a step is allowed
+  const canNavigateFromStep = (stepNumber: number): boolean => {
+    switch (stepNumber) {
+      case 1:
+        // For step 1 (Company), user can only navigate if:
+        // 1. They have a website AND
+        // 2. The website has been analyzed (analyzedData exists)
+        return !!(formData.website && formData.analyzedData)
+      default:
+        return true
+    }
+  }
+
   return (
     <OnboardingContext.Provider
       value={{
@@ -404,6 +476,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
         savedConfigs,
         addNewConfig,
         setEditingMode,
+        canNavigateFromStep,
       }}
     >
       {children}

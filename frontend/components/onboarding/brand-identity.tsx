@@ -14,17 +14,47 @@ export default function BrandIdentity() {
   const [editableValues, setEditableValues] = useState<{ [key: string]: string }>({})
   const [editingStates, setEditingStates] = useState<{ [key: string]: boolean }>({})
 
-  // Auto-select the first 3 suggested attributes on initial load
+  // Get analyzed data from the identity card
+  const analyzedAttributes = formData.analyzedData?.keyBrandAttributes || []
+  const analyzedCompetitors = formData.analyzedData?.competitors || []
+  
+  // Debug logging
+  console.log('Brand Identity - FormData:', formData)
+  console.log('Brand Identity - Analyzed Attributes:', analyzedAttributes)
+  console.log('Brand Identity - Analyzed Competitors:', analyzedCompetitors)
+  
+  // Auto-populate attributes and competitors from analysis on initial load
   useEffect(() => {
-    if (formData.attributes.length === 0 && suggestedAttributes.length > 0) {
-      const attributesToAdd = suggestedAttributes.slice(0, 3)
-      updateFormData({
-        attributes: attributesToAdd,
-      })
+    // Check if we have analyzed data and haven't already populated from it
+    const hasAnalyzedData = analyzedAttributes.length > 0 || analyzedCompetitors.length > 0
+    const hasDefaultCompetitors = formData.competitors.some(comp => comp.name.startsWith('Competitor '))
+    
+    if (hasAnalyzedData && (formData.attributes.length === 0 || hasDefaultCompetitors)) {
+      const updates: any = {}
+      
+      // Populate attributes from analysis
+      if (analyzedAttributes.length > 0 && formData.attributes.length === 0) {
+        const attributesToAdd = analyzedAttributes.slice(0, 5) // Max 5 attributes
+        updates.attributes = attributesToAdd
+      }
+      
+      // Populate competitors from analysis (replace default ones)
+      if (analyzedCompetitors.length > 0 && hasDefaultCompetitors) {
+        const competitorsToAdd = analyzedCompetitors.slice(0, 5).map((competitor, index) => ({
+          name: competitor,
+          selected: index < 5, // Select first 5
+        }))
+        updates.competitors = competitorsToAdd
+      }
+      
+      if (Object.keys(updates).length > 0) {
+        console.log('Populating from analyzed data:', updates)
+        updateFormData(updates)
+      }
     }
-  }, [])
+  }, [analyzedAttributes.length, analyzedCompetitors.length, formData.attributes.length, formData.competitors])
 
-  // Suggested attributes - phrases selected by default
+  // Fallback suggested attributes if no analysis data available
   const suggestedAttributes = [
     "Innovative and forward-thinking",
     "Reliable and trustworthy",
@@ -37,6 +67,12 @@ export default function BrandIdentity() {
     "Scalable for growing businesses",
     "Customizable to specific needs",
   ].filter((attr) => !formData.attributes.includes(attr))
+
+  // Combine analyzed attributes with suggestions for display
+  const displayAttributes = [
+    ...analyzedAttributes.filter((attr) => !formData.attributes.includes(attr)),
+    ...suggestedAttributes
+  ].slice(0, 5 - formData.attributes.length)
 
   // Handle adding a new attribute
   const handleAddAttribute = (attribute: string) => {
@@ -120,8 +156,18 @@ export default function BrandIdentity() {
               <Tag className="h-5 w-5 text-accent-600" />
               <h2 className="text-xl font-semibold text-mono-900">Brand Attributes</h2>
               <Badge className="bg-accent-100 text-accent-700 ml-2">{formData.attributes.length}/5</Badge>
+              {analyzedAttributes.length > 0 && (
+                <Badge className="bg-secondary-100 text-secondary-700 ml-1">
+                  AI Analyzed
+                </Badge>
+              )}
             </div>
-            <p className="text-sm text-gray-500 mb-4">Feel free to edit our suggestions</p>
+            <p className="text-sm text-gray-500 mb-4">
+              {analyzedAttributes.length > 0 
+                ? "Based on your website analysis - feel free to edit or add more" 
+                : "Feel free to edit our suggestions"
+              }
+            </p>
 
             <div className="mb-4">
               <div className="relative">
@@ -158,7 +204,7 @@ export default function BrandIdentity() {
 
             {/* Liste d'attributs avec le nouveau style UX */}
             <div className="space-y-3">
-              {[...formData.attributes, ...suggestedAttributes.slice(0, 5 - formData.attributes.length)].map(
+              {[...formData.attributes, ...displayAttributes].map(
                 (attribute, index) => {
                   const isSelected = formData.attributes.includes(attribute)
                   const isEditing = editingStates[attribute] || false
@@ -253,8 +299,18 @@ export default function BrandIdentity() {
               <Badge className="bg-accent-100 text-accent-700 ml-2">
                 {formData.competitors.filter((comp) => comp.selected).length}/5
               </Badge>
+              {analyzedCompetitors.length > 0 && (
+                <Badge className="bg-secondary-100 text-secondary-700 ml-1">
+                  AI Analyzed
+                </Badge>
+              )}
             </div>
-            <p className="text-sm text-gray-500 mb-4">Select up to 5 main competitors</p>
+            <p className="text-sm text-gray-500 mb-4">
+              {analyzedCompetitors.length > 0 
+                ? "Based on your website analysis - you can add, remove or modify these" 
+                : "Select up to 5 main competitors"
+              }
+            </p>
 
             <div className="mb-4">
               <div className="relative">

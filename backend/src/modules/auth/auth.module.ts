@@ -8,6 +8,7 @@ import { TokenService } from './services/token.service';
 import { LocalStrategy } from './strategies/local.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { AuthController } from './controllers/auth.controller';
+import { PublicAuthController } from './controllers/public-auth.controller';
 import { TokenController } from './controllers/token.controller';
 import { TokenAuthGuard } from './guards/token-auth.guard';
 import { Admin, AdminSchema } from './schemas/admin.schema';
@@ -36,7 +37,7 @@ import { AccessTokenRepository } from './repositories/access-token.repository';
     UserModule,
   ],
   providers: [AuthService, TokenService, LocalStrategy, JwtStrategy, TokenAuthGuard, AdminRepository, AccessTokenRepository],
-  controllers: [AuthController, TokenController],
+  controllers: [AuthController, PublicAuthController, TokenController],
   exports: [AuthService, TokenService, TokenAuthGuard, AdminRepository, AccessTokenRepository],
 })
 export class AuthModule {}

@@ -2,6 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
+import { UpdatePhoneDto } from '../dto/update-phone.dto';
 import { UserResponseDto } from '../dto/user-response.dto';
 import { UserRepository } from '../repositories/user.repository';
 import { UserDocument } from '../schemas/user.schema';
@@ -111,12 +112,40 @@ export class UserService {
       const updateData = {
         ...(updateUserDto.email && { email: updateUserDto.email }),
         ...(updateUserDto.language && { language: updateUserDto.language }),
+        ...(updateUserDto.phoneNumber !== undefined && { phoneNumber: updateUserDto.phoneNumber }),
       };
 
       const updatedUser = await this.userRepository.update(id, updateData);
       return this.mapToResponseDto(updatedUser);
     } catch (error) {
       this.logger.error(`Failed to update user: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Update user phone number
+   * @param id - User ID
+   * @param updatePhoneDto - Phone number update data
+   * @returns Updated user
+   */
+  async updatePhone(id: string, updatePhoneDto: UpdatePhoneDto): Promise<UserResponseDto> {
+    try {
+      this.logger.log(`Updating phone number for user: ${id}`);
+      
+      // Check if user exists
+      await this.findOne(id);
+
+      const updateData = {
+        phoneNumber: updatePhoneDto.phoneNumber,
+      };
+
+      const updatedUser = await this.userRepository.update(id, updateData);
+      this.logger.log(`Phone number updated successfully for user: ${id}`);
+      
+      return this.mapToResponseDto(updatedUser);
+    } catch (error) {
+      this.logger.error(`Failed to update phone number: ${error.message}`, error.stack);
       throw error;
     }
   }
@@ -155,6 +184,7 @@ export class UserService {
       id: entity.id,
       email: entity.email,
       language: entity.language,
+      phoneNumber: entity.phoneNumber,
       createdAt: entity.createdAt.toISOString(),
       updatedAt: entity.updatedAt.toISOString(),
       companyIds,

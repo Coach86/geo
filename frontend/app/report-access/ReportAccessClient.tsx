@@ -81,18 +81,19 @@ function ReportAccess() {
         const result: TokenValidationResult = await response.json();
         setTokenResult(result);
 
-        // If token is valid, redirect to the report page
+        // If token is valid, redirect appropriately
         if (result.valid) {
           // Get reportId from search params if available
           const reportId = searchParams.get("reportId");
 
-          // Redirect to the report page with the token as a query parameter
-          // This will allow the report page to fetch the data using the token
           if (reportId) {
+            // If reportId is provided, this is a direct report access
             router.push(`/report?token=${token}&reportId=${reportId}`);
           } else {
-            // If no reportId specified, go to reports list
-            router.push(`/reports?token=${token}`);
+            // If no reportId, this is likely a magic link for authentication
+            // Redirect to auth verification page with the token
+            const urlParam = searchParams.get("url") || "";
+            router.push(`/auth/verify?token=${token}&url=${encodeURIComponent(urlParam)}`);
           }
         }
       } catch (err) {

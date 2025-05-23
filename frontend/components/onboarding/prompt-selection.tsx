@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useOnboarding } from "@/providers/onboarding-provider"
+import { useAuth } from "@/providers/auth-provider"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
@@ -11,9 +12,11 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { FeatureComparisonDialog } from "@/components/shared/dialogs/feature-comparison-dialog"
+import { generatePrompts, type GeneratePromptsRequest } from "@/lib/auth-api"
 
 export default function PromptSelection() {
   const { formData, updateFormData } = useOnboarding()
+  const { token, isAuthenticated, isLoading: authLoading } = useAuth()
   const router = useRouter()
   const [editingPromptIndex, setEditingPromptIndex] = useState<number | null>(null)
   const [editingPromptType, setEditingPromptType] = useState<"visibility" | "perception" | "comparison" | null>(null)
@@ -22,6 +25,7 @@ export default function PromptSelection() {
   const [isLoading, setIsLoading] = useState(true)
   const [showPricingDialog, setShowPricingDialog] = useState(false)
   const [newVisibilityPrompt, setNewVisibilityPrompt] = useState("")
+  const [error, setError] = useState<string | null>(null)
 
   // Count selected items for plan impact
   const selectedVisibilityCount = formData.visibilityPrompts?.filter((p) => p.selected).length || 0
@@ -42,14 +46,56 @@ export default function PromptSelection() {
 
   const promptPlanImpact = getPromptPlanImpact()
 
-  // Simuler le chargement des prompts générés par les LLMs
+  // Generate prompts when component loads
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false)
-    }, 3500) // 3.5 secondes de chargement
+    const generatePromptsForBrand = async () => {
+      if (!token || authLoading || !formData.brandName || !formData.website) {
+        return
+      }
 
-    return () => clearTimeout(timer)
-  }, [])
+      try {
+        setIsLoading(true)
+        setError(null)
+
+        // Build the request from analyzed data or form data
+        const request: GeneratePromptsRequest = {
+          brandName: formData.brandName,
+          website: formData.website,
+          industry: formData.industry,
+          market: formData.markets?.[0]?.country || 'United States',
+          language: formData.markets?.[0]?.languages?.[0] || 'English',
+          keyBrandAttributes: formData.analyzedData?.keyBrandAttributes || formData.attributes,
+          competitors: formData.analyzedData?.competitors || formData.competitors?.filter(c => c.selected).map(c => c.name) || [],
+          shortDescription: formData.description,
+          fullDescription: formData.analyzedData?.fullDescription || formData.description
+        }
+
+        const response = await generatePrompts(request, token)
+        
+        // Map backend response to frontend format
+        const visibilityPrompts = [
+          ...response.spontaneous.map(text => ({ text, selected: true })),
+        ]
+        
+        const perceptionPrompts = [
+          ...response.direct.map(text => ({ text, selected: true })),
+        ]
+        
+        // Update form data with generated prompts
+        updateFormData({
+          visibilityPrompts,
+          perceptionPrompts
+        })
+      } catch (err) {
+        console.error('Error generating prompts:', err)
+        setError(err instanceof Error ? err.message : 'Failed to generate prompts')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    generatePromptsForBrand()
+  }, [token, authLoading, formData.brandName, formData.website])
 
   // Toggle visibility prompt selection
   const toggleVisibilityPrompt = (index: number) => {
@@ -162,17 +208,21 @@ export default function PromptSelection() {
     setNewVisibilityPrompt("")
   }
 
-  if (isLoading) {
+  if (isLoading || authLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 animate-fade-in">
         <div className="w-16 h-16 mb-8 relative">
           <div className="absolute inset-0 rounded-full border-4 border-t-accent-500 border-r-accent-300 border-b-accent-200 border-l-accent-100 animate-spin"></div>
           <MessageSquare className="h-8 w-8 text-accent-500 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
         </div>
-        <h2 className="text-xl font-semibold mb-3 text-mono-900">Generating prompts...</h2>
+        <h2 className="text-xl font-semibold mb-3 text-mono-900">
+          {authLoading ? 'Checking authentication...' : 'Generating prompts...'}
+        </h2>
         <p className="text-mono-600 text-center max-w-md">
-          Our AI is analyzing your brand profile and generating relevant prompts to test your brand's visibility and
-          perception.
+          {authLoading 
+            ? 'Please wait while we verify your authentication.'
+            : 'Our AI is analyzing your brand profile and generating relevant prompts to test your brand\'s visibility and perception.'
+          }
         </p>
         <div className="mt-6 flex flex-col items-center">
           <div className="flex items-center gap-2 mb-2">
@@ -182,6 +232,48 @@ export default function PromptSelection() {
           </div>
           <p className="text-sm text-mono-500">This may take a few seconds</p>
         </div>
+      </div>
+    )
+  }
+
+  // Show error state if there's an error
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 animate-fade-in">
+        <div className="w-16 h-16 mb-8 flex items-center justify-center bg-red-100 rounded-full">
+          <AlertCircle className="h-8 w-8 text-red-500" />
+        </div>
+        <h2 className="text-xl font-semibold mb-3 text-mono-900">Failed to generate prompts</h2>
+        <p className="text-mono-600 text-center max-w-md mb-6">
+          {error}
+        </p>
+        <Button 
+          onClick={() => window.location.reload()} 
+          className="bg-accent-600 hover:bg-accent-700 text-white"
+        >
+          Try again
+        </Button>
+      </div>
+    )
+  }
+
+  // Show missing brand data state
+  if (!formData.brandName || !formData.website) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 animate-fade-in">
+        <div className="w-16 h-16 mb-8 flex items-center justify-center bg-yellow-100 rounded-full">
+          <AlertCircle className="h-8 w-8 text-yellow-500" />
+        </div>
+        <h2 className="text-xl font-semibold mb-3 text-mono-900">Brand information missing</h2>
+        <p className="text-mono-600 text-center max-w-md mb-6">
+          We need your brand information and website to generate relevant prompts. Please complete the previous steps first.
+        </p>
+        <Button 
+          onClick={() => router.push('/onboarding')} 
+          className="bg-accent-600 hover:bg-accent-700 text-white"
+        >
+          Go back to setup
+        </Button>
       </div>
     )
   }

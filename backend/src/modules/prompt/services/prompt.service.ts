@@ -133,7 +133,7 @@ export class PromptService implements OnModuleInit {
     this.logger.log(`Cleaned up prompt sets for deleted company ${companyId}`);
   }
 
-  private async generatePromptSet(company: CompanyIdentityCard) {
+  async generatePromptSet(company: CompanyIdentityCard) {
     // Parse company info to ensure we have all fields
     const brandName = company.brandName;
     const industry = company.industry;
@@ -169,7 +169,13 @@ export class PromptService implements OnModuleInit {
         language,
         this.comparisonPromptCount,
       ),
-      this.generateAccuracyPrompts(brandName, market, language, this.accuracyPromptCount),
+      this.generateAccuracyPrompts(
+        brandName,
+        market,
+        language,
+        keyBrandAttributes,
+        this.accuracyPromptCount,
+      ),
       this.generateBrandBattlePrompts(
         brandName,
         competitors,
@@ -286,6 +292,7 @@ export class PromptService implements OnModuleInit {
     brandName: string,
     market: string,
     language: string,
+    brandAttributes: string[],
     count: number,
   ): Promise<string[]> {
     // Define our schema for the LLM output
@@ -300,6 +307,7 @@ export class PromptService implements OnModuleInit {
         market,
         language,
         brandName,
+        brandAttributes,
         count,
       }),
       promptsSchema,

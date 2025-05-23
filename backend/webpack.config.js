@@ -32,8 +32,16 @@ module.exports = {
       {
         test: /\.css$/,
         use: ['style-loader', 'css-loader']
+      },
+      // Image asset rule
+      {
+        test: /\.(png|jpe?g|gif|svg)$/i,
+        type: 'asset/resource',
+        generator: {
+          filename: 'static/images/[hash][ext][query]'
+        }
       }
-    ]
+    ] 
   },
   plugins: [
     // Clean JS files and HTML, but preserve other static assets

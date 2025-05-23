@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useOnboarding } from "@/providers/onboarding-provider"
+import { useAuth } from "@/providers/auth-provider"
 import { Badge } from "@/components/ui/badge"
 import {
   Check,
@@ -16,10 +17,12 @@ import {
   Eye,
   ArrowLeft,
   ArrowRight,
+  Loader2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { createIdentityCard, type CreateFullIdentityCardRequest } from "@/lib/auth-api"
 
 // Ajouter ces imports
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -28,11 +31,16 @@ import { AlertCircle } from "lucide-react"
 
 export default function Confirmation() {
   const { formData, savedConfigs, addNewConfig, setFormData, setEditingMode, setCurrentStep } = useOnboarding()
+  const { token, isAuthenticated, isLoading: authLoading } = useAuth()
   const router = useRouter()
 
   // État pour suivre la configuration actuellement affichée
   const [currentConfigIndex, setCurrentConfigIndex] = useState<number>(0)
   const [viewingConfig, setViewingConfig] = useState<boolean>(false)
+  
+  // État pour gérer les appels d'API
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [generationError, setGenerationError] = useState<string | null>(null)
 
   // Garder une copie locale des configurations pour éviter les problèmes lors de la sélection
   const [allConfigs, setAllConfigs] = useState([])
@@ -114,6 +122,59 @@ export default function Confirmation() {
       ...prev,
       [section]: !prev[section],
     }))
+  }
+
+  // Handle generating the AI Brand Report
+  const handleGenerateReport = async () => {
+    if (!token || authLoading) {
+      setGenerationError('Authentication required. Please ensure you are logged in.')
+      return
+    }
+
+    if (allConfigs.length === 0) {
+      setGenerationError('No configurations found. Please add at least one website.')
+      return
+    }
+
+    setIsGenerating(true)
+    setGenerationError(null)
+
+    try {
+      // Process each configuration
+      for (const config of allConfigs) {
+        console.log('Processing configuration:', config.website)
+        
+        // Prepare the identity card request
+        const identityCardRequest: CreateFullIdentityCardRequest = {
+          url: config.website,
+          brandName: config.brandName,
+          description: config.analyzedData?.fullDescription || config.description,
+          industry: config.industry,
+          market: config.markets?.[0]?.country || 'United States',
+          language: config.markets?.[0]?.languages?.[0] || 'English',
+          keyBrandAttributes: config.analyzedData?.keyBrandAttributes || config.attributes || [],
+          competitors: config.analyzedData?.competitors || config.competitors?.filter(c => c.selected).map(c => c.name) || []
+        }
+
+        // Save the identity card (this will also trigger prompt generation automatically)
+        console.log('Saving identity card for:', config.brandName)
+        const identityCard = await createIdentityCard(identityCardRequest, token)
+        console.log('Identity card saved successfully:', identityCard.id)
+        console.log('Prompt generation will be triggered automatically via backend events')
+      }
+
+      console.log('All configurations processed successfully')
+      
+      // Redirect to the next step (phone verification)
+      setCurrentStep(6)
+      router.push("/onboarding")
+      
+    } catch (error) {
+      console.error('Error generating report:', error)
+      setGenerationError(error instanceof Error ? error.message : 'Failed to generate report. Please try again.')
+    } finally {
+      setIsGenerating(false)
+    }
   }
 
   // Gérer l'ajout d'une nouvelle URL
@@ -576,18 +637,37 @@ export default function Confirmation() {
         </Button>
       </div>
 
+      {/* Error display */}
+      {generationError && (
+        <div className="mt-6">
+          <Alert variant="destructive" className="border-red-200 bg-red-50">
+            <AlertCircle className="h-4 w-4 text-red-600" />
+            <AlertDescription className="text-red-800">
+              {generationError}
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
+
       {allConfigs.length > 0 && (
         <div className="mt-8 text-center">
           <Button
             size="lg"
-            className="bg-accent-500 hover:bg-accent-600 text-white shadow-button transition-all duration-300"
-            onClick={() => {
-              setCurrentStep(6) // Étape de vérification du téléphone
-              router.push("/onboarding")
-            }}
+            className="bg-accent-500 hover:bg-accent-600 text-white shadow-button transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={handleGenerateReport}
+            disabled={isGenerating || authLoading || !token}
           >
-            Generate my AI Brand Report
-            <ArrowRight className="h-4 w-4 ml-2" />
+            {isGenerating ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Generating Report...
+              </>
+            ) : (
+              <>
+                Generate my AI Brand Report
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </>
+            )}
           </Button>
           <p className="text-xs text-gray-500 mt-2">
             This will analyze {totalWebsites} website{totalWebsites > 1 ? "s" : ""} across {totalPromptsAllConfigs}{" "}
@@ -597,6 +677,11 @@ export default function Confirmation() {
             Covering {totalUniqueMarkets} market{totalUniqueMarkets > 1 ? "s" : ""} and {totalUniqueLanguages} language
             {totalUniqueLanguages > 1 ? "s" : ""}
           </p>
+          {isGenerating && (
+            <p className="text-xs text-accent-600 mt-2 font-medium">
+              Saving brand configurations and generating prompts...
+            </p>
+          )}
         </div>
       )}
     </div>

@@ -20,6 +20,13 @@ export class UserResponseDto {
   language: string;
 
   @ApiProperty({
+    description: 'Phone number of the user',
+    example: '+1234567890',
+    required: false,
+  })
+  phoneNumber?: string;
+
+  @ApiProperty({
     description: 'Timestamp when the user was created',
     example: '2023-01-01T00:00:00.000Z',
   })

@@ -44,6 +44,9 @@ const Navbar: React.FC = () => {
             variant="h6"
             noWrap
             component={NavLink}
+            style={{
+              fontFamily: 'Bubblebody Neue',
+            }}
             to="/"
             sx={{
               mr: 2,
@@ -53,9 +56,10 @@ const Navbar: React.FC = () => {
               flexGrow: 1,
               display: 'flex',
               alignItems: 'center',
+              fontFamily: 'Bubblebody Neue',
             }}
           >
-            YOMA
+            MINT
           </Typography>
 
           <Box sx={{ display: 'flex', alignItems: 'center' }}>

@@ -25,6 +25,9 @@ export class User {
 
   @Prop({ default: 'en' })
   language: string;
+
+  @Prop({ type: String, required: false })
+  phoneNumber?: string;
   
   @Prop({ type: Date })
   createdAt: Date;
