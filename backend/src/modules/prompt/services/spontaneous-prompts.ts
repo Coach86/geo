@@ -28,7 +28,7 @@ export function spontaneousUserPrompt({
       - Market that needs to be targeted: ${market}
       - Current date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
       - Competitors: ${competitors.join(', ')}
-      
+
       ### GOAL:
       1. Think step-by-step (do NOT reveal this reasoning in the final answer):
         a) Identify the main industry and 1-2 sub-segments.
@@ -41,12 +41,12 @@ export function spontaneousUserPrompt({
         • Favor questions that ask for recommendations, comparisons, or lists of brands, companies, or products.
         • Cover all three journey stages.
         • Use diverse phrasing: "Who are the best…", "Which companies…", "What brands…", "Compare…", etc.
-        • **Never mention any brand names, company names, or the target URL in the prompt itself.** 
+        • **Never mention any brand names, company names, or the target URL in the prompt itself.**
         • Keep prompts concise (max 20 words each).
         • Avoid duplicate meanings.
         • **Use a very casual, almost familiar and conversational tone, like most users talk to a LLM. Use abbreviations and slangs.**
         • **Use questions that force the LLM to list brands, companies, or products.**
-        • **Without never mentionning any brand names, company names, use the competitors of the target brand to tailor the prompts.**
+        • **Without never mentioning any brand names, company names, use the competitors of the target brand to tailor the prompts.**
 
       Example output for a Spanish online bike store (illustrative only, do NOT reuse):
         1. ¿Mejor marca bici eléctrica ciudad 2025?

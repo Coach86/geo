@@ -34,8 +34,10 @@ export class OpenAiAdapter implements LlmAdapter {
     }
 
     try {
-      // Determine the model to use (default or from options)
-      const modelName = options?.model || 'gpt-4o';
+      if (!options?.model) {
+        throw new Error("Model not specified. Please specify a model using the 'model' option.")
+      }
+      const modelName = options?.model;
       this.logger.log(`Calling OpenAI API with model: ${modelName}`);
       // The OpenAI SDK expects a specific Tool type. For web_search_preview, only 'type' is required.
       const response = await this.openai.responses.create({

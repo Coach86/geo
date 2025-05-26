@@ -25,6 +25,18 @@
       }
     },
     {
+      "id": "google-gemini2.0",
+      "provider": "Google",
+      "model": "gemini-2.0-flash",
+      "name": "Gemini 2.0 Flash",
+      "enabled": true,
+      "parameters": {
+        "temperature": 0.7,
+        "maxTokens": 500,
+        "systemPrompt": "You are Gemini, a helpful AI assistant created by Google."
+      }
+    },
+    {
       "id": "perplexity-sonar-pro",
       "provider": "Perplexity",
       "model": "sonar-pro",
