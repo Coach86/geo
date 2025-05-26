@@ -39,23 +39,26 @@ export default function VisibilityPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Get selected company from localStorage
-  useEffect(() => {
-    const companyId = localStorage.getItem("selectedCompanyId");
-    setSelectedCompanyId(companyId);
-  }, []);
-
-  // Fetch reports for the selected company
+  // Get selected company from localStorage and listen for changes
   useEffect(() => {
     const fetchReports = async () => {
-      if (!selectedCompanyId || !token) return;
+      const companyId = localStorage.getItem("selectedCompanyId");
+      
+      if (!companyId || !token) {
+        setSelectedCompanyId(null);
+        setReports([]);
+        setSelectedReport(null);
+        setLoading(false);
+        return;
+      }
 
+      setSelectedCompanyId(companyId);
       setLoading(true);
       setError(null);
 
       try {
         // Fetch reports from API
-        const apiReports = await getCompanyReports(selectedCompanyId, token);
+        const apiReports = await getCompanyReports(companyId, token);
 
         // Process API response to match our interface
         const processedReports: ProcessedReport[] = apiReports.map((report: any) => {
@@ -115,7 +118,18 @@ export default function VisibilityPage() {
     };
 
     fetchReports();
-  }, [selectedCompanyId, token]);
+    
+    // Listen for company selection changes (same-tab updates)
+    const handleCompanyChange = () => {
+      fetchReports();
+    };
+
+    window.addEventListener("companySelectionChanged", handleCompanyChange);
+
+    return () => {
+      window.removeEventListener("companySelectionChanged", handleCompanyChange);
+    };
+  }, [token]);
 
   // Format date for display
   const formatDate = (dateString: string) => {
