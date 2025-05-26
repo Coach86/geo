@@ -31,8 +31,10 @@ export class OpenAILangChainAdapter implements LlmAdapter {
     }
 
     try {
-      // Default model is GPT-4o
-      const model = options?.model || 'gpt-4o';
+      if (!options?.model) {
+        throw new Error("Model not specified. Please specify a model using the 'model' option.")
+      }
+      const model = options?.model;
 
       this.logger.log(`Calling OpenAI API with model: ${model}`);
 

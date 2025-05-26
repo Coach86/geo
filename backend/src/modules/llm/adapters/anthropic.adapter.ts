@@ -36,8 +36,10 @@ export class AnthropicAdapter implements LlmAdapter {
     }
 
     try {
-      // Determine the model to use (default or from options)
-      const modelName = options?.model || 'claude-3-opus-20240229';
+      if (!options?.model) {
+        throw new Error("Model not specified. Please specify a model using the 'model' option.")
+      }
+      const modelName = options?.model;
 
       // Define the web search tool using the correct format for the SDK
       const tools = [

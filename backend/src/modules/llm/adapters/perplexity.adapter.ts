@@ -27,8 +27,10 @@ export class PerplexityAdapter implements LlmAdapter {
     }
 
     try {
-      // Default model is Sonar-Medium-Online
-      const model = options?.model || 'sonar-medium-online';
+      if (!options?.model) {
+        throw new Error("Model not specified. Please specify a model using the 'model' option.")
+      }
+      const model = options?.model;
       this.logger.log(`Calling Perplexity API with model: ${model}`);
       const chatModel = new ChatPerplexity({
         apiKey: this.apiKey,
@@ -234,7 +236,7 @@ export class PerplexityAdapter implements LlmAdapter {
       ${formatInstructions}
 
       ---
-      
+
       Your response:`;
       messages.push(new HumanMessage(userPrompt));
 
