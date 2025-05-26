@@ -125,7 +125,9 @@ function Report() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reportData, setReportData] = useState<ReportData | null>(null);
-  const [tokenRenewalStatus, setTokenRenewalStatus] = useState<'idle' | 'requesting' | 'success' | 'error'>('idle');
+  const [tokenRenewalStatus, setTokenRenewalStatus] = useState<
+    "idle" | "requesting" | "success" | "error"
+  >("idle");
 
   // Get the token from the URL parameters
   const token = searchParams.get("token");
@@ -137,38 +139,40 @@ function Report() {
   // Function to request a new token
   const renewToken = async (userId: string) => {
     try {
-      setTokenRenewalStatus('requesting');
-      
+      setTokenRenewalStatus("requesting");
+
       // Make the request to generate a new token
       const renewResponse = await fetch(`${apiBaseUrl}/tokens/generate`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ userId }),
       });
-      
+
       if (!renewResponse.ok) {
-        throw new Error('Failed to renew access token');
+        throw new Error("Failed to renew access token");
       }
-      
+
       const result = await renewResponse.json();
-      
+
       if (result.success) {
-        setTokenRenewalStatus('success');
+        setTokenRenewalStatus("success");
         // Show a message that a new token has been sent by email
-        setError('Your access token has expired. A new token has been sent to your email.');
+        setError(
+          "Your access token has expired. A new token has been sent to your email."
+        );
       } else {
-        throw new Error('Token renewal response did not indicate success');
+        throw new Error("Token renewal response did not indicate success");
       }
     } catch (err) {
-      console.error('Error renewing token:', err);
-      setTokenRenewalStatus('error');
+      console.error("Error renewing token:", err);
+      setTokenRenewalStatus("error");
       // Redirect to report access page if renewal fails
       router.push(`/report-access?token=${token}`);
     }
   };
-  
+
   useEffect(() => {
     const fetchReport = async () => {
       if (!token) {
@@ -236,18 +240,24 @@ function Report() {
         setError(err.message || "Failed to load report");
 
         // If the token is invalid or expired, try to renew it automatically
-        if (err.message === "Invalid or expired token" || err.message === "Failed to validate token") {
+        if (
+          err.message === "Invalid or expired token" ||
+          err.message === "Failed to validate token"
+        ) {
           // Try to get validation result for user ID even if token is expired
           try {
             const expiredValidationResponse = await fetch(
               `${apiBaseUrl}/tokens/validate?token=${token}`
             );
-            
-            const expiredValidationResult = await expiredValidationResponse.json();
-            
+
+            const expiredValidationResult =
+              await expiredValidationResponse.json();
+
             if (expiredValidationResult.userId) {
               // We have the userId from the expired token, request a new one
-              console.log(`Attempting to renew expired token for user: ${expiredValidationResult.userId}`);
+              console.log(
+                `Attempting to renew expired token for user: ${expiredValidationResult.userId}`
+              );
               await renewToken(expiredValidationResult.userId);
             } else {
               // If we can't get the userId, redirect to the access page
@@ -271,15 +281,15 @@ function Report() {
       <div className="container mx-auto max-w-7xl py-12">
         <Card>
           <CardHeader>
-            <CardTitle>Loading Brand Intelligence Report</CardTitle>
+            <CardTitle>Loading Mint</CardTitle>
             <CardDescription>
-              Please wait while we load your report...
+              Please wait while we load your Mint...
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <div className="w-16 h-16 rounded-full border-4 border-t-blue-500 border-b-blue-700 border-l-blue-300 border-r-blue-600 animate-spin"></div>
             <p className="mt-6 text-center text-muted-foreground">
-              Loading your report data
+              Loading your Mint data
             </p>
           </CardContent>
         </Card>
@@ -298,19 +308,21 @@ function Report() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {tokenRenewalStatus === 'success' ? (
+            {tokenRenewalStatus === "success" ? (
               <Alert className="bg-green-50 border-green-200">
                 <AlertTitle>New Access Token Sent</AlertTitle>
                 <AlertDescription>
-                  Your access token has expired. A new token has been sent to your email address.
-                  Please check your inbox and use the new link to access the report.
+                  Your access token has expired. A new token has been sent to
+                  your email address. Please check your inbox and use the new
+                  link to access the report.
                 </AlertDescription>
               </Alert>
-            ) : tokenRenewalStatus === 'requesting' ? (
+            ) : tokenRenewalStatus === "requesting" ? (
               <Alert>
                 <AlertTitle>Requesting New Access Token</AlertTitle>
                 <AlertDescription>
-                  Your access token has expired. We're requesting a new one to be sent to your email...
+                  Your access token has expired. We're requesting a new one to
+                  be sent to your email...
                 </AlertDescription>
                 <div className="mt-4 flex justify-center">
                   <div className="w-8 h-8 rounded-full border-2 border-t-blue-500 border-b-blue-700 border-l-blue-300 border-r-blue-600 animate-spin"></div>
@@ -323,9 +335,9 @@ function Report() {
               </Alert>
             )}
           </CardContent>
-          {tokenRenewalStatus === 'success' && (
+          {tokenRenewalStatus === "success" && (
             <div className="px-6 pb-6 flex justify-center">
-              <Button variant="outline" onClick={() => router.push('/')}>
+              <Button variant="outline" onClick={() => router.push("/")}>
                 Return to Home
               </Button>
             </div>

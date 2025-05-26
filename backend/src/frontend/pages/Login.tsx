@@ -14,7 +14,7 @@ const Login: React.FC = () => {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    
+
     try {
       await login(email, password);
       navigate('/'); // Redirect to dashboard on success
@@ -30,15 +30,15 @@ const Login: React.FC = () => {
       <Box sx={{ mt: 8 }}>
         <Paper sx={{ p: 4 }}>
           <Typography variant="h4" component="h1" align="center" gutterBottom>
-            Brand Intelligence Login
+            Mint Admin Login
           </Typography>
-          
+
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {error}
             </Alert>
           )}
-          
+
           <Box component="form" onSubmit={handleSubmit}>
             <TextField
               label="Email"
@@ -50,7 +50,7 @@ const Login: React.FC = () => {
               onChange={(e) => setEmail(e.target.value)}
               required
             />
-            
+
             <TextField
               label="Password"
               type="password"
@@ -61,7 +61,7 @@ const Login: React.FC = () => {
               onChange={(e) => setPassword(e.target.value)}
               required
             />
-            
+
             <Button
               type="submit"
               fullWidth

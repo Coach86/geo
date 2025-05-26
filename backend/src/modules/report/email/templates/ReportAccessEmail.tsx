@@ -29,12 +29,12 @@ export const ReportAccessEmail: React.FC<ReportAccessEmailProps> = ({
   return (
     <Html>
       <Head />
-      <Preview>Your Brand Intelligence Report for {companyName} is ready to view</Preview>
+      <Preview>Your MintReport for {companyName} is ready to view</Preview>
       <Body style={main}>
         <Container style={container}>
           <Section style={logoContainer}>
             <Img
-              src="https://contexteai.com/logo.png"
+              src="https://app.getmint.ai/logo-small.png"
               width="140"
               height="40"
               alt="Contexte AI"
@@ -44,8 +44,8 @@ export const ReportAccessEmail: React.FC<ReportAccessEmailProps> = ({
           <Section style={content}>
             <Heading style={h1}>Your Brand Report is Ready</Heading>
             <Text style={text}>
-              The weekly Brand Intelligence Report for <strong>{companyName}</strong> ({reportDate})
-              is now available to view.
+              The weekly MINT Report for <strong>{companyName}</strong> ({reportDate}) is now
+              available to view.
             </Text>
             <Text style={text}>
               Click the button below to access your report. This link will expire in 24 hours.
@@ -65,9 +65,7 @@ export const ReportAccessEmail: React.FC<ReportAccessEmailProps> = ({
               </Link>
             </Text>
             <Hr style={hr} />
-            <Text style={footer}>
-              © {new Date().getFullYear()} Contexte AI. All rights reserved.
-            </Text>
+            <Text style={footer}>© {new Date().getFullYear()} Mint. All rights reserved.</Text>
             <Text style={footerText}>
               This is an automated message, please do not reply directly to this email.
             </Text>

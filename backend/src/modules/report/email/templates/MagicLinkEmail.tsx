@@ -20,36 +20,34 @@ interface MagicLinkEmailProps {
   accessUrl: string;
 }
 
-export const MagicLinkEmail: React.FC<MagicLinkEmailProps> = ({
-  email,
-  accessUrl,
-}) => {
+export const MagicLinkEmail: React.FC<MagicLinkEmailProps> = ({ email, accessUrl }) => {
   return (
     <Html>
       <Head />
-      <Preview>Sign in to GPT Rush - Your magic link is ready</Preview>
+      <Preview>Sign in to Mint - Your magic link is ready</Preview>
       <Body style={main}>
         <Container style={container}>
           <Section style={logoContainer}>
             <Img
-              src="https://contexteai.com/logo.png"
+              src="https://app.getmint.ai/logo-small.png"
               width="140"
               height="40"
-              alt="GPT Rush"
+              alt="Mint"
               style={logo}
             />
           </Section>
           <Section style={content}>
-            <Heading style={h1}>Welcome to GPT Rush</Heading>
+            <Heading style={h1}>Welcome to Mint</Heading>
             <Text style={text}>
-              Hello! You requested access to GPT Rush for <strong>{email}</strong>.
+              Hello! You requested access to Mint for <strong>{email}</strong>.
             </Text>
             <Text style={text}>
-              Click the button below to sign in and continue to your dashboard. This link will expire in 1 hour for security reasons.
+              Click the button below to sign in and continue to your dashboard. This link will
+              expire in 1 hour for security reasons.
             </Text>
             <Section style={buttonContainer}>
               <Button style={button} href={accessUrl}>
-                Sign In to GPT Rush
+                Sign In to Mint
               </Button>
             </Section>
             <Text style={text}>
@@ -62,12 +60,11 @@ export const MagicLinkEmail: React.FC<MagicLinkEmailProps> = ({
               </Link>
             </Text>
             <Text style={securityText}>
-              <strong>Security Notice:</strong> If you didn't request this link, you can safely ignore this email.
+              <strong>Security Notice:</strong> If you didn't request this link, you can safely
+              ignore this email.
             </Text>
             <Hr style={hr} />
-            <Text style={footer}>
-              © {new Date().getFullYear()} GPT Rush. All rights reserved.
-            </Text>
+            <Text style={footer}>© {new Date().getFullYear()} Mint. All rights reserved.</Text>
             <Text style={footerText}>
               This is an automated message, please do not reply directly to this email.
             </Text>

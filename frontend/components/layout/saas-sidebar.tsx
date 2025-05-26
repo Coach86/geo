@@ -54,7 +54,7 @@ export default function SaasSidebar() {
           </svg>
         </div>
         <span className="font-bold text-lg tracking-tight text-gray-900">
-          Contexte.ai
+          Mint
         </span>
       </div>
       <nav className="flex-1 overflow-y-auto py-4 px-2">

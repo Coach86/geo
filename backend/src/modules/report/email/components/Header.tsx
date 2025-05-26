@@ -62,7 +62,7 @@ export const Header: React.FC = () => {
                   <Heading
                     style={{ color: 'white', fontSize: '1.25rem', fontWeight: 'bold', margin: 0 }}
                   >
-                    Contexte.ai
+                    MINT
                   </Heading>
                   <Text style={{ color: 'rgba(255,255,255,0.8)', margin: 0, fontSize: '1rem' }}>
                     Brand Intelligence in the LLM Era

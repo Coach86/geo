@@ -76,7 +76,7 @@ export class ReportAccessService {
       const emailResponse = await resend.emails.send({
         from: 'tailorfeed-ai@tailorfeed.ai',
         to: recipientEmail,
-        subject: `Your Brand Intelligence Reports are ready`,
+        subject: `Your Mint Reports are ready`,
         react: React.createElement(ReportAccessEmail, {
           reportDate: formattedReportDate,
           accessUrl,
@@ -115,7 +115,7 @@ export class ReportAccessService {
       const token = await this.tokenService.generateAccessToken(userId);
 
       // Format the report date if provided, otherwise use current date
-      const reportDateFormatted = reportDate 
+      const reportDateFormatted = reportDate
         ? format(reportDate, 'MMM dd, yyyy')
         : format(new Date(), 'MMM dd, yyyy');
 
@@ -139,11 +139,11 @@ export class ReportAccessService {
         this.configService.get<string>('SENDER_EMAIL') || 'brand-intelligence@contexteai.com';
 
       // Create default subject if not provided
-      const subject = customSubject || `Your Brand Intelligence Reports`;
+      const subject = customSubject || `Your Mint Reports`;
 
       // Use default company name if not provided
       const finalCompanyName = companyName || 'Your Brand';
-      
+
       const emailResponse = await resend.emails.send({
         from: 'tailorfeed-ai@tailorfeed.ai',
         to: emailAddress,

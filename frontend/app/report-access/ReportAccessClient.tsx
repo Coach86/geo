@@ -55,7 +55,12 @@ function ReportAccess() {
 
       try {
         // First try the new endpoint
-        console.log(`Trying to validate token with new endpoint: ${apiBaseUrl}/tokens/validate?token=${token.substring(0, 8)}...`);
+        console.log(
+          `Trying to validate token with new endpoint: ${apiBaseUrl}/tokens/validate?token=${token.substring(
+            0,
+            8
+          )}...`
+        );
         let response = await fetch(
           `${apiBaseUrl}/tokens/validate?token=${token}`
         );
@@ -63,9 +68,13 @@ function ReportAccess() {
         // Log detailed info about the response
         console.log(`Token validation response status: ${response.status}`);
         if (!response.ok) {
-          const errorText = await response.text().catch(e => "Could not read error response");
-          console.error(`Token validation failed with status ${response.status}: ${errorText}`);
-          
+          const errorText = await response
+            .text()
+            .catch((e) => "Could not read error response");
+          console.error(
+            `Token validation failed with status ${response.status}: ${errorText}`
+          );
+
           // If the new endpoint fails with 401, try the legacy endpoint
           console.log("New token endpoint failed, trying legacy endpoint...");
           response = await fetch(
@@ -93,7 +102,9 @@ function ReportAccess() {
             // If no reportId, this is likely a magic link for authentication
             // Redirect to auth verification page with the token
             const urlParam = searchParams.get("url") || "";
-            router.push(`/auth/verify?token=${token}&url=${encodeURIComponent(urlParam)}`);
+            router.push(
+              `/auth/verify?token=${token}&url=${encodeURIComponent(urlParam)}`
+            );
           }
         }
       } catch (err) {
@@ -135,8 +146,10 @@ function ReportAccess() {
       }
 
       // Log success for debugging
-      console.log(`Successfully requested new token for user ${tokenResult.userId}`);
-      
+      console.log(
+        `Successfully requested new token for user ${tokenResult.userId}`
+      );
+
       // Add a slight delay before showing success to ensure email is sent
       setTimeout(() => {
         setResendStatus("success");
@@ -154,7 +167,7 @@ function ReportAccess() {
       <div className="container mx-auto max-w-3xl py-12">
         <Card>
           <CardHeader>
-            <CardTitle>Accessing Brand Intelligence Report</CardTitle>
+            <CardTitle>Accessing Mint Report</CardTitle>
             <CardDescription>Validating your access token...</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center py-8">
@@ -237,14 +250,17 @@ function ReportAccess() {
                   <AlertTitle>Success!</AlertTitle>
                   <AlertDescription>
                     A new access link has been sent to your email address.
-                    Please check your inbox and use the new link to access your report.
+                    Please check your inbox and use the new link to access your
+                    report.
                   </AlertDescription>
                 </Alert>
               ) : resendStatus === "loading" ? (
                 <Alert className="mt-4">
                   <AlertTitle>Sending...</AlertTitle>
                   <AlertDescription className="flex flex-col items-center">
-                    <div className="mb-2">Requesting a new access link for your email address.</div>
+                    <div className="mb-2">
+                      Requesting a new access link for your email address.
+                    </div>
                     <div className="w-8 h-8 rounded-full border-2 border-t-blue-500 border-b-blue-700 border-l-blue-300 border-r-blue-600 animate-spin mt-2"></div>
                   </AlertDescription>
                 </Alert>

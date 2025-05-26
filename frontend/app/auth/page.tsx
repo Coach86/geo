@@ -26,17 +26,19 @@ export default function AuthPage() {
 
     try {
       const response = await sendMagicLink(email);
-      
+
       if (response.success) {
         setIsMagicLinkSent(true);
         // Store user ID for potential use later
-        localStorage.setItem('pendingUserId', response.userId);
+        localStorage.setItem("pendingUserId", response.userId);
       } else {
-        setError(response.message || 'Failed to send magic link');
+        setError(response.message || "Failed to send magic link");
       }
     } catch (error) {
-      console.error('Magic link error:', error);
-      setError(error instanceof Error ? error.message : 'Failed to send magic link');
+      console.error("Magic link error:", error);
+      setError(
+        error instanceof Error ? error.message : "Failed to send magic link"
+      );
     } finally {
       setIsLoading(false);
     }
@@ -56,7 +58,7 @@ export default function AuthPage() {
   const handleMagicLinkContinue = () => {
     // This button is now just for show - users should click the link in their email
     // The actual magic link will go to /auth/verify
-    alert('Please check your email and click the magic link to continue.');
+    alert("Please check your email and click the magic link to continue.");
   };
 
   return (
@@ -64,7 +66,7 @@ export default function AuthPage() {
       {/* Logo */}
       <div className="mb-8 flex items-center">
         <Sparkles className="h-10 w-10 text-accent-500 mr-2" />
-        <span className="text-3xl font-semibold text-mono-900">GPT Rush</span>
+        <span className="text-3xl font-semibold text-mono-900">Mint</span>
       </div>
 
       {/* Auth Card */}
@@ -72,7 +74,7 @@ export default function AuthPage() {
         <div className="p-8">
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold text-mono-900 mb-2">
-              Welcome to GPT Rush
+              Welcome to MINT
             </h1>
             <p className="text-mono-600">Create an account to get started.</p>
           </div>
@@ -85,7 +87,7 @@ export default function AuthPage() {
                   <p className="text-sm mt-1">{error}</p>
                 </div>
               )}
-              
+
               <form onSubmit={handleEmailSubmit} className="mb-6">
                 <div className="mb-4">
                   <label
@@ -191,7 +193,7 @@ export default function AuthPage() {
       </div>
 
       <p className="mt-8 text-mono-500 text-sm">
-        © 2025 GPT Rush. All rights reserved.
+        © {new Date().getFullYear()} Mint. All rights reserved.
       </p>
     </div>
   );
