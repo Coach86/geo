@@ -31,7 +31,7 @@ export const MagicLinkEmail: React.FC<MagicLinkEmailProps> = ({ email, accessUrl
             <Img
               src="https://app.getmint.ai/logo-small.png"
               width="140"
-              height="40"
+              height="46"
               alt="Mint"
               style={logo}
             />
