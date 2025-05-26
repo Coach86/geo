@@ -347,7 +347,7 @@ export const BrandIntelligenceReport: React.FC<BrandIntelligenceReportProps> = (
               marginTop: 0,
             }}
           >
-            LLM Brand Intelligence Report
+            Mint Report
           </Text>
           <Text style={{ color: '#475569', lineHeight: 1.6, margin: 0 }}>
             This report analyzes how your brand is perceived across leading AI models. It measures

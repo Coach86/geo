@@ -15,7 +15,7 @@ export default function Page() {
         <div className="container mx-auto max-w-7xl py-12">
           <Card>
             <CardHeader>
-              <CardTitle>Loading Brand Intelligence Report</CardTitle>
+              <CardTitle>Loading Mint</CardTitle>
               <CardDescription>
                 Please wait while we load your report...
               </CardDescription>

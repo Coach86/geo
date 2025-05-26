@@ -1,29 +1,36 @@
 interface ReportHeaderProps {
-  brand: string
+  brand: string;
   metadata: {
-    url: string
-    market: string
-    flag: string
-    competitors: string
-    date: string
-    models: string
-  }
+    url: string;
+    market: string;
+    flag: string;
+    competitors: string;
+    date: string;
+    models: string;
+  };
 }
 
 export default function ReportHeader({ brand, metadata }: ReportHeaderProps) {
   return (
     <div className="mb-12">
       <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
-        <span className="text-primary">{brand}</span> Brand Intelligence Report
+        <span className="text-primary">{brand}</span> MINT
       </h1>
       <div className="flex items-center gap-4 mb-8">
         <div className="flex items-center">
           <span className="text-lg mr-2">{metadata.flag}</span>
-          <span className="text-gray-700 font-medium">{metadata.market.split("/")[0].trim()}</span>
+          <span className="text-gray-700 font-medium">
+            {metadata.market.split("/")[0].trim()}
+          </span>
         </div>
         <div className="w-px h-6 bg-gray-300"></div>
         <div className="flex items-center">
-          <svg className="h-5 w-5 text-gray-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg
+            className="h-5 w-5 text-gray-500 mr-2"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -32,7 +39,9 @@ export default function ReportHeader({ brand, metadata }: ReportHeaderProps) {
             />
           </svg>
           <span className="text-gray-700 font-medium">
-            {metadata.market.includes("/") ? metadata.market.split("/")[1].trim() : "English"}
+            {metadata.market.includes("/")
+              ? metadata.market.split("/")[1].trim()
+              : "English"}
           </span>
         </div>
       </div>
@@ -42,7 +51,12 @@ export default function ReportHeader({ brand, metadata }: ReportHeaderProps) {
           <div className="bg-white p-6 rounded-lg hover:bg-blue-50/30 transition-colors duration-300">
             <div className="flex items-start">
               <div className="bg-primary/10 p-3 rounded-lg mr-5 shadow-sm">
-                <svg className="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg
+                  className="h-6 w-6 text-primary"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -52,8 +66,12 @@ export default function ReportHeader({ brand, metadata }: ReportHeaderProps) {
                 </svg>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-500 mb-1.5">Brand URL</p>
-                <p className="font-medium text-gray-900 text-lg">{metadata.url}</p>
+                <p className="text-sm font-medium text-gray-500 mb-1.5">
+                  Brand URL
+                </p>
+                <p className="font-medium text-gray-900 text-lg">
+                  {metadata.url}
+                </p>
               </div>
             </div>
           </div>
@@ -61,7 +79,12 @@ export default function ReportHeader({ brand, metadata }: ReportHeaderProps) {
           <div className="bg-white p-6 rounded-lg hover:bg-blue-50/30 transition-colors duration-300">
             <div className="flex items-start">
               <div className="bg-primary/10 p-3 rounded-lg mr-5 shadow-sm">
-                <svg className="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg
+                  className="h-6 w-6 text-primary"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -71,8 +94,12 @@ export default function ReportHeader({ brand, metadata }: ReportHeaderProps) {
                 </svg>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-500 mb-1.5">Competitors</p>
-                <p className="font-medium text-gray-900 text-lg">{metadata.competitors}</p>
+                <p className="text-sm font-medium text-gray-500 mb-1.5">
+                  Competitors
+                </p>
+                <p className="font-medium text-gray-900 text-lg">
+                  {metadata.competitors}
+                </p>
               </div>
             </div>
           </div>
@@ -80,7 +107,12 @@ export default function ReportHeader({ brand, metadata }: ReportHeaderProps) {
           <div className="bg-white p-6 rounded-lg hover:bg-blue-50/30 transition-colors duration-300">
             <div className="flex items-start">
               <div className="bg-primary/10 p-3 rounded-lg mr-5 shadow-sm">
-                <svg className="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg
+                  className="h-6 w-6 text-primary"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -90,8 +122,12 @@ export default function ReportHeader({ brand, metadata }: ReportHeaderProps) {
                 </svg>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-500 mb-1.5">Date Run</p>
-                <p className="font-medium text-gray-900 text-lg">{metadata.date}</p>
+                <p className="text-sm font-medium text-gray-500 mb-1.5">
+                  Date Run
+                </p>
+                <p className="font-medium text-gray-900 text-lg">
+                  {metadata.date}
+                </p>
               </div>
             </div>
           </div>
@@ -99,7 +135,12 @@ export default function ReportHeader({ brand, metadata }: ReportHeaderProps) {
           <div className="bg-white p-6 rounded-lg hover:bg-blue-50/30 transition-colors duration-300">
             <div className="flex items-start">
               <div className="bg-primary/10 p-3 rounded-lg mr-5 shadow-sm">
-                <svg className="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg
+                  className="h-6 w-6 text-primary"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -109,13 +150,17 @@ export default function ReportHeader({ brand, metadata }: ReportHeaderProps) {
                 </svg>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-500 mb-1.5">Models Tested</p>
-                <p className="font-medium text-gray-900 text-lg">{metadata.models}</p>
+                <p className="text-sm font-medium text-gray-500 mb-1.5">
+                  Models Tested
+                </p>
+                <p className="font-medium text-gray-900 text-lg">
+                  {metadata.models}
+                </p>
               </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -458,8 +458,9 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       case 1:
         // For step 1 (Company), user can only navigate if:
         // 1. They have a website AND
-        // 2. The website has been analyzed (analyzedData exists)
-        return !!(formData.website && formData.analyzedData)
+        // 2. The website has been analyzed (analyzedData exists) AND
+        // 3. At least one market is selected
+        return !!(formData.website && formData.analyzedData && formData.markets.length > 0)
       default:
         return true
     }

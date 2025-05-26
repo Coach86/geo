@@ -15,7 +15,7 @@ export default function Page() {
         <div className="container mx-auto max-w-3xl py-12">
           <Card>
             <CardHeader>
-              <CardTitle>Accessing Brand Intelligence Report</CardTitle>
+              <CardTitle>Accessing Mint Report</CardTitle>
               <CardDescription>Validating your access token...</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col items-center justify-center py-8">

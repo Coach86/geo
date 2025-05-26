@@ -1,13 +1,5 @@
 import React from 'react';
-import { 
-  Section,
-  Row,
-  Column,
-  Heading,
-  Text,
-  Hr,
-  Link
-} from '@react-email/components';
+import { Section, Row, Column, Heading, Text, Hr, Link } from '@react-email/components';
 
 export const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
@@ -15,30 +7,43 @@ export const Footer: React.FC = () => {
   return (
     <Section>
       <Hr className="border-gray-200 my-6" />
-      
+
       <Row>
         <Column className="w-2/3 pr-4">
-          <Heading as="h3" className="text-lg font-semibold text-gray-800 mb-4 m-0">Next Steps</Heading>
+          <Heading as="h3" className="text-lg font-semibold text-gray-800 mb-4 m-0">
+            Next Steps
+          </Heading>
           <Text className="text-gray-600 m-0 mb-6">
-            Schedule a consultation with our team to discuss these insights and develop a strategy to optimize your
-            brand's presence in AI responses. Our experts will help you implement the recommendations and track your
-            progress over time.
+            Schedule a consultation with our team to discuss these insights and develop a strategy
+            to optimize your brand's presence in AI responses. Our experts will help you implement
+            the recommendations and track your progress over time.
           </Text>
         </Column>
         <Column className="w-1/3 pl-4">
-          <div style={{
-            backgroundColor: '#f9fafb',
-            padding: '16px',
-            borderRadius: '8px',
-            border: '1px solid #f3f4f6'
-          }}>
-            <Heading as="h4" className="text-base font-semibold text-gray-800 mb-3 m-0">Contact Us</Heading>
+          <div
+            style={{
+              backgroundColor: '#f9fafb',
+              padding: '16px',
+              borderRadius: '8px',
+              border: '1px solid #f3f4f6',
+            }}
+          >
+            <Heading as="h4" className="text-base font-semibold text-gray-800 mb-3 m-0">
+              Contact Us
+            </Heading>
             <Text className="text-gray-600 mb-4 m-0">Have questions about this report?</Text>
-            
+
             <div style={{ marginBottom: '8px' }}>
               <Row>
                 <Column className="w-auto pr-2">
-                  <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: '#1976d2' }}>
+                  <svg
+                    width="20"
+                    height="20"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    style={{ color: '#1976d2' }}
+                  >
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -48,17 +53,27 @@ export const Footer: React.FC = () => {
                   </svg>
                 </Column>
                 <Column>
-                  <Link href="mailto:support@contexte.ai" className="text-sm text-gray-700 no-underline hover:underline">
+                  <Link
+                    href="mailto:support@contexte.ai"
+                    className="text-sm text-gray-700 no-underline hover:underline"
+                  >
                     support@contexte.ai
                   </Link>
                 </Column>
               </Row>
             </div>
-            
+
             <div>
               <Row>
                 <Column className="w-auto pr-2">
-                  <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: '#1976d2' }}>
+                  <svg
+                    width="20"
+                    height="20"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    style={{ color: '#1976d2' }}
+                  >
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -68,7 +83,10 @@ export const Footer: React.FC = () => {
                   </svg>
                 </Column>
                 <Column>
-                  <Link href="tel:+15551234567" className="text-sm text-gray-700 no-underline hover:underline">
+                  <Link
+                    href="tel:+15551234567"
+                    className="text-sm text-gray-700 no-underline hover:underline"
+                  >
                     +1 (555) 123-4567
                   </Link>
                 </Column>
@@ -83,7 +101,7 @@ export const Footer: React.FC = () => {
       <Row>
         <Column className="w-1/2">
           <Text className="text-sm text-gray-500 m-0">
-            © {currentYear} Contexte.ai — All Rights Reserved
+            © {currentYear} MINT AI — All Rights Reserved
           </Text>
         </Column>
         <Column className="w-1/2 text-right">
@@ -110,8 +128,8 @@ export const Footer: React.FC = () => {
       <Row className="mt-6">
         <Column className="text-center">
           <Text className="text-xs text-gray-400 m-0">
-            This report was generated using AI data collected from May 1-15, 2025.
-            Insights are based on AI responses at the time of testing and may change as models are updated.
+            This report was generated using AI data collected from May 1-15, 2025. Insights are
+            based on AI responses at the time of testing and may change as models are updated.
           </Text>
         </Column>
       </Row>

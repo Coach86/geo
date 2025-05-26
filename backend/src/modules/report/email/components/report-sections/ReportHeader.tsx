@@ -7,7 +7,7 @@ export const ReportHeader: React.FC<ReportHeaderProps> = ({ brand, metadata }) =
     <Section style={{ padding: 0 }}>
       {/* Title and Market/Language Row */}
       <Heading as="h1" style={{ fontSize: 22, fontWeight: 700, color: '#1e293b', marginBottom: 8 }}>
-        <span style={{ color: '#1976d2' }}>{brand}</span> Brand Intelligence Report
+        <span style={{ color: '#1976d2' }}>{brand}</span> Mint Report
       </Heading>
       <Row style={{ marginBottom: 24, alignItems: 'center' }}>
         <Column style={{ display: 'flex', alignItems: 'center', width: 'auto' }}>

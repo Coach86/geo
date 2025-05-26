@@ -15,7 +15,7 @@ const Footer: React.FC = () => {
         mt: 'auto',
         backgroundColor: theme.palette.background.paper,
         borderTop: `1px solid ${theme.palette.divider}`,
-        color: theme.palette.text.secondary
+        color: theme.palette.text.secondary,
       }}
     >
       <Container maxWidth="lg">
@@ -73,9 +73,16 @@ const Footer: React.FC = () => {
 
         <Divider sx={{ my: 3 }} />
 
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+          }}
+        >
           <Typography variant="body2" color="text.secondary">
-            © {new Date().getFullYear()} YOMA Brand Insights. All rights reserved.
+            © {new Date().getFullYear()} Mint. All rights reserved.
           </Typography>
           <Box sx={{ display: 'flex', gap: 3, mt: { xs: 2, sm: 0 } }}>
             <Link href="#" color="inherit" underline="hover" variant="body2">

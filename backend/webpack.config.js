@@ -56,7 +56,7 @@ module.exports = {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Brand Intelligence</title>
+  <title>Mint</title>
   <!-- The script will be injected here by HtmlWebpackPlugin -->
 </head>
 <body>

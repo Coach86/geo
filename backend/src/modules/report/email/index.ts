@@ -1,5 +1,5 @@
 /**
- * Brand Intelligence Email Report
+ * Mint Email Report
  *
  * This module exports components for creating brand intelligence reports
  * using the ReactEmail library for consistent, responsive email rendering.

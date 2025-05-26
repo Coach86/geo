@@ -1,10 +1,15 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { useOnboarding } from "@/providers/onboarding-provider"
-import { Button } from "@/components/ui/button"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useOnboarding } from "@/providers/onboarding-provider";
+import { Button } from "@/components/ui/button";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import {
   ArrowRight,
   ArrowLeft,
@@ -27,30 +32,42 @@ import {
   AlertCircle,
   Info,
   X,
-} from "lucide-react"
-import { FeatureExampleDialog } from "@/components/shared/dialogs/feature-example-dialog"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Badge } from "@/components/ui/badge"
+} from "lucide-react";
+import { FeatureExampleDialog } from "@/components/shared/dialogs/feature-example-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
 
 interface PricingPageProps {
-  forcedRecommendedPlan?: string
+  forcedRecommendedPlan?: string;
 }
 
-export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps) {
-  const router = useRouter()
-  const { formData } = useOnboarding()
-  const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("yearly")
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [expandedFaq, setExpandedFaq] = useState<string | null>(null)
-  const [featureDialogOpen, setFeatureDialogOpen] = useState(false)
-  const [selectedFeature, setSelectedFeature] = useState<string | null>(null)
-  const [isDataLoaded, setIsDataLoaded] = useState(false)
+export default function PricingPage({
+  forcedRecommendedPlan,
+}: PricingPageProps) {
+  const router = useRouter();
+  const { formData } = useOnboarding();
+  const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">(
+    "yearly"
+  );
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [expandedFaq, setExpandedFaq] = useState<string | null>(null);
+  const [featureDialogOpen, setFeatureDialogOpen] = useState(false);
+  const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
 
   // Ensure data is loaded from localStorage
   useEffect(() => {
     // Check if we have data
-    const hasData = formData.markets.length > 0 || formData.website || formData.llmModels.some((m) => m.selected)
-    setIsDataLoaded(hasData)
+    const hasData =
+      formData.markets.length > 0 ||
+      formData.website ||
+      formData.llmModels.some((m) => m.selected);
+    setIsDataLoaded(hasData);
 
     // Log data for debugging
     console.log("Onboarding data in pricing page:", {
@@ -58,34 +75,45 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
       markets: formData.markets,
       modelCount: formData.llmModels.filter((m) => m.selected).length,
       competitorCount: formData.competitors.filter((c) => c.selected).length,
-    })
-  }, [formData])
+    });
+  }, [formData]);
 
   // Calculate user requirements based on onboarding data
-  const urlCount = formData.website ? 1 : 0
+  const urlCount = formData.website ? 1 : 0;
 
   // Correctly count markets and languages
-  const marketCount = formData.markets ? formData.markets.length : 0
+  const marketCount = formData.markets ? formData.markets.length : 0;
   const languageCount = formData.markets
-    ? formData.markets.reduce((sum, market) => sum + (market.languages?.length || 0), 0)
-    : 0
+    ? formData.markets.reduce(
+        (sum, market) => sum + (market.languages?.length || 0),
+        0
+      )
+    : 0;
 
   // Count selected models
-  const modelCount = formData.llmModels ? formData.llmModels.filter((model) => model.selected).length : 0
+  const modelCount = formData.llmModels
+    ? formData.llmModels.filter((model) => model.selected).length
+    : 0;
 
   // Count selected competitors
-  const competitorCount = formData.competitors ? formData.competitors.filter((comp) => comp.selected).length : 0
+  const competitorCount = formData.competitors
+    ? formData.competitors.filter((comp) => comp.selected).length
+    : 0;
 
   // Count selected prompts
   const promptCount =
-    (formData.visibilityPrompts ? formData.visibilityPrompts.filter((p) => p.selected).length : 0) +
-    (formData.perceptionPrompts ? formData.perceptionPrompts.filter((p) => p.selected).length : 0)
+    (formData.visibilityPrompts
+      ? formData.visibilityPrompts.filter((p) => p.selected).length
+      : 0) +
+    (formData.perceptionPrompts
+      ? formData.perceptionPrompts.filter((p) => p.selected).length
+      : 0);
 
   // Determine recommended plan based on user data
   const getRecommendedPlan = () => {
     // If a forced plan is provided, use it
     if (forcedRecommendedPlan) {
-      return forcedRecommendedPlan
+      return forcedRecommendedPlan;
     }
 
     // Otherwise calculate based on user data
@@ -97,7 +125,7 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
       competitorCount > 5 ||
       promptCount > 100
     ) {
-      return "agencies"
+      return "agencies";
     } else if (
       urlCount > 1 ||
       marketCount > 3 ||
@@ -106,99 +134,105 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
       competitorCount > 2 ||
       promptCount > 50
     ) {
-      return "growth"
+      return "growth";
     }
-    return "starter"
-  }
+    return "starter";
+  };
 
-  const recommendedPlan = getRecommendedPlan()
+  const recommendedPlan = getRecommendedPlan();
 
   // Set the selected plan to the recommended plan by default
-  const [selectedPlan, setSelectedPlan] = useState<"starter" | "growth" | "enterprise" | "agencies">(
-    recommendedPlan as any,
-  )
+  const [selectedPlan, setSelectedPlan] = useState<
+    "starter" | "growth" | "enterprise" | "agencies"
+  >(recommendedPlan as any);
 
   // Get reason for recommendation
   const getRecommendationReason = () => {
     if (forcedRecommendedPlan) {
-      return "Based on your requirements from the onboarding process"
+      return "Based on your requirements from the onboarding process";
     }
 
     if (recommendedPlan === "agencies") {
-      if (urlCount > 5) return "You need to monitor more than 5 URLs"
-      if (marketCount > 9) return "You need to cover more than 9 markets"
-      if (languageCount > 15) return "You need to support more than 15 languages"
-      if (modelCount > 10) return "You selected more than 10 AI models"
-      if (competitorCount > 5) return "You need to track more than 5 competitors"
-      return "Your requirements need our Agencies plan"
+      if (urlCount > 5) return "You need to monitor more than 5 URLs";
+      if (marketCount > 9) return "You need to cover more than 9 markets";
+      if (languageCount > 15)
+        return "You need to support more than 15 languages";
+      if (modelCount > 10) return "You selected more than 10 AI models";
+      if (competitorCount > 5)
+        return "You need to track more than 5 competitors";
+      return "Your requirements need our Agencies plan";
     } else if (recommendedPlan === "growth") {
-      if (urlCount > 1) return "You need to monitor multiple URLs"
-      if (marketCount > 3) return "You need to cover multiple markets"
-      if (languageCount > 5) return "You need to support multiple languages"
-      if (modelCount > 5) return "You selected multiple AI models"
-      if (competitorCount > 2) return "You need to track multiple competitors"
-      if (promptCount > 50) return "You need to analyze many prompts"
-      return "Your requirements need our Growth plan"
+      if (urlCount > 1) return "You need to monitor multiple URLs";
+      if (marketCount > 3) return "You need to cover multiple markets";
+      if (languageCount > 5) return "You need to support multiple languages";
+      if (modelCount > 5) return "You selected multiple AI models";
+      if (competitorCount > 2) return "You need to track multiple competitors";
+      if (promptCount > 50) return "You need to analyze many prompts";
+      return "Your requirements need our Growth plan";
     }
-    return "The Starter plan covers your basic needs"
-  }
+    return "The Starter plan covers your basic needs";
+  };
 
   const getYearlyPrice = (monthlyPrice: number) => {
     // Valeurs fixes pour les plans annuels
     if (monthlyPrice === 89) {
-      return 69 // Prix mensuel équivalent pour Starter
+      return 69; // Prix mensuel équivalent pour Starter
     } else if (monthlyPrice === 199) {
-      return 159 // Prix mensuel équivalent pour Growth
+      return 159; // Prix mensuel équivalent pour Growth
     }
     // Fallback au calcul standard (20% de réduction)
-    return Math.round(monthlyPrice * 0.8)
-  }
+    return Math.round(monthlyPrice * 0.8);
+  };
 
   const calculateSavings = (monthlyPrice: number | null) => {
-    if (!monthlyPrice) return { amount: 0, percentage: 0 }
+    if (!monthlyPrice) return { amount: 0, percentage: 0 };
 
     // Valeurs fixes pour les économies annuelles
     if (monthlyPrice === 89) {
-      return { amount: 240, percentage: Math.round((240 / (89 * 12)) * 100) }
+      return { amount: 240, percentage: Math.round((240 / (89 * 12)) * 100) };
     } else if (monthlyPrice === 199) {
-      return { amount: 480, percentage: Math.round((480 / (199 * 12)) * 100) }
+      return { amount: 480, percentage: Math.round((480 / (199 * 12)) * 100) };
     }
 
     // Fallback au calcul standard
-    const monthlyCost = monthlyPrice * 12
-    const yearlyCost = getYearlyPrice(monthlyPrice) * 12
-    const savings = monthlyCost - yearlyCost
-    const percentage = Math.round((savings / monthlyCost) * 100)
+    const monthlyCost = monthlyPrice * 12;
+    const yearlyCost = getYearlyPrice(monthlyPrice) * 12;
+    const savings = monthlyCost - yearlyCost;
+    const percentage = Math.round((savings / monthlyCost) * 100);
 
-    return { amount: savings, percentage }
-  }
+    return { amount: savings, percentage };
+  };
 
   const handleStartTrial = (plan: string) => {
-    setSelectedPlan(plan as any)
-    setIsSubmitting(true)
+    setSelectedPlan(plan as any);
+    setIsSubmitting(true);
 
     // Rediriger vers les liens Stripe en fonction du plan et de la période de facturation
     setTimeout(() => {
       if (plan === "starter") {
         if (billingPeriod === "monthly") {
-          window.location.href = "https://buy.stripe.com/00wbJ2gbEaSSe8LecIasg08" // Starter mensuel
+          window.location.href =
+            "https://buy.stripe.com/00wbJ2gbEaSSe8LecIasg08"; // Starter mensuel
         } else {
-          window.location.href = "https://buy.stripe.com/eVqaEYgbEe54e8L5Gcasg0b" // Starter annuel
+          window.location.href =
+            "https://buy.stripe.com/eVqaEYgbEe54e8L5Gcasg0b"; // Starter annuel
         }
       } else if (plan === "growth") {
         if (billingPeriod === "monthly") {
-          window.location.href = "https://buy.stripe.com/9B64gA5x0e548Orb0wasg09" // Growth mensuel
+          window.location.href =
+            "https://buy.stripe.com/9B64gA5x0e548Orb0wasg09"; // Growth mensuel
         } else {
-          window.location.href = "https://buy.stripe.com/cNi8wQ0cG7GGc0D5Gcasg0a" // Growth annuel
+          window.location.href =
+            "https://buy.stripe.com/cNi8wQ0cG7GGc0D5Gcasg0a"; // Growth annuel
         }
       }
-    }, 500) // Délai court pour montrer l'état de chargement
-  }
+    }, 500); // Délai court pour montrer l'état de chargement
+  };
 
   const handleFeatureClick = (featureId: string) => {
-    setSelectedFeature(featureId)
-    setFeatureDialogOpen(true)
-  }
+    setSelectedFeature(featureId);
+    setFeatureDialogOpen(true);
+  };
 
   // Core features
   const coreFeatures = [
@@ -244,7 +278,7 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
       icon: <TrendingUp className="h-5 w-5" />,
       color: "bg-accent-50 text-accent-600",
     },
-  ]
+  ];
 
   // FAQ data
   const faqItems = [
@@ -284,26 +318,29 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
       answer:
         "We offer a 30-day money-back guarantee. If you're not satisfied with our service within the first 30 days after your trial ends, we'll refund your payment - no questions asked.",
     },
-  ]
+  ];
 
   // Why it matters points
   const whyItMatters = [
     {
       title: "AI is becoming the new search",
-      description: "Millions of users now ask AI models questions instead of searching on Google.",
+      description:
+        "Millions of users now ask AI models questions instead of searching on Google.",
       icon: <Zap className="h-5 w-5" />,
     },
     {
       title: "Brand perception is evolving",
-      description: "How AI models describe your brand directly impacts consumer decisions.",
+      description:
+        "How AI models describe your brand directly impacts consumer decisions.",
       icon: <Users className="h-5 w-5" />,
     },
     {
       title: "Competitive advantage",
-      description: "Early adopters who optimize for AI visibility gain significant market advantage.",
+      description:
+        "Early adopters who optimize for AI visibility gain significant market advantage.",
       icon: <ArrowUpRight className="h-5 w-5" />,
     },
-  ]
+  ];
 
   // Comparison table data
   const comparisonData = [
@@ -391,7 +428,7 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
       enterprise: true,
       agencies: true,
     },
-  ]
+  ];
 
   // Pricing plans
   const pricingPlans = [
@@ -440,7 +477,11 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
         "Improve brand alignment with Lift",
         "Export raw data (CSV)",
       ],
-      included: ["3 brands, 3 markets each", "8+ AI models", "Lift + CSV Export"],
+      included: [
+        "3 brands, 3 markets each",
+        "8+ AI models",
+        "Lift + CSV Export",
+      ],
       ctaText: "Get Started",
       ctaAction: () => handleStartTrial("growth"),
       ctaColor: "bg-accent-500 hover:bg-accent-600",
@@ -464,9 +505,16 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
         "Use on-demand refresh and white-label dashboards",
         "Get SSO and dedicated support",
       ],
-      included: ["All features from Growth", "15 brands, 3 markets each", "SSO and dedicated support"],
+      included: [
+        "All features from Growth",
+        "15 brands, 3 markets each",
+        "SSO and dedicated support",
+      ],
       ctaText: "Contact Sales",
-      ctaAction: () => window.open("mailto:sales@contexte.ai?subject=Enterprise Plan Inquiry"),
+      ctaAction: () =>
+        window.open(
+          "mailto:contact@getmint.ai?subject=Enterprise Plan Inquiry"
+        ),
       ctaColor: "bg-purple-600 hover:bg-purple-700",
       checkColor: "text-purple-500",
       plusColor: "text-purple-500",
@@ -488,15 +536,20 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
         "Create custom prompts and personas",
         "Access daily refresh and API (beta)",
       ],
-      included: ["All features from Growth", "Unlimited brands", "Prompts, personas, API (beta)"],
+      included: [
+        "All features from Growth",
+        "Unlimited brands",
+        "Prompts, personas, API (beta)",
+      ],
       ctaText: "Contact Sales",
-      ctaAction: () => window.open("mailto:sales@contexte.ai?subject=Agencies Plan Inquiry"),
+      ctaAction: () =>
+        window.open("mailto:sales@contexte.ai?subject=Agencies Plan Inquiry"),
       ctaColor: "bg-teal-600 hover:bg-teal-700",
       checkColor: "text-teal-500",
       plusColor: "text-teal-500",
       isPopular: false,
     },
-  ]
+  ];
 
   return (
     <div className="py-12 animate-fade-in">
@@ -525,10 +578,17 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
           </div>
         </div>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Button size="lg" className="bg-accent-500 hover:bg-accent-600 text-white px-8">
+          <Button
+            size="lg"
+            className="bg-accent-500 hover:bg-accent-600 text-white px-8"
+          >
             Get Started
           </Button>
-          <Button size="lg" variant="outline" className="border-accent-200 text-accent-700">
+          <Button
+            size="lg"
+            variant="outline"
+            className="border-accent-200 text-accent-700"
+          >
             <Phone className="h-4 w-4 mr-2" /> Contact Sales
           </Button>
         </div>
@@ -543,11 +603,15 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
                 <CheckCircle2 className="h-6 w-6 text-accent-600" />
               </div>
               <div className="text-left">
-                <h3 className="text-lg font-bold text-mono-900">Your Recommended Plan</h3>
+                <h3 className="text-lg font-bold text-mono-900">
+                  Your Recommended Plan
+                </h3>
                 <p className="text-mono-600">
                   Based on your requirements, we recommend the{" "}
                   <span className="font-semibold text-accent-700">
-                    {recommendedPlan.charAt(0).toUpperCase() + recommendedPlan.slice(1)} Plan
+                    {recommendedPlan.charAt(0).toUpperCase() +
+                      recommendedPlan.slice(1)}{" "}
+                    Plan
                   </span>
                 </p>
               </div>
@@ -557,22 +621,30 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
                 recommendedPlan === "starter"
                   ? "bg-gray-800 hover:bg-gray-900"
                   : recommendedPlan === "growth"
-                    ? "bg-accent-500 hover:bg-accent-600"
-                    : recommendedPlan === "enterprise"
-                      ? "bg-purple-600 hover:bg-purple-700"
-                      : "bg-teal-600 hover:bg-teal-700"
+                  ? "bg-accent-500 hover:bg-accent-600"
+                  : recommendedPlan === "enterprise"
+                  ? "bg-purple-600 hover:bg-purple-700"
+                  : "bg-teal-600 hover:bg-teal-700"
               } text-white px-6`}
               onClick={() => {
-                if (recommendedPlan === "starter" || recommendedPlan === "growth") {
-                  handleStartTrial(recommendedPlan)
+                if (
+                  recommendedPlan === "starter" ||
+                  recommendedPlan === "growth"
+                ) {
+                  handleStartTrial(recommendedPlan);
                 } else {
                   window.open(
-                    `mailto:sales@contexte.ai?subject=${recommendedPlan.charAt(0).toUpperCase() + recommendedPlan.slice(1)} Plan Inquiry`,
-                  )
+                    `mailto:sales@contexte.ai?subject=${
+                      recommendedPlan.charAt(0).toUpperCase() +
+                      recommendedPlan.slice(1)
+                    } Plan Inquiry`
+                  );
                 }
               }}
             >
-              {recommendedPlan === "starter" || recommendedPlan === "growth" ? "Get Started" : "Contact Sales"}
+              {recommendedPlan === "starter" || recommendedPlan === "growth"
+                ? "Get Started"
+                : "Contact Sales"}
             </Button>
           </div>
         </div>
@@ -582,7 +654,9 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
       <section className="max-w-4xl mx-auto px-4 sm:px-6 mb-12">
         <div className="bg-white border border-mono-200 rounded-xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-mono-900">Your Requirements</h3>
+            <h3 className="text-lg font-semibold text-mono-900">
+              Your Requirements
+            </h3>
             {!isDataLoaded && (
               <div className="flex items-center text-mono-500 text-sm">
                 <Info className="h-4 w-4 mr-1" />
@@ -591,75 +665,142 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
             )}
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-            <div className={`rounded-lg p-3 ${urlCount > 1 ? "bg-accent-50 border border-accent-200" : "bg-mono-50"}`}>
+            <div
+              className={`rounded-lg p-3 ${
+                urlCount > 1
+                  ? "bg-accent-50 border border-accent-200"
+                  : "bg-mono-50"
+              }`}
+            >
               <p className="text-xs text-mono-500 mb-1">URLs</p>
               <div className="flex items-center justify-between">
                 <p className="font-medium">{urlCount || 1}</p>
-                {urlCount > 1 && <ArrowRight className="h-3 w-3 text-accent-500" />}
+                {urlCount > 1 && (
+                  <ArrowRight className="h-3 w-3 text-accent-500" />
+                )}
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                Limit: {recommendedPlan === "starter" ? "1" : recommendedPlan === "growth" ? "3" : "15+"}
+                Limit:{" "}
+                {recommendedPlan === "starter"
+                  ? "1"
+                  : recommendedPlan === "growth"
+                  ? "3"
+                  : "15+"}
               </p>
             </div>
             <div
-              className={`rounded-lg p-3 ${marketCount > 3 ? "bg-accent-50 border border-accent-200" : "bg-mono-50"}`}
+              className={`rounded-lg p-3 ${
+                marketCount > 3
+                  ? "bg-accent-50 border border-accent-200"
+                  : "bg-mono-50"
+              }`}
             >
               <p className="text-xs text-mono-500 mb-1">Markets</p>
               <div className="flex items-center justify-between">
                 <p className="font-medium">{marketCount || 1}</p>
-                {marketCount > 3 && <ArrowRight className="h-3 w-3 text-accent-500" />}
+                {marketCount > 3 && (
+                  <ArrowRight className="h-3 w-3 text-accent-500" />
+                )}
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                Limit: {recommendedPlan === "starter" ? "1" : recommendedPlan === "growth" ? "3 per URL" : "Unlimited"}
+                Limit:{" "}
+                {recommendedPlan === "starter"
+                  ? "1"
+                  : recommendedPlan === "growth"
+                  ? "3 per URL"
+                  : "Unlimited"}
               </p>
             </div>
             <div
-              className={`rounded-lg p-3 ${languageCount > 5 ? "bg-accent-50 border border-accent-200" : "bg-mono-50"}`}
+              className={`rounded-lg p-3 ${
+                languageCount > 5
+                  ? "bg-accent-50 border border-accent-200"
+                  : "bg-mono-50"
+              }`}
             >
               <p className="text-xs text-mono-500 mb-1">Languages</p>
               <div className="flex items-center justify-between">
                 <p className="font-medium">{languageCount || 1}</p>
-                {languageCount > 5 && <ArrowRight className="h-3 w-3 text-accent-500" />}
+                {languageCount > 5 && (
+                  <ArrowRight className="h-3 w-3 text-accent-500" />
+                )}
               </div>
               <p className="text-xs text-gray-500 mt-1">
                 Limit:{" "}
-                {recommendedPlan === "starter" ? "1" : recommendedPlan === "growth" ? "3 per market" : "Unlimited"}
+                {recommendedPlan === "starter"
+                  ? "1"
+                  : recommendedPlan === "growth"
+                  ? "3 per market"
+                  : "Unlimited"}
               </p>
             </div>
             <div
-              className={`rounded-lg p-3 ${modelCount > 5 ? "bg-accent-50 border border-accent-200" : "bg-mono-50"}`}
+              className={`rounded-lg p-3 ${
+                modelCount > 5
+                  ? "bg-accent-50 border border-accent-200"
+                  : "bg-mono-50"
+              }`}
             >
               <p className="text-xs text-mono-500 mb-1">AI Models</p>
               <div className="flex items-center justify-between">
                 <p className="font-medium">{modelCount || 1}</p>
-                {modelCount > 5 && <ArrowRight className="h-3 w-3 text-accent-500" />}
+                {modelCount > 5 && (
+                  <ArrowRight className="h-3 w-3 text-accent-500" />
+                )}
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                Limit: {recommendedPlan === "starter" ? "5" : recommendedPlan === "growth" ? "8+" : "All"}
+                Limit:{" "}
+                {recommendedPlan === "starter"
+                  ? "5"
+                  : recommendedPlan === "growth"
+                  ? "8+"
+                  : "All"}
               </p>
             </div>
             <div
-              className={`rounded-lg p-3 ${competitorCount > 2 ? "bg-accent-50 border border-accent-200" : "bg-mono-50"}`}
+              className={`rounded-lg p-3 ${
+                competitorCount > 2
+                  ? "bg-accent-50 border border-accent-200"
+                  : "bg-mono-50"
+              }`}
             >
               <p className="text-xs text-mono-500 mb-1">Competitors</p>
               <div className="flex items-center justify-between">
                 <p className="font-medium">{competitorCount || 0}</p>
-                {competitorCount > 2 && <ArrowRight className="h-3 w-3 text-accent-500" />}
+                {competitorCount > 2 && (
+                  <ArrowRight className="h-3 w-3 text-accent-500" />
+                )}
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                Limit: {recommendedPlan === "starter" ? "2" : recommendedPlan === "growth" ? "5" : "Unlimited"}
+                Limit:{" "}
+                {recommendedPlan === "starter"
+                  ? "2"
+                  : recommendedPlan === "growth"
+                  ? "5"
+                  : "Unlimited"}
               </p>
             </div>
             <div
-              className={`rounded-lg p-3 ${promptCount > 50 ? "bg-accent-50 border border-accent-200" : "bg-mono-50"}`}
+              className={`rounded-lg p-3 ${
+                promptCount > 50
+                  ? "bg-accent-50 border border-accent-200"
+                  : "bg-mono-50"
+              }`}
             >
               <p className="text-xs text-mono-500 mb-1">Prompts</p>
               <div className="flex items-center justify-between">
                 <p className="font-medium">{promptCount || 0}</p>
-                {promptCount > 50 && <ArrowRight className="h-3 w-3 text-accent-500" />}
+                {promptCount > 50 && (
+                  <ArrowRight className="h-3 w-3 text-accent-500" />
+                )}
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                Limit: {recommendedPlan === "starter" ? "50" : recommendedPlan === "growth" ? "100" : "Unlimited"}
+                Limit:{" "}
+                {recommendedPlan === "starter"
+                  ? "50"
+                  : recommendedPlan === "growth"
+                  ? "100"
+                  : "Unlimited"}
               </p>
             </div>
           </div>
@@ -670,7 +811,11 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
               <p className="text-xs text-mono-500 mb-2">Brand Attributes</p>
               <div className="flex flex-wrap gap-1">
                 {formData.attributes.map((attr, index) => (
-                  <Badge key={index} variant="outline" className="bg-mono-100 text-mono-700 text-xs">
+                  <Badge
+                    key={index}
+                    variant="outline"
+                    className="bg-mono-100 text-mono-700 text-xs"
+                  >
                     {attr}
                   </Badge>
                 ))}
@@ -681,27 +826,41 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
           <div className="flex items-start bg-accent-50 p-4 rounded-lg">
             <AlertCircle className="h-5 w-5 text-accent-600 mr-3 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm text-accent-700 font-medium">{getRecommendationReason()}</p>
+              <p className="text-sm text-accent-700 font-medium">
+                {getRecommendationReason()}
+              </p>
               <p className="text-xs text-accent-600 mt-1">
                 {recommendedPlan === "starter" ? (
                   "Le plan Starter couvre tous vos besoins actuels."
                 ) : recommendedPlan === "growth" ? (
                   <>
-                    {urlCount > 1 && "Plusieurs URLs nécessitent au moins le plan Growth. "}
-                    {marketCount > 3 && "Plus de 3 marchés nécessitent au moins le plan Growth. "}
-                    {languageCount > 5 && "Plus de 5 langues nécessitent au moins le plan Growth. "}
-                    {modelCount > 5 && "Plus de 5 modèles d'IA nécessitent au moins le plan Growth. "}
-                    {competitorCount > 2 && "Plus de 2 concurrents nécessitent au moins le plan Growth. "}
-                    {promptCount > 50 && "Plus de 50 prompts nécessitent au moins le plan Growth. "}
+                    {urlCount > 1 &&
+                      "Plusieurs URLs nécessitent au moins le plan Growth. "}
+                    {marketCount > 3 &&
+                      "Plus de 3 marchés nécessitent au moins le plan Growth. "}
+                    {languageCount > 5 &&
+                      "Plus de 5 langues nécessitent au moins le plan Growth. "}
+                    {modelCount > 5 &&
+                      "Plus de 5 modèles d'IA nécessitent au moins le plan Growth. "}
+                    {competitorCount > 2 &&
+                      "Plus de 2 concurrents nécessitent au moins le plan Growth. "}
+                    {promptCount > 50 &&
+                      "Plus de 50 prompts nécessitent au moins le plan Growth. "}
                   </>
                 ) : (
                   <>
-                    {urlCount > 5 && "Plus de 5 URLs nécessitent au moins le plan Agencies. "}
-                    {marketCount > 9 && "Plus de 9 marchés nécessitent au moins le plan Agencies. "}
-                    {languageCount > 15 && "Plus de 15 langues nécessitent au moins le plan Agencies. "}
-                    {modelCount > 10 && "Plus de 10 modèles d'IA nécessitent au moins le plan Agencies. "}
-                    {competitorCount > 5 && "Plus de 5 concurrents nécessitent au moins le plan Agencies. "}
-                    {promptCount > 100 && "Plus de 100 prompts nécessitent au moins le plan Agencies. "}
+                    {urlCount > 5 &&
+                      "Plus de 5 URLs nécessitent au moins le plan Agencies. "}
+                    {marketCount > 9 &&
+                      "Plus de 9 marchés nécessitent au moins le plan Agencies. "}
+                    {languageCount > 15 &&
+                      "Plus de 15 langues nécessitent au moins le plan Agencies. "}
+                    {modelCount > 10 &&
+                      "Plus de 10 modèles d'IA nécessitent au moins le plan Agencies. "}
+                    {competitorCount > 5 &&
+                      "Plus de 5 concurrents nécessitent au moins le plan Agencies. "}
+                    {promptCount > 100 &&
+                      "Plus de 100 prompts nécessitent au moins le plan Agencies. "}
                   </>
                 )}
               </p>
@@ -709,7 +868,12 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
           </div>
 
           <div className="mt-4 text-center">
-            <Button variant="link" size="sm" className="text-accent-600" onClick={() => router.push("/onboarding")}>
+            <Button
+              variant="link"
+              size="sm"
+              className="text-accent-600"
+              onClick={() => router.push("/onboarding")}
+            >
               <ArrowLeft className="h-3 w-3 mr-1" /> Modify your requirements
             </Button>
           </div>
@@ -722,7 +886,9 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
           <div className="inline-flex items-center bg-mono-100 p-1 rounded-full">
             <button
               className={`px-6 py-2 rounded-full text-sm font-medium transition-colors ${
-                billingPeriod === "monthly" ? "bg-white text-mono-900 shadow-sm" : "text-mono-600"
+                billingPeriod === "monthly"
+                  ? "bg-white text-mono-900 shadow-sm"
+                  : "text-mono-600"
               }`}
               onClick={() => setBillingPeriod("monthly")}
             >
@@ -730,12 +896,16 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
             </button>
             <button
               className={`px-6 py-2 rounded-full text-sm font-medium transition-colors flex items-center ${
-                billingPeriod === "yearly" ? "bg-white text-mono-900 shadow-sm" : "text-mono-600"
+                billingPeriod === "yearly"
+                  ? "bg-white text-mono-900 shadow-sm"
+                  : "text-mono-600"
               }`}
               onClick={() => setBillingPeriod("yearly")}
             >
               Yearly
-              <span className="ml-2 text-xs px-2 py-0.5 bg-green-100 text-green-800 rounded-full">Save 20%</span>
+              <span className="ml-2 text-xs px-2 py-0.5 bg-green-100 text-green-800 rounded-full">
+                Save 20%
+              </span>
             </button>
           </div>
         </div>
@@ -752,10 +922,12 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
                   plan.name.toLowerCase() === recommendedPlan
                     ? "border-2 border-accent-500 bg-accent-50/20"
                     : plan.isPopular
-                      ? "border-2 border-accent-300 bg-gray-50"
-                      : "border-gray-200 bg-white"
+                    ? "border-2 border-accent-300 bg-gray-50"
+                    : "border-gray-200 bg-white"
                 } shadow-md hover:shadow-lg transition-all duration-300 ${
-                  plan.name.toLowerCase() === recommendedPlan ? "transform hover:-translate-y-1" : ""
+                  plan.name.toLowerCase() === recommendedPlan
+                    ? "transform hover:-translate-y-1"
+                    : ""
                 }`}
               >
                 {/* Badge - Correction: utiliser une couleur solide au lieu d'une classe Tailwind */}
@@ -779,7 +951,9 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
                   {/* Section 1: Plan Header - Hauteur fixe */}
                   <div className="mb-4 h-[120px] flex flex-col">
                     <div className="flex items-center mb-1">
-                      <h3 className="text-xl font-bold text-mono-900">{plan.name}</h3>
+                      <h3 className="text-xl font-bold text-mono-900">
+                        {plan.name}
+                      </h3>
                     </div>
                     <div className="mb-2">
                       <span
@@ -788,7 +962,9 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
                         {plan.tagline}
                       </span>
                     </div>
-                    <p className="text-sm font-medium text-mono-700 mt-2">{plan.description}</p>
+                    <p className="text-sm font-medium text-mono-700 mt-2">
+                      {plan.description}
+                    </p>
                   </div>
 
                   {/* Section 2: Price - Hauteur fixe */}
@@ -798,12 +974,22 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
                     <div>
                       <div className="flex items-baseline">
                         <span
-                          className={`${plan.price === "Contact Us" ? "text-xl" : "text-3xl"} font-bold text-mono-900`}
+                          className={`${
+                            plan.price === "Contact Us" ? "text-xl" : "text-3xl"
+                          } font-bold text-mono-900`}
                         >
                           {plan.price}
                         </span>
-                        {plan.pricePeriod && <span className="text-mono-500 ml-1 text-sm">{plan.pricePeriod}</span>}
-                        {plan.billedAnnually && <span className="text-mono-500 ml-2 text-xs">billed annually</span>}
+                        {plan.pricePeriod && (
+                          <span className="text-mono-500 ml-1 text-sm">
+                            {plan.pricePeriod}
+                          </span>
+                        )}
+                        {plan.billedAnnually && (
+                          <span className="text-mono-500 ml-2 text-xs">
+                            billed annually
+                          </span>
+                        )}
                       </div>
                       {plan.savings && (
                         <div className="mt-1 text-xs text-green-600 font-medium flex items-center">
@@ -823,24 +1009,33 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
                             index === 1
                               ? "bg-accent-100 text-accent-700"
                               : index === 2
-                                ? "bg-purple-50 text-purple-700"
-                                : "bg-teal-50 text-teal-700"
+                              ? "bg-purple-50 text-purple-700"
+                              : "bg-teal-50 text-teal-700"
                           } px-2 py-1 rounded-md inline-block mb-1`}
                         >
-                          Everything in {index === 1 ? "Starter" : "Growth"}, plus
+                          Everything in {index === 1 ? "Starter" : "Growth"},
+                          plus
                         </span>
                       )}
-                      {index === 0 && <span className="text-mono-700">What you can do</span>}
+                      {index === 0 && (
+                        <span className="text-mono-700">What you can do</span>
+                      )}
                     </h4>
                     <ul className="space-y-3">
                       {plan.features.map((feature, i) => (
                         <li key={i} className="flex items-start">
                           {index === 0 ? (
-                            <Check className={`h-4 w-4 ${plan.checkColor} mr-2 mt-0.5 flex-shrink-0`} />
+                            <Check
+                              className={`h-4 w-4 ${plan.checkColor} mr-2 mt-0.5 flex-shrink-0`}
+                            />
                           ) : (
-                            <Plus className={`h-4 w-4 ${plan.plusColor} mr-2 mt-0.5 flex-shrink-0`} />
+                            <Plus
+                              className={`h-4 w-4 ${plan.plusColor} mr-2 mt-0.5 flex-shrink-0`}
+                            />
                           )}
-                          <span className="text-sm text-mono-600">{feature}</span>
+                          <span className="text-sm text-mono-600">
+                            {feature}
+                          </span>
                         </li>
                       ))}
                     </ul>
@@ -848,11 +1043,15 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
 
                   {/* Section 4: What's included - Hauteur réduite pour éviter le chevauchement */}
                   <div className="mb-4 h-[120px] py-4">
-                    <h4 className="text-sm font-medium text-mono-700 mb-3">What's included</h4>
+                    <h4 className="text-sm font-medium text-mono-700 mb-3">
+                      What's included
+                    </h4>
                     <ul className="space-y-2">
                       {plan.included.map((item, i) => (
                         <li key={i} className="flex items-start">
-                          <Check className={`h-4 w-4 ${plan.checkColor} mr-2 mt-0.5 flex-shrink-0`} />
+                          <Check
+                            className={`h-4 w-4 ${plan.checkColor} mr-2 mt-0.5 flex-shrink-0`}
+                          />
                           <span className="text-sm text-mono-600">{item}</span>
                         </li>
                       ))}
@@ -868,22 +1067,29 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
                           : plan.ctaColor
                       } text-white h-11`}
                       onClick={plan.ctaAction}
-                      disabled={isSubmitting && selectedPlan === plan.name.toLowerCase()}
+                      disabled={
+                        isSubmitting && selectedPlan === plan.name.toLowerCase()
+                      }
                     >
-                      {isSubmitting && selectedPlan === plan.name.toLowerCase() ? (
+                      {isSubmitting &&
+                      selectedPlan === plan.name.toLowerCase() ? (
                         <div className="flex items-center">
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                           Processing...
                         </div>
                       ) : (
                         <>
-                          {plan.ctaText === "Contact Sales" && <Phone className="h-4 w-4 mr-2" />}
+                          {plan.ctaText === "Contact Sales" && (
+                            <Phone className="h-4 w-4 mr-2" />
+                          )}
                           {plan.ctaText}
                         </>
                       )}
                     </Button>
                     {plan.ctaText === "Get Started" && (
-                      <p className="text-xs text-center text-mono-500 mt-2">Cancel anytime</p>
+                      <p className="text-xs text-center text-mono-500 mt-2">
+                        Cancel anytime
+                      </p>
                     )}
                   </div>
                 </div>
@@ -911,7 +1117,9 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
                 {/* Section 1: Plan Header - Hauteur fixe */}
                 <div className="mb-4 h-[120px] flex flex-col">
                   <div className="flex items-center mb-1">
-                    <h3 className="text-xl font-bold text-mono-900">{pricingPlans[3].name}</h3>
+                    <h3 className="text-xl font-bold text-mono-900">
+                      {pricingPlans[3].name}
+                    </h3>
                   </div>
                   <div className="mb-2">
                     <span
@@ -920,14 +1128,18 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
                       {pricingPlans[3].tagline}
                     </span>
                   </div>
-                  <p className="text-sm font-medium text-mono-700 mt-2">{pricingPlans[3].description}</p>
+                  <p className="text-sm font-medium text-mono-700 mt-2">
+                    {pricingPlans[3].description}
+                  </p>
                 </div>
 
                 {/* Section 2: Price - Hauteur fixe */}
                 <div className="pb-4 border-b border-teal-200 mb-4 h-[80px] flex items-center">
                   <div>
                     <div className="flex items-baseline">
-                      <span className="text-xl font-bold text-mono-900">{pricingPlans[3].price}</span>
+                      <span className="text-xl font-bold text-mono-900">
+                        {pricingPlans[3].price}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -942,7 +1154,9 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
                   <ul className="space-y-3">
                     {pricingPlans[3].features.map((feature, i) => (
                       <li key={i} className="flex items-start">
-                        <Plus className={`h-4 w-4 ${pricingPlans[3].plusColor} mr-2 mt-0.5 flex-shrink-0`} />
+                        <Plus
+                          className={`h-4 w-4 ${pricingPlans[3].plusColor} mr-2 mt-0.5 flex-shrink-0`}
+                        />
                         <span className="text-sm text-mono-600">{feature}</span>
                       </li>
                     ))}
@@ -951,11 +1165,15 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
 
                 {/* Section 4: What's included - Hauteur réduite pour éviter le chevauchement */}
                 <div className="mb-4 h-[120px] py-4">
-                  <h4 className="text-sm font-medium text-mono-700 mb-3">What's included</h4>
+                  <h4 className="text-sm font-medium text-mono-700 mb-3">
+                    What's included
+                  </h4>
                   <ul className="space-y-2">
                     {pricingPlans[3].included.map((item, i) => (
                       <li key={i} className="flex items-start">
-                        <Check className={`h-4 w-4 ${pricingPlans[3].checkColor} mr-2 mt-0.5 flex-shrink-0`} />
+                        <Check
+                          className={`h-4 w-4 ${pricingPlans[3].checkColor} mr-2 mt-0.5 flex-shrink-0`}
+                        />
                         <span className="text-sm text-mono-600">{item}</span>
                       </li>
                     ))}
@@ -971,9 +1189,13 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
                         : pricingPlans[3].ctaColor
                     } text-white h-11`}
                     onClick={pricingPlans[3].ctaAction}
-                    disabled={isSubmitting && selectedPlan === pricingPlans[3].name.toLowerCase()}
+                    disabled={
+                      isSubmitting &&
+                      selectedPlan === pricingPlans[3].name.toLowerCase()
+                    }
                   >
-                    {isSubmitting && selectedPlan === pricingPlans[3].name.toLowerCase() ? (
+                    {isSubmitting &&
+                    selectedPlan === pricingPlans[3].name.toLowerCase() ? (
                       <div className="flex items-center">
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                         Processing...
@@ -994,48 +1216,72 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
 
       {/* Feature Comparison Table */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 mb-16">
-        <h2 className="text-2xl md:text-3xl font-bold text-center mb-8 text-mono-900">Feature Comparison</h2>
+        <h2 className="text-2xl md:text-3xl font-bold text-center mb-8 text-mono-900">
+          Feature Comparison
+        </h2>
         <div className="overflow-x-auto bg-white rounded-xl shadow-md border border-mono-200">
           <table className="w-full min-w-[640px] border-collapse">
             <thead>
               <tr>
-                <th className="p-4 text-left text-mono-700 font-medium border-b border-mono-200">Features</th>
+                <th className="p-4 text-left text-mono-700 font-medium border-b border-mono-200">
+                  Features
+                </th>
                 <th
-                  className={`p-4 text-center text-mono-700 font-medium border-b border-mono-200 ${recommendedPlan === "starter" ? "bg-accent-100" : ""}`}
+                  className={`p-4 text-center text-mono-700 font-medium border-b border-mono-200 ${
+                    recommendedPlan === "starter" ? "bg-accent-100" : ""
+                  }`}
                 >
                   {recommendedPlan === "starter" && (
                     <div className="mb-1">
-                      <Badge className="bg-accent-500 text-white">Recommended</Badge>
+                      <Badge className="bg-accent-500 text-white">
+                        Recommended
+                      </Badge>
                     </div>
                   )}
                   Starter
                 </th>
                 <th
-                  className={`p-4 text-center text-mono-700 font-medium border-b border-mono-200 ${recommendedPlan === "growth" ? "bg-accent-100" : "bg-accent-50"}`}
+                  className={`p-4 text-center text-mono-700 font-medium border-b border-mono-200 ${
+                    recommendedPlan === "growth"
+                      ? "bg-accent-100"
+                      : "bg-accent-50"
+                  }`}
                 >
                   {recommendedPlan === "growth" && (
                     <div className="mb-1">
-                      <Badge className="bg-accent-500 text-white">Recommended</Badge>
+                      <Badge className="bg-accent-500 text-white">
+                        Recommended
+                      </Badge>
                     </div>
                   )}
                   Growth
                 </th>
                 <th
-                  className={`p-4 text-center text-mono-700 font-medium border-b border-mono-200 ${recommendedPlan === "enterprise" ? "bg-accent-100" : ""}`}
+                  className={`p-4 text-center text-mono-700 font-medium border-b border-mono-200 ${
+                    recommendedPlan === "enterprise" ? "bg-accent-100" : ""
+                  }`}
                 >
                   {recommendedPlan === "enterprise" && (
                     <div className="mb-1">
-                      <Badge className="bg-accent-500 text-white">Recommended</Badge>
+                      <Badge className="bg-accent-500 text-white">
+                        Recommended
+                      </Badge>
                     </div>
                   )}
                   Enterprise
                 </th>
                 <th
-                  className={`p-4 text-center text-mono-700 font-medium border-b border-mono-200 ${recommendedPlan === "agencies" ? "bg-accent-100" : "bg-teal-50"}`}
+                  className={`p-4 text-center text-mono-700 font-medium border-b border-mono-200 ${
+                    recommendedPlan === "agencies"
+                      ? "bg-accent-100"
+                      : "bg-teal-50"
+                  }`}
                 >
                   {recommendedPlan === "agencies" && (
                     <div className="mb-1">
-                      <Badge className="bg-accent-500 text-white">Recommended</Badge>
+                      <Badge className="bg-accent-500 text-white">
+                        Recommended
+                      </Badge>
                     </div>
                   )}
                   Agencies
@@ -1044,7 +1290,10 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
             </thead>
             <tbody>
               {comparisonData.map((row, index) => (
-                <tr key={index} className={index % 2 === 0 ? "bg-mono-50" : "bg-white"}>
+                <tr
+                  key={index}
+                  className={index % 2 === 0 ? "bg-mono-50" : "bg-white"}
+                >
                   <td className="p-4 text-mono-800 border-b border-mono-200 font-medium">
                     <div className="flex items-center">
                       <span>{row.feature}</span>
@@ -1053,20 +1302,33 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
                           <TooltipTrigger asChild>
                             <Info className="h-4 w-4 ml-1.5 text-gray-400 cursor-help" />
                           </TooltipTrigger>
-                          <TooltipContent side="right" className="max-w-[200px]">
+                          <TooltipContent
+                            side="right"
+                            className="max-w-[200px]"
+                          >
                             <p className="text-xs">
-                              {row.feature === "URLs included" && "Number of websites you can monitor simultaneously"}
+                              {row.feature === "URLs included" &&
+                                "Number of websites you can monitor simultaneously"}
                               {row.feature === "Markets/Languages" &&
                                 "Geographic markets and languages covered per URL"}
-                              {row.feature === "AI models" && "Number of AI models used for analysis"}
-                              {row.feature === "Refresh frequency" && "How often your data is updated"}
-                              {row.feature === "CSV Export" && "Export raw data for further analysis"}
-                              {row.feature === "API Access" && "Programmatic access to your data (beta)"}
-                              {row.feature === "Custom prompts" && "Create your own prompts for testing"}
-                              {row.feature === "Custom personas" && "Create user personas for targeted testing"}
-                              {row.feature === "White-label portal" && "Branded dashboard for your clients"}
-                              {row.feature === "Dedicated CSM" && "Dedicated Customer Success Manager"}
-                              {row.feature === "Competitors tracked" && "Number of competitors you can track"}
+                              {row.feature === "AI models" &&
+                                "Number of AI models used for analysis"}
+                              {row.feature === "Refresh frequency" &&
+                                "How often your data is updated"}
+                              {row.feature === "CSV Export" &&
+                                "Export raw data for further analysis"}
+                              {row.feature === "API Access" &&
+                                "Programmatic access to your data (beta)"}
+                              {row.feature === "Custom prompts" &&
+                                "Create your own prompts for testing"}
+                              {row.feature === "Custom personas" &&
+                                "Create user personas for targeted testing"}
+                              {row.feature === "White-label portal" &&
+                                "Branded dashboard for your clients"}
+                              {row.feature === "Dedicated CSM" &&
+                                "Dedicated Customer Success Manager"}
+                              {row.feature === "Competitors tracked" &&
+                                "Number of competitors you can track"}
                             </p>
                           </TooltipContent>
                         </Tooltip>
@@ -1074,7 +1336,9 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
                     </div>
                   </td>
                   <td
-                    className={`p-4 text-center border-b border-mono-200 ${recommendedPlan === "starter" ? "bg-accent-50" : ""}`}
+                    className={`p-4 text-center border-b border-mono-200 ${
+                      recommendedPlan === "starter" ? "bg-accent-50" : ""
+                    }`}
                   >
                     {typeof row.starter === "boolean" ? (
                       row.starter ? (
@@ -1087,7 +1351,11 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
                     )}
                   </td>
                   <td
-                    className={`p-4 text-center border-b border-mono-200 ${recommendedPlan === "growth" ? "bg-accent-50" : "bg-accent-50/30"}`}
+                    className={`p-4 text-center border-b border-mono-200 ${
+                      recommendedPlan === "growth"
+                        ? "bg-accent-50"
+                        : "bg-accent-50/30"
+                    }`}
                   >
                     {typeof row.growth === "boolean" ? (
                       row.growth ? (
@@ -1100,7 +1368,9 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
                     )}
                   </td>
                   <td
-                    className={`p-4 text-center border-b border-mono-200 ${recommendedPlan === "enterprise" ? "bg-accent-50" : ""}`}
+                    className={`p-4 text-center border-b border-mono-200 ${
+                      recommendedPlan === "enterprise" ? "bg-accent-50" : ""
+                    }`}
                   >
                     {typeof row.enterprise === "boolean" ? (
                       row.enterprise ? (
@@ -1113,7 +1383,11 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
                     )}
                   </td>
                   <td
-                    className={`p-4 text-center border-b border-mono-200 ${recommendedPlan === "agencies" ? "bg-accent-50" : "bg-teal-50/30"}`}
+                    className={`p-4 text-center border-b border-mono-200 ${
+                      recommendedPlan === "agencies"
+                        ? "bg-accent-50"
+                        : "bg-teal-50/30"
+                    }`}
                   >
                     {typeof row.agencies === "boolean" ? (
                       row.agencies ? (
@@ -1133,7 +1407,10 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
         <div className="mt-4 text-center">
           <p className="text-sm text-mono-500">
             Need a custom plan?{" "}
-            <a href="mailto:sales@contexte.ai" className="text-accent-600 hover:underline">
+            <a
+              href="mailto:sales@contexte.ai"
+              className="text-accent-600 hover:underline"
+            >
               Contact our sales team
             </a>
           </p>
@@ -1143,7 +1420,9 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
       {/* Trust & Safety Section */}
       <section className="max-w-4xl mx-auto px-4 sm:px-6 mb-16">
         <div className="bg-mono-50 rounded-2xl p-8">
-          <h2 className="text-xl font-bold text-center mb-6 text-mono-900">Trust & Safety</h2>
+          <h2 className="text-xl font-bold text-center mb-6 text-mono-900">
+            Trust & Safety
+          </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div className="flex flex-col items-center text-center">
               <div className="bg-white p-3 rounded-full mb-3 shadow-sm">
@@ -1167,7 +1446,9 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
               <div className="bg-white p-3 rounded-full mb-3 shadow-sm">
                 <RefreshCw className="h-6 w-6 text-accent-500" />
               </div>
-              <p className="text-sm text-mono-700">Cancel anytime, 30-day refund</p>
+              <p className="text-sm text-mono-700">
+                Cancel anytime, 30-day refund
+              </p>
             </div>
           </div>
         </div>
@@ -1175,14 +1456,24 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
 
       {/* FAQ Accordion */}
       <section className="max-w-3xl mx-auto px-4 sm:px-6 mb-16">
-        <h2 className="text-2xl md:text-3xl font-bold text-center mb-10 text-mono-900">Frequently Asked Questions</h2>
+        <h2 className="text-2xl md:text-3xl font-bold text-center mb-10 text-mono-900">
+          Frequently Asked Questions
+        </h2>
         <Accordion type="single" collapsible className="space-y-4">
           {faqItems.map((item) => (
-            <AccordionItem key={item.id} value={item.id} className="border rounded-lg overflow-hidden">
+            <AccordionItem
+              key={item.id}
+              value={item.id}
+              className="border rounded-lg overflow-hidden"
+            >
               <AccordionTrigger className="px-6 py-4 hover:no-underline">
-                <span className="text-left font-medium text-mono-800 text-sm">{item.question}</span>
+                <span className="text-left font-medium text-mono-800 text-sm">
+                  {item.question}
+                </span>
               </AccordionTrigger>
-              <AccordionContent className="px-6 pb-4 pt-0 text-mono-600">{item.answer}</AccordionContent>
+              <AccordionContent className="px-6 pb-4 pt-0 text-mono-600">
+                {item.answer}
+              </AccordionContent>
             </AccordionItem>
           ))}
         </Accordion>
@@ -1191,16 +1482,27 @@ export default function PricingPage({ forcedRecommendedPlan }: PricingPageProps)
       {/* Final CTA Section */}
       <section className="max-w-4xl mx-auto px-4 sm:px-6 mb-16">
         <div className="bg-accent-50 border border-accent-200 rounded-2xl p-10 text-center">
-          <h2 className="text-2xl md:text-3xl font-bold mb-4 text-mono-900">See how your brand performs in AI</h2>
-          <p className="text-lg text-mono-600 mb-8 max-w-2xl mx-auto">Subscribe today and unlock valuable insights</p>
-          <Button size="lg" className="bg-accent-500 hover:bg-accent-600 text-white px-8">
+          <h2 className="text-2xl md:text-3xl font-bold mb-4 text-mono-900">
+            See how your brand performs in AI
+          </h2>
+          <p className="text-lg text-mono-600 mb-8 max-w-2xl mx-auto">
+            Subscribe today and unlock valuable insights
+          </p>
+          <Button
+            size="lg"
+            className="bg-accent-500 hover:bg-accent-600 text-white px-8"
+          >
             Get Started <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
         </div>
       </section>
 
       {/* Feature Example Dialog */}
-      <FeatureExampleDialog open={featureDialogOpen} featureId={selectedFeature} onOpenChange={setFeatureDialogOpen} />
+      <FeatureExampleDialog
+        open={featureDialogOpen}
+        featureId={selectedFeature}
+        onOpenChange={setFeatureDialogOpen}
+      />
     </div>
-  )
+  );
 }

@@ -137,7 +137,7 @@ export class TokenController {
             request.userId,
             null, // No specific report ID for general access
             user.email,
-            'Your Brand Intelligence Reports - New Access Link', // Custom subject
+            'MINT - New Access Link', // Custom subject
           );
           this.logger.log(`Access token email sent to ${user.email} for user ${request.userId}`);
         } else {
