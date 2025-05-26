@@ -60,11 +60,11 @@
         },
         {
           "name": "FRONTEND_URL",
-          "value": "https://app.yoma.ws"
+          "value": "https://app.getmint.ai"
         },
         {
           "name": "ALLOWED_ORIGINS",
-          "value": "https://app.yoma.ws"
+          "value": "https://app.getmint.ai"
         }
       ],
       "secrets": [
@@ -87,6 +87,10 @@
         {
           "name": "JWT_SECRET",
           "valueFrom": "arn:aws:secretsmanager:eu-west-1:767828741433:secret:BRAND_INSIGHT_JWT-kgJ4wi"
+        },
+        {
+          "name": "GOOGLE_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-west-1:767828741433:secret:GOOGLE_API_KEY-ykWBcb"
         }
       ],
       "environmentFiles": [],
