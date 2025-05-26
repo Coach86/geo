@@ -10,6 +10,7 @@ import { PromptSet, PromptSetSchema } from './schemas/prompt-set.schema';
 import { TokenService } from '../auth/services/token.service';
 import { AccessTokenRepository } from '../auth/repositories/access-token.repository';
 import { AccessToken, AccessTokenSchema } from '../auth/schemas/access-token.schema';
+import { IdentityCard, IdentityCardSchema } from '../identity-card/schemas/identity-card.schema';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { AccessToken, AccessTokenSchema } from '../auth/schemas/access-token.sch
     MongooseModule.forFeature([
       { name: PromptSet.name, schema: PromptSetSchema },
       { name: AccessToken.name, schema: AccessTokenSchema },
+      { name: IdentityCard.name, schema: IdentityCardSchema },
     ]),
   ],
   providers: [PromptService, PromptSetRepository, TokenService, AccessTokenRepository],

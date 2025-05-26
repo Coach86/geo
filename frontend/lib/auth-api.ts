@@ -339,3 +339,274 @@ export async function updatePhoneNumber(
     throw new Error(error instanceof Error ? error.message : 'Failed to update phone number');
   }
 }
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  language: string;
+  phoneNumber?: string;
+  createdAt: string;
+  updatedAt: string;
+  companyIds: string[];
+}
+
+/**
+ * Get user profile (requires token authentication)
+ */
+export async function getUserProfile(token: string): Promise<UserProfile> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/user/profile`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Failed to get user profile' }));
+      throw new Error(error.message || 'Failed to get user profile');
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error('Get user profile error:', error);
+    throw new Error(error instanceof Error ? error.message : 'Failed to get user profile');
+  }
+}
+
+/**
+ * Get user's identity cards (requires token authentication)
+ */
+export async function getUserIdentityCards(token: string): Promise<IdentityCardResponse[]> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/user/identity-card`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Failed to get identity cards' }));
+      throw new Error(error.message || 'Failed to get identity cards');
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error('Get identity cards error:', error);
+    throw new Error(error instanceof Error ? error.message : 'Failed to get identity cards');
+  }
+}
+
+/**
+ * Get company details by ID (requires token authentication)
+ */
+export async function getCompanyById(companyId: string, token: string): Promise<IdentityCardResponse> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/user/identity-card/${companyId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Failed to get company details' }));
+      throw new Error(error.message || 'Failed to get company details');
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error('Get company details error:', error);
+    throw new Error(error instanceof Error ? error.message : 'Failed to get company details');
+  }
+}
+
+export interface PromptSet {
+  id: string;
+  companyId: string;
+  spontaneous: string[];
+  direct: string[];
+  comparison: string[];
+  accuracy: string[];
+  brandBattle: string[];
+  updatedAt: string;
+  createdAt: string;
+}
+
+/**
+ * Get prompt set for a company (requires token authentication)
+ */
+export async function getPromptSet(companyId: string, token: string): Promise<PromptSet> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/prompts/${companyId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Failed to get prompt set' }));
+      throw new Error(error.message || 'Failed to get prompt set');
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error('Get prompt set error:', error);
+    throw new Error(error instanceof Error ? error.message : 'Failed to get prompt set');
+  }
+}
+
+/**
+ * Update identity card attributes and competitors (requires token authentication)
+ */
+export async function updateIdentityCard(
+  companyId: string,
+  data: { keyBrandAttributes?: string[]; competitors?: string[] },
+  token: string
+): Promise<IdentityCardResponse> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/user/identity-card/${companyId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Failed to update identity card' }));
+      throw new Error(error.message || 'Failed to update identity card');
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error('Update identity card error:', error);
+    throw new Error(error instanceof Error ? error.message : 'Failed to update identity card');
+  }
+}
+
+/**
+ * Update prompt set for a company (requires token authentication)
+ */
+export async function updatePromptSet(
+  companyId: string,
+  data: {
+    spontaneous?: string[];
+    direct?: string[];
+    comparison?: string[];
+    accuracy?: string[];
+    brandBattle?: string[];
+  },
+  token: string
+): Promise<PromptSet> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/prompts/${companyId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Failed to update prompt set' }));
+      throw new Error(error.message || 'Failed to update prompt set');
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error('Update prompt set error:', error);
+    throw new Error(error instanceof Error ? error.message : 'Failed to update prompt set');
+  }
+}
+
+export interface ReportContentResponse {
+  id: string;
+  companyId: string;
+  reportDate: string;
+  generatedAt: string;
+  brand: {
+    name: string;
+    website: string;
+    industry: string;
+    competitors: string[];
+  };
+  overall: {
+    mentionRate: number;
+    sentiment: number;
+    accuracyScore: number;
+  };
+  byModel: Record<string, {
+    mentionCount: number;
+    mentionRate: number;
+    sentiment: number;
+    accuracyScore: number;
+  }>;
+  spontaneous?: {
+    overallMentionRate: number;
+    modelScores: Record<string, {
+      mentionCount: number;
+      mentionRate: number;
+    }>;
+  };
+  sentiment?: {
+    overallScore: number;
+    modelScores: Record<string, {
+      score: number;
+      positive: number;
+      negative: number;
+      neutral: number;
+    }>;
+  };
+  accuracy?: {
+    overallScore: number;
+    modelScores: Record<string, {
+      score: number;
+      correct: number;
+      incorrect: number;
+      partial: number;
+    }>;
+  };
+  comparison?: {
+    overallPosition: number;
+    totalCompetitors: number;
+    modelRankings: Record<string, {
+      rank: number;
+      score: number;
+      mentions: number;
+    }>;
+  };
+}
+
+/**
+ * Get all reports for a company (requires token authentication)
+ */
+export async function getCompanyReports(companyId: string, token: string): Promise<ReportContentResponse[]> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/reports/company/${companyId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Failed to get company reports' }));
+      throw new Error(error.message || 'Failed to get company reports');
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error('Get company reports error:', error);
+    throw new Error(error instanceof Error ? error.message : 'Failed to get company reports');
+  }
+}

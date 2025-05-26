@@ -1,5 +1,6 @@
 import {
   Controller,
+  Get,
   Patch,
   Body,
   Req,
@@ -26,6 +27,51 @@ export class UserProfileController {
     private readonly userService: UserService,
     private readonly tokenService: TokenService,
   ) {}
+
+  @Get()
+  @TokenRoute() // Mark this route as token-authenticated
+  @ApiOperation({ summary: 'Get user profile information' })
+  @ApiResponse({
+    status: 200,
+    description: 'User profile retrieved successfully',
+    type: UserResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Token required' })
+  async getProfile(@Req() request: any): Promise<UserResponseDto> {
+    try {
+      this.logger.log(`Token-based user profile request`);
+      
+      // Validate user authentication
+      if (!request.userId) {
+        if (request.token) {
+          const validation = await this.tokenService.validateAccessToken(request.token);
+          if (validation.valid && validation.userId) {
+            request.userId = validation.userId;
+          } else {
+            throw new UnauthorizedException('Invalid or expired token');
+          }
+        } else {
+          throw new UnauthorizedException('User not authenticated');
+        }
+      }
+
+      this.logger.log(`Fetching profile for user: ${request.userId}`);
+      const user = await this.userService.findOne(request.userId);
+      
+      if (!user) {
+        throw new BadRequestException('User not found');
+      }
+      
+      this.logger.log(`Profile retrieved successfully for user: ${request.userId}`);
+      return user;
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof UnauthorizedException) {
+        throw error;
+      }
+      this.logger.error(`Failed to get user profile: ${error.message}`, error.stack);
+      throw new BadRequestException(`Failed to get user profile: ${error.message}`);
+    }
+  }
 
   @Patch('phone')
   @TokenRoute() // Mark this route as token-authenticated

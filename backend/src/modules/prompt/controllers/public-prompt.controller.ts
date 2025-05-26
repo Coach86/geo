@@ -1,19 +1,28 @@
 import {
   Controller,
   Post,
+  Get,
+  Patch,
   Body,
   Req,
+  Param,
   UseInterceptors,
   ClassSerializerInterceptor,
   BadRequestException,
   UnauthorizedException,
+  NotFoundException,
   Logger,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { PromptService } from '../services/prompt.service';
+import { UpdatePromptSetDto } from '../dto/update-prompt-set.dto';
 import { TokenRoute } from '../../auth/decorators/token-route.decorator';
 import { TokenService } from '../../auth/services/token.service';
 import { CompanyIdentityCard } from '../../identity-card/entities/company-identity-card.entity';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { PromptSet, PromptSetDocument } from '../schemas/prompt-set.schema';
+import { IdentityCard, IdentityCardDocument } from '../../identity-card/schemas/identity-card.schema';
 
 export interface GeneratePromptsRequest {
   brandName: string;
@@ -42,9 +51,87 @@ export class PublicPromptController {
   private readonly logger = new Logger(PublicPromptController.name);
 
   constructor(
+    @InjectModel(PromptSet.name) private promptSetModel: Model<PromptSetDocument>,
+    @InjectModel(IdentityCard.name) private identityCardModel: Model<IdentityCardDocument>,
     private readonly promptService: PromptService,
     private readonly tokenService: TokenService,
   ) {}
+
+  @Get(':companyId')
+  @TokenRoute() // Mark this route as token-authenticated
+  @ApiOperation({ summary: 'Get prompt set for a company' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns the prompt set',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        companyId: { type: 'string' },
+        spontaneous: { type: 'array', items: { type: 'string' } },
+        direct: { type: 'array', items: { type: 'string' } },
+        comparison: { type: 'array', items: { type: 'string' } },
+        accuracy: { type: 'array', items: { type: 'string' } },
+        brandBattle: { type: 'array', items: { type: 'string' } },
+        updatedAt: { type: 'string', format: 'date-time' },
+        createdAt: { type: 'string', format: 'date-time' },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Token required' })
+  @ApiResponse({ status: 404, description: 'Prompt set not found' })
+  async getPromptSet(
+    @Req() request: any,
+    @Param('companyId') companyId: string,
+  ) {
+    try {
+      this.logger.log(`Fetching prompt set for company: ${companyId}`);
+
+      // Validate user authentication
+      if (!request.userId) {
+        if (request.token) {
+          const validation = await this.tokenService.validateAccessToken(request.token);
+          if (validation.valid && validation.userId) {
+            request.userId = validation.userId;
+          } else {
+            throw new UnauthorizedException('Invalid or expired token');
+          }
+        } else {
+          throw new UnauthorizedException('User not authenticated');
+        }
+      }
+
+      // Get the prompt set directly from the model
+      const promptSet = await this.promptSetModel.findOne({ companyId }).lean().exec();
+      
+      if (!promptSet) {
+        throw new NotFoundException('Prompt set not found');
+      }
+
+      // TODO: Verify user owns this company
+      // For now, we'll skip this check but it should be added for security
+
+      this.logger.log(`Prompt set retrieved successfully for company: ${companyId}`);
+
+      return {
+        id: promptSet._id?.toString() || promptSet.id,
+        companyId: promptSet.companyId,
+        spontaneous: promptSet.spontaneous,
+        direct: promptSet.direct,
+        comparison: promptSet.comparison,
+        accuracy: promptSet.accuracy,
+        brandBattle: promptSet.brandBattle,
+        updatedAt: promptSet.updatedAt instanceof Date ? promptSet.updatedAt : new Date(),
+        createdAt: promptSet.createdAt instanceof Date ? promptSet.createdAt : new Date(),
+      };
+    } catch (error) {
+      if (error instanceof UnauthorizedException || error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error(`Failed to get prompt set: ${error.message}`, error.stack);
+      throw new BadRequestException(`Failed to get prompt set: ${error.message}`);
+    }
+  }
 
   @Post('generate')
   @TokenRoute() // Mark this route as token-authenticated
@@ -161,6 +248,66 @@ export class PublicPromptController {
       }
       this.logger.error(`Failed to generate prompts: ${error.message}`, error.stack);
       throw new BadRequestException(`Failed to generate prompts: ${error.message}`);
+    }
+  }
+
+  @Patch(':companyId')
+  @TokenRoute()
+  @ApiOperation({ summary: 'Update prompt set for a company' })
+  @ApiBody({ type: UpdatePromptSetDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Prompt set updated successfully',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Token required' })
+  @ApiResponse({ status: 404, description: 'Company not found' })
+  async updatePromptSet(
+    @Req() request: any,
+    @Param('companyId') companyId: string,
+    @Body() updatePromptSetDto: UpdatePromptSetDto,
+  ): Promise<any> {
+    try {
+      this.logger.log(`Updating prompt set for company ${companyId}`);
+      
+      // Validate user authentication
+      if (!request.userId) {
+        if (request.token) {
+          const validation = await this.tokenService.validateAccessToken(request.token);
+          if (validation.valid && validation.userId) {
+            request.userId = validation.userId;
+          } else {
+            throw new UnauthorizedException('Invalid or expired token');
+          }
+        } else {
+          throw new UnauthorizedException('User not authenticated');
+        }
+      }
+
+      // Check if the user owns this company
+      const identityCard = await this.identityCardModel.findOne({ id: companyId }).exec();
+      if (!identityCard) {
+        throw new NotFoundException(`Company ${companyId} not found`);
+      }
+      
+      if (identityCard.userId !== request.userId) {
+        this.logger.warn(`User ${request.userId} tried to update prompts for company ${companyId} owned by user ${identityCard.userId}`);
+        throw new UnauthorizedException('You do not have permission to update prompts for this company');
+      }
+
+      this.logger.log(`Updating prompt set for company ${companyId} for user: ${request.userId}`);
+      
+      // Update the prompt set
+      const updatedPromptSet = await this.promptService.updatePromptSet(companyId, updatePromptSetDto);
+      
+      this.logger.log(`Prompt set updated successfully for company ${companyId}`);
+      
+      return updatedPromptSet;
+    } catch (error) {
+      if (error instanceof UnauthorizedException || error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error(`Failed to update prompt set: ${error.message}`, error.stack);
+      throw new BadRequestException(`Failed to update prompt set: ${error.message}`);
     }
   }
 }

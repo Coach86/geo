@@ -104,4 +104,69 @@ export class PublicReportController {
       throw new BadRequestException(`Failed to retrieve report: ${error.message}`);
     }
   }
+
+  @Get('company/:companyId')
+  @TokenRoute()
+  @ApiOperation({ summary: 'Get all reports for a company' })
+  @ApiParam({ name: 'companyId', description: 'The ID of the company' })
+  @ApiResponse({
+    status: 200,
+    description: 'Reports retrieved successfully',
+    type: [ReportContentResponseDto],
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Token required' })
+  @ApiResponse({ status: 404, description: 'Company not found' })
+  async getCompanyReports(
+    @Req() request: any,
+    @Param('companyId') companyId: string
+  ): Promise<ReportContentResponseDto[]> {
+    try {
+      this.logger.log(`Fetching reports for company ${companyId}`);
+      
+      // Validate user authentication
+      if (!request.userId) {
+        if (request.token) {
+          const validation = await this.tokenService.validateAccessToken(request.token);
+          if (validation.valid && validation.userId) {
+            request.userId = validation.userId;
+          } else {
+            throw new UnauthorizedException('Invalid or expired token');
+          }
+        } else {
+          throw new UnauthorizedException('User not authenticated');
+        }
+      }
+
+      // Verify user owns this company
+      const userCompanies = await this.identityCardService.findAll(request.userId);
+      const userCompanyIds = userCompanies.map(company => company.companyId);
+      
+      if (!userCompanyIds.includes(companyId)) {
+        this.logger.warn(`User ${request.userId} does not own company ${companyId}`);
+        throw new UnauthorizedException('You do not have access to reports for this company');
+      }
+
+      // Get all reports for the company
+      const reportsResult = await this.reportService.getAllCompanyReports(companyId);
+      
+      this.logger.log(`Found ${reportsResult.reports.length} reports for company ${companyId}`);
+      
+      // For each report summary, get the full report details
+      const fullReports = await Promise.all(
+        reportsResult.reports.map(async (reportSummary: any) => {
+          const fullReport = await this.reportService.getReportById(reportSummary.id);
+          // The fullReport is already a WeeklyBrandReportEntity, convert it to response DTO
+          return this.reportConverterService.convertEntityToResponseDto(fullReport as any);
+        })
+      );
+      
+      return fullReports;
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      this.logger.error(`Failed to fetch company reports: ${error.message}`, error.stack);
+      throw new BadRequestException(`Failed to fetch company reports: ${error.message}`);
+    }
+  }
 }
