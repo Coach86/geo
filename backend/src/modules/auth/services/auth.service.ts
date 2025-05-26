@@ -120,7 +120,7 @@ export class AuthService {
       const emailResponse = await resend.emails.send({
         from: 'tailorfeed-ai@tailorfeed.ai',
         to: email,
-        subject: 'Sign in to GPT Rush - Your magic link is ready',
+        subject: 'Sign in to Mint - Your magic link is ready',
         react: React.createElement(MagicLinkEmail, {
           email,
           accessUrl,

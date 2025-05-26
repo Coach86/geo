@@ -36,7 +36,7 @@ export const ReportAccessEmail: React.FC<ReportAccessEmailProps> = ({
             <Img
               src="https://app.getmint.ai/logo-small.png"
               width="140"
-              height="40"
+              height="46"
               alt="Contexte AI"
               style={logo}
             />
