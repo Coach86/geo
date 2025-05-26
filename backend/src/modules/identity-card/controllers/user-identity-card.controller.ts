@@ -1,8 +1,11 @@
 import {
   Controller,
   Post,
+  Get,
+  Patch,
   Body,
   Req,
+  Param,
   UseInterceptors,
   ClassSerializerInterceptor,
   BadRequestException,
@@ -32,6 +35,106 @@ export class UserIdentityCardController {
     private readonly tokenService: TokenService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
+
+  @Get()
+  @TokenRoute() // Mark this route as token-authenticated
+  @ApiOperation({ summary: 'Get all identity cards for the authenticated user' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of user identity cards',
+    type: [IdentityCardResponseDto],
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Token required' })
+  async getUserIdentityCards(@Req() request: any): Promise<IdentityCardResponseDto[]> {
+    try {
+      this.logger.log(`Fetching identity cards for authenticated user`);
+      
+      // Validate user authentication
+      if (!request.userId) {
+        if (request.token) {
+          const validation = await this.tokenService.validateAccessToken(request.token);
+          if (validation.valid && validation.userId) {
+            request.userId = validation.userId;
+          } else {
+            throw new UnauthorizedException('Invalid or expired token');
+          }
+        } else {
+          throw new UnauthorizedException('User not authenticated');
+        }
+      }
+
+      this.logger.log(`Fetching identity cards for user: ${request.userId}`);
+      
+      // Get all identity cards for the user
+      const identityCards = await this.identityCardService.findAll(request.userId);
+      
+      this.logger.log(`Found ${identityCards.length} identity cards for user ${request.userId}`);
+      
+      // Map to response DTOs
+      return identityCards.map((card) => this.mapToResponseDto(card));
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      this.logger.error(`Failed to fetch identity cards: ${error.message}`, error.stack);
+      throw new BadRequestException(`Failed to fetch identity cards: ${error.message}`);
+    }
+  }
+
+  @Get(':companyId')
+  @TokenRoute() // Mark this route as token-authenticated
+  @ApiOperation({ summary: 'Get a specific identity card by ID for the authenticated user' })
+  @ApiResponse({
+    status: 200,
+    description: 'Identity card retrieved successfully',
+    type: IdentityCardResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Token required' })
+  @ApiResponse({ status: 404, description: 'Identity card not found' })
+  async getIdentityCardById(
+    @Req() request: any,
+    @Param('companyId') companyId: string
+  ): Promise<IdentityCardResponseDto> {
+    try {
+      this.logger.log(`Fetching identity card ${companyId} for authenticated user`);
+      
+      // Validate user authentication
+      if (!request.userId) {
+        if (request.token) {
+          const validation = await this.tokenService.validateAccessToken(request.token);
+          if (validation.valid && validation.userId) {
+            request.userId = validation.userId;
+          } else {
+            throw new UnauthorizedException('Invalid or expired token');
+          }
+        } else {
+          throw new UnauthorizedException('User not authenticated');
+        }
+      }
+
+      this.logger.log(`Fetching identity card ${companyId} for user: ${request.userId}`);
+      
+      // Get the identity card
+      const identityCard = await this.identityCardService.findById(companyId);
+      
+      // Check if the user owns this identity card
+      if (identityCard.userId !== request.userId) {
+        this.logger.warn(`User ${request.userId} tried to access identity card ${companyId} owned by user ${identityCard.userId}`);
+        throw new UnauthorizedException('You do not have permission to access this identity card');
+      }
+      
+      this.logger.log(`Identity card ${companyId} retrieved successfully for user ${request.userId}`);
+      
+      // Map to response DTO
+      return this.mapToResponseDto(identityCard);
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      this.logger.error(`Failed to fetch identity card: ${error.message}`, error.stack);
+      throw new BadRequestException(`Failed to fetch identity card: ${error.message}`);
+    }
+  }
 
   @Post('analyze-from-url')
   @TokenRoute() // Mark this route as token-authenticated
@@ -231,6 +334,80 @@ export class UserIdentityCardController {
       }
       this.logger.error(`Failed to save identity card: ${error.message}`, error.stack);
       throw new BadRequestException(`Failed to save identity card: ${error.message}`);
+    }
+  }
+
+  @Patch(':companyId')
+  @TokenRoute()
+  @ApiOperation({ summary: 'Update identity card attributes and competitors' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        keyBrandAttributes: { type: 'array', items: { type: 'string' } },
+        competitors: { type: 'array', items: { type: 'string' } },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Identity card updated successfully',
+    type: IdentityCardResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Token required' })
+  @ApiResponse({ status: 404, description: 'Identity card not found' })
+  async updateIdentityCard(
+    @Req() request: any,
+    @Param('companyId') companyId: string,
+    @Body() body: { keyBrandAttributes?: string[]; competitors?: string[] },
+  ): Promise<IdentityCardResponseDto> {
+    try {
+      this.logger.log(`Updating identity card ${companyId} for authenticated user`);
+      
+      // Validate user authentication
+      if (!request.userId) {
+        if (request.token) {
+          const validation = await this.tokenService.validateAccessToken(request.token);
+          if (validation.valid && validation.userId) {
+            request.userId = validation.userId;
+          } else {
+            throw new UnauthorizedException('Invalid or expired token');
+          }
+        } else {
+          throw new UnauthorizedException('User not authenticated');
+        }
+      }
+
+      // Check if the user owns this identity card
+      const existingCard = await this.identityCardService.findById(companyId);
+      if (existingCard.userId !== request.userId) {
+        this.logger.warn(`User ${request.userId} tried to update identity card ${companyId} owned by user ${existingCard.userId}`);
+        throw new UnauthorizedException('You do not have permission to update this identity card');
+      }
+
+      this.logger.log(`Updating identity card ${companyId} for user: ${request.userId}`);
+      
+      // Update the identity card
+      const updateData: any = {};
+      if (body.keyBrandAttributes !== undefined) {
+        updateData.keyBrandAttributes = body.keyBrandAttributes;
+      }
+      if (body.competitors !== undefined) {
+        updateData.competitors = body.competitors;
+      }
+
+      const updatedCard = await this.identityCardService.update(companyId, updateData);
+      
+      this.logger.log(`Identity card ${companyId} updated successfully`);
+      
+      // Map to response DTO
+      return this.mapToResponseDto(updatedCard);
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      this.logger.error(`Failed to update identity card: ${error.message}`, error.stack);
+      throw new BadRequestException(`Failed to update identity card: ${error.message}`);
     }
   }
 
