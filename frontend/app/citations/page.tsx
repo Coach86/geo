@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { 
   AlertCircle, 
   Globe, 
@@ -15,7 +16,8 @@ import {
   ExternalLink, 
   TrendingUp,
   Database,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Download
 } from "lucide-react";
 import { getCompanyReports, getReportCitations, ReportContentResponse, CitationsData } from "@/lib/auth-api";
 
@@ -134,6 +136,46 @@ export default function CitationsPage() {
     } catch {
       return url;
     }
+  };
+
+  // Export citations to CSV
+  const exportToCSV = () => {
+    if (!citationsData || citationsData.citations.length === 0) return;
+
+    // Prepare CSV headers
+    const headers = ['Website', 'Search Queries', 'Link'];
+    
+    // Prepare CSV rows
+    const rows = citationsData.citations.map(citation => {
+      const queries = citation.webSearchQueries
+        .map(q => q.query)
+        .join('; '); // Join multiple queries with semicolon
+      
+      return [
+        citation.website,
+        queries || 'No queries',
+        citation.link || 'No link'
+      ];
+    });
+
+    // Combine headers and rows
+    const csvContent = [
+      headers,
+      ...rows
+    ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+
+    // Create blob and download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', `citations_${formatDate(selectedReport?.reportDate || new Date().toISOString()).replace(/[, ]/g, '_')}.csv`);
+    link.style.visibility = 'hidden';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   if (!selectedCompanyId) {
@@ -314,13 +356,27 @@ export default function CitationsPage() {
             {/* Second Row: Full Width Citations Table */}
             <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
               <CardHeader className="pb-4">
-                <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                  <Database className="h-5 w-5 text-purple-600" />
-                  All Citations
-                </CardTitle>
-                <p className="text-sm text-gray-600 mt-1">
-                  Complete list of sources cited in AI responses
-                </p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                      <Database className="h-5 w-5 text-purple-600" />
+                      All Citations
+                    </CardTitle>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Complete list of sources cited in AI responses
+                    </p>
+                  </div>
+                  <Button
+                    onClick={exportToCSV}
+                    variant="outline"
+                    size="sm"
+                    disabled={!citationsData || citationsData.citations.length === 0}
+                    className="flex items-center gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    Export CSV
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 {citationsData.citations.length > 0 ? (
