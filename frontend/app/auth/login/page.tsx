@@ -40,7 +40,7 @@ export default function AuthLoginPage() {
           setStatus("success");
           // Redirect after a short delay to show success message
           setTimeout(() => {
-            router.push(`/onboarding?url=${encodeURIComponent(urlParam)}`);
+            router.push(`/?url=${encodeURIComponent(urlParam)}`);
           }, 1500);
         } else {
           setStatus("error");

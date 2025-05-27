@@ -255,7 +255,13 @@ export default function AttributeScoresByModelTable({
                       ? "secondary"
                       : "destructive"
                   }
-                  className="text-xs"
+                  className={`text-xs ${
+                    selectedCellData && selectedCellData.score >= 0.8
+                      ? "text-green-700 bg-green-100"
+                      : selectedCellData && selectedCellData.score >= 0.6
+                      ? "text-yellow-700 bg-yellow-100"
+                      : "text-red-700 bg-red-100"
+                  }`}
                 >
                   {selectedCellData
                     ? (selectedCellData.score * 100).toFixed(0)
