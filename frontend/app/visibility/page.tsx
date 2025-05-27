@@ -4,11 +4,21 @@ import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/layout/dashboard-layout";
 import { useAuth } from "@/providers/auth-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-import { getCompanyReports, getReportSpontaneous, SpontaneousData } from "@/lib/auth-api";
+import {
+  getCompanyReports,
+  getReportSpontaneous,
+  SpontaneousData,
+} from "@/lib/auth-api";
 import { VisibilityAnalysis } from "@/components/visibility/VisibilityAnalysis";
 import { TopMentions } from "@/components/visibility/TopMentions";
 
@@ -39,10 +49,15 @@ interface ProcessedReport {
 
 export default function VisibilityPage() {
   const { token } = useAuth();
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(
+    null
+  );
   const [reports, setReports] = useState<ProcessedReport[]>([]);
-  const [selectedReport, setSelectedReport] = useState<ProcessedReport | null>(null);
-  const [spontaneousData, setSpontaneousData] = useState<SpontaneousData | null>(null);
+  const [selectedReport, setSelectedReport] = useState<ProcessedReport | null>(
+    null
+  );
+  const [spontaneousData, setSpontaneousData] =
+    useState<SpontaneousData | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingSpontaneous, setLoadingSpontaneous] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -69,57 +84,68 @@ export default function VisibilityPage() {
         const apiReports = await getCompanyReports(companyId, token);
 
         // Process API response to match our interface
-        const processedReports: ProcessedReport[] = apiReports.map((report: any) => {
-          // Extract model metrics from pulse.modelVisibility
-          const modeMetrics = report.pulse?.modelVisibility?.map((mv: any) => ({
-            model: mv.model,
-            mentionRate: mv.value || 0,
-          })) || [];
+        const processedReports: ProcessedReport[] = apiReports.map(
+          (report: any) => {
+            // Extract model metrics from pulse.modelVisibility
+            const modeMetrics =
+              report.pulse?.modelVisibility?.map((mv: any) => ({
+                model: mv.model,
+                mentionRate: mv.value || 0,
+              })) || [];
 
-          // Store the complete arena data for the table view
-          const arenaData = report.arena?.competitors || [];
+            // Store the complete arena data for the table view
+            const arenaData = report.arena?.competitors || [];
 
-          // Extract brand name
-          const brandName = report.brand || report.metadata?.brand || "Your Brand";
-          
-          // For the simplified arenaMetrics (used in the original design),
-          // we'll just store the brand's performance if it exists
-          const arenaMetrics: any[] = [];
-          const brandInArena = arenaData.find((comp: any) =>
-            comp.name.toLowerCase() === brandName.toLowerCase()
-          );
+            // Extract brand name
+            const brandName =
+              report.brand || report.metadata?.brand || "Your Brand";
 
-          if (brandInArena?.modelsMentionsRate) {
-            brandInArena.modelsMentionsRate.forEach((mmr: any, index: number) => {
-              arenaMetrics.push({
-                model: mmr.model,
-                mentions: mmr.mentionsRate,
-                score: mmr.mentionsRate / 10,
-                rank: index + 1,
-              });
-            });
+            // For the simplified arenaMetrics (used in the original design),
+            // we'll just store the brand's performance if it exists
+            const arenaMetrics: any[] = [];
+            const brandInArena = arenaData.find(
+              (comp: any) => comp.name.toLowerCase() === brandName.toLowerCase()
+            );
+
+            if (brandInArena?.modelsMentionsRate) {
+              brandInArena.modelsMentionsRate.forEach(
+                (mmr: any, index: number) => {
+                  arenaMetrics.push({
+                    model: mmr.model,
+                    mentions: mmr.mentionsRate,
+                    score: mmr.mentionsRate / 10,
+                    rank: index + 1,
+                  });
+                }
+              );
+            }
+
+            // We'll fetch spontaneous data separately, so just set empty array for now
+            const topMentions: { mention: string; count: number }[] = [];
+
+            return {
+              id: report.id,
+              companyId: report.companyId,
+              reportDate: report.metadata?.date || report.generatedAt,
+              createdAt: report.generatedAt,
+              mentionRate: parseInt(
+                report.kpi?.pulse?.value || report.pulse?.value || "0"
+              ),
+              modeMetrics,
+              arenaMetrics,
+              arenaData, // Full arena data for table
+              brandName,
+              topMentions,
+              spontaneousData: report.spontaneous,
+            };
           }
-          
-          // We'll fetch spontaneous data separately, so just set empty array for now
-          const topMentions: { mention: string; count: number }[] = [];
-
-          return {
-            id: report.id,
-            companyId: report.companyId,
-            reportDate: report.metadata?.date || report.generatedAt,
-            createdAt: report.generatedAt,
-            mentionRate: parseInt(report.kpi?.pulse?.value || report.pulse?.value || "0"),
-            modeMetrics,
-            arenaMetrics,
-            arenaData, // Full arena data for table
-            brandName,
-            topMentions,
-            spontaneousData: report.spontaneous
-          };
-        });
+        );
 
         // Sort reports by date (most recent first)
-        processedReports.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        processedReports.sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
 
         setReports(processedReports);
         if (processedReports.length > 0) {
@@ -143,7 +169,10 @@ export default function VisibilityPage() {
     window.addEventListener("companySelectionChanged", handleCompanyChange);
 
     return () => {
-      window.removeEventListener("companySelectionChanged", handleCompanyChange);
+      window.removeEventListener(
+        "companySelectionChanged",
+        handleCompanyChange
+      );
     };
   }, [token]);
 
@@ -181,7 +210,6 @@ export default function VisibilityPage() {
     });
   };
 
-
   if (!selectedCompanyId) {
     return (
       <DashboardLayout>
@@ -191,7 +219,8 @@ export default function VisibilityPage() {
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Please select a company from the sidebar to view visibility metrics.
+                  Please select a company from the sidebar to view visibility
+                  metrics.
                 </AlertDescription>
               </Alert>
             </CardContent>
@@ -207,7 +236,9 @@ export default function VisibilityPage() {
         {/* Page Header with Report Selector */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Visibility Analytics</h1>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Visibility Analytics
+            </h1>
             <p className="text-sm text-gray-600 mt-1">
               Track how often your brand is mentioned across AI models
             </p>
@@ -217,7 +248,7 @@ export default function VisibilityPage() {
           <Select
             value={selectedReport?.id}
             onValueChange={(value) => {
-              const report = reports.find(r => r.id === value);
+              const report = reports.find((r) => r.id === value);
               setSelectedReport(report || null);
             }}
             disabled={loading || reports.length === 0}
@@ -280,7 +311,7 @@ export default function VisibilityPage() {
 
         {/* Report Content */}
         {!loading && selectedReport && (
-          <div className="space-y-6 animate-in fade-in-50 duration-500">
+          <div className="space-y-6 fade-in-section is-visible">
             <VisibilityAnalysis
               mentionRate={selectedReport.mentionRate}
               modeMetrics={selectedReport.modeMetrics}
@@ -302,7 +333,8 @@ export default function VisibilityPage() {
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  No visibility reports available yet. Reports are generated weekly.
+                  No visibility reports available yet. Reports are generated
+                  weekly.
                 </AlertDescription>
               </Alert>
             </CardContent>

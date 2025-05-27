@@ -3,7 +3,7 @@ import Link from "next/link";
 export default function GlossaryPage() {
   return (
     <main className="min-h-screen bg-gray-50 py-12">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 fade-in-section is-visible">
         <div className="mb-8">
           <Link
             href="/"
