@@ -19,16 +19,12 @@ import { AlertCircle } from "lucide-react";
 import {
   getCompanyReports,
   getCompanyById,
-  ReportContentResponse,
 } from "@/lib/auth-api";
+import type { ReportResponse } from "@/types/reports";
 import type { BrandBattleData } from "@/types/brand-battle";
 import { AnimatePresence, motion } from "framer-motion";
 
-interface ProcessedReport {
-  id: string;
-  companyId: string;
-  reportDate: string;
-  createdAt: string;
+interface ProcessedReport extends ReportResponse {
   brandName: string;
   competitors: string[];
   brandBattle?: BrandBattleData;
@@ -74,7 +70,7 @@ export default function BattlePage() {
 
         // Process API response to match our interface
         const processedReports: ProcessedReport[] = apiReports.map(
-          (report: ReportContentResponse) => {
+          (report: ReportResponse) => {
             return {
               id: report.id,
               companyId: report.companyId,

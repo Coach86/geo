@@ -15,16 +15,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, X } from "lucide-react";
 import { getCompanyReports } from "@/lib/auth-api";
+import type { ReportResponse } from "@/types/reports";
 import { SentimentOverview } from "@/components/sentiment/SentimentOverview";
 import { SentimentDistribution } from "@/components/sentiment/SentimentDistribution";
 import { SentimentHeatmap } from "@/components/sentiment/SentimentHeatmap";
 import { Button } from "@/components/ui/button";
 
-interface ProcessedReport {
-  id: string;
-  companyId: string;
-  reportDate: string;
-  createdAt: string;
+interface ProcessedReport extends ReportResponse {
   sentimentScore: number;
   sentimentCounts: {
     positive: number;

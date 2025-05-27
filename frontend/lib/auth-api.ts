@@ -1,6 +1,7 @@
 /**
  * Authentication API utilities for frontend
  */
+import { ReportResponse } from '../types/reports';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
@@ -653,78 +654,6 @@ export async function updatePromptSet(
   }
 }
 
-export interface ReportContentResponse {
-  id: string;
-  companyId: string;
-  reportDate: string;
-  generatedAt: string;
-  brand: {
-    name: string;
-    website: string;
-    industry: string;
-    competitors: string[];
-  };
-  overall: {
-    mentionRate: number;
-    sentiment: number;
-    accuracyScore: number;
-  };
-  byModel: Record<
-    string,
-    {
-      mentionCount: number;
-      mentionRate: number;
-      sentiment: number;
-      accuracyScore: number;
-    }
-  >;
-  spontaneous?: {
-    overallMentionRate: number;
-    modelScores: Record<
-      string,
-      {
-        mentionCount: number;
-        mentionRate: number;
-      }
-    >;
-  };
-  sentiment?: {
-    overallScore: number;
-    modelScores: Record<
-      string,
-      {
-        score: number;
-        positive: number;
-        negative: number;
-        neutral: number;
-      }
-    >;
-  };
-  accord?: {
-    overallScore: number;
-    modelScores: Record<
-      string,
-      {
-        score: number;
-        correct: number;
-        incorrect: number;
-        partial: number;
-      }
-    >;
-  };
-  comparison?: {
-    overallPosition: number;
-    totalCompetitors: number;
-    modelRankings: Record<
-      string,
-      {
-        rank: number;
-        score: number;
-        mentions: number;
-      }
-    >;
-  };
-}
 
 /**
  * Get all reports for a company (requires token authentication)
@@ -732,7 +661,7 @@ export interface ReportContentResponse {
 export async function getCompanyReports(
   companyId: string,
   token: string
-): Promise<ReportContentResponse[]> {
+): Promise<ReportResponse[]> {
   try {
     const response = await fetch(
       `${API_BASE_URL}/reports/company/${companyId}`,
