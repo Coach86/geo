@@ -28,18 +28,13 @@ import {
 import {
   getCompanyReports,
   getReportCitations,
-  ReportContentResponse,
   CitationsData,
 } from "@/lib/auth-api";
+import type { ReportResponse } from "@/types/reports";
 import { motion } from "framer-motion";
 import type { HTMLAttributes } from "react";
 
-interface ProcessedReport {
-  id: string;
-  companyId: string;
-  reportDate: string;
-  createdAt: string;
-}
+interface ProcessedReport extends ReportResponse {}
 
 export default function CitationsPage() {
   const { token } = useAuth();

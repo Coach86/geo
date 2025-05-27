@@ -30,6 +30,7 @@ import {
   ComplianceNoCompany,
   ComplianceNoData,
 } from "@/components/compliance/ComplianceStates";
+import type { AttributeItem } from "@/types/reports";
 
 interface ProcessedReport {
   id: string;
@@ -142,10 +143,10 @@ export default function CompliancePage() {
             processedReports.push({
               id: report.id,
               companyId: report.companyId,
-              reportDate: report.reportDate || report.generatedAt,
+              reportDate: report.generatedAt,
               createdAt: report.generatedAt,
               complianceData,
-              brandName: report.brand?.name || "Your Brand",
+              brandName: report.brand || "Your Brand",
             });
           }
         }
@@ -263,51 +264,24 @@ export default function CompliancePage() {
 
         {/* Main Content */}
         <div className="space-y-8">
-          <motion.div
-            ref={overviewRef}
-            initial={{ opacity: 0, y: 20 }}
-            animate={
-              overviewInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
-            }
-            transition={{ duration: 0.6, ease: "easeOut" }}
-          >
-            <Accordion
-              type="single"
-              collapsible
-              className="w-full bg-white rounded-lg shadow-md border border-gray-200"
-            >
-              <AccordionItem value="overall-compliance" className="border-b-0">
-                <AccordionTrigger className="px-6 py-4 hover:bg-gray-50 rounded-t-lg group">
-                  <div className="flex items-center justify-between w-full">
-                    <div className="text-left">
-                      <h2 className="text-lg font-semibold text-gray-700 group-hover:text-primary-600 transition-colors">
-                        Overall Compliance Snapshot
-                      </h2>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Average compliance across all models. Click to expand
-                        for attribute alignment details.
-                      </p>
-                    </div>
-                    <span className="text-2xl sm:text-3xl font-bold text-primary-500 group-hover:text-primary-600 transition-colors">
-                      {(
-                        selectedReport.complianceData.summary
-                          .overallComplianceScore * 100
-                      ).toFixed(0)}
-                      %
-                    </span>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="px-6 py-4 border-t border-gray-200 bg-gray-50/50 rounded-b-lg">
-                  <AttributeAlignmentTable
-                    alignmentData={
-                      selectedReport.complianceData.summary
-                        .attributeAlignmentSummary
-                    }
-                  />
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          </motion.div>
+          {/* Overall Compliance Snapshot Header (keep this) */}
+          <div className="w-full bg-white rounded-lg shadow-md border border-gray-200 px-6 py-6 flex items-center justify-between">
+            <div className="text-left">
+              <h2 className="text-lg font-semibold text-gray-700">
+                Overall Compliance Snapshot
+              </h2>
+              <p className="text-xs text-gray-500 mt-1">
+                Average compliance across all models.
+              </p>
+            </div>
+            <span className="text-2xl sm:text-3xl font-bold text-primary-500">
+              {(
+                selectedReport.complianceData.summary.overallComplianceScore *
+                100
+              ).toFixed(0)}
+              %
+            </span>
+          </div>
 
           <motion.div
             ref={tableRef}

@@ -19,16 +19,13 @@ import {
   getReportSpontaneous,
   SpontaneousData,
 } from "@/lib/auth-api";
+import type { ReportResponse } from "@/types/reports";
 import { VisibilityAnalysis } from "@/components/visibility/VisibilityAnalysis";
 import { TopMentions } from "@/components/visibility/TopMentions";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 
-interface ProcessedReport {
-  id: string;
-  companyId: string;
-  reportDate: string;
-  createdAt: string;
+interface ProcessedReport extends ReportResponse {
   mentionRate: number;
   modeMetrics: {
     model: string;
