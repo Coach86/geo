@@ -59,7 +59,7 @@ export default function AuthLoginPage() {
   }, [token, login]);
 
   const handleContinue = () => {
-    router.push(`/onboarding?url=${encodeURIComponent(urlParam)}`);
+    router.push(`/`);
   };
 
   const handleBackToAuth = () => {
