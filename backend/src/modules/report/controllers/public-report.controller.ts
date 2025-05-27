@@ -300,6 +300,77 @@ export class PublicReportController {
     }
   }
 
+  @Get('spontaneous/:reportId')
+  @TokenRoute()
+  @ApiOperation({ summary: 'Get spontaneous data for a report' })
+  @ApiParam({ name: 'reportId', description: 'The ID of the report' })
+  @ApiResponse({
+    status: 200,
+    description: 'Spontaneous data retrieved successfully',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Token required' })
+  @ApiResponse({ status: 404, description: 'Report not found' })
+  async getReportSpontaneous(
+    @Req() request: any,
+    @Param('reportId') reportId: string
+  ) {
+    try {
+      this.logger.log(`Fetching spontaneous data for report ${reportId}`);
+
+      // Validate user authentication
+      if (!request.userId) {
+        if (request.token) {
+          const validation = await this.tokenService.validateAccessToken(request.token);
+          if (validation.valid && validation.userId) {
+            request.userId = validation.userId;
+          } else {
+            throw new UnauthorizedException('Invalid or expired token');
+          }
+        } else {
+          throw new UnauthorizedException('User not authenticated');
+        }
+      }
+
+      // Get the report to find the batch execution ID and verify ownership
+      const report = await this.reportService.getReportById(reportId);
+      const companyId = report.companyId;
+      const batchExecutionId = (report as unknown as Record<string, string>).batchExecutionId;
+
+      if (!batchExecutionId) {
+        throw new NotFoundException('No batch execution found for this report');
+      }
+
+      // Verify user owns this company
+      const userCompanies = await this.identityCardService.findAll(request.userId);
+      const userCompanyIds = userCompanies.map(company => company.companyId);
+
+      if (!userCompanyIds.includes(companyId)) {
+        this.logger.warn(`User ${request.userId} does not own company ${companyId}`);
+        throw new UnauthorizedException('You do not have access to spontaneous data for this report');
+      }
+
+      // Get the spontaneous batch results
+      const spontaneousBatchResult = await this.batchResultRepository.findByExecutionIdAndTypeLean(
+        batchExecutionId,
+        'spontaneous'
+      );
+
+      if (!spontaneousBatchResult) {
+        throw new NotFoundException('No spontaneous batch results found for this report');
+      }
+
+      // Return the spontaneous results directly
+      return spontaneousBatchResult.result;
+
+    } catch (error) {
+      if (error instanceof UnauthorizedException || error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error(`Failed to fetch spontaneous data: ${error.message}`, error.stack);
+      throw new BadRequestException(`Failed to fetch spontaneous data: ${error.message}`);
+    }
+  }
+
   private extractDomain(url: string): string {
     try {
       const urlObj = new URL(url);

@@ -8,43 +8,47 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-import { getCompanyReports, getReportSpontaneous, SpontaneousData } from "@/lib/auth-api";
-import { VisibilityAnalysis } from "@/components/visibility/VisibilityAnalysis";
-import { TopMentions } from "@/components/visibility/TopMentions";
+import { getCompanyReports } from "@/lib/auth-api";
+import { SentimentOverview } from "@/components/sentiment/SentimentOverview";
+import { SentimentDistribution } from "@/components/sentiment/SentimentDistribution";
+import { SentimentHeatmap } from "@/components/sentiment/SentimentHeatmap";
 
 interface ProcessedReport {
   id: string;
   companyId: string;
   reportDate: string;
   createdAt: string;
-  mentionRate: number;
-  modeMetrics: {
-    model: string;
-    mentionRate: number;
+  sentimentScore: number;
+  sentimentCounts: {
+    positive: number;
+    neutral: number;
+    negative: number;
+    total: number;
+  };
+  sentimentHeatmap: {
+    question: string;
+    results: {
+      model: string;
+      sentiment: string;
+      status: string;
+    }[];
   }[];
-  arenaMetrics: {
+  modelSentiments: {
     model: string;
-    mentions: number;
-    score: number;
-    rank: number;
+    sentiment: string;
+    status: string;
+    positiveKeywords: string[];
+    negativeKeywords: string[];
   }[];
-  arenaData: any[]; // Full arena data for table
   brandName: string;
-  topMentions: {
-    mention: string;
-    count: number;
-  }[];
-  spontaneousData?: SpontaneousData; // Store the full spontaneous data if available
 }
 
-export default function VisibilityPage() {
+export default function SentimentPage() {
   const { token } = useAuth();
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
   const [reports, setReports] = useState<ProcessedReport[]>([]);
   const [selectedReport, setSelectedReport] = useState<ProcessedReport | null>(null);
-  const [spontaneousData, setSpontaneousData] = useState<SpontaneousData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [loadingSpontaneous, setLoadingSpontaneous] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Get selected company from localStorage and listen for changes
@@ -70,51 +74,38 @@ export default function VisibilityPage() {
 
         // Process API response to match our interface
         const processedReports: ProcessedReport[] = apiReports.map((report: any) => {
-          // Extract model metrics from pulse.modelVisibility
-          const modeMetrics = report.pulse?.modelVisibility?.map((mv: any) => ({
-            model: mv.model,
-            mentionRate: mv.value || 0,
-          })) || [];
+          // Extract tone data
+          const toneData = report.tone || {};
+          const questions = toneData.questions || [];
+          
+          // Calculate sentiment counts
+          const allResults = questions.flatMap((q: any) => q.results || []);
+          const sentimentCounts = {
+            positive: allResults.filter((r: any) => r.status === "green").length,
+            neutral: allResults.filter((r: any) => r.status === "yellow").length,
+            negative: allResults.filter((r: any) => r.status === "red").length,
+            total: allResults.length
+          };
 
-          // Store the complete arena data for the table view
-          const arenaData = report.arena?.competitors || [];
+          // Extract sentiment score from KPI
+          const sentimentScore = parseInt(report.kpi?.tone?.value || "0");
 
           // Extract brand name
           const brandName = report.brand || report.metadata?.brand || "Your Brand";
           
-          // For the simplified arenaMetrics (used in the original design),
-          // we'll just store the brand's performance if it exists
-          const arenaMetrics: any[] = [];
-          const brandInArena = arenaData.find((comp: any) =>
-            comp.name.toLowerCase() === brandName.toLowerCase()
-          );
-
-          if (brandInArena?.modelsMentionsRate) {
-            brandInArena.modelsMentionsRate.forEach((mmr: any, index: number) => {
-              arenaMetrics.push({
-                model: mmr.model,
-                mentions: mmr.mentionsRate,
-                score: mmr.mentionsRate / 10,
-                rank: index + 1,
-              });
-            });
-          }
+          // Extract model sentiments
+          const modelSentiments = toneData.sentiments || [];
           
-          // We'll fetch spontaneous data separately, so just set empty array for now
-          const topMentions: { mention: string; count: number }[] = [];
-
           return {
             id: report.id,
             companyId: report.companyId,
             reportDate: report.metadata?.date || report.generatedAt,
             createdAt: report.generatedAt,
-            mentionRate: parseInt(report.kpi?.pulse?.value || report.pulse?.value || "0"),
-            modeMetrics,
-            arenaMetrics,
-            arenaData, // Full arena data for table
-            brandName,
-            topMentions,
-            spontaneousData: report.spontaneous
+            sentimentScore,
+            sentimentCounts,
+            sentimentHeatmap: questions,
+            modelSentiments,
+            brandName
           };
         });
 
@@ -127,7 +118,7 @@ export default function VisibilityPage() {
         }
       } catch (err) {
         console.error("Failed to fetch reports:", err);
-        setError("Failed to load visibility reports. Please try again later.");
+        setError("Failed to load sentiment reports. Please try again later.");
       } finally {
         setLoading(false);
       }
@@ -146,30 +137,6 @@ export default function VisibilityPage() {
       window.removeEventListener("companySelectionChanged", handleCompanyChange);
     };
   }, [token]);
-
-  // Fetch spontaneous data when selected report changes
-  useEffect(() => {
-    const fetchSpontaneous = async () => {
-      if (!selectedReport || !token) {
-        setSpontaneousData(null);
-        return;
-      }
-
-      setLoadingSpontaneous(true);
-      try {
-        const data = await getReportSpontaneous(selectedReport.id, token);
-        setSpontaneousData(data);
-      } catch (err) {
-        console.error("Failed to fetch spontaneous data:", err);
-        // Don't show error for spontaneous data, just log it
-        setSpontaneousData(null);
-      } finally {
-        setLoadingSpontaneous(false);
-      }
-    };
-
-    fetchSpontaneous();
-  }, [selectedReport, token]);
 
   // Format date for display
   const formatDate = (dateString: string) => {
@@ -191,7 +158,7 @@ export default function VisibilityPage() {
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Please select a company from the sidebar to view visibility metrics.
+                  Please select a company from the sidebar to view sentiment analysis.
                 </AlertDescription>
               </Alert>
             </CardContent>
@@ -207,9 +174,9 @@ export default function VisibilityPage() {
         {/* Page Header with Report Selector */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Visibility Analytics</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Sentiment Analysis</h1>
             <p className="text-sm text-gray-600 mt-1">
-              Track how often your brand is mentioned across AI models
+              Analyze how AI models perceive your brand's sentiment
             </p>
           </div>
 
@@ -257,13 +224,13 @@ export default function VisibilityPage() {
                 <Skeleton className="h-32 w-full" />
               </CardContent>
             </Card>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card>
                 <CardHeader>
                   <Skeleton className="h-6 w-48" />
                 </CardHeader>
                 <CardContent>
-                  <Skeleton className="h-48 w-full" />
+                  <Skeleton className="h-24 w-full" />
                 </CardContent>
               </Card>
               <Card>
@@ -271,7 +238,15 @@ export default function VisibilityPage() {
                   <Skeleton className="h-6 w-48" />
                 </CardHeader>
                 <CardContent>
-                  <Skeleton className="h-48 w-full" />
+                  <Skeleton className="h-24 w-full" />
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <Skeleton className="h-6 w-48" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-24 w-full" />
                 </CardContent>
               </Card>
             </div>
@@ -281,17 +256,17 @@ export default function VisibilityPage() {
         {/* Report Content */}
         {!loading && selectedReport && (
           <div className="space-y-6 animate-in fade-in-50 duration-500">
-            <VisibilityAnalysis
-              mentionRate={selectedReport.mentionRate}
-              modeMetrics={selectedReport.modeMetrics}
-              arenaData={selectedReport.arenaData}
-              brandName={selectedReport.brandName}
+            {/* Overall Sentiment Score */}
+            <SentimentOverview
+              sentimentScore={selectedReport.sentimentScore}
+              totalResponses={selectedReport.sentimentCounts.total}
             />
 
-            <TopMentions
-              spontaneousData={spontaneousData}
-              loadingSpontaneous={loadingSpontaneous}
-            />
+            {/* Sentiment Distribution */}
+            <SentimentDistribution sentimentCounts={selectedReport.sentimentCounts} />
+
+            {/* Sentiment Heatmap */}
+            <SentimentHeatmap sentimentHeatmap={selectedReport.sentimentHeatmap} />
           </div>
         )}
 
@@ -302,7 +277,7 @@ export default function VisibilityPage() {
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  No visibility reports available yet. Reports are generated weekly.
+                  No sentiment reports available yet. Reports are generated weekly.
                 </AlertDescription>
               </Alert>
             </CardContent>
