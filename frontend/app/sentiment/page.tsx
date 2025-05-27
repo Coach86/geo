@@ -4,7 +4,13 @@ import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/layout/dashboard-layout";
 import { useAuth } from "@/providers/auth-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
@@ -45,9 +51,13 @@ interface ProcessedReport {
 
 export default function SentimentPage() {
   const { token } = useAuth();
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(
+    null
+  );
   const [reports, setReports] = useState<ProcessedReport[]>([]);
-  const [selectedReport, setSelectedReport] = useState<ProcessedReport | null>(null);
+  const [selectedReport, setSelectedReport] = useState<ProcessedReport | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -73,44 +83,53 @@ export default function SentimentPage() {
         const apiReports = await getCompanyReports(companyId, token);
 
         // Process API response to match our interface
-        const processedReports: ProcessedReport[] = apiReports.map((report: any) => {
-          // Extract tone data
-          const toneData = report.tone || {};
-          const questions = toneData.questions || [];
-          
-          // Calculate sentiment counts
-          const allResults = questions.flatMap((q: any) => q.results || []);
-          const sentimentCounts = {
-            positive: allResults.filter((r: any) => r.status === "green").length,
-            neutral: allResults.filter((r: any) => r.status === "yellow").length,
-            negative: allResults.filter((r: any) => r.status === "red").length,
-            total: allResults.length
-          };
+        const processedReports: ProcessedReport[] = apiReports.map(
+          (report: any) => {
+            // Extract tone data
+            const toneData = report.tone || {};
+            const questions = toneData.questions || [];
 
-          // Extract sentiment score from KPI
-          const sentimentScore = parseInt(report.kpi?.tone?.value || "0");
+            // Calculate sentiment counts
+            const allResults = questions.flatMap((q: any) => q.results || []);
+            const sentimentCounts = {
+              positive: allResults.filter((r: any) => r.status === "green")
+                .length,
+              neutral: allResults.filter((r: any) => r.status === "yellow")
+                .length,
+              negative: allResults.filter((r: any) => r.status === "red")
+                .length,
+              total: allResults.length,
+            };
 
-          // Extract brand name
-          const brandName = report.brand || report.metadata?.brand || "Your Brand";
-          
-          // Extract model sentiments
-          const modelSentiments = toneData.sentiments || [];
-          
-          return {
-            id: report.id,
-            companyId: report.companyId,
-            reportDate: report.metadata?.date || report.generatedAt,
-            createdAt: report.generatedAt,
-            sentimentScore,
-            sentimentCounts,
-            sentimentHeatmap: questions,
-            modelSentiments,
-            brandName
-          };
-        });
+            // Extract sentiment score from KPI
+            const sentimentScore = parseInt(report.kpi?.tone?.value || "0");
+
+            // Extract brand name
+            const brandName =
+              report.brand || report.metadata?.brand || "Your Brand";
+
+            // Extract model sentiments
+            const modelSentiments = toneData.sentiments || [];
+
+            return {
+              id: report.id,
+              companyId: report.companyId,
+              reportDate: report.metadata?.date || report.generatedAt,
+              createdAt: report.generatedAt,
+              sentimentScore,
+              sentimentCounts,
+              sentimentHeatmap: questions,
+              modelSentiments,
+              brandName,
+            };
+          }
+        );
 
         // Sort reports by date (most recent first)
-        processedReports.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        processedReports.sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
 
         setReports(processedReports);
         if (processedReports.length > 0) {
@@ -134,7 +153,10 @@ export default function SentimentPage() {
     window.addEventListener("companySelectionChanged", handleCompanyChange);
 
     return () => {
-      window.removeEventListener("companySelectionChanged", handleCompanyChange);
+      window.removeEventListener(
+        "companySelectionChanged",
+        handleCompanyChange
+      );
     };
   }, [token]);
 
@@ -148,7 +170,6 @@ export default function SentimentPage() {
     });
   };
 
-
   if (!selectedCompanyId) {
     return (
       <DashboardLayout>
@@ -158,7 +179,8 @@ export default function SentimentPage() {
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Please select a company from the sidebar to view sentiment analysis.
+                  Please select a company from the sidebar to view sentiment
+                  analysis.
                 </AlertDescription>
               </Alert>
             </CardContent>
@@ -174,7 +196,9 @@ export default function SentimentPage() {
         {/* Page Header with Report Selector */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Sentiment Analysis</h1>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Sentiment Analysis
+            </h1>
             <p className="text-sm text-gray-600 mt-1">
               Analyze how AI models perceive your brand's sentiment
             </p>
@@ -184,7 +208,7 @@ export default function SentimentPage() {
           <Select
             value={selectedReport?.id}
             onValueChange={(value) => {
-              const report = reports.find(r => r.id === value);
+              const report = reports.find((r) => r.id === value);
               setSelectedReport(report || null);
             }}
             disabled={loading || reports.length === 0}
@@ -255,7 +279,7 @@ export default function SentimentPage() {
 
         {/* Report Content */}
         {!loading && selectedReport && (
-          <div className="space-y-6 animate-in fade-in-50 duration-500">
+          <div className="space-y-6 fade-in-section is-visible">
             {/* Overall Sentiment Score */}
             <SentimentOverview
               sentimentScore={selectedReport.sentimentScore}
@@ -263,10 +287,14 @@ export default function SentimentPage() {
             />
 
             {/* Sentiment Distribution */}
-            <SentimentDistribution sentimentCounts={selectedReport.sentimentCounts} />
+            <SentimentDistribution
+              sentimentCounts={selectedReport.sentimentCounts}
+            />
 
             {/* Sentiment Heatmap */}
-            <SentimentHeatmap sentimentHeatmap={selectedReport.sentimentHeatmap} />
+            <SentimentHeatmap
+              sentimentHeatmap={selectedReport.sentimentHeatmap}
+            />
           </div>
         )}
 
@@ -277,7 +305,8 @@ export default function SentimentPage() {
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  No sentiment reports available yet. Reports are generated weekly.
+                  No sentiment reports available yet. Reports are generated
+                  weekly.
                 </AlertDescription>
               </Alert>
             </CardContent>
