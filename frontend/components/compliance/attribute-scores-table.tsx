@@ -242,7 +242,8 @@ export default function AttributeScoresByModelTable({
           <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
             <div>
               <h3 className="text-lg font-semibold text-gray-800">
-                {selectedCellData?.attributeName} - {selectedCellData?.modelName}
+                {selectedCellData?.attributeName} -{" "}
+                {selectedCellData?.modelName}
               </h3>
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-sm text-gray-600">Score:</span>
@@ -256,12 +257,11 @@ export default function AttributeScoresByModelTable({
                   }
                   className="text-xs"
                 >
-                  {selectedCellData ? (selectedCellData.score * 100).toFixed(0) : 0}%
+                  {selectedCellData
+                    ? (selectedCellData.score * 100).toFixed(0)
+                    : 0}
+                  %
                 </Badge>
-                {selectedCellData?.primaryDetailedResult?.promptIndex !== undefined &&
-                  ` (Test Run #${
-                    selectedCellData.primaryDetailedResult.promptIndex + 1
-                  })`}
               </div>
             </div>
             <Button

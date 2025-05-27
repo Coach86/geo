@@ -2,7 +2,7 @@
  * Authentication API utilities for frontend
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 export interface CreateUserRequest {
   email: string;
@@ -71,18 +71,23 @@ export interface IdentityCardResponse {
 /**
  * Create a new user
  */
-export async function createUser(email: string, language = 'en'): Promise<CreateUserResponse> {
+export async function createUser(
+  email: string,
+  language = "en"
+): Promise<CreateUserResponse> {
   const response = await fetch(`${API_BASE_URL}/user`, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({ email, language }),
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Failed to create user' }));
-    throw new Error(error.message || 'Failed to create user');
+    const error = await response
+      .json()
+      .catch(() => ({ message: "Failed to create user" }));
+    throw new Error(error.message || "Failed to create user");
   }
 
   return response.json();
@@ -91,26 +96,31 @@ export async function createUser(email: string, language = 'en'): Promise<Create
 /**
  * Find user by email
  */
-export async function findUserByEmail(email: string): Promise<CreateUserResponse | null> {
+export async function findUserByEmail(
+  email: string
+): Promise<CreateUserResponse | null> {
   try {
-    const response = await fetch(`${API_BASE_URL}/user/email/${encodeURIComponent(email)}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await fetch(
+      `${API_BASE_URL}/user/email/${encodeURIComponent(email)}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
     if (response.status === 404) {
       return null; // User not found
     }
 
     if (!response.ok) {
-      throw new Error('Failed to find user');
+      throw new Error("Failed to find user");
     }
 
     return response.json();
   } catch (error) {
-    console.error('Error finding user by email:', error);
+    console.error("Error finding user by email:", error);
     return null;
   }
 }
@@ -118,18 +128,22 @@ export async function findUserByEmail(email: string): Promise<CreateUserResponse
 /**
  * Generate a token for a user and send magic link email
  */
-export async function generateTokenAndSendEmail(userId: string): Promise<GenerateTokenResponse> {
+export async function generateTokenAndSendEmail(
+  userId: string
+): Promise<GenerateTokenResponse> {
   const response = await fetch(`${API_BASE_URL}/tokens/generate`, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({ userId }),
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Failed to generate token' }));
-    throw new Error(error.message || 'Failed to generate token');
+    const error = await response
+      .json()
+      .catch(() => ({ message: "Failed to generate token" }));
+    throw new Error(error.message || "Failed to generate token");
   }
 
   return response.json();
@@ -138,17 +152,24 @@ export async function generateTokenAndSendEmail(userId: string): Promise<Generat
 /**
  * Validate a token
  */
-export async function validateToken(token: string): Promise<ValidateTokenResponse> {
-  const response = await fetch(`${API_BASE_URL}/tokens/validate?token=${encodeURIComponent(token)}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
+export async function validateToken(
+  token: string
+): Promise<ValidateTokenResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/tokens/validate?token=${encodeURIComponent(token)}`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Failed to validate token' }));
-    throw new Error(error.message || 'Failed to validate token');
+    const error = await response
+      .json()
+      .catch(() => ({ message: "Failed to validate token" }));
+    throw new Error(error.message || "Failed to validate token");
   }
 
   return response.json();
@@ -160,22 +181,26 @@ export async function validateToken(token: string): Promise<ValidateTokenRespons
 export async function sendMagicLink(email: string): Promise<MagicLinkResponse> {
   try {
     const response = await fetch(`${API_BASE_URL}/auth/magic-link`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({ email }),
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Failed to send magic link' }));
-      throw new Error(error.message || 'Failed to send magic link');
+      const error = await response
+        .json()
+        .catch(() => ({ message: "Failed to send magic link" }));
+      throw new Error(error.message || "Failed to send magic link");
     }
 
     return response.json();
   } catch (error) {
-    console.error('Magic link error:', error);
-    throw new Error(error instanceof Error ? error.message : 'Failed to send magic link');
+    console.error("Magic link error:", error);
+    throw new Error(
+      error instanceof Error ? error.message : "Failed to send magic link"
+    );
   }
 }
 
@@ -187,24 +212,31 @@ export async function analyzeWebsite(
   token: string
 ): Promise<IdentityCardResponse> {
   try {
-    const response = await fetch(`${API_BASE_URL}/user/identity-card/analyze-from-url`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify(request),
-    });
+    const response = await fetch(
+      `${API_BASE_URL}/user/identity-card/analyze-from-url`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(request),
+      }
+    );
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Failed to analyze website' }));
-      throw new Error(error.message || 'Failed to analyze website');
+      const error = await response
+        .json()
+        .catch(() => ({ message: "Failed to analyze website" }));
+      throw new Error(error.message || "Failed to analyze website");
     }
 
     return response.json();
   } catch (error) {
-    console.error('Website analysis error:', error);
-    throw new Error(error instanceof Error ? error.message : 'Failed to analyze website');
+    console.error("Website analysis error:", error);
+    throw new Error(
+      error instanceof Error ? error.message : "Failed to analyze website"
+    );
   }
 }
 
@@ -228,23 +260,27 @@ export async function createIdentityCard(
 ): Promise<IdentityCardResponse> {
   try {
     const response = await fetch(`${API_BASE_URL}/user/identity-card/create`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(request),
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Failed to create identity card' }));
-      throw new Error(error.message || 'Failed to create identity card');
+      const error = await response
+        .json()
+        .catch(() => ({ message: "Failed to create identity card" }));
+      throw new Error(error.message || "Failed to create identity card");
     }
 
     return response.json();
   } catch (error) {
-    console.error('Identity card creation error:', error);
-    throw new Error(error instanceof Error ? error.message : 'Failed to create identity card');
+    console.error("Identity card creation error:", error);
+    throw new Error(
+      error instanceof Error ? error.message : "Failed to create identity card"
+    );
   }
 }
 
@@ -277,23 +313,27 @@ export async function generatePrompts(
 ): Promise<GeneratePromptsResponse> {
   try {
     const response = await fetch(`${API_BASE_URL}/prompts/generate`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(request),
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Failed to generate prompts' }));
-      throw new Error(error.message || 'Failed to generate prompts');
+      const error = await response
+        .json()
+        .catch(() => ({ message: "Failed to generate prompts" }));
+      throw new Error(error.message || "Failed to generate prompts");
     }
 
     return response.json();
   } catch (error) {
-    console.error('Prompt generation error:', error);
-    throw new Error(error instanceof Error ? error.message : 'Failed to generate prompts');
+    console.error("Prompt generation error:", error);
+    throw new Error(
+      error instanceof Error ? error.message : "Failed to generate prompts"
+    );
   }
 }
 
@@ -320,23 +360,27 @@ export async function updatePhoneNumber(
 ): Promise<UpdatePhoneResponse> {
   try {
     const response = await fetch(`${API_BASE_URL}/user/profile/phone`, {
-      method: 'PATCH',
+      method: "PATCH",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(request),
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Failed to update phone number' }));
-      throw new Error(error.message || 'Failed to update phone number');
+      const error = await response
+        .json()
+        .catch(() => ({ message: "Failed to update phone number" }));
+      throw new Error(error.message || "Failed to update phone number");
     }
 
     return response.json();
   } catch (error) {
-    console.error('Phone number update error:', error);
-    throw new Error(error instanceof Error ? error.message : 'Failed to update phone number');
+    console.error("Phone number update error:", error);
+    throw new Error(
+      error instanceof Error ? error.message : "Failed to update phone number"
+    );
   }
 }
 
@@ -356,72 +400,92 @@ export interface UserProfile {
 export async function getUserProfile(token: string): Promise<UserProfile> {
   try {
     const response = await fetch(`${API_BASE_URL}/user/profile`, {
-      method: 'GET',
+      method: "GET",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Failed to get user profile' }));
-      throw new Error(error.message || 'Failed to get user profile');
+      const error = await response
+        .json()
+        .catch(() => ({ message: "Failed to get user profile" }));
+      throw new Error(error.message || "Failed to get user profile");
     }
 
     return response.json();
   } catch (error) {
-    console.error('Get user profile error:', error);
-    throw new Error(error instanceof Error ? error.message : 'Failed to get user profile');
+    console.error("Get user profile error:", error);
+    throw new Error(
+      error instanceof Error ? error.message : "Failed to get user profile"
+    );
   }
 }
 
 /**
  * Get user's identity cards (requires token authentication)
  */
-export async function getUserIdentityCards(token: string): Promise<IdentityCardResponse[]> {
+export async function getUserIdentityCards(
+  token: string
+): Promise<IdentityCardResponse[]> {
   try {
     const response = await fetch(`${API_BASE_URL}/user/identity-card`, {
-      method: 'GET',
+      method: "GET",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Failed to get identity cards' }));
-      throw new Error(error.message || 'Failed to get identity cards');
+      const error = await response
+        .json()
+        .catch(() => ({ message: "Failed to get identity cards" }));
+      throw new Error(error.message || "Failed to get identity cards");
     }
 
     return response.json();
   } catch (error) {
-    console.error('Get identity cards error:', error);
-    throw new Error(error instanceof Error ? error.message : 'Failed to get identity cards');
+    console.error("Get identity cards error:", error);
+    throw new Error(
+      error instanceof Error ? error.message : "Failed to get identity cards"
+    );
   }
 }
 
 /**
  * Get company details by ID (requires token authentication)
  */
-export async function getCompanyById(companyId: string, token: string): Promise<IdentityCardResponse> {
+export async function getCompanyById(
+  companyId: string,
+  token: string
+): Promise<IdentityCardResponse> {
   try {
-    const response = await fetch(`${API_BASE_URL}/user/identity-card/${companyId}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-    });
+    const response = await fetch(
+      `${API_BASE_URL}/user/identity-card/${companyId}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Failed to get company details' }));
-      throw new Error(error.message || 'Failed to get company details');
+      const error = await response
+        .json()
+        .catch(() => ({ message: "Failed to get company details" }));
+      throw new Error(error.message || "Failed to get company details");
     }
 
     return response.json();
   } catch (error) {
-    console.error('Get company details error:', error);
-    throw new Error(error instanceof Error ? error.message : 'Failed to get company details');
+    console.error("Get company details error:", error);
+    throw new Error(
+      error instanceof Error ? error.message : "Failed to get company details"
+    );
   }
 }
 
@@ -441,57 +505,74 @@ export interface BatchResult {
   id: string;
   batchExecutionId: string;
   pipelineType: string;
-  results: any;
+  result: any;
   createdAt: string;
 }
 
 /**
  * Get batch results for a report (requires token authentication)
  */
-export async function getBatchResults(reportId: string, token: string): Promise<BatchResult[]> {
+export async function getBatchResults(
+  reportId: string,
+  token: string
+): Promise<BatchResult[]> {
   try {
-    const response = await fetch(`${API_BASE_URL}/batch-results/report/${reportId}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-    });
+    const response = await fetch(
+      `${API_BASE_URL}/batch-results/report/${reportId}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Failed to get batch results' }));
-      throw new Error(error.message || 'Failed to get batch results');
+      const error = await response
+        .json()
+        .catch(() => ({ message: "Failed to get batch results" }));
+      throw new Error(error.message || "Failed to get batch results");
     }
 
     return response.json();
   } catch (error) {
-    console.error('Get batch results error:', error);
-    throw new Error(error instanceof Error ? error.message : 'Failed to get batch results');
+    console.error("Get batch results error:", error);
+    throw new Error(
+      error instanceof Error ? error.message : "Failed to get batch results"
+    );
   }
 }
 
 /**
  * Get prompt set for a company (requires token authentication)
  */
-export async function getPromptSet(companyId: string, token: string): Promise<PromptSet> {
+export async function getPromptSet(
+  companyId: string,
+  token: string
+): Promise<PromptSet> {
   try {
     const response = await fetch(`${API_BASE_URL}/prompts/${companyId}`, {
-      method: 'GET',
+      method: "GET",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Failed to get prompt set' }));
-      throw new Error(error.message || 'Failed to get prompt set');
+      const error = await response
+        .json()
+        .catch(() => ({ message: "Failed to get prompt set" }));
+      throw new Error(error.message || "Failed to get prompt set");
     }
 
     return response.json();
   } catch (error) {
-    console.error('Get prompt set error:', error);
-    throw new Error(error instanceof Error ? error.message : 'Failed to get prompt set');
+    console.error("Get prompt set error:", error);
+    throw new Error(
+      error instanceof Error ? error.message : "Failed to get prompt set"
+    );
   }
 }
 
@@ -504,24 +585,31 @@ export async function updateIdentityCard(
   token: string
 ): Promise<IdentityCardResponse> {
   try {
-    const response = await fetch(`${API_BASE_URL}/user/identity-card/${companyId}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify(data),
-    });
+    const response = await fetch(
+      `${API_BASE_URL}/user/identity-card/${companyId}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      }
+    );
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Failed to update identity card' }));
-      throw new Error(error.message || 'Failed to update identity card');
+      const error = await response
+        .json()
+        .catch(() => ({ message: "Failed to update identity card" }));
+      throw new Error(error.message || "Failed to update identity card");
     }
 
     return response.json();
   } catch (error) {
-    console.error('Update identity card error:', error);
-    throw new Error(error instanceof Error ? error.message : 'Failed to update identity card');
+    console.error("Update identity card error:", error);
+    throw new Error(
+      error instanceof Error ? error.message : "Failed to update identity card"
+    );
   }
 }
 
@@ -541,23 +629,27 @@ export async function updatePromptSet(
 ): Promise<PromptSet> {
   try {
     const response = await fetch(`${API_BASE_URL}/prompts/${companyId}`, {
-      method: 'PATCH',
+      method: "PATCH",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(data),
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Failed to update prompt set' }));
-      throw new Error(error.message || 'Failed to update prompt set');
+      const error = await response
+        .json()
+        .catch(() => ({ message: "Failed to update prompt set" }));
+      throw new Error(error.message || "Failed to update prompt set");
     }
 
     return response.json();
   } catch (error) {
-    console.error('Update prompt set error:', error);
-    throw new Error(error instanceof Error ? error.message : 'Failed to update prompt set');
+    console.error("Update prompt set error:", error);
+    throw new Error(
+      error instanceof Error ? error.message : "Failed to update prompt set"
+    );
   }
 }
 
@@ -577,70 +669,95 @@ export interface ReportContentResponse {
     sentiment: number;
     accuracyScore: number;
   };
-  byModel: Record<string, {
-    mentionCount: number;
-    mentionRate: number;
-    sentiment: number;
-    accuracyScore: number;
-  }>;
-  spontaneous?: {
-    overallMentionRate: number;
-    modelScores: Record<string, {
+  byModel: Record<
+    string,
+    {
       mentionCount: number;
       mentionRate: number;
-    }>;
+      sentiment: number;
+      accuracyScore: number;
+    }
+  >;
+  spontaneous?: {
+    overallMentionRate: number;
+    modelScores: Record<
+      string,
+      {
+        mentionCount: number;
+        mentionRate: number;
+      }
+    >;
   };
   sentiment?: {
     overallScore: number;
-    modelScores: Record<string, {
-      score: number;
-      positive: number;
-      negative: number;
-      neutral: number;
-    }>;
+    modelScores: Record<
+      string,
+      {
+        score: number;
+        positive: number;
+        negative: number;
+        neutral: number;
+      }
+    >;
   };
-  accuracy?: {
+  accord?: {
     overallScore: number;
-    modelScores: Record<string, {
-      score: number;
-      correct: number;
-      incorrect: number;
-      partial: number;
-    }>;
+    modelScores: Record<
+      string,
+      {
+        score: number;
+        correct: number;
+        incorrect: number;
+        partial: number;
+      }
+    >;
   };
   comparison?: {
     overallPosition: number;
     totalCompetitors: number;
-    modelRankings: Record<string, {
-      rank: number;
-      score: number;
-      mentions: number;
-    }>;
+    modelRankings: Record<
+      string,
+      {
+        rank: number;
+        score: number;
+        mentions: number;
+      }
+    >;
   };
 }
 
 /**
  * Get all reports for a company (requires token authentication)
  */
-export async function getCompanyReports(companyId: string, token: string): Promise<ReportContentResponse[]> {
+export async function getCompanyReports(
+  companyId: string,
+  token: string
+): Promise<ReportContentResponse[]> {
   try {
-    const response = await fetch(`${API_BASE_URL}/reports/company/${companyId}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-    });
+    const response = await fetch(
+      `${API_BASE_URL}/reports/company/${companyId}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Failed to get company reports' }));
-      throw new Error(error.message || 'Failed to get company reports');
+      const error = await response
+        .json()
+        .catch(() => ({ message: "Failed to get company reports" }));
+      throw new Error(error.message || "Failed to get company reports");
     }
 
     return response.json();
   } catch (error) {
-    console.error('Get company reports error:', error);
-    throw new Error(error instanceof Error ? error.message : 'Failed to get company reports');
+    console.error("Get company reports error:", error);
+    throw new Error(
+      error instanceof Error ? error.message : "Failed to get company reports"
+    );
   }
 }
 
@@ -672,25 +789,35 @@ export interface CitationsData {
 /**
  * Get citations data for a report (requires token authentication)
  */
-export async function getReportCitations(reportId: string, token: string): Promise<CitationsData> {
+export async function getReportCitations(
+  reportId: string,
+  token: string
+): Promise<CitationsData> {
   try {
-    const response = await fetch(`${API_BASE_URL}/reports/citations/${reportId}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-    });
+    const response = await fetch(
+      `${API_BASE_URL}/reports/citations/${reportId}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Failed to get report citations' }));
-      throw new Error(error.message || 'Failed to get report citations');
+      const error = await response
+        .json()
+        .catch(() => ({ message: "Failed to get report citations" }));
+      throw new Error(error.message || "Failed to get report citations");
     }
 
     return response.json();
   } catch (error) {
-    console.error('Get report citations error:', error);
-    throw new Error(error instanceof Error ? error.message : 'Failed to get report citations');
+    console.error("Get report citations error:", error);
+    throw new Error(
+      error instanceof Error ? error.message : "Failed to get report citations"
+    );
   }
 }
 
@@ -717,24 +844,36 @@ export interface SpontaneousData {
 /**
  * Get spontaneous data for a report (requires token authentication)
  */
-export async function getReportSpontaneous(reportId: string, token: string): Promise<SpontaneousData> {
+export async function getReportSpontaneous(
+  reportId: string,
+  token: string
+): Promise<SpontaneousData> {
   try {
-    const response = await fetch(`${API_BASE_URL}/reports/spontaneous/${reportId}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-    });
+    const response = await fetch(
+      `${API_BASE_URL}/reports/spontaneous/${reportId}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Failed to get report spontaneous data' }));
-      throw new Error(error.message || 'Failed to get report spontaneous data');
+      const error = await response
+        .json()
+        .catch(() => ({ message: "Failed to get report spontaneous data" }));
+      throw new Error(error.message || "Failed to get report spontaneous data");
     }
 
     return response.json();
   } catch (error) {
-    console.error('Get report spontaneous error:', error);
-    throw new Error(error instanceof Error ? error.message : 'Failed to get report spontaneous data');
+    console.error("Get report spontaneous error:", error);
+    throw new Error(
+      error instanceof Error
+        ? error.message
+        : "Failed to get report spontaneous data"
+    );
   }
 }
