@@ -13,9 +13,17 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter();
-  const { isAuthenticated, isLoading: authLoading, token, checkAuth } = useAuth();
-  const [identityCards, setIdentityCards] = useState<IdentityCardResponse[]>([]);
-  const [selectedCompany, setSelectedCompany] = useState<IdentityCardResponse | null>(null);
+  const {
+    isAuthenticated,
+    isLoading: authLoading,
+    token,
+    checkAuth,
+  } = useAuth();
+  const [identityCards, setIdentityCards] = useState<IdentityCardResponse[]>(
+    []
+  );
+  const [selectedCompany, setSelectedCompany] =
+    useState<IdentityCardResponse | null>(null);
   const [isLoadingCards, setIsLoadingCards] = useState(false);
 
   useEffect(() => {
@@ -34,11 +42,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           try {
             const cards = await getUserIdentityCards(token);
             setIdentityCards(cards);
-            
+
             // Check if there's a previously selected company in localStorage
             const savedCompanyId = localStorage.getItem("selectedCompanyId");
-            const savedCompany = cards.find(card => card.id === savedCompanyId);
-            
+            const savedCompany = cards.find(
+              (card) => card.id === savedCompanyId
+            );
+
             if (savedCompany) {
               setSelectedCompany(savedCompany);
             } else if (cards.length > 0 && !selectedCompany) {
@@ -60,7 +70,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const handleCompanySelect = (company: IdentityCardResponse) => {
     setSelectedCompany(company);
     localStorage.setItem("selectedCompanyId", company.id);
-    
+
     // Dispatch custom event for same-tab updates
     window.dispatchEvent(new Event("companySelectionChanged"));
   };
@@ -77,6 +87,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     return null;
   }
 
+  // Redirect to /onboarding if there are no companies
+  if (!isLoadingCards && identityCards.length === 0) {
+    if (typeof window !== "undefined") {
+      router.push("/onboarding");
+    }
+    return null;
+  }
+
   return (
     <div className="flex h-screen bg-gray-50">
       <SaasSidebar
@@ -85,9 +103,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         onCompanySelect={handleCompanySelect}
       />
       <main className="flex-1 overflow-y-auto ml-60">
-        <div className="p-8">
-          {children}
-        </div>
+        <div className="p-8">{children}</div>
       </main>
     </div>
   );
