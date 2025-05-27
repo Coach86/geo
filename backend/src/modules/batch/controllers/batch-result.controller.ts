@@ -1,0 +1,169 @@
+import { Controller, Get, Param, Query, NotFoundException } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
+import { BatchResultRepository } from '../repositories/batch-result.repository';
+import { BatchExecutionRepository } from '../repositories/batch-execution.repository';
+
+@ApiTags('batch-results')
+@Controller('admin/batch-results')
+export class BatchResultController {
+  constructor(
+    private readonly batchResultRepository: BatchResultRepository,
+    private readonly batchExecutionRepository: BatchExecutionRepository,
+  ) {}
+
+  @Get('execution/:executionId')
+  @ApiOperation({ summary: 'Get all batch results for a batch execution' })
+  @ApiParam({ name: 'executionId', description: 'The ID of the batch execution' })
+  @ApiResponse({ status: 200, description: 'Return all batch results for the execution' })
+  @ApiResponse({ status: 404, description: 'Batch execution not found' })
+  async getResultsByExecution(@Param('executionId') executionId: string) {
+    // Verify execution exists
+    const execution = await this.batchExecutionRepository.findByIdLean(executionId);
+    if (!execution) {
+      throw new NotFoundException(`Batch execution ${executionId} not found`);
+    }
+
+    const results = await this.batchResultRepository.findAllByExecutionId(executionId);
+    
+    return {
+      executionId,
+      companyId: execution.companyId,
+      status: execution.status,
+      executedAt: execution.executedAt,
+      results: results.map(result => ({
+        id: result.id,
+        resultType: result.resultType,
+        result: result.result,
+        createdAt: result.createdAt,
+        updatedAt: result.updatedAt,
+      })),
+    };
+  }
+
+  @Get('execution/:executionId/:resultType')
+  @ApiOperation({ summary: 'Get a specific type of batch result for a batch execution' })
+  @ApiParam({ name: 'executionId', description: 'The ID of the batch execution' })
+  @ApiParam({ 
+    name: 'resultType', 
+    description: 'The type of result',
+    enum: ['spontaneous', 'sentiment', 'comparison', 'accuracy']
+  })
+  @ApiResponse({ status: 200, description: 'Return the specific batch result' })
+  @ApiResponse({ status: 404, description: 'Batch result not found' })
+  async getResultByTypeAndExecution(
+    @Param('executionId') executionId: string,
+    @Param('resultType') resultType: 'spontaneous' | 'sentiment' | 'comparison' | 'accuracy',
+  ) {
+    const result = await this.batchResultRepository.findByExecutionIdAndTypeLean(
+      executionId,
+      resultType,
+    );
+
+    if (!result) {
+      throw new NotFoundException(
+        `No ${resultType} result found for batch execution ${executionId}`,
+      );
+    }
+
+    return {
+      id: result.id,
+      executionId: result.batchExecutionId,
+      resultType: result.resultType,
+      result: result.result,
+      createdAt: result.createdAt,
+      updatedAt: result.updatedAt,
+    };
+  }
+
+  @Get('company/:companyId/latest')
+  @ApiOperation({ summary: 'Get the latest batch results for a company' })
+  @ApiParam({ name: 'companyId', description: 'The ID of the company' })
+  @ApiQuery({ 
+    name: 'resultType', 
+    required: false, 
+    description: 'Filter by result type',
+    enum: ['spontaneous', 'sentiment', 'comparison', 'accuracy']
+  })
+  @ApiResponse({ status: 200, description: 'Return the latest batch results' })
+  async getLatestResultsByCompany(
+    @Param('companyId') companyId: string,
+    @Query('resultType') resultType?: 'spontaneous' | 'sentiment' | 'comparison' | 'accuracy',
+  ) {
+    // Get the latest completed batch execution for this company
+    const latestExecution = await this.batchExecutionRepository.findLatestByCompanyId(
+      companyId,
+      'completed',
+    );
+
+    if (!latestExecution) {
+      throw new NotFoundException(
+        `No completed batch executions found for company ${companyId}`,
+      );
+    }
+
+    if (resultType) {
+      // Get specific result type
+      const result = await this.batchResultRepository.findByExecutionIdAndTypeLean(
+        latestExecution.id,
+        resultType,
+      );
+
+      if (!result) {
+        throw new NotFoundException(
+          `No ${resultType} result found for latest batch execution`,
+        );
+      }
+
+      return {
+        executionId: latestExecution.id,
+        companyId: latestExecution.companyId,
+        executedAt: latestExecution.executedAt,
+        result: {
+          id: result.id,
+          resultType: result.resultType,
+          result: result.result,
+          createdAt: result.createdAt,
+          updatedAt: result.updatedAt,
+        },
+      };
+    } else {
+      // Get all results
+      const results = await this.batchResultRepository.findAllByExecutionId(latestExecution.id);
+
+      return {
+        executionId: latestExecution.id,
+        companyId: latestExecution.companyId,
+        executedAt: latestExecution.executedAt,
+        results: results.map(result => ({
+          id: result.id,
+          resultType: result.resultType,
+          result: result.result,
+          createdAt: result.createdAt,
+          updatedAt: result.updatedAt,
+        })),
+      };
+    }
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get a batch result by ID' })
+  @ApiParam({ name: 'id', description: 'The ID of the batch result' })
+  @ApiResponse({ status: 200, description: 'Return the batch result' })
+  @ApiResponse({ status: 404, description: 'Batch result not found' })
+  async getBatchResult(@Param('id') id: string) {
+    const result = await this.batchResultRepository.findById(id);
+
+    if (!result) {
+      throw new NotFoundException(`Batch result ${id} not found`);
+    }
+
+    return {
+      id: result.id,
+      executionId: result.batchExecutionId,
+      resultType: result.resultType,
+      result: result.result,
+      createdAt: result.createdAt,
+      updatedAt: result.updatedAt,
+    };
+  }
+}

@@ -14,9 +14,10 @@ interface SentimentHeatmapProps {
       status: string;
     }[];
   }[];
+  onCellClick?: (model: string) => void;
 }
 
-export function SentimentHeatmap({ sentimentHeatmap }: SentimentHeatmapProps) {
+export function SentimentHeatmap({ sentimentHeatmap, onCellClick }: SentimentHeatmapProps) {
   const [ref, inView] = useInView({
     triggerOnce: true,
     threshold: 0.1,
@@ -126,13 +127,17 @@ export function SentimentHeatmap({ sentimentHeatmap }: SentimentHeatmapProps) {
                       return (
                         <td
                           key={mIndex}
-                          className="px-4 py-3 border-b border-gray-200 text-center"
+                          className={`px-4 py-3 border-b border-gray-200 text-center ${
+                            onCellClick ? "cursor-pointer hover:opacity-80 transition-opacity" : ""
+                          }`}
                           style={{
                             backgroundColor: colors.bg,
                             color: colors.text,
                             borderLeft: `1px solid ${colors.border}`,
                             borderRight: `1px solid ${colors.border}`,
                           }}
+                          onClick={() => onCellClick?.(result.model)}
+                          title={onCellClick ? `Click to view ${result.model} analysis` : undefined}
                         >
                           <div className="font-medium">{sentimentLabel}</div>
                         </td>

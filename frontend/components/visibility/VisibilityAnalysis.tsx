@@ -26,6 +26,7 @@ interface VisibilityAnalysisProps {
   modeMetrics: ModeMetric[];
   arenaData: ArenaData[];
   brandName: string;
+  selectedCompetitors?: string[];
 }
 
 export function VisibilityAnalysis({
@@ -33,6 +34,7 @@ export function VisibilityAnalysis({
   modeMetrics,
   arenaData,
   brandName,
+  selectedCompetitors = [],
 }: VisibilityAnalysisProps) {
   const [ref, inView] = useInView({
     triggerOnce: true,
@@ -88,35 +90,97 @@ export function VisibilityAnalysis({
               animate={inView ? { opacity: 1 } : { opacity: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
             >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">
-                  Overall Mention Rate
-                </span>
-                <motion.span
-                  className="text-2xl font-bold text-secondary-600"
-                  initial={{ scale: 0 }}
-                  animate={inView ? { scale: 1 } : { scale: 0 }}
-                  transition={{ duration: 0.5, delay: 0.5 }}
-                >
-                  {mentionRate || 0}%
-                </motion.span>
+              <h4 className="text-sm font-semibold text-gray-700 mb-4">
+                Overall Mention Rate
+              </h4>
+              
+              <div className="space-y-3">
+                {/* Brand mention rate */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">
+                      {brandName}
+                    </span>
+                    <motion.span
+                      className="text-lg font-bold text-secondary-600"
+                      initial={{ scale: 0 }}
+                      animate={inView ? { scale: 1 } : { scale: 0 }}
+                      transition={{ duration: 0.5, delay: 0.5 }}
+                    >
+                      {mentionRate || 0}%
+                    </motion.span>
+                  </div>
+                  <motion.div
+                    initial={{ scaleX: 0 }}
+                    animate={inView ? { scaleX: 1 } : { scaleX: 0 }}
+                    transition={{ duration: 1, delay: 0.6 }}
+                    style={{ transformOrigin: "left" }}
+                  >
+                    <Progress value={mentionRate || 0} className="h-2" />
+                  </motion.div>
+                </div>
+
+                {/* Selected competitors mention rates */}
+                {selectedCompetitors.map((competitorName, index) => {
+                  const competitor = arenaData.find(
+                    (comp) => comp.name === competitorName
+                  );
+                  
+                  // Calculate overall mention rate for competitor
+                  let competitorMentionRate = 0;
+                  if (competitor?.modelsMentionsRate) {
+                    const totalRate = competitor.modelsMentionsRate.reduce(
+                      (sum, model) => sum + (model.mentionsRate || 0),
+                      0
+                    );
+                    competitorMentionRate = Math.round(
+                      totalRate / competitor.modelsMentionsRate.length
+                    );
+                  }
+
+                  return (
+                    <motion.div
+                      key={competitorName}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+                      transition={{ duration: 0.2, delay: 0.05 + index * 0.05 }}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-gray-600">
+                          {competitorName}
+                        </span>
+                        <motion.span
+                          className={`text-lg font-bold ${competitorMentionRate > mentionRate ? 'text-primary-600' : 'text-gray-600'}`}
+                          initial={{ scale: 0 }}
+                          animate={inView ? { scale: 1 } : { scale: 0 }}
+                          transition={{ duration: 0.2, delay: 0.1 + index * 0.05 }}
+                        >
+                          {competitorMentionRate}%
+                        </motion.span>
+                      </div>
+                      <motion.div
+                        initial={{ scaleX: 0 }}
+                        animate={inView ? { scaleX: 1 } : { scaleX: 0 }}
+                        transition={{ duration: 0.3, delay: 0.15 + index * 0.05 }}
+                        style={{ transformOrigin: "left" }}
+                      >
+                        <Progress 
+                          value={competitorMentionRate} 
+                          className={`h-2 ${competitorMentionRate > mentionRate ? '[&>div]:bg-primary-500' : '[&>div]:bg-gray-400'}`} 
+                        />
+                      </motion.div>
+                    </motion.div>
+                  );
+                })}
               </div>
-              <motion.div
-                initial={{ scaleX: 0 }}
-                animate={inView ? { scaleX: 1 } : { scaleX: 0 }}
-                transition={{ duration: 1, delay: 0.6 }}
-                style={{ transformOrigin: "left" }}
-              >
-                <Progress value={mentionRate || 0} className="h-2" />
-              </motion.div>
+              
               <motion.p
-                className="text-xs text-gray-500 mt-1"
+                className="text-xs text-gray-500 mt-3"
                 initial={{ opacity: 0 }}
                 animate={inView ? { opacity: 1 } : { opacity: 0 }}
-                transition={{ duration: 0.4, delay: 0.8 }}
+                transition={{ duration: 0.4, delay: 1.0 }}
               >
-                Mentioned in {mentionRate || 0}% of relevant conversations
-                across all models
+                Percentage of relevant conversations mentioning each brand across all models
               </motion.p>
             </motion.div>
 
@@ -175,25 +239,24 @@ export function VisibilityAnalysis({
                       }
                     }
 
-                    // Get competitors' rates for this model
-                    const allCompetitorRates = arenaData
-                      .filter(
-                        (comp: any) =>
-                          comp.name.toLowerCase() !== brandName.toLowerCase()
-                      )
-                      .map((comp: any) => ({
-                        name: comp.name,
-                        rate:
-                          comp.modelsMentionsRate?.find(
+                    // Get selected competitors' rates for this model
+                    const selectedCompetitorRates = selectedCompetitors
+                      .map((competitorName) => {
+                        const competitor = arenaData.find(
+                          (comp) => comp.name === competitorName
+                        );
+                        const rate =
+                          competitor?.modelsMentionsRate?.find(
                             (m: any) => m.model === model
-                          )?.mentionsRate || 0,
-                      }))
-                      .sort((a, b) => b.rate - a.rate);
+                          )?.mentionsRate || 0;
+                        return { name: competitorName, rate };
+                      })
+                      .filter((comp) => comp.rate > 0);
 
                     return (
                       <motion.div
                         key={model}
-                        className="p-3 rounded-lg bg-gray-50 space-y-2"
+                        className="p-4 rounded-lg bg-gray-50"
                         initial={{ opacity: 0, x: -20 }}
                         animate={
                           inView ? { opacity: 1, x: 0 } : { opacity: 0, x: -20 }
@@ -205,96 +268,113 @@ export function VisibilityAnalysis({
                         }}
                         whileHover={{ scale: 1.02 }}
                       >
-                        <div className="flex items-center justify-between">
-                          <motion.div
-                            initial={{ scale: 0 }}
-                            animate={inView ? { scale: 1 } : { scale: 0 }}
-                            transition={{
-                              duration: 0.4,
-                              delay: 1.2 + index * 0.1,
-                            }}
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={inView ? { scale: 1 } : { scale: 0 }}
+                          transition={{
+                            duration: 0.4,
+                            delay: 1.2 + index * 0.1,
+                          }}
+                          className="mb-3"
+                        >
+                          <Badge
+                            variant="outline"
+                            className={`${getModelColor(
+                              model
+                            )} font-medium flex items-center gap-1 w-fit`}
                           >
-                            <Badge
-                              variant="outline"
-                              className={`${getModelColor(
-                                model
-                              )} font-medium flex items-center gap-1`}
-                            >
-                              <ModelIcon model={model} size="xs" />
-                              {model}
-                            </Badge>
-                          </motion.div>
-                          <div className="flex items-center gap-3">
+                            <ModelIcon model={model} size="xs" />
+                            {model}
+                          </Badge>
+                        </motion.div>
+
+                        <div className="space-y-3">
+                          {/* Brand mention rate */}
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-sm font-medium text-gray-700">
+                                {brandName}
+                              </span>
+                              <motion.span
+                                className="text-sm font-semibold text-secondary-600"
+                                initial={{ opacity: 0 }}
+                                animate={inView ? { opacity: 1 } : { opacity: 0 }}
+                                transition={{
+                                  duration: 0.4,
+                                  delay: 1.4 + index * 0.1,
+                                }}
+                              >
+                                {brandRate}%
+                              </motion.span>
+                            </div>
                             <motion.div
-                              className="w-20"
                               initial={{ scaleX: 0 }}
                               animate={inView ? { scaleX: 1 } : { scaleX: 0 }}
                               transition={{
                                 duration: 0.8,
-                                delay: 1.4 + index * 0.1,
+                                delay: 1.5 + index * 0.1,
                                 ease: "easeOut",
                               }}
                               style={{ transformOrigin: "left" }}
                             >
                               <Progress
                                 value={brandRate}
-                                className="w-20 h-2"
+                                className="h-2"
                               />
                             </motion.div>
-                            <motion.span
-                              className="text-sm font-semibold text-secondary-600"
-                              initial={{ opacity: 0 }}
-                              animate={inView ? { opacity: 1 } : { opacity: 0 }}
+                          </div>
+
+                          {/* Selected competitors mention rates */}
+                          {selectedCompetitorRates.map((comp, compIndex) => (
+                            <motion.div
+                              key={comp.name}
+                              initial={{ opacity: 0, y: 5 }}
+                              animate={
+                                inView
+                                  ? { opacity: 1, y: 0 }
+                                  : { opacity: 0, y: 5 }
+                              }
                               transition={{
-                                duration: 0.4,
-                                delay: 1.6 + index * 0.1,
+                                duration: 0.2,
+                                delay: 0.05 + compIndex * 0.02,
                               }}
                             >
-                              {brandRate}%
-                            </motion.span>
-                          </div>
-                        </div>
-
-                        {/* Competitor comparison */}
-                        {allCompetitorRates.length > 0 && (
-                          <motion.div
-                            className="space-y-2"
-                            initial={{ opacity: 0 }}
-                            animate={inView ? { opacity: 1 } : { opacity: 0 }}
-                            transition={{
-                              duration: 0.4,
-                              delay: 1.8 + index * 0.1,
-                            }}
-                          >
-                            <div className="text-xs text-gray-500 font-medium">
-                              Competitors:
-                            </div>
-                            <div className="flex gap-1.5 flex-wrap">
-                              {allCompetitorRates.map((comp, idx: number) => (
-                                <motion.div
-                                  key={idx}
-                                  initial={{ scale: 0 }}
-                                  animate={inView ? { scale: 1 } : { scale: 0 }}
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-sm font-medium text-gray-600">
+                                  {comp.name}
+                                </span>
+                                <motion.span
+                                  className={`text-sm font-semibold ${comp.rate > brandRate ? 'text-primary-600' : 'text-gray-600'}`}
+                                  initial={{ opacity: 0 }}
+                                  animate={
+                                    inView ? { opacity: 1 } : { opacity: 0 }
+                                  }
                                   transition={{
-                                    duration: 0.3,
-                                    delay: 2.0 + index * 0.1 + idx * 0.05,
+                                    duration: 0.2,
+                                    delay: 0.1 + compIndex * 0.02,
                                   }}
                                 >
-                                  <Badge
-                                    variant="outline"
-                                    className={`text-xs ${
-                                      idx === 0
-                                        ? "border-accent-200 bg-accent-50"
-                                        : ""
-                                    }`}
-                                  >
-                                    {comp.name}: {comp.rate}%
-                                  </Badge>
-                                </motion.div>
-                              ))}
-                            </div>
-                          </motion.div>
-                        )}
+                                  {comp.rate}%
+                                </motion.span>
+                              </div>
+                              <motion.div
+                                initial={{ scaleX: 0 }}
+                                animate={inView ? { scaleX: 1 } : { scaleX: 0 }}
+                                transition={{
+                                  duration: 0.3,
+                                  delay: 0.15 + compIndex * 0.02,
+                                  ease: "easeOut",
+                                }}
+                                style={{ transformOrigin: "left" }}
+                              >
+                                <Progress
+                                  value={comp.rate}
+                                  className={`h-2 ${comp.rate > brandRate ? '[&>div]:bg-primary-500' : '[&>div]:bg-gray-400'}`}
+                                />
+                              </motion.div>
+                            </motion.div>
+                          ))}
+                        </div>
                       </motion.div>
                     );
                   });

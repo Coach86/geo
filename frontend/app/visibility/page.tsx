@@ -21,6 +21,8 @@ import {
 } from "@/lib/auth-api";
 import { VisibilityAnalysis } from "@/components/visibility/VisibilityAnalysis";
 import { TopMentions } from "@/components/visibility/TopMentions";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 interface ProcessedReport {
   id: string;
@@ -61,6 +63,7 @@ export default function VisibilityPage() {
   const [loading, setLoading] = useState(true);
   const [loadingSpontaneous, setLoadingSpontaneous] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedCompetitors, setSelectedCompetitors] = useState<string[]>([]);
 
   // Get selected company from localStorage and listen for changes
   useEffect(() => {
@@ -312,11 +315,67 @@ export default function VisibilityPage() {
         {/* Report Content */}
         {!loading && selectedReport && (
           <div className="space-y-6 fade-in-section is-visible">
+            {/* Competitor Selection */}
+            {selectedReport.arenaData && selectedReport.arenaData.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg font-semibold text-dark-700">
+                    Select Competitors to Compare
+                  </CardTitle>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Choose which competitors to display in the analysis
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-4">
+                    {selectedReport.arenaData
+                      .filter(
+                        (comp) =>
+                          comp.name.toLowerCase() !==
+                          selectedReport.brandName.toLowerCase()
+                      )
+                      .map((competitor) => (
+                        <div
+                          key={competitor.name}
+                          className="flex items-center space-x-2"
+                        >
+                          <Checkbox
+                            id={competitor.name}
+                            checked={selectedCompetitors.includes(
+                              competitor.name
+                            )}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedCompetitors((prev) => [
+                                  ...prev,
+                                  competitor.name,
+                                ]);
+                              } else {
+                                setSelectedCompetitors((prev) =>
+                                  prev.filter((c) => c !== competitor.name)
+                                );
+                              }
+                            }}
+                          />
+                          <Label
+                            htmlFor={competitor.name}
+                            className="text-sm font-medium cursor-pointer"
+                          >
+                            {competitor.name}
+                          </Label>
+                        </div>
+                      ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             <VisibilityAnalysis
               mentionRate={selectedReport.mentionRate}
               modeMetrics={selectedReport.modeMetrics}
               arenaData={selectedReport.arenaData}
               brandName={selectedReport.brandName}
+              selectedCompetitors={selectedCompetitors}
             />
 
             <TopMentions
