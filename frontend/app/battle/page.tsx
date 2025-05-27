@@ -22,6 +22,7 @@ import {
   ReportContentResponse,
 } from "@/lib/auth-api";
 import type { BrandBattleData } from "@/types/brand-battle";
+import { AnimatePresence, motion } from "framer-motion";
 
 interface ProcessedReport {
   id: string;
@@ -347,7 +348,13 @@ function BrandBattleTable({
   const totalStrengthsAndWeaknesses = strengths.length + weaknesses.length;
 
   return (
-    <div className="mb-16 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 30 }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
+      className="mb-16 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden"
+    >
       <div className="px-6 py-5 border-b border-gray-100 bg-gray-50">
         <h2 className="text-2xl font-bold text-gray-900">
           Brand Battle vs Pre‑selected Competitors
@@ -360,136 +367,144 @@ function BrandBattleTable({
 
       <div className="p-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {data.competitorAnalyses.map((competitor, index) => (
-            <div
-              key={index}
-              className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden"
-            >
-              <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-                <h3 className="text-base font-bold text-gray-800">
-                  {brand} vs{" "}
-                  <span className="text-[#805AD5]">
-                    {competitor.competitor}
-                  </span>
-                </h3>
-              </div>
-
-              <div className="p-3">
-                <div>
-                  <table className="w-full border-collapse table-fixed">
-                    <thead>
-                      <tr>
-                        <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500 border-b-2 border-gray-200 w-[40px]"></th>
-                        {models.map((model, mIndex) => {
-                          return (
-                            <th
-                              key={mIndex}
-                              className="px-2 py-2 text-center text-xs font-bold text-gray-700 border-b-2 border-gray-200"
-                            >
-                              {model}
-                            </th>
-                          );
-                        })}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {/* Strengths row */}
-                      <tr className="bg-[#E3F2FD]">
-                        <td className="px-2 py-2 border-b border-gray-200 font-bold text-[#0D47A1] text-sm text-center">
-                          <div
-                            className="flex items-center justify-center"
-                            title="Strengths"
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              viewBox="0 0 24 24"
-                              fill="currentColor"
-                              className="w-5 h-5"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                          </div>
-                        </td>
-                        {models.map((model, mIndex) => {
-                          const analysis = competitor.analysisByModel.find(
-                            (a) => a.model === model
-                          );
-                          return (
-                            <td
-                              key={mIndex}
-                              className="px-2 py-2 border-b border-gray-200 text-xs"
-                            >
-                              {analysis?.strengths.map((strength, sIndex) => (
-                                <div
-                                  key={sIndex}
-                                  className="mb-1 flex items-start"
-                                >
-                                  <span className="text-[#2196F3] mr-1 mt-0.5 flex-shrink-0">
-                                    •
-                                  </span>
-                                  <span className="text-gray-800">
-                                    {strength}
-                                  </span>
-                                </div>
-                              ))}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                      {/* Weaknesses row */}
-                      <tr className="bg-[#FCE4EC]">
-                        <td className="px-2 py-2 font-bold text-[#AD1457] text-sm text-center">
-                          <div
-                            className="flex items-center justify-center"
-                            title="Weaknesses"
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              viewBox="0 0 24 24"
-                              fill="currentColor"
-                              className="w-5 h-5"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm-1.72 6.97a.75.75 0 10-1.06 1.06L10.94 12l-1.72 1.72a.75.75 0 101.06 1.06L12 13.06l1.72 1.72a.75.75 0 101.06-1.06L13.06 12l1.72-1.72a.75.75 0 10-1.06-1.06L12 10.94l-1.72-1.72z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                          </div>
-                        </td>
-                        {models.map((model, mIndex) => {
-                          const analysis = competitor.analysisByModel.find(
-                            (a) => a.model === model
-                          );
-                          return (
-                            <td key={mIndex} className="px-2 py-2 text-xs">
-                              {analysis?.weaknesses.map((weakness, wIndex) => (
-                                <div
-                                  key={wIndex}
-                                  className="mb-1 flex items-start"
-                                >
-                                  <span className="text-[#C2185B] mr-1 mt-0.5 flex-shrink-0">
-                                    •
-                                  </span>
-                                  <span className="text-gray-800">
-                                    {weakness}
-                                  </span>
-                                </div>
-                              ))}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    </tbody>
-                  </table>
+          <AnimatePresence initial={false}>
+            {data.competitorAnalyses.map((competitor, index) => (
+              <motion.div
+                key={competitor.competitor}
+                initial={{ opacity: 0, y: 30, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 30, scale: 0.97 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+                layout
+                className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden"
+              >
+                <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                  <h3 className="text-base font-bold text-gray-800">
+                    {brand} vs{" "}
+                    <span className="text-[#805AD5]">
+                      {competitor.competitor}
+                    </span>
+                  </h3>
                 </div>
-              </div>
-            </div>
-          ))}
+                <div className="p-3">
+                  <div>
+                    <table className="w-full border-collapse table-fixed">
+                      <thead>
+                        <tr>
+                          <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500 border-b-2 border-gray-200 w-[40px]"></th>
+                          {models.map((model, mIndex) => {
+                            return (
+                              <th
+                                key={mIndex}
+                                className="px-2 py-2 text-center text-xs font-bold text-gray-700 border-b-2 border-gray-200"
+                              >
+                                {model}
+                              </th>
+                            );
+                          })}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {/* Strengths row */}
+                        <tr className="bg-[#E3F2FD]">
+                          <td className="px-2 py-2 border-b border-gray-200 font-bold text-[#0D47A1] text-sm text-center">
+                            <div
+                              className="flex items-center justify-center"
+                              title="Strengths"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                                className="w-5 h-5"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </div>
+                          </td>
+                          {models.map((model, mIndex) => {
+                            const analysis = competitor.analysisByModel.find(
+                              (a) => a.model === model
+                            );
+                            return (
+                              <td
+                                key={mIndex}
+                                className="px-2 py-2 border-b border-gray-200 text-xs"
+                              >
+                                {analysis?.strengths.map((strength, sIndex) => (
+                                  <div
+                                    key={sIndex}
+                                    className="mb-1 flex items-start"
+                                  >
+                                    <span className="text-[#2196F3] mr-1 mt-0.5 flex-shrink-0">
+                                      •
+                                    </span>
+                                    <span className="text-gray-800">
+                                      {strength}
+                                    </span>
+                                  </div>
+                                ))}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                        {/* Weaknesses row */}
+                        <tr className="bg-[#FCE4EC]">
+                          <td className="px-2 py-2 font-bold text-[#AD1457] text-sm text-center">
+                            <div
+                              className="flex items-center justify-center"
+                              title="Weaknesses"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                                className="w-5 h-5"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm-1.72 6.97a.75.75 0 10-1.06 1.06L10.94 12l-1.72 1.72a.75.75 0 101.06 1.06L12 13.06l1.72 1.72a.75.75 0 101.06-1.06L13.06 12l1.72-1.72a.75.75 0 10-1.06-1.06L12 10.94l-1.72-1.72z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </div>
+                          </td>
+                          {models.map((model, mIndex) => {
+                            const analysis = competitor.analysisByModel.find(
+                              (a) => a.model === model
+                            );
+                            return (
+                              <td key={mIndex} className="px-2 py-2 text-xs">
+                                {analysis?.weaknesses.map(
+                                  (weakness, wIndex) => (
+                                    <div
+                                      key={wIndex}
+                                      className="mb-1 flex items-start"
+                                    >
+                                      <span className="text-[#C2185B] mr-1 mt-0.5 flex-shrink-0">
+                                        •
+                                      </span>
+                                      <span className="text-gray-800">
+                                        {weakness}
+                                      </span>
+                                    </div>
+                                  )
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
 
         {/* Common strengths and weaknesses section */}
@@ -540,6 +555,6 @@ function BrandBattleTable({
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }
