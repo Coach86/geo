@@ -437,6 +437,39 @@ export interface PromptSet {
   createdAt: string;
 }
 
+export interface BatchResult {
+  id: string;
+  batchExecutionId: string;
+  pipelineType: string;
+  results: any;
+  createdAt: string;
+}
+
+/**
+ * Get batch results for a report (requires token authentication)
+ */
+export async function getBatchResults(reportId: string, token: string): Promise<BatchResult[]> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/batch-results/report/${reportId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Failed to get batch results' }));
+      throw new Error(error.message || 'Failed to get batch results');
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error('Get batch results error:', error);
+    throw new Error(error instanceof Error ? error.message : 'Failed to get batch results');
+  }
+}
+
 /**
  * Get prompt set for a company (requires token authentication)
  */

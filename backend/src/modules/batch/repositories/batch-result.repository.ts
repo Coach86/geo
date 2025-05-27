@@ -91,6 +91,20 @@ export class BatchResultRepository {
   }
 
   /**
+   * Get all batch results for a batch execution as lean objects
+   * @param batchExecutionId The batch execution ID
+   * @returns Array of plain JavaScript objects
+   */
+  async findAllByExecutionIdLean(batchExecutionId: string): Promise<any[]> {
+    this.logger.debug(`Finding all batch results (lean) for execution: ${batchExecutionId}`);
+    const batchResults = await this.batchResultModel
+      .find({ batchExecutionId })
+      .lean()
+      .exec();
+    return batchResults;
+  }
+
+  /**
    * Check if a batch result exists for a given execution and type
    * @param batchExecutionId The batch execution ID
    * @param resultType The type of result

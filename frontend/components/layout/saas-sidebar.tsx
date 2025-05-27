@@ -35,7 +35,7 @@ const insightsMenuItems: SidebarItem[] = [
   { label: "Citations", icon: Quote, href: "/citations" },
   { label: "Sentiment", icon: Heart, href: "/sentiment" },
   { label: "Compliance", icon: Shield, href: "/compliance" },
-  { label: "Battle", icon: Swords, href: "/battle" },
+  { label: "Arena", icon: Swords, href: "/battle" },
 ];
 
 interface SaasSidebarProps {

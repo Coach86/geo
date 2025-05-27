@@ -1,19 +1,10 @@
 "use client";
 
+import type { BrandBattleData } from "@/types/brand-battle";
+
 interface BrandBattleSectionProps {
   brand: string;
-  data: {
-    competitorAnalyses: {
-      competitor: string;
-      analysisByModel: {
-        model: string;
-        strengths: string[];
-        weaknesses: string[];
-      }[];
-    }[];
-    commonStrengths: string[];
-    commonWeaknesses: string[];
-  };
+  data: BrandBattleData;
 }
 
 export default function BrandBattleSection({

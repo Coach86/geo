@@ -13,11 +13,12 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, X } from "lucide-react";
 import { getCompanyReports } from "@/lib/auth-api";
 import { SentimentOverview } from "@/components/sentiment/SentimentOverview";
 import { SentimentDistribution } from "@/components/sentiment/SentimentDistribution";
 import { SentimentHeatmap } from "@/components/sentiment/SentimentHeatmap";
+import { Button } from "@/components/ui/button";
 
 interface ProcessedReport {
   id: string;
@@ -60,6 +61,8 @@ export default function SentimentPage() {
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedModel, setSelectedModel] = useState<string | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   // Get selected company from localStorage and listen for changes
   useEffect(() => {
@@ -168,6 +171,63 @@ export default function SentimentPage() {
       month: "long",
       day: "numeric",
     });
+  };
+
+  // Handle cell click from heatmap
+  const handleCellClick = (model: string) => {
+    setSelectedModel(model);
+    setIsDrawerOpen(true);
+  };
+
+  // Get model data
+  const getModelData = () => {
+    if (!selectedModel || !selectedReport) return null;
+    return selectedReport.modelSentiments.find(
+      (s) => s.model === selectedModel
+    );
+  };
+
+  // Helper functions from tone-section
+  const getSentimentValue = (sentiment: string) => {
+    return Number.parseFloat(sentiment);
+  };
+
+  const getSentimentPosition = (sentiment: string) => {
+    const value = getSentimentValue(sentiment);
+    return ((value + 1) / 2) * 100 - 1;
+  };
+
+  const getSentimentPercentage = (sentiment: string) => {
+    return Math.round(getSentimentValue(sentiment) * 100);
+  };
+
+  const getCellColor = (status: string) => {
+    switch (status) {
+      case "green":
+        return {
+          bg: "#E3F2FD",
+          text: "#0D47A1",
+          border: "#90CAF9",
+        };
+      case "yellow":
+        return {
+          bg: "#EDE7F6",
+          text: "#4527A0",
+          border: "#B39DDB",
+        };
+      case "red":
+        return {
+          bg: "#FCE4EC",
+          text: "#AD1457",
+          border: "#F48FB1",
+        };
+      default:
+        return {
+          bg: "#F5F5F5",
+          text: "#616161",
+          border: "#E0E0E0",
+        };
+    }
   };
 
   if (!selectedCompanyId) {
@@ -294,6 +354,7 @@ export default function SentimentPage() {
             {/* Sentiment Heatmap */}
             <SentimentHeatmap
               sentimentHeatmap={selectedReport.sentimentHeatmap}
+              onCellClick={handleCellClick}
             />
           </div>
         )}
@@ -312,6 +373,142 @@ export default function SentimentPage() {
             </CardContent>
           </Card>
         )}
+      </div>
+
+      {/* Right Drawer for Model Analysis */}
+      <div
+        className={`fixed inset-0 z-50 overflow-hidden ${
+          isDrawerOpen ? "pointer-events-auto" : "pointer-events-none"
+        }`}
+      >
+        {/* Backdrop */}
+        <div
+          className={`absolute inset-0 bg-black transition-opacity duration-300 ${
+            isDrawerOpen ? "opacity-20" : "opacity-0"
+          }`}
+          onClick={() => setIsDrawerOpen(false)}
+        />
+
+        {/* Drawer */}
+        <div
+          className={`absolute right-0 top-0 bottom-0 w-full max-w-lg bg-white shadow-xl transform transition-transform duration-300 ease-in-out ${
+            isDrawerOpen ? "translate-x-0" : "translate-x-full"
+          }`}
+        >
+          {/* Drawer Header */}
+          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-800">
+              {selectedModel} Analysis
+            </h3>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsDrawerOpen(false)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Drawer Content */}
+          <div className="p-6 overflow-y-auto h-[calc(100%-73px)]">
+            {(() => {
+              const modelData = getModelData();
+              if (!modelData) return <div>No data available</div>;
+
+              const sentimentPosition = getSentimentPosition(
+                modelData.sentiment
+              );
+              const sentimentPercentage = getSentimentPercentage(
+                modelData.sentiment
+              );
+              const colors = getCellColor(modelData.status);
+
+              return (
+                <div className="space-y-6">
+                  {/* Model Overview */}
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="font-semibold text-gray-800">
+                        {selectedModel}
+                      </h4>
+                      <div
+                        className="px-3 py-1 rounded-full text-sm font-medium"
+                        style={{
+                          backgroundColor: colors.bg,
+                          color: colors.text,
+                        }}
+                      >
+                        {sentimentPercentage}%
+                      </div>
+                    </div>
+
+                    {/* Sentiment gauge */}
+                    <div className="mb-6">
+                      <div className="relative h-3 bg-gray-200 rounded-full overflow-hidden mb-2">
+                        <div className="absolute top-0 bottom-0 left-0 right-0 bg-gradient-to-r from-[#C2185B] via-[#673AB7] to-[#2196F3]"></div>
+                        <div
+                          className="absolute top-1/2 transform -translate-y-1/2 w-4 h-4 rounded-full bg-black border-2 border-white shadow-sm"
+                          style={{ left: `${sentimentPosition}%` }}
+                        ></div>
+                      </div>
+                      <div className="flex justify-between text-xs text-gray-500">
+                        <span>Negative</span>
+                        <span>Neutral</span>
+                        <span>Positive</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Positive Keywords */}
+                  <div>
+                    <div className="text-sm font-medium text-[#0D47A1] mb-2">
+                      Main positive keywords:
+                    </div>
+                    <div className="bg-[#E3F2FD] p-4 rounded-lg border border-[#90CAF9]">
+                      {modelData.positiveKeywords &&
+                      modelData.positiveKeywords.length > 0 ? (
+                        <ul className="list-disc pl-5 text-sm space-y-1">
+                          {modelData.positiveKeywords.map((item, i) => (
+                            <li key={i} className="text-[#0D47A1]">
+                              {item.trim()}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-sm italic text-[#0D47A1]">
+                          No positive keywords found
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Negative Keywords */}
+                  <div>
+                    <div className="text-sm font-medium text-[#AD1457] mb-2">
+                      Main negative keywords:
+                    </div>
+                    <div className="bg-[#FCE4EC] p-4 rounded-lg border border-[#F48FB1]">
+                      {modelData.negativeKeywords &&
+                      modelData.negativeKeywords.length > 0 ? (
+                        <ul className="list-disc pl-5 text-sm space-y-1">
+                          {modelData.negativeKeywords.map((item, i) => (
+                            <li key={i} className="text-[#AD1457]">
+                              {item.trim()}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-sm italic text-[#AD1457]">
+                          No negative keywords found
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   );

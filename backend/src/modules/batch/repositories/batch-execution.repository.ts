@@ -100,12 +100,20 @@ export class BatchExecutionRepository {
   /**
    * Find the latest batch execution for a company
    * @param companyId The company ID
+   * @param status Optional status filter
    * @returns The latest batch execution or null if none exists
    */
-  async findLatestByCompanyId(companyId: string): Promise<BatchExecutionDocument | null> {
-    this.logger.debug(`Finding latest batch execution for company: ${companyId}`);
+  async findLatestByCompanyId(
+    companyId: string, 
+    status?: 'running' | 'completed' | 'failed'
+  ): Promise<BatchExecutionDocument | null> {
+    this.logger.debug(`Finding latest batch execution for company: ${companyId}${status ? ` with status: ${status}` : ''}`);
+    const query: any = { companyId };
+    if (status) {
+      query.status = status;
+    }
     const batchExecution = await this.batchExecutionModel
-      .findOne({ companyId })
+      .findOne(query)
       .sort({ executedAt: -1 })
       .exec();
     return batchExecution;
