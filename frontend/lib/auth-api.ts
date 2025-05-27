@@ -660,3 +660,48 @@ export async function getReportCitations(reportId: string, token: string): Promi
     throw new Error(error instanceof Error ? error.message : 'Failed to get report citations');
   }
 }
+
+export interface SpontaneousData {
+  summary: {
+    mentionRate: number;
+    topMentions: string[];
+    topMentionCounts?: {
+      mention: string;
+      count: number;
+    }[];
+  };
+  results: any[];
+  webSearchSummary?: {
+    webSearchCount: number;
+    consultedWebsites: string[];
+    consultedWebsiteCounts?: {
+      domain: string;
+      count: number;
+    }[];
+  };
+}
+
+/**
+ * Get spontaneous data for a report (requires token authentication)
+ */
+export async function getReportSpontaneous(reportId: string, token: string): Promise<SpontaneousData> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/reports/spontaneous/${reportId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Failed to get report spontaneous data' }));
+      throw new Error(error.message || 'Failed to get report spontaneous data');
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error('Get report spontaneous error:', error);
+    throw new Error(error instanceof Error ? error.message : 'Failed to get report spontaneous data');
+  }
+}
