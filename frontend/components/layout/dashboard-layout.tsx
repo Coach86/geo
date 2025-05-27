@@ -41,6 +41,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           setIsLoadingCards(true);
           try {
             const cards = await getUserIdentityCards(token);
+            if (
+              !cards ||
+              (Array.isArray(cards) && (cards as unknown[]).length === 0)
+            ) {
+              router.push("/onboarding");
+              return null;
+            }
             setIdentityCards(cards);
 
             // Check if there's a previously selected company in localStorage
@@ -84,14 +91,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   }
 
   if (!isAuthenticated) {
-    return null;
-  }
-
-  // Redirect to /onboarding if there are no companies
-  if (!isLoadingCards && identityCards.length === 0) {
-    if (typeof window !== "undefined") {
-      router.push("/onboarding");
-    }
     return null;
   }
 
