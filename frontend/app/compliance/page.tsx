@@ -75,6 +75,7 @@ export default function CompliancePage() {
       );
 
       if (!companyId || !token) {
+        console.log("[Compliance] No companyId or token");
         setSelectedCompanyId(null);
         setReports([]);
         setSelectedReport(null);
@@ -97,48 +98,9 @@ export default function CompliancePage() {
         const processedReports: ProcessedReport[] = [];
 
         for (const report of apiReports) {
-          console.log(
-            "[Compliance] Processing report:",
-            report.id,
-            "has accuracy:",
-            !!report.accuracy
-          );
-          // Construct accordData from report.accuracy (if present)
-          if (!report.accuracy) continue; // Skip reports without accuracy data
-
-          // Map modelScores to attributes array for compliance transformer
-          const attributes = Object.entries(
-            report.accuracy.modelScores || {}
-          ).map(([name, modelData]: [string, any]) => ({
-            name,
-            rate: ((modelData.score ?? 0) * 100).toFixed(0), // as string percentage
-            alignment:
-              modelData.score >= 0.7
-                ? "✅"
-                : modelData.score >= 0.4
-                ? "⚠️"
-                : "❌",
-          }));
-
-          const accordData = {
-            attributes,
-            score: {
-              value: ((report.accuracy.overallScore ?? 0) * 10).toFixed(1), // as string out of 10
-              status:
-                report.accuracy.overallScore >= 0.7
-                  ? "green"
-                  : report.accuracy.overallScore >= 0.4
-                  ? "yellow"
-                  : "red",
-            },
-          };
-
-          console.log(
-            "[Compliance] Fetching batch results for report:",
-            report.id
-          );
-          // Fetch batch results for this report to get accuracy data
-          let accuracyData = null;
+          console.log("[Compliance] Processing report:", report.id);
+          // Always fetch batch results for compliance/accord data
+          let complianceData = null;
           try {
             const batchResults = await getBatchResults(report.id, token);
             console.log(
@@ -153,12 +115,20 @@ export default function CompliancePage() {
                 result.resultType === "accuracy" ||
                 result.pipelineType === "accuracy"
             );
-            if (accuracyResult && accuracyResult.results) {
+            console.log(accuracyResult);
+            if (accuracyResult && accuracyResult.result) {
               // If results is a string, parse it
-              accuracyData =
-                typeof accuracyResult.results === "string"
-                  ? JSON.parse(accuracyResult.results)
-                  : accuracyResult.results;
+              const accuracyData =
+                typeof accuracyResult.result === "string"
+                  ? JSON.parse(accuracyResult.result)
+                  : accuracyResult.result;
+
+              complianceData = transformAccordToCompliance(accuracyData);
+            } else {
+              console.warn(
+                "[Compliance] No accuracy batch result for report:",
+                report.id
+              );
             }
           } catch (err) {
             console.error(
@@ -168,24 +138,21 @@ export default function CompliancePage() {
             );
           }
 
-          const complianceData = transformAccordToCompliance(
-            accordData,
-            accuracyData
-          );
-
-          processedReports.push({
-            id: report.id,
-            companyId: report.companyId,
-            reportDate: report.reportDate || report.generatedAt,
-            createdAt: report.generatedAt,
-            complianceData,
-            brandName: report.brand?.name || "Your Brand",
-          });
+          if (complianceData) {
+            processedReports.push({
+              id: report.id,
+              companyId: report.companyId,
+              reportDate: report.reportDate || report.generatedAt,
+              createdAt: report.generatedAt,
+              complianceData,
+              brandName: report.brand?.name || "Your Brand",
+            });
+          }
         }
 
         if (processedReports.length === 0) {
           console.warn(
-            "[Compliance] No processed reports created. All reports may be missing accuracy data."
+            "[Compliance] No processed reports created. No accuracy batch results found."
           );
         }
 
@@ -197,6 +164,10 @@ export default function CompliancePage() {
 
         setReports(processedReports);
         if (processedReports.length > 0) {
+          console.log(
+            "[Compliance] Setting selected report to:",
+            processedReports[0]
+          );
           setSelectedReport(processedReports[0]); // Select the most recent report by default
         }
       } catch (err) {
