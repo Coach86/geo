@@ -1,15 +1,25 @@
-"use client"
+"use client";
 
-import { Dialog, DialogContent, DialogTitle, DialogClose } from "@/components/ui/dialog"
-import { Check, Info, X } from "lucide-react"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Badge } from "@/components/ui/badge"
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Check, Info, X } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
 
 interface FeatureComparisonDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  recommendedPlan?: "starter" | "growth" | "enterprise" | "agencies"
-  billingPeriod?: "monthly" | "yearly"
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  recommendedPlan?: "starter" | "growth" | "enterprise" | "agencies";
+  billingPeriod?: "monthly" | "yearly";
 }
 
 export function FeatureComparisonDialog({
@@ -30,7 +40,7 @@ export function FeatureComparisonDialog({
     },
     enterprise: null, // Contact sales
     agencies: null, // Contact sales
-  }
+  };
 
   const comparisonData = [
     {
@@ -129,14 +139,16 @@ export function FeatureComparisonDialog({
       enterprise: true,
       agencies: true,
     },
-  ]
+  ];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0">
         <div className="sticky top-0 bg-white z-10 p-6 pb-4 border-b">
           <div className="flex justify-between items-center">
-            <DialogTitle className="text-2xl font-bold">Feature Comparison</DialogTitle>
+            <DialogTitle className="text-2xl font-bold">
+              Feature Comparison
+            </DialogTitle>
             <DialogClose className="h-8 w-8 rounded-md hover:bg-gray-100 flex items-center justify-center">
               <X className="h-4 w-4" />
             </DialogClose>
@@ -148,13 +160,19 @@ export function FeatureComparisonDialog({
             <table className="w-full border-collapse">
               <thead>
                 <tr>
-                  <th className="p-4 text-left text-mono-700 font-medium border-b border-gray-200">Features</th>
+                  <th className="p-4 text-left text-mono-700 font-medium border-b border-gray-200">
+                    Features
+                  </th>
                   <th
-                    className={`p-4 text-center text-mono-700 font-medium border-b border-gray-200 ${recommendedPlan === "starter" ? "bg-indigo-100" : ""}`}
+                    className={`p-4 text-center text-mono-700 font-medium border-b border-gray-200 ${
+                      recommendedPlan === "starter" ? "bg-indigo-100" : ""
+                    }`}
                   >
                     {recommendedPlan === "starter" && (
                       <div className="mb-1">
-                        <Badge className="bg-indigo-500 text-white">Recommended</Badge>
+                        <Badge className="bg-indigo-500 text-white">
+                          Recommended
+                        </Badge>
                       </div>
                     )}
                     <div>Starter</div>
@@ -162,9 +180,17 @@ export function FeatureComparisonDialog({
                       {pricing.starter ? (
                         <>
                           <div className="text-indigo-600 font-medium">
-                            €{billingPeriod === "monthly" ? pricing.starter.monthly : pricing.starter.yearly} /mo
+                            €
+                            {billingPeriod === "monthly"
+                              ? pricing.starter.monthly
+                              : pricing.starter.yearly}{" "}
+                            /mo
                           </div>
-                          {billingPeriod === "yearly" && <div className="text-xs text-gray-500">billed annually</div>}
+                          {billingPeriod === "yearly" && (
+                            <div className="text-xs text-gray-500">
+                              billed annually
+                            </div>
+                          )}
                         </>
                       ) : (
                         "Contact Sales"
@@ -172,11 +198,17 @@ export function FeatureComparisonDialog({
                     </div>
                   </th>
                   <th
-                    className={`p-4 text-center text-mono-700 font-medium border-b border-gray-200 ${recommendedPlan === "growth" ? "bg-indigo-100" : "bg-indigo-50"}`}
+                    className={`p-4 text-center text-mono-700 font-medium border-b border-gray-200 ${
+                      recommendedPlan === "growth"
+                        ? "bg-indigo-100"
+                        : "bg-indigo-50"
+                    }`}
                   >
                     {recommendedPlan === "growth" && (
                       <div className="mb-1">
-                        <Badge className="bg-indigo-500 text-white">Recommended</Badge>
+                        <Badge className="bg-indigo-500 text-white">
+                          Recommended
+                        </Badge>
                       </div>
                     )}
                     <div>Growth</div>
@@ -184,9 +216,17 @@ export function FeatureComparisonDialog({
                       {pricing.growth ? (
                         <>
                           <div className="text-indigo-600 font-medium">
-                            €{billingPeriod === "monthly" ? pricing.growth.monthly : pricing.growth.yearly} /mo
+                            €
+                            {billingPeriod === "monthly"
+                              ? pricing.growth.monthly
+                              : pricing.growth.yearly}{" "}
+                            /mo
                           </div>
-                          {billingPeriod === "yearly" && <div className="text-xs text-gray-500">billed annually</div>}
+                          {billingPeriod === "yearly" && (
+                            <div className="text-xs text-gray-500">
+                              billed annually
+                            </div>
+                          )}
                         </>
                       ) : (
                         "Contact Sales"
@@ -194,32 +234,49 @@ export function FeatureComparisonDialog({
                     </div>
                   </th>
                   <th
-                    className={`p-4 text-center text-mono-700 font-medium border-b border-gray-200 ${recommendedPlan === "enterprise" ? "bg-indigo-100" : ""}`}
+                    className={`p-4 text-center text-mono-700 font-medium border-b border-gray-200 ${
+                      recommendedPlan === "enterprise" ? "bg-indigo-100" : ""
+                    }`}
                   >
                     {recommendedPlan === "enterprise" && (
                       <div className="mb-1">
-                        <Badge className="bg-indigo-500 text-white">Recommended</Badge>
+                        <Badge className="bg-indigo-500 text-white">
+                          Recommended
+                        </Badge>
                       </div>
                     )}
                     <div>Enterprise</div>
-                    <div className="text-sm font-normal mt-1 text-gray-700">Contact Sales</div>
+                    <div className="text-sm font-normal mt-1 text-gray-700">
+                      Contact Sales
+                    </div>
                   </th>
                   <th
-                    className={`p-4 text-center text-mono-700 font-medium border-b border-gray-200 ${recommendedPlan === "agencies" ? "bg-indigo-100" : "bg-teal-50"}`}
+                    className={`p-4 text-center text-mono-700 font-medium border-b border-gray-200 ${
+                      recommendedPlan === "agencies"
+                        ? "bg-indigo-100"
+                        : "bg-teal-50"
+                    }`}
                   >
                     {recommendedPlan === "agencies" && (
                       <div className="mb-1">
-                        <Badge className="bg-indigo-500 text-white">Recommended</Badge>
+                        <Badge className="bg-indigo-500 text-white">
+                          Recommended
+                        </Badge>
                       </div>
                     )}
                     <div>Agencies</div>
-                    <div className="text-sm font-normal mt-1 text-gray-700">Contact Sales</div>
+                    <div className="text-sm font-normal mt-1 text-gray-700">
+                      Contact Sales
+                    </div>
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {comparisonData.map((row, index) => (
-                  <tr key={index} className={index % 2 === 0 ? "bg-gray-50" : "bg-white"}>
+                  <tr
+                    key={index}
+                    className={index % 2 === 0 ? "bg-gray-50" : "bg-white"}
+                  >
                     <td className="p-4 text-mono-800 border-b border-gray-200 font-medium">
                       <div className="flex items-center">
                         <span>{row.feature}</span>
@@ -228,7 +285,10 @@ export function FeatureComparisonDialog({
                             <TooltipTrigger asChild>
                               <Info className="h-4 w-4 ml-1.5 text-gray-400 cursor-help" />
                             </TooltipTrigger>
-                            <TooltipContent side="right" className="max-w-[200px]">
+                            <TooltipContent
+                              side="right"
+                              className="max-w-[200px]"
+                            >
                               <p className="text-xs">{row.tooltip}</p>
                             </TooltipContent>
                           </Tooltip>
@@ -236,7 +296,9 @@ export function FeatureComparisonDialog({
                       </div>
                     </td>
                     <td
-                      className={`p-4 text-center border-b border-gray-200 ${recommendedPlan === "starter" ? "bg-indigo-50" : ""}`}
+                      className={`p-4 text-center border-b border-gray-200 ${
+                        recommendedPlan === "starter" ? "bg-indigo-50" : ""
+                      }`}
                     >
                       {typeof row.starter === "boolean" ? (
                         row.starter ? (
@@ -249,7 +311,11 @@ export function FeatureComparisonDialog({
                       )}
                     </td>
                     <td
-                      className={`p-4 text-center border-b border-gray-200 ${recommendedPlan === "growth" ? "bg-indigo-50" : "bg-indigo-50/30"}`}
+                      className={`p-4 text-center border-b border-gray-200 ${
+                        recommendedPlan === "growth"
+                          ? "bg-indigo-50"
+                          : "bg-indigo-50/30"
+                      }`}
                     >
                       {typeof row.growth === "boolean" ? (
                         row.growth ? (
@@ -262,7 +328,9 @@ export function FeatureComparisonDialog({
                       )}
                     </td>
                     <td
-                      className={`p-4 text-center border-b border-gray-200 ${recommendedPlan === "enterprise" ? "bg-indigo-50" : ""}`}
+                      className={`p-4 text-center border-b border-gray-200 ${
+                        recommendedPlan === "enterprise" ? "bg-indigo-50" : ""
+                      }`}
                     >
                       {typeof row.enterprise === "boolean" ? (
                         row.enterprise ? (
@@ -275,7 +343,11 @@ export function FeatureComparisonDialog({
                       )}
                     </td>
                     <td
-                      className={`p-4 text-center border-b border-gray-200 ${recommendedPlan === "agencies" ? "bg-indigo-50" : "bg-teal-50/30"}`}
+                      className={`p-4 text-center border-b border-gray-200 ${
+                        recommendedPlan === "agencies"
+                          ? "bg-indigo-50"
+                          : "bg-teal-50/30"
+                      }`}
                     >
                       {typeof row.agencies === "boolean" ? (
                         row.agencies ? (
@@ -296,7 +368,10 @@ export function FeatureComparisonDialog({
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-500">
               Need a custom plan?{" "}
-              <a href="mailto:sales@contexte.ai" className="text-indigo-600 hover:underline">
+              <a
+                href="mailto:contact@getmint.ai"
+                className="text-indigo-600 hover:underline"
+              >
                 Contact our sales team
               </a>
             </p>
@@ -304,5 +379,5 @@ export function FeatureComparisonDialog({
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

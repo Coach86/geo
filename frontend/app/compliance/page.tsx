@@ -89,18 +89,52 @@ export default function CompliancePage() {
         const processedReports: ProcessedReport[] = [];
 
         for (const report of apiReports) {
-          if (!report.accord) continue; // Skip reports without accord data
+          // Construct accordData from report.accuracy (if present)
+          if (!report.accuracy) continue; // Skip reports without accuracy data
+
+          // Map modelScores to attributes array for compliance transformer
+          const attributes = Object.entries(
+            report.accuracy.modelScores || {}
+          ).map(([name, modelData]: [string, any]) => ({
+            name,
+            rate: ((modelData.score ?? 0) * 100).toFixed(0), // as string percentage
+            alignment:
+              modelData.score >= 0.7
+                ? "✅"
+                : modelData.score >= 0.4
+                ? "⚠️"
+                : "❌",
+          }));
+
+          const accordData = {
+            attributes,
+            score: {
+              value: ((report.accuracy.overallScore ?? 0) * 10).toFixed(1), // as string out of 10
+              status:
+                report.accuracy.overallScore >= 0.7
+                  ? "green"
+                  : report.accuracy.overallScore >= 0.4
+                  ? "yellow"
+                  : "red",
+            },
+          };
 
           // Fetch batch results for this report to get accuracy data
           let accuracyData = null;
           try {
             const batchResults = await getBatchResults(report.id, token);
-            // Find the accuracy pipeline results
+            // Find the accuracy pipeline results (support both resultType and pipelineType for compatibility)
             const accuracyResult = batchResults.find(
-              (result: any) => result.pipelineType === "accuracy"
+              (result: any) =>
+                result.resultType === "accuracy" ||
+                result.pipelineType === "accuracy"
             );
             if (accuracyResult && accuracyResult.results) {
-              accuracyData = accuracyResult.results;
+              // If results is a string, parse it
+              accuracyData =
+                typeof accuracyResult.results === "string"
+                  ? JSON.parse(accuracyResult.results)
+                  : accuracyResult.results;
             }
           } catch (err) {
             console.error(
@@ -111,17 +145,17 @@ export default function CompliancePage() {
           }
 
           const complianceData = transformAccordToCompliance(
-            report.accord,
+            accordData,
             accuracyData
           );
 
           processedReports.push({
             id: report.id,
             companyId: report.companyId,
-            reportDate: report.metadata?.date || report.generatedAt,
+            reportDate: report.reportDate || report.generatedAt,
             createdAt: report.generatedAt,
             complianceData,
-            brandName: report.brand || report.metadata?.brand || "Your Brand",
+            brandName: report.brand?.name || "Your Brand",
           });
         }
 
