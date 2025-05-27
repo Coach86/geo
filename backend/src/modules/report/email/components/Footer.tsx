@@ -54,10 +54,10 @@ export const Footer: React.FC = () => {
                 </Column>
                 <Column>
                   <Link
-                    href="mailto:support@contexte.ai"
+                    href="mailto:contact@getmint.ai"
                     className="text-sm text-gray-700 no-underline hover:underline"
                   >
-                    support@contexte.ai
+                    contact@getmint.ai
                   </Link>
                 </Column>
               </Row>

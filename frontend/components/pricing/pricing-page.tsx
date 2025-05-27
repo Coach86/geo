@@ -543,7 +543,7 @@ export default function PricingPage({
       ],
       ctaText: "Contact Sales",
       ctaAction: () =>
-        window.open("mailto:sales@contexte.ai?subject=Agencies Plan Inquiry"),
+        window.open("mailto:contact@getmint.ai?subject=Agencies Plan Inquiry"),
       ctaColor: "bg-teal-600 hover:bg-teal-700",
       checkColor: "text-teal-500",
       plusColor: "text-teal-500",
@@ -634,7 +634,7 @@ export default function PricingPage({
                   handleStartTrial(recommendedPlan);
                 } else {
                   window.open(
-                    `mailto:sales@contexte.ai?subject=${
+                    `mailto:contact@getmint.ai?subject=${
                       recommendedPlan.charAt(0).toUpperCase() +
                       recommendedPlan.slice(1)
                     } Plan Inquiry`
@@ -1408,7 +1408,7 @@ export default function PricingPage({
           <p className="text-sm text-mono-500">
             Need a custom plan?{" "}
             <a
-              href="mailto:sales@contexte.ai"
+              href="mailto:contact@getmint.ai"
               className="text-accent-600 hover:underline"
             >
               Contact our sales team

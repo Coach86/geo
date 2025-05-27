@@ -17,13 +17,13 @@ export default function Page() {
             <CardHeader>
               <CardTitle>Loading Mint</CardTitle>
               <CardDescription>
-                Please wait while we load your report...
+                Please wait while we load your Mint report...
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col items-center justify-center py-12">
               <div className="w-16 h-16 rounded-full border-4 border-t-blue-500 border-b-blue-700 border-l-blue-300 border-r-blue-600 animate-spin"></div>
               <p className="mt-6 text-center text-muted-foreground">
-                Loading your report data
+                Loading your Mint report data
               </p>
             </CardContent>
           </Card>
