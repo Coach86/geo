@@ -1,19 +1,19 @@
 import type React from "react";
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, Roboto_Mono } from "next/font/google";
+import { DM_Sans, Inconsolata } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { AuthProvider } from "@/providers/auth-provider";
 
-const plusJakartaSans = Plus_Jakarta_Sans({
+const dmSans = DM_Sans({
   subsets: ["latin"],
-  variable: "--font-plus-jakarta",
+  variable: "--font-dm-sans",
   display: "swap",
 });
 
-const robotoMono = Roboto_Mono({
+const inconsolata = Inconsolata({
   subsets: ["latin"],
-  variable: "--font-roboto-mono",
+  variable: "--font-inconsolata",
   display: "swap",
 });
 
@@ -31,7 +31,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${plusJakartaSans.variable} ${robotoMono.variable} font-sans`}
+        className={`${dmSans.variable} ${inconsolata.variable} font-sans`}
       >
         <ThemeProvider
           attribute="class"
