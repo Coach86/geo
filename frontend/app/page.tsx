@@ -59,18 +59,19 @@ export default function Home() {
   // Modal states
   const [editAttributesOpen, setEditAttributesOpen] = useState(false);
   const [editCompetitorsOpen, setEditCompetitorsOpen] = useState(false);
-  const [editPromptsOpen, setEditPromptsOpen] = useState(false);
-  const [currentPromptTab, setCurrentPromptTab] = useState("spontaneous");
 
   // Temporary edit states
   const [editingAttributes, setEditingAttributes] = useState<string[]>([]);
   const [editingCompetitors, setEditingCompetitors] = useState<string[]>([]);
-  const [editingPrompts, setEditingPrompts] = useState<Record<string, string[]>>({});
+
+  // Inline prompt editing states
+  const [editingPromptType, setEditingPromptType] = useState<string | null>(null);
+  const [editingPromptIndex, setEditingPromptIndex] = useState<number | null>(null);
+  const [editingPromptValue, setEditingPromptValue] = useState("");
 
   // Save loading states
   const [savingAttributes, setSavingAttributes] = useState(false);
   const [savingCompetitors, setSavingCompetitors] = useState(false);
-  const [savingPrompts, setSavingPrompts] = useState(false);
 
   // Get selected company from localStorage or dashboard context
   useEffect(() => {
@@ -396,23 +397,6 @@ export default function Home() {
                         Generated prompts used for analyzing brand perception across LLMs
                       </p>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 hover:bg-gray-100"
-                      onClick={() => {
-                        setEditingPrompts({
-                          spontaneous: promptSet.spontaneous,
-                          direct: promptSet.direct,
-                          accuracy: promptSet.accuracy,
-                          comparison: promptSet.comparison,
-                          battle: promptSet.brandBattle,
-                        });
-                        setEditPromptsOpen(true);
-                      }}
-                    >
-                      <Edit2 className="h-4 w-4 text-gray-500 hover:text-gray-700" />
-                    </Button>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -438,14 +422,65 @@ export default function Home() {
 
                     <TabsContent value="spontaneous" className="space-y-2 mt-4">
                       <div className="text-sm font-medium text-gray-700 mb-2">Visibility Prompts</div>
-                      <div className="space-y-2 max-h-64 overflow-y-auto">
+                      <div className="space-y-2">
                         {promptSet.spontaneous.map((prompt, index) => (
                           <div
                             key={index}
-                            className="p-3 bg-gray-50 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors animate-in slide-in-from-bottom-2"
+                            className="p-3 bg-gray-50 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors animate-in slide-in-from-bottom-2 cursor-pointer"
                             style={{ animationDelay: `${index * 30}ms` }}
+                            onClick={() => {
+                              setEditingPromptType("spontaneous");
+                              setEditingPromptIndex(index);
+                              setEditingPromptValue(prompt);
+                            }}
                           >
-                            {prompt}
+                            {editingPromptType === "spontaneous" && editingPromptIndex === index ? (
+                              <div className="space-y-2">
+                                <Textarea
+                                  value={editingPromptValue}
+                                  onChange={(e) => setEditingPromptValue(e.target.value)}
+                                  autoFocus
+                                  className="min-h-[60px] resize-none"
+                                  onBlur={() => {
+                                    // Save on blur
+                                    const newPrompts = [...promptSet.spontaneous];
+                                    newPrompts[index] = editingPromptValue;
+                                    
+                                    // Update promptSet
+                                    const updatedPromptSet = {
+                                      ...promptSet,
+                                      spontaneous: newPrompts
+                                    };
+                                    setPromptSet(updatedPromptSet);
+                                    
+                                    // Save to backend
+                                    if (selectedCompany && token) {
+                                      updatePromptSet(
+                                        selectedCompany.id,
+                                        {
+                                          spontaneous: newPrompts,
+                                          direct: promptSet.direct,
+                                          comparison: promptSet.comparison || [],
+                                          accuracy: promptSet.accuracy,
+                                          brandBattle: promptSet.brandBattle,
+                                        },
+                                        token
+                                      ).catch(error => {
+                                        console.error("Failed to save prompt:", error);
+                                        // Revert on error
+                                        setPromptSet(promptSet);
+                                      });
+                                    }
+                                    
+                                    setEditingPromptType(null);
+                                    setEditingPromptIndex(null);
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              </div>
+                            ) : (
+                              prompt
+                            )}
                           </div>
                         ))}
                       </div>
@@ -453,14 +488,65 @@ export default function Home() {
 
                     <TabsContent value="direct" className="space-y-2 mt-4">
                       <div className="text-sm font-medium text-gray-700 mb-2">Direct Sentiment Prompts</div>
-                      <div className="space-y-2 max-h-64 overflow-y-auto">
+                      <div className="space-y-2">
                         {promptSet.direct.map((prompt, index) => (
                           <div
                             key={index}
-                            className="p-3 bg-gray-50 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors animate-in slide-in-from-bottom-2"
+                            className="p-3 bg-gray-50 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors animate-in slide-in-from-bottom-2 cursor-pointer"
                             style={{ animationDelay: `${index * 30}ms` }}
+                            onClick={() => {
+                              setEditingPromptType("direct");
+                              setEditingPromptIndex(index);
+                              setEditingPromptValue(prompt);
+                            }}
                           >
-                            {prompt}
+                            {editingPromptType === "direct" && editingPromptIndex === index ? (
+                              <div className="space-y-2">
+                                <Textarea
+                                  value={editingPromptValue}
+                                  onChange={(e) => setEditingPromptValue(e.target.value)}
+                                  autoFocus
+                                  className="min-h-[60px] resize-none"
+                                  onBlur={() => {
+                                    // Save on blur
+                                    const newPrompts = [...promptSet.direct];
+                                    newPrompts[index] = editingPromptValue;
+                                    
+                                    // Update promptSet
+                                    const updatedPromptSet = {
+                                      ...promptSet,
+                                      direct: newPrompts
+                                    };
+                                    setPromptSet(updatedPromptSet);
+                                    
+                                    // Save to backend
+                                    if (selectedCompany && token) {
+                                      updatePromptSet(
+                                        selectedCompany.id,
+                                        {
+                                          spontaneous: promptSet.spontaneous,
+                                          direct: newPrompts,
+                                          comparison: promptSet.comparison || [],
+                                          accuracy: promptSet.accuracy,
+                                          brandBattle: promptSet.brandBattle,
+                                        },
+                                        token
+                                      ).catch(error => {
+                                        console.error("Failed to save prompt:", error);
+                                        // Revert on error
+                                        setPromptSet(promptSet);
+                                      });
+                                    }
+                                    
+                                    setEditingPromptType(null);
+                                    setEditingPromptIndex(null);
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              </div>
+                            ) : (
+                              prompt
+                            )}
                           </div>
                         ))}
                       </div>
@@ -468,14 +554,65 @@ export default function Home() {
 
                     <TabsContent value="accuracy" className="space-y-2 mt-4">
                       <div className="text-sm font-medium text-gray-700 mb-2">Compliance Evaluation Prompts</div>
-                      <div className="space-y-2 max-h-64 overflow-y-auto">
+                      <div className="space-y-2">
                         {promptSet.accuracy.map((prompt, index) => (
                           <div
                             key={index}
-                            className="p-3 bg-gray-50 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors animate-in slide-in-from-bottom-2"
+                            className="p-3 bg-gray-50 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors animate-in slide-in-from-bottom-2 cursor-pointer"
                             style={{ animationDelay: `${index * 30}ms` }}
+                            onClick={() => {
+                              setEditingPromptType("accuracy");
+                              setEditingPromptIndex(index);
+                              setEditingPromptValue(prompt);
+                            }}
                           >
-                            {prompt}
+                            {editingPromptType === "accuracy" && editingPromptIndex === index ? (
+                              <div className="space-y-2">
+                                <Textarea
+                                  value={editingPromptValue}
+                                  onChange={(e) => setEditingPromptValue(e.target.value)}
+                                  autoFocus
+                                  className="min-h-[60px] resize-none"
+                                  onBlur={() => {
+                                    // Save on blur
+                                    const newPrompts = [...promptSet.accuracy];
+                                    newPrompts[index] = editingPromptValue;
+                                    
+                                    // Update promptSet
+                                    const updatedPromptSet = {
+                                      ...promptSet,
+                                      accuracy: newPrompts
+                                    };
+                                    setPromptSet(updatedPromptSet);
+                                    
+                                    // Save to backend
+                                    if (selectedCompany && token) {
+                                      updatePromptSet(
+                                        selectedCompany.id,
+                                        {
+                                          spontaneous: promptSet.spontaneous,
+                                          direct: promptSet.direct,
+                                          comparison: promptSet.comparison || [],
+                                          accuracy: newPrompts,
+                                          brandBattle: promptSet.brandBattle,
+                                        },
+                                        token
+                                      ).catch(error => {
+                                        console.error("Failed to save prompt:", error);
+                                        // Revert on error
+                                        setPromptSet(promptSet);
+                                      });
+                                    }
+                                    
+                                    setEditingPromptType(null);
+                                    setEditingPromptIndex(null);
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              </div>
+                            ) : (
+                              prompt
+                            )}
                           </div>
                         ))}
                       </div>
@@ -483,14 +620,65 @@ export default function Home() {
 
                     <TabsContent value="battle" className="space-y-2 mt-4">
                       <div className="text-sm font-medium text-gray-700 mb-2">Brand Battle Prompts</div>
-                      <div className="space-y-2 max-h-64 overflow-y-auto">
+                      <div className="space-y-2">
                         {promptSet.brandBattle.map((prompt, index) => (
                           <div
                             key={index}
-                            className="p-3 bg-gray-50 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors animate-in slide-in-from-bottom-2"
+                            className="p-3 bg-gray-50 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors animate-in slide-in-from-bottom-2 cursor-pointer"
                             style={{ animationDelay: `${index * 30}ms` }}
+                            onClick={() => {
+                              setEditingPromptType("battle");
+                              setEditingPromptIndex(index);
+                              setEditingPromptValue(prompt);
+                            }}
                           >
-                            {prompt}
+                            {editingPromptType === "battle" && editingPromptIndex === index ? (
+                              <div className="space-y-2">
+                                <Textarea
+                                  value={editingPromptValue}
+                                  onChange={(e) => setEditingPromptValue(e.target.value)}
+                                  autoFocus
+                                  className="min-h-[60px] resize-none"
+                                  onBlur={() => {
+                                    // Save on blur
+                                    const newPrompts = [...promptSet.brandBattle];
+                                    newPrompts[index] = editingPromptValue;
+                                    
+                                    // Update promptSet
+                                    const updatedPromptSet = {
+                                      ...promptSet,
+                                      brandBattle: newPrompts
+                                    };
+                                    setPromptSet(updatedPromptSet);
+                                    
+                                    // Save to backend
+                                    if (selectedCompany && token) {
+                                      updatePromptSet(
+                                        selectedCompany.id,
+                                        {
+                                          spontaneous: promptSet.spontaneous,
+                                          direct: promptSet.direct,
+                                          comparison: promptSet.comparison || [],
+                                          accuracy: promptSet.accuracy,
+                                          brandBattle: newPrompts,
+                                        },
+                                        token
+                                      ).catch(error => {
+                                        console.error("Failed to save prompt:", error);
+                                        // Revert on error
+                                        setPromptSet(promptSet);
+                                      });
+                                    }
+                                    
+                                    setEditingPromptType(null);
+                                    setEditingPromptIndex(null);
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              </div>
+                            ) : (
+                              prompt
+                            )}
                           </div>
                         ))}
                       </div>
@@ -701,154 +889,6 @@ export default function Home() {
           </DialogContent>
         </Dialog>
 
-        {/* Prompts Modal */}
-        <Dialog open={editPromptsOpen} onOpenChange={setEditPromptsOpen}>
-          <DialogContent className="sm:max-w-[725px] max-h-[90vh] overflow-hidden flex flex-col">
-            <DialogHeader>
-              <DialogTitle>Edit Analysis Prompts</DialogTitle>
-              <DialogDescription>
-                Edit the prompts used for analyzing {selectedCompany?.brandName}
-              </DialogDescription>
-            </DialogHeader>
-            <Tabs value={currentPromptTab} onValueChange={setCurrentPromptTab} className="flex-1 overflow-hidden flex flex-col">
-              <TabsList className="grid w-full grid-cols-5">
-                <TabsTrigger value="spontaneous">Tone</TabsTrigger>
-                <TabsTrigger value="direct">Sentiment</TabsTrigger>
-                <TabsTrigger value="accuracy">Compliance</TabsTrigger>
-                <TabsTrigger value="comparison">Compare</TabsTrigger>
-                <TabsTrigger value="battle">Battle</TabsTrigger>
-              </TabsList>
-
-              <div className="flex-1 overflow-y-auto py-4">
-                <TabsContent value="spontaneous" className="mt-0 space-y-4">
-                  {editingPrompts.spontaneous?.map((prompt, index) => (
-                    <div key={index} className="flex items-start gap-2">
-                      <Textarea
-                        value={prompt}
-                        onChange={(e) => {
-                          const newPrompts = { ...editingPrompts };
-                          newPrompts.spontaneous[index] = e.target.value;
-                          setEditingPrompts(newPrompts);
-                        }}
-                        placeholder="Enter prompt"
-                        className="min-h-[80px]"
-                      />
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          const newPrompts = { ...editingPrompts };
-                          newPrompts.spontaneous = newPrompts.spontaneous.filter((_, i) => i !== index);
-                          setEditingPrompts(newPrompts);
-                        }}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const newPrompts = { ...editingPrompts };
-                      newPrompts.spontaneous = [...(newPrompts.spontaneous || []), ""];
-                      setEditingPrompts(newPrompts);
-                    }}
-                    className="w-full"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Prompt
-                  </Button>
-                </TabsContent>
-
-                {/* Similar content for other tabs */}
-                <TabsContent value="direct" className="mt-0 space-y-4">
-                  {editingPrompts.direct?.map((prompt, index) => (
-                    <div key={index} className="flex items-start gap-2">
-                      <Textarea
-                        value={prompt}
-                        onChange={(e) => {
-                          const newPrompts = { ...editingPrompts };
-                          newPrompts.direct[index] = e.target.value;
-                          setEditingPrompts(newPrompts);
-                        }}
-                        placeholder="Enter prompt"
-                        className="min-h-[80px]"
-                      />
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          const newPrompts = { ...editingPrompts };
-                          newPrompts.direct = newPrompts.direct.filter((_, i) => i !== index);
-                          setEditingPrompts(newPrompts);
-                        }}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const newPrompts = { ...editingPrompts };
-                      newPrompts.direct = [...(newPrompts.direct || []), ""];
-                      setEditingPrompts(newPrompts);
-                    }}
-                    className="w-full"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Prompt
-                  </Button>
-                </TabsContent>
-
-                {/* Add similar TabsContent for accuracy, comparison, and battle */}
-              </div>
-            </Tabs>
-            <DialogFooter className="mt-4">
-              <Button variant="outline" onClick={() => setEditPromptsOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                onClick={async () => {
-                  if (!selectedCompany || !token) return;
-
-                  setSavingPrompts(true);
-                  try {
-                    // Filter out empty prompts from each category
-                    const filteredPrompts = {
-                      spontaneous: editingPrompts.spontaneous?.filter(p => p.trim() !== "") || [],
-                      direct: editingPrompts.direct?.filter(p => p.trim() !== "") || [],
-                      comparison: editingPrompts.comparison?.filter(p => p.trim() !== "") || [],
-                      accuracy: editingPrompts.accuracy?.filter(p => p.trim() !== "") || [],
-                      brandBattle: editingPrompts.battle?.filter(p => p.trim() !== "") || [],
-                    };
-
-                    // Update via API
-                    const updatedPromptSet = await updatePromptSet(
-                      selectedCompany.id,
-                      filteredPrompts,
-                      token
-                    );
-
-                    // Update local state
-                    setPromptSet(updatedPromptSet);
-                    setEditPromptsOpen(false);
-                  } catch (error) {
-                    console.error("Failed to save prompts:", error);
-                    alert("Failed to save prompts. Please try again.");
-                  } finally {
-                    setSavingPrompts(false);
-                  }
-                }}
-                disabled={savingPrompts}
-              >
-                {savingPrompts ? "Saving..." : "Save Changes"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
     </DashboardLayout>
   );
