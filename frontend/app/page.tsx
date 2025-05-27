@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/layout/dashboard-layout";
 import { useAuth } from "@/providers/auth-provider";
-import { 
-  getCompanyById, 
-  getPromptSet, 
+import {
+  getCompanyById,
+  getPromptSet,
   updateIdentityCard,
   updatePromptSet,
-  IdentityCardResponse, 
-  PromptSet 
+  IdentityCardResponse,
+  PromptSet
 } from "@/lib/auth-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -28,7 +28,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertCircle, Building2, Globe, Languages, Calendar, RefreshCw, ChevronDown, MessageSquare, Brain, Target, CheckCircle, Swords, Edit2, Plus, X } from "lucide-react";
+import {
+  AlertCircle,
+  Building2,
+  Globe,
+  Languages,
+  Calendar,
+  RefreshCw,
+  ChevronDown,
+  MessageSquare,
+  Brain,
+  Target,
+  CheckCircle,
+  Swords,
+  Edit2,
+  Plus,
+  X,
+  Eye,
+} from 'lucide-react';
 
 export default function Home() {
   const { token } = useAuth();
@@ -38,18 +55,18 @@ export default function Home() {
   const [loadingPrompts, setLoadingPrompts] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
-  
+
   // Modal states
   const [editAttributesOpen, setEditAttributesOpen] = useState(false);
   const [editCompetitorsOpen, setEditCompetitorsOpen] = useState(false);
   const [editPromptsOpen, setEditPromptsOpen] = useState(false);
   const [currentPromptTab, setCurrentPromptTab] = useState("spontaneous");
-  
+
   // Temporary edit states
   const [editingAttributes, setEditingAttributes] = useState<string[]>([]);
   const [editingCompetitors, setEditingCompetitors] = useState<string[]>([]);
   const [editingPrompts, setEditingPrompts] = useState<Record<string, string[]>>({});
-  
+
   // Save loading states
   const [savingAttributes, setSavingAttributes] = useState(false);
   const [savingCompetitors, setSavingCompetitors] = useState(false);
@@ -59,7 +76,7 @@ export default function Home() {
   useEffect(() => {
     const fetchCompanyDetails = async () => {
       const selectedCompanyId = localStorage.getItem("selectedCompanyId");
-      
+
       if (!selectedCompanyId || !token) {
         setLoading(false);
         return;
@@ -70,7 +87,7 @@ export default function Home() {
         const companyData = await getCompanyById(selectedCompanyId, token);
         setSelectedCompany(companyData);
         setError(null);
-        
+
         // Fetch prompt set
         setLoadingPrompts(true);
         try {
@@ -92,23 +109,23 @@ export default function Home() {
     };
 
     fetchCompanyDetails();
-    
+
     // Listen for storage changes to update when company selection changes
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === "selectedCompanyId" && e.newValue) {
         fetchCompanyDetails();
       }
     };
-    
+
     window.addEventListener("storage", handleStorageChange);
-    
+
     // Also listen for custom events for same-tab updates
     const handleCompanyChange = () => {
       fetchCompanyDetails();
     };
-    
+
     window.addEventListener("companySelectionChanged", handleCompanyChange);
-    
+
     return () => {
       window.removeEventListener("storage", handleStorageChange);
       window.removeEventListener("companySelectionChanged", handleCompanyChange);
@@ -251,15 +268,15 @@ export default function Home() {
                     <div className="relative pl-4">
                       {/* Bookmark color line */}
                       <div className={`absolute left-0 top-0 w-1 bg-gradient-to-b from-blue-500 to-purple-500 rounded-full transition-all duration-300 ${isDescriptionExpanded ? 'h-full' : 'h-6'}`}></div>
-                      
+
                       <div
                         className="cursor-pointer group"
                         onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
                       >
-                        <p className={`text-gray-700 leading-relaxed transition-all duration-300 ${!isDescriptionExpanded ? 'line-clamp-1' : ''}`}>
+                        <p className={`text-sm text-gray-700 leading-relaxed transition-all duration-300 ${!isDescriptionExpanded ? 'line-clamp-1' : ''}`}>
                           {selectedCompany.longDescription || selectedCompany.shortDescription}
                         </p>
-                        
+
                         {/* Show expand/collapse button if description is long enough */}
                         {(selectedCompany.longDescription || selectedCompany.shortDescription).length > 100 && (
                           <button
@@ -307,8 +324,8 @@ export default function Home() {
                   <div className="flex flex-wrap gap-2">
                     {selectedCompany.keyBrandAttributes.length > 0 ? (
                       selectedCompany.keyBrandAttributes.map((attribute, index) => (
-                        <Badge 
-                          key={index} 
+                        <Badge
+                          key={index}
                           variant="secondary"
                           className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 transition-colors duration-200 animate-in slide-in-from-left-5"
                           style={{ animationDelay: `${index * 50}ms` }}
@@ -348,8 +365,8 @@ export default function Home() {
                   <div className="flex flex-wrap gap-2">
                     {selectedCompany.competitors.length > 0 ? (
                       selectedCompany.competitors.map((competitor, index) => (
-                        <Badge 
-                          key={index} 
+                        <Badge
+                          key={index}
                           variant="outline"
                           className="border-purple-200 text-purple-700 hover:bg-purple-50 transition-colors duration-200 animate-in slide-in-from-right-5"
                           style={{ animationDelay: `${index * 50}ms` }}
@@ -373,7 +390,7 @@ export default function Home() {
                     <div className="flex-1">
                       <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                         <div className="w-1 h-4 bg-gradient-to-b from-green-500 to-teal-500 rounded-full group-hover:h-5 transition-all duration-300"></div>
-                        Analysis Prompts
+                         Prompts Portfolio
                       </CardTitle>
                       <p className="text-sm text-gray-600 mt-1">
                         Generated prompts used for analyzing brand perception across LLMs
@@ -402,8 +419,8 @@ export default function Home() {
                   <Tabs defaultValue="spontaneous" className="w-full">
                     <TabsList className="grid w-full grid-cols-5 mb-4">
                       <TabsTrigger value="spontaneous" className="text-xs">
-                        <Brain className="h-3 w-3 mr-1" />
-                        Tone ({promptSet.spontaneous.length})
+                        <Eye className="h-3 w-3 mr-1" />
+                        Visibility ({promptSet.spontaneous.length})
                       </TabsTrigger>
                       <TabsTrigger value="direct" className="text-xs">
                         <MessageSquare className="h-3 w-3 mr-1" />
@@ -413,22 +430,18 @@ export default function Home() {
                         <CheckCircle className="h-3 w-3 mr-1" />
                         Accord ({promptSet.accuracy.length})
                       </TabsTrigger>
-                      <TabsTrigger value="comparison" className="text-xs">
-                        <Target className="h-3 w-3 mr-1" />
-                        Compare ({promptSet.comparison.length})
-                      </TabsTrigger>
                       <TabsTrigger value="battle" className="text-xs">
                         <Swords className="h-3 w-3 mr-1" />
                         Battle ({promptSet.brandBattle.length})
                       </TabsTrigger>
                     </TabsList>
-                    
+
                     <TabsContent value="spontaneous" className="space-y-2 mt-4">
-                      <div className="text-sm font-medium text-gray-700 mb-2">Tone of Voice Prompts</div>
+                      <div className="text-sm font-medium text-gray-700 mb-2">Visibility Prompts</div>
                       <div className="space-y-2 max-h-64 overflow-y-auto">
                         {promptSet.spontaneous.map((prompt, index) => (
-                          <div 
-                            key={index} 
+                          <div
+                            key={index}
                             className="p-3 bg-gray-50 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors animate-in slide-in-from-bottom-2"
                             style={{ animationDelay: `${index * 30}ms` }}
                           >
@@ -437,13 +450,13 @@ export default function Home() {
                         ))}
                       </div>
                     </TabsContent>
-                    
+
                     <TabsContent value="direct" className="space-y-2 mt-4">
                       <div className="text-sm font-medium text-gray-700 mb-2">Direct Sentiment Prompts</div>
                       <div className="space-y-2 max-h-64 overflow-y-auto">
                         {promptSet.direct.map((prompt, index) => (
-                          <div 
-                            key={index} 
+                          <div
+                            key={index}
                             className="p-3 bg-gray-50 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors animate-in slide-in-from-bottom-2"
                             style={{ animationDelay: `${index * 30}ms` }}
                           >
@@ -452,13 +465,13 @@ export default function Home() {
                         ))}
                       </div>
                     </TabsContent>
-                    
+
                     <TabsContent value="accuracy" className="space-y-2 mt-4">
-                      <div className="text-sm font-medium text-gray-700 mb-2">Accuracy Evaluation Prompts</div>
+                      <div className="text-sm font-medium text-gray-700 mb-2">Compliance Evaluation Prompts</div>
                       <div className="space-y-2 max-h-64 overflow-y-auto">
                         {promptSet.accuracy.map((prompt, index) => (
-                          <div 
-                            key={index} 
+                          <div
+                            key={index}
                             className="p-3 bg-gray-50 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors animate-in slide-in-from-bottom-2"
                             style={{ animationDelay: `${index * 30}ms` }}
                           >
@@ -467,28 +480,13 @@ export default function Home() {
                         ))}
                       </div>
                     </TabsContent>
-                    
-                    <TabsContent value="comparison" className="space-y-2 mt-4">
-                      <div className="text-sm font-medium text-gray-700 mb-2">Competitor Comparison Prompts</div>
-                      <div className="space-y-2 max-h-64 overflow-y-auto">
-                        {promptSet.comparison.map((prompt, index) => (
-                          <div 
-                            key={index} 
-                            className="p-3 bg-gray-50 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors animate-in slide-in-from-bottom-2"
-                            style={{ animationDelay: `${index * 30}ms` }}
-                          >
-                            {prompt}
-                          </div>
-                        ))}
-                      </div>
-                    </TabsContent>
-                    
+
                     <TabsContent value="battle" className="space-y-2 mt-4">
                       <div className="text-sm font-medium text-gray-700 mb-2">Brand Battle Prompts</div>
                       <div className="space-y-2 max-h-64 overflow-y-auto">
                         {promptSet.brandBattle.map((prompt, index) => (
-                          <div 
-                            key={index} 
+                          <div
+                            key={index}
                             className="p-3 bg-gray-50 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors animate-in slide-in-from-bottom-2"
                             style={{ animationDelay: `${index * 30}ms` }}
                           >
@@ -589,22 +587,22 @@ export default function Home() {
               <Button variant="outline" onClick={() => setEditAttributesOpen(false)}>
                 Cancel
               </Button>
-              <Button 
+              <Button
                 onClick={async () => {
                   if (!selectedCompany || !token) return;
-                  
+
                   setSavingAttributes(true);
                   try {
                     // Filter out empty attributes
                     const filteredAttributes = editingAttributes.filter(attr => attr.trim() !== "");
-                    
+
                     // Update via API
                     const updatedCard = await updateIdentityCard(
                       selectedCompany.id,
                       { keyBrandAttributes: filteredAttributes },
                       token
                     );
-                    
+
                     // Update local state
                     setSelectedCompany(updatedCard);
                     setEditAttributesOpen(false);
@@ -669,22 +667,22 @@ export default function Home() {
               <Button variant="outline" onClick={() => setEditCompetitorsOpen(false)}>
                 Cancel
               </Button>
-              <Button 
+              <Button
                 onClick={async () => {
                   if (!selectedCompany || !token) return;
-                  
+
                   setSavingCompetitors(true);
                   try {
                     // Filter out empty competitors
                     const filteredCompetitors = editingCompetitors.filter(comp => comp.trim() !== "");
-                    
+
                     // Update via API
                     const updatedCard = await updateIdentityCard(
                       selectedCompany.id,
                       { competitors: filteredCompetitors },
                       token
                     );
-                    
+
                     // Update local state
                     setSelectedCompany(updatedCard);
                     setEditCompetitorsOpen(false);
@@ -716,11 +714,11 @@ export default function Home() {
               <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="spontaneous">Tone</TabsTrigger>
                 <TabsTrigger value="direct">Sentiment</TabsTrigger>
-                <TabsTrigger value="accuracy">Accord</TabsTrigger>
+                <TabsTrigger value="accuracy">Compliance</TabsTrigger>
                 <TabsTrigger value="comparison">Compare</TabsTrigger>
                 <TabsTrigger value="battle">Battle</TabsTrigger>
               </TabsList>
-              
+
               <div className="flex-1 overflow-y-auto py-4">
                 <TabsContent value="spontaneous" className="mt-0 space-y-4">
                   {editingPrompts.spontaneous?.map((prompt, index) => (
@@ -762,7 +760,7 @@ export default function Home() {
                     Add Prompt
                   </Button>
                 </TabsContent>
-                
+
                 {/* Similar content for other tabs */}
                 <TabsContent value="direct" className="mt-0 space-y-4">
                   {editingPrompts.direct?.map((prompt, index) => (
@@ -804,7 +802,7 @@ export default function Home() {
                     Add Prompt
                   </Button>
                 </TabsContent>
-                
+
                 {/* Add similar TabsContent for accuracy, comparison, and battle */}
               </div>
             </Tabs>
@@ -812,10 +810,10 @@ export default function Home() {
               <Button variant="outline" onClick={() => setEditPromptsOpen(false)}>
                 Cancel
               </Button>
-              <Button 
+              <Button
                 onClick={async () => {
                   if (!selectedCompany || !token) return;
-                  
+
                   setSavingPrompts(true);
                   try {
                     // Filter out empty prompts from each category
@@ -826,14 +824,14 @@ export default function Home() {
                       accuracy: editingPrompts.accuracy?.filter(p => p.trim() !== "") || [],
                       brandBattle: editingPrompts.battle?.filter(p => p.trim() !== "") || [],
                     };
-                    
+
                     // Update via API
                     const updatedPromptSet = await updatePromptSet(
                       selectedCompany.id,
                       filteredPrompts,
                       token
                     );
-                    
+
                     // Update local state
                     setPromptSet(updatedPromptSet);
                     setEditPromptsOpen(false);

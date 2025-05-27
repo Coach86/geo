@@ -199,9 +199,9 @@ const config = {
         "scan-line": "200% 100%",
       },
       fontFamily: {
-        sans: ["var(--font-plus-jakarta)", "system-ui", "sans-serif"],
-        display: ["var(--font-plus-jakarta)", "system-ui", "sans-serif"],
-        mono: ["var(--font-roboto-mono)", "monospace"],
+        sans: ["var(--font-dm-sans)", "system-ui", "sans-serif"],
+        display: ["var(--font-dm-sans)", "system-ui", "sans-serif"],
+        mono: ["var(--font-inconsolata)", "monospace"],
       },
     },
   },
