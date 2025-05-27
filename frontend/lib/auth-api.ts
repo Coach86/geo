@@ -610,3 +610,53 @@ export async function getCompanyReports(companyId: string, token: string): Promi
     throw new Error(error instanceof Error ? error.message : 'Failed to get company reports');
   }
 }
+
+interface WebSearchQuery {
+  query: string;
+  status: string;
+  timestamp: string;
+  provider: string;
+}
+
+export interface CitationsData {
+  webAccess: {
+    totalResponses: number;
+    responsesWithWebAccess: number;
+    percentage: number;
+  };
+  topSources: Array<{
+    domain: string;
+    count: number;
+  }>;
+  citations: Array<{
+    website: string;
+    webSearchQueries: WebSearchQuery[];
+    link: string;
+    fullCitation: Record<string, unknown>;
+  }>;
+}
+
+/**
+ * Get citations data for a report (requires token authentication)
+ */
+export async function getReportCitations(reportId: string, token: string): Promise<CitationsData> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/reports/citations/${reportId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Failed to get report citations' }));
+      throw new Error(error.message || 'Failed to get report citations');
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error('Get report citations error:', error);
+    throw new Error(error instanceof Error ? error.message : 'Failed to get report citations');
+  }
+}

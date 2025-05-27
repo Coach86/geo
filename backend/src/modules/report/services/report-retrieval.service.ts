@@ -57,6 +57,7 @@ export class ReportRetrievalService {
         brand: document.brand || document.companyId,
         weekStart: document.weekStart,
         generatedAt: document.generatedAt,
+        batchExecutionId: document.batchExecutionId,
         metadata: document.metadata || {
           url: '',
           market: '',
