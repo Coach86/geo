@@ -67,6 +67,13 @@ export default function CompliancePage() {
     const fetchComplianceData = async () => {
       const companyId = localStorage.getItem("selectedCompanyId");
 
+      console.log(
+        "[Compliance] Selected companyId:",
+        companyId,
+        "token:",
+        token
+      );
+
       if (!companyId || !token) {
         setSelectedCompanyId(null);
         setReports([]);
@@ -80,6 +87,7 @@ export default function CompliancePage() {
       setError(null);
       try {
         const apiReports = await getCompanyReports(companyId, token);
+        console.log("[Compliance] apiReports:", apiReports);
 
         if (!apiReports || apiReports.length === 0) {
           throw new Error("No reports available for compliance analysis");
@@ -89,6 +97,12 @@ export default function CompliancePage() {
         const processedReports: ProcessedReport[] = [];
 
         for (const report of apiReports) {
+          console.log(
+            "[Compliance] Processing report:",
+            report.id,
+            "has accuracy:",
+            !!report.accuracy
+          );
           // Construct accordData from report.accuracy (if present)
           if (!report.accuracy) continue; // Skip reports without accuracy data
 
@@ -119,10 +133,20 @@ export default function CompliancePage() {
             },
           };
 
+          console.log(
+            "[Compliance] Fetching batch results for report:",
+            report.id
+          );
           // Fetch batch results for this report to get accuracy data
           let accuracyData = null;
           try {
             const batchResults = await getBatchResults(report.id, token);
+            console.log(
+              "[Compliance] batchResults for report",
+              report.id,
+              ":",
+              batchResults
+            );
             // Find the accuracy pipeline results (support both resultType and pipelineType for compatibility)
             const accuracyResult = batchResults.find(
               (result: any) =>
@@ -157,6 +181,12 @@ export default function CompliancePage() {
             complianceData,
             brandName: report.brand?.name || "Your Brand",
           });
+        }
+
+        if (processedReports.length === 0) {
+          console.warn(
+            "[Compliance] No processed reports created. All reports may be missing accuracy data."
+          );
         }
 
         // Sort reports by date (most recent first)
