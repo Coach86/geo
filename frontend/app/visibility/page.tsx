@@ -11,6 +11,7 @@ import { AlertCircle, TrendingUp, Eye, Zap, Target, Brain } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { getCompanyReports, ReportContentResponse } from "@/lib/auth-api";
+import { ModelIcon } from "@/components/ui/model-icon";
 
 interface ProcessedReport {
   id: string;
@@ -43,7 +44,7 @@ export default function VisibilityPage() {
   useEffect(() => {
     const fetchReports = async () => {
       const companyId = localStorage.getItem("selectedCompanyId");
-      
+
       if (!companyId || !token) {
         setSelectedCompanyId(null);
         setReports([]);
@@ -118,7 +119,7 @@ export default function VisibilityPage() {
     };
 
     fetchReports();
-    
+
     // Listen for company selection changes (same-tab updates)
     const handleCompanyChange = () => {
       fetchReports();
@@ -143,27 +144,27 @@ export default function VisibilityPage() {
 
   // Get color based on mention rate
   const getMentionRateColor = (rate: number) => {
-    if (rate >= 80) return "text-green-600";
-    if (rate >= 60) return "text-yellow-600";
-    if (rate >= 40) return "text-orange-600";
-    return "text-red-600";
+    if (rate >= 80) return "text-accent-600";
+    if (rate >= 60) return "text-primary-600";
+    if (rate >= 40) return "text-secondary-600";
+    return "text-destructive-600";
   };
 
   // Get model badge color
   const getModelColor = (model: string) => {
     const colors: Record<string, string> = {
-      "ChatGPT": "bg-green-100 text-green-800 border-green-200",
-      "OpenAI": "bg-green-100 text-green-800 border-green-200",
-      "Claude 3": "bg-purple-100 text-purple-800 border-purple-200",
-      "Claude": "bg-purple-100 text-purple-800 border-purple-200",
-      "Anthropic": "bg-purple-100 text-purple-800 border-purple-200",
-      "Gemini 1.5 Pro": "bg-blue-100 text-blue-800 border-blue-200",
-      "Gemini": "bg-blue-100 text-blue-800 border-blue-200",
-      "Google": "bg-blue-100 text-blue-800 border-blue-200",
-      "Perplexity": "bg-orange-100 text-orange-800 border-orange-200",
-      "Llama": "bg-orange-100 text-orange-800 border-orange-200",
+      "ChatGPT": "bg-accent-100 text-accent-800 border-accent-200",
+      "OpenAI": "bg-accent-100 text-accent-800 border-accent-200",
+      "Claude 3": "bg-secondary-100 text-secondary-800 border-secondary-200",
+      "Claude": "bg-secondary-100 text-secondary-800 border-secondary-200",
+      "Anthropic": "bg-secondary-100 text-secondary-800 border-secondary-200",
+      "Gemini 1.5 Pro": "bg-primary-100 text-primary-800 border-primary-200",
+      "Gemini": "bg-primary-100 text-primary-800 border-primary-200",
+      "Google": "bg-primary-100 text-primary-800 border-primary-200",
+      "Perplexity": "bg-dark-100 text-dark-800 border-dark-200",
+      "Llama": "bg-secondary-200 text-secondary-700 border-secondary-300",
     };
-    return colors[model] || "bg-gray-100 text-gray-800 border-gray-200";
+    return colors[model] || "bg-dark-50 text-dark-700 border-dark-100";
   };
 
   if (!selectedCompanyId) {
@@ -269,8 +270,8 @@ export default function VisibilityPage() {
             <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <Eye className="h-5 w-5 text-blue-600" />
+                  <CardTitle className="text-lg font-semibold text-dark-700 flex items-center gap-2">
+                    <Eye className="h-5 w-5 text-primary-600" />
                     Overall Mention Rate
                   </CardTitle>
                   <Badge variant="outline" className="text-sm">
@@ -282,7 +283,7 @@ export default function VisibilityPage() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">Brand Visibility Score</span>
-                    <span className={`text-3xl font-bold ${getMentionRateColor(selectedReport.mentionRate || 0)}`}>
+                    <span className="text-3xl font-bold text-secondary-600">
                       {selectedReport.mentionRate || 0}%
                     </span>
                   </div>
@@ -297,115 +298,119 @@ export default function VisibilityPage() {
               </CardContent>
             </Card>
 
-            {/* By Model Mention Rate */}
-            <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                  <Zap className="h-5 w-5 text-yellow-600" />
-                  Mention Rate by Model
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {selectedReport.modeMetrics?.map((metric, index) => (
-                    <div
-                      key={metric.model}
-                      className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors duration-200"
-                      style={{ animationDelay: `${index * 100}ms` }}
-                    >
-                      <div className="flex items-center gap-3">
-                        <Badge
-                          variant="outline"
-                          className={`${getModelColor(metric.model)} font-medium`}
-                        >
-                          {metric.model}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <Progress
-                          value={metric.mentionRate}
-                          className="w-24 h-2"
-                        />
-                        <span className={`font-semibold ${getMentionRateColor(metric.mentionRate)}`}>
-                          {metric.mentionRate}%
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Top Mentions Section */}
-            <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                  <Brain className="h-5 w-5 text-green-600" />
-                  Top Mentions
-                </CardTitle>
-                <p className="text-sm text-gray-600 mt-1">
-                  Brands most frequently mentioned across AI responses
-                </p>
-              </CardHeader>
-              <CardContent>
-                {selectedReport.arenaData && selectedReport.arenaData.length > 0 ? (
+            {/* Mention Rate by Model and Top Mentions Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* By Model Mention Rate */}
+              <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-lg font-semibold text-dark-700 flex items-center gap-2">
+                    <Zap className="h-5 w-5 text-secondary-600" />
+                    Mention Rate by Model
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
                   <div className="space-y-4">
-                    <div className="flex flex-wrap gap-2">
-                      {selectedReport.arenaData
-                        .sort((a: any, b: any) => parseFloat(b.global.replace('%', '')) - parseFloat(a.global.replace('%', '')))
-                        .map((competitor: any, index: number) => {
-                          const isTopThree = index < 3;
-                          
-                          return (
-                            <Badge
-                              key={index}
-                              variant={isTopThree ? "default" : "outline"}
-                              className={`
-                                ${isTopThree 
-                                  ? index === 0 
-                                    ? "bg-green-100 text-green-800 border-green-200" 
-                                    : index === 1 
-                                      ? "bg-blue-100 text-blue-800 border-blue-200"
-                                      : "bg-purple-100 text-purple-800 border-purple-200"
-                                  : "border-gray-200 text-gray-700"
-                                } 
-                                text-sm font-medium px-3 py-1 animate-in slide-in-from-bottom-5
-                              `}
-                              style={{ animationDelay: `${index * 100}ms` }}
-                            >
-                              {competitor.name} ({competitor.global})
-                              {index === 0 && (
-                                <span className="ml-1 text-xs">👑</span>
-                              )}
-                            </Badge>
-                          );
-                        })}
-                    </div>
-                    
-                    <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                      <p className="text-xs text-gray-600">
-                        <strong>Top performer:</strong> {
-                          [...selectedReport.arenaData]
-                            .sort((a: any, b: any) => parseFloat(b.global.replace('%', '')) - parseFloat(a.global.replace('%', '')))[0]?.name
-                        } leads with {
-                          [...selectedReport.arenaData]
-                            .sort((a: any, b: any) => parseFloat(b.global.replace('%', '')) - parseFloat(a.global.replace('%', '')))[0]?.global
-                        } visibility across all models.
-                      </p>
-                    </div>
+                    {selectedReport.modeMetrics?.map((metric, index) => (
+                      <div
+                        key={metric.model}
+                        className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors duration-200"
+                        style={{ animationDelay: `${index * 100}ms` }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Badge
+                            variant="outline"
+                            className={`${getModelColor(metric.model)} font-medium flex items-center gap-1`}
+                          >
+                            <ModelIcon model={metric.model} size="xs" />
+                            {metric.model}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <Progress
+                            value={metric.mentionRate}
+                            className="w-24 h-2"
+                          />
+                          <span className="font-semibold text-secondary-600">
+                            {metric.mentionRate}%
+                          </span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ) : (
-                  <p className="text-sm text-gray-400 italic">No mention data available</p>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+
+              {/* Top Mentions Section */}
+              <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-lg font-semibold text-dark-700 flex items-center gap-2">
+                    <Brain className="h-5 w-5 text-accent-600" />
+                    Top Mentions
+                  </CardTitle>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Brands most frequently mentioned across AI responses
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  {selectedReport.arenaData && selectedReport.arenaData.length > 0 ? (
+                    <div className="space-y-4">
+                      <div className="flex flex-wrap gap-2">
+                        {selectedReport.arenaData
+                          .sort((a: any, b: any) => parseFloat(b.global.replace('%', '')) - parseFloat(a.global.replace('%', '')))
+                          .map((competitor: any, index: number) => {
+                            const isTopThree = index < 3;
+
+                            return (
+                              <Badge
+                                key={index}
+                                variant={isTopThree ? "default" : "outline"}
+                                className={`
+                                  ${isTopThree
+                                    ? index === 0
+                                      ? "bg-accent-100 text-accent-800 border-accent-200"
+                                      : index === 1
+                                        ? "bg-primary-100 text-primary-800 border-primary-200"
+                                        : "bg-secondary-100 text-secondary-800 border-secondary-200"
+                                    : "border-dark-200 text-dark-700"
+                                  }
+                                  text-sm font-medium px-3 py-1 animate-in slide-in-from-bottom-5
+                                `}
+                                style={{ animationDelay: `${index * 100}ms` }}
+                              >
+                                {competitor.name} ({competitor.global})
+                                {index === 0 && (
+                                  <span className="ml-1 text-xs">👑</span>
+                                )}
+                              </Badge>
+                            );
+                          })}
+                      </div>
+
+                      <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                        <p className="text-xs text-gray-600">
+                          <strong>Top performer:</strong> {
+                            [...selectedReport.arenaData]
+                              .sort((a: any, b: any) => parseFloat(b.global.replace('%', '')) - parseFloat(a.global.replace('%', '')))[0]?.name
+                          } leads with {
+                            [...selectedReport.arenaData]
+                              .sort((a: any, b: any) => parseFloat(b.global.replace('%', '')) - parseFloat(a.global.replace('%', '')))[0]?.global
+                          } visibility across all models.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-400 italic">No mention data available</p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
 
             {/* Arena Section */}
             <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
               <CardHeader className="pb-4">
-                <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                  <Target className="h-5 w-5 text-purple-600" />
-                  Competitive Landscape
+                <CardTitle className="text-lg font-semibold text-dark-700 flex items-center gap-2">
+                  <Target className="h-5 w-5 text-secondary-600" />
+                  Competitive Visibility
                 </CardTitle>
                 <p className="text-sm text-gray-600 mt-1">
                   Brand visibility comparison across AI models
@@ -490,38 +495,6 @@ export default function VisibilityPage() {
                             })}
                         </tbody>
                       </table>
-                    </div>
-
-                    {/* Methodology info */}
-                    <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
-                      <div className="flex items-start">
-                        <div className="flex-shrink-0 mt-0.5">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            strokeWidth="1.5"
-                            stroke="currentColor"
-                            className="h-5 w-5 text-blue-500"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                            />
-                          </svg>
-                        </div>
-                        <div className="ml-3">
-                          <h5 className="text-sm font-medium text-blue-800">
-                            Methodology
-                          </h5>
-                          <ul className="mt-1 text-sm text-blue-700 list-disc pl-5 space-y-1">
-                            <li>Competitors analyzed = {selectedReport.arenaData.length}</li>
-                            <li>Models tested = {selectedReport.arenaData[0]?.modelsMentionsRate?.length || 0}</li>
-                            <li>Values represent mention rate percentage</li>
-                          </ul>
-                        </div>
-                      </div>
                     </div>
                   </div>
                 ) : (

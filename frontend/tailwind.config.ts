@@ -40,69 +40,89 @@ const config = {
           900: "#000000", // Black
         },
 
-        // Accent color - Violet Blue
+        // Primary - Orange/Rust (#BE5103)
+        primary: {
+          DEFAULT: "#BE5103",
+          foreground: "#FFFFFF",
+          50: '#FEF5ED',
+          100: '#FCE7D2',
+          200: '#F9CBA5',
+          300: '#F5A66D',
+          400: '#F17C35',
+          500: '#BE5103',
+          600: '#A44703',
+          700: '#883A02',
+          800: '#6D2F02',
+          900: '#572501',
+        },
+        
+        // Secondary - Blue (#0474BF)
+        secondary: {
+          DEFAULT: "#0474BF",
+          foreground: "#FFFFFF",
+          50: '#E6F3FB',
+          100: '#CCE7F7',
+          200: '#99CFEF',
+          300: '#66B7E7',
+          400: '#339FDF',
+          500: '#0474BF',
+          600: '#035D99',
+          700: '#024673',
+          800: '#023959',
+          900: '#012C46',
+        },
+        
+        // Accent - Teal (#04BF91)
         accent: {
-          50: "#F4F2FF", // Very light violet
-          100: "#E2DDFF", // Light violet
-          200: "#C5BBFF", // Soft violet
-          300: "#A799FF", // Violet
-          400: "#8F7AFF", // Medium violet
-          500: "#7B61FF", // Primary violet-blue
-          600: "#5B46CC", // Dark violet
-          700: "#4A38A9", // Deeper violet
-          800: "#382B85", // Very dark violet
-          900: "#251D59", // Almost black violet
+          DEFAULT: "#04BF91",
+          foreground: "#FFFFFF",
+          50: '#E6FBF5',
+          100: '#CCF7EB',
+          200: '#99EFD7',
+          300: '#66E7C3',
+          400: '#33DFAF',
+          500: '#04BF91',
+          600: '#039974',
+          700: '#027357',
+          800: '#025945',
+          900: '#014634',
+        },
+        
+        // Dark - Navy (#213340)
+        dark: {
+          DEFAULT: "#213340",
+          foreground: "#FFFFFF",
+          50: '#E8EAEC',
+          100: '#D1D5D9',
+          200: '#A3ABB3',
+          300: '#75818C',
+          400: '#475766',
+          500: '#213340',
+          600: '#1A2833',
+          700: '#141E26',
+          800: '#0D141A',
+          900: '#070A0D',
         },
 
         // Functional colors
         success: {
-          50: "#E8F8EE",
-          100: "#D1F2DF",
-          500: "#34C759", // Success green
-          600: "#2BA84A",
+          50: "#E6FBF5",
+          100: "#CCF7EB",
+          500: "#04BF91", // Using accent color for success
+          600: "#039974",
         },
         warning: {
-          50: "#FFF9E6",
-          100: "#FFF3CC",
-          500: "#FFCC00", // Warning yellow
-          600: "#E6B800",
+          50: "#FEF5ED",
+          100: "#FCE7D2",
+          500: "#BE5103", // Using primary color for warning
+          600: "#A44703",
         },
         destructive: {
           50: "#FFEBEA",
           100: "#FFD6D4",
-          500: "#FF3B30", // Error red
-          600: "#E6352B",
+          500: "#DC2626", // Keeping a true red for errors
+          600: "#B91C1C",
           foreground: "#FFFFFF",
-        },
-
-        // Legacy colors (keeping for compatibility)
-        primary: {
-          DEFAULT: "#7B61FF",
-          foreground: "#FFFFFF",
-          50: "#F4F2FF",
-          100: "#E2DDFF",
-          200: "#C5BBFF",
-          300: "#A799FF",
-          400: "#8F7AFF",
-          500: "#7B61FF",
-          600: "#5B46CC",
-          700: "#4A38A9",
-          800: "#382B85",
-          900: "#251D59",
-        },
-        secondary: {
-          DEFAULT: "#8E8E93",
-          foreground: "#FFFFFF",
-          50: "#F5F5F7",
-          100: "#EEEEEE",
-          200: "#DDDDDD",
-          300: "#C7C7CC",
-          400: "#8E8E93",
-          500: "#636366",
-          600: "#48484A",
-          700: "#333333",
-          800: "#1C1C1E",
-          900: "#000000",
         },
 
         muted: {
