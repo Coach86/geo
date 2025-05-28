@@ -35,19 +35,25 @@ export class User {
   @Prop({ type: String, required: false })
   stripePlanId?: string;
 
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Plan', required: false })
+  planId?: string;
+
   @Prop({
     type: {
       maxBrands: { type: Number, default: 1 },
       maxAIModels: { type: Number, default: 3 },
+      maxSpontaneousPrompts: { type: Number, default: 12 },
     },
     default: {
       maxBrands: 1,
       maxAIModels: 3,
+      maxSpontaneousPrompts: 12,
     },
   })
   planSettings: {
     maxBrands: number;
     maxAIModels: number;
+    maxSpontaneousPrompts: number;
   };
   
   @Prop({ type: Date })

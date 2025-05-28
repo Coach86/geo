@@ -106,7 +106,7 @@ export class UserController {
   })
   async updatePlanSettings(
     @Param('id') id: string,
-    @Body() planSettings: { maxBrands: number; maxAIModels: number },
+    @Body() planSettings: { maxBrands: number; maxAIModels: number; maxSpontaneousPrompts?: number },
   ): Promise<UserResponseDto> {
     return await this.userService.update(id, { planSettings });
   }

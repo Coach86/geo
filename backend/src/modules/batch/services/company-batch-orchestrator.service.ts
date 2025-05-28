@@ -51,10 +51,10 @@ export class CompanyBatchOrchestratorService {
       }
 
       // Get the current week's start date
-      const weekStart = this.getCurrentWeekStart();
+      const date = new Date();
 
       // Process the company and create a report
-      return await this.orchestrateCompanyBatchesInternal(companyContext, weekStart);
+      return await this.orchestrateCompanyBatchesInternal(companyContext, date);
     } catch (error) {
       this.logger.error(
         `Failed to orchestrate batches for company ${companyId}: ${error.message}`,
@@ -71,10 +71,10 @@ export class CompanyBatchOrchestratorService {
   /**
    * Internal method to orchestrate batches for a company
    * @param context The company batch context
-   * @param weekStart The start of the week
+   * @param date The start of the week
    * @returns Result of the orchestration process
    */
-  private async orchestrateCompanyBatchesInternal(context: CompanyBatchContext, weekStart: Date) {
+  private async orchestrateCompanyBatchesInternal(context: CompanyBatchContext, date: Date) {
     this.logger.log(`Processing batches for company ${context.companyId} (${context.brandName})`);
 
     try {
@@ -131,7 +131,7 @@ export class CompanyBatchOrchestratorService {
       // Create the weekly report input for the report module
       const report: BatchReportInput = {
         companyId: context.companyId,
-        weekStart,
+        date,
         spontaneous: spontaneousResults,
         sentiment: sentimentResults,
         accord: accuracyResults,
@@ -226,22 +226,6 @@ export class CompanyBatchOrchestratorService {
       this.logger.error(`Batch orchestration failed: ${error.message}`, error.stack);
       throw error;
     }
-  }
-
-  /**
-   * Get the current week's start date (Monday 00:00:00 UTC)
-   * @returns The start date of the current week
-   */
-  private getCurrentWeekStart(): Date {
-    const now = new Date();
-    const dayOfWeek = now.getUTCDay();
-    const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Adjust for Sunday
-
-    const monday = new Date(now);
-    monday.setUTCDate(now.getUTCDate() - diff);
-    monday.setUTCHours(0, 0, 0, 0);
-
-    return monday;
   }
 
   /**

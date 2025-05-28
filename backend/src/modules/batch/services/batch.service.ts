@@ -85,7 +85,7 @@ export class BatchService {
       this.logger.log(`Found ${companies.length} companies to process`);
 
       // Current week's start date (Monday 00:00:00 UTC)
-      const weekStart = this.getCurrentWeekStart();
+      const date = new Date();
 
       // Process each company
       const promises = companies.map((company) =>
@@ -108,7 +108,7 @@ export class BatchService {
               market: company.market,
             };
 
-            await this.processCompanyInternal(context, weekStart);
+            await this.processCompanyInternal(context, date);
 
             return { companyId: company.id, success: true };
           } catch (error) {
@@ -157,7 +157,7 @@ export class BatchService {
       }
 
       // Current week's start date (Monday 00:00:00 UTC)
-      const weekStart = this.getCurrentWeekStart();
+      const date = new Date();
 
       // Add batchExecutionId to context if provided
       const contextWithBatchId = batchExecutionId ? { ...company, batchExecutionId } : company;
@@ -172,7 +172,7 @@ export class BatchService {
       );
 
       // Process the company
-      const result = await this.processCompanyInternal(contextWithBatchId, weekStart);
+      const result = await this.processCompanyInternal(contextWithBatchId, date);
 
       return {
         success: true,
@@ -270,14 +270,12 @@ export class BatchService {
     return this.runPipeline('comparison', context);
   }
 
-
   /**
    * Internal method to process a company
    * @param context The company batch context
-   * @param weekStart The start of the week
    * @returns Object containing the batch execution ID and results
    */
-  private async processCompanyInternal(context: CompanyBatchContext, weekStart: Date) {
+  private async processCompanyInternal(context: CompanyBatchContext, date: Date) {
     this.logger.log(`Processing company ${context.companyId} (${context.brandName})`);
 
     try {
@@ -314,12 +312,12 @@ export class BatchService {
 
       // Get LLM versions
       const comparisonLlmResults = [];
-      
+
       // Get comparison results - now only one format is used
       if (comparisonResults && Array.isArray(comparisonResults.results)) {
         comparisonLlmResults.push(...comparisonResults.results);
       }
-      
+
       const llmVersions = this.getLlmVersions([
         ...spontaneousResults.results,
         ...sentimentResults.results,
@@ -348,7 +346,7 @@ export class BatchService {
       // Create the weekly report with proper typing including the new accuracy results
       const batchReportInput: BatchReportInput = {
         companyId: context.companyId,
-        weekStart,
+        date,
         spontaneous: spontaneousResults,
         sentiment: sentimentResults,
         accord: accuracyResults,
@@ -403,18 +401,6 @@ export class BatchService {
     }
 
     return versions;
-  }
-
-  private getCurrentWeekStart(): Date {
-    const now = new Date();
-    const dayOfWeek = now.getUTCDay();
-    const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Adjust for Sunday
-
-    const monday = new Date(now);
-    monday.setUTCDate(now.getUTCDate() - diff);
-    monday.setUTCHours(0, 0, 0, 0);
-
-    return monday;
   }
 
   /**
@@ -684,12 +670,12 @@ export class BatchService {
   async getAllCompanies(): Promise<any[]> {
     try {
       this.logger.log('Getting all companies for batch processing');
-      
+
       // Use the identity card repository to get all companies
       const identityCards = await this.identityCardRepository.findAll();
-      
+
       // Map to the format expected by the orchestrator
-      return identityCards.map(card => this.identityCardRepository.mapToEntity(card));
+      return identityCards.map((card) => this.identityCardRepository.mapToEntity(card));
     } catch (error) {
       this.logger.error(`Failed to get all companies: ${error.message}`, error.stack);
       throw error;
@@ -701,11 +687,11 @@ export class BatchService {
     const { companyId } = event;
     // Delete all batch executions for this company
     await this.batchExecutionRepository.deleteByCompanyId(companyId);
-    
+
     // Get execution IDs before deletion to clean up related data
     const batchExecutions = await this.batchExecutionRepository.findByCompanyId(companyId);
     const batchExecutionIds = batchExecutions.map((be) => be.id);
-    
+
     if (batchExecutionIds.length > 0) {
       // Delete related raw responses and batch results
       for (const execId of batchExecutionIds) {

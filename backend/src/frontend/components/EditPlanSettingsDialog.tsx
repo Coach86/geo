@@ -33,6 +33,7 @@ export const EditPlanSettingsDialog: React.FC<EditPlanSettingsDialogProps> = ({
 }) => {
   const [maxBrands, setMaxBrands] = useState(1);
   const [maxAIModels, setMaxAIModels] = useState(3);
+  const [maxSpontaneousPrompts, setMaxSpontaneousPrompts] = useState(12);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,6 +41,7 @@ export const EditPlanSettingsDialog: React.FC<EditPlanSettingsDialogProps> = ({
     if (user) {
       setMaxBrands(user.planSettings?.maxBrands || 1);
       setMaxAIModels(user.planSettings?.maxAIModels || 3);
+      setMaxSpontaneousPrompts(user.planSettings?.maxSpontaneousPrompts || 12);
     }
   }, [user]);
 
@@ -53,6 +55,7 @@ export const EditPlanSettingsDialog: React.FC<EditPlanSettingsDialogProps> = ({
       const updatedUser = await updateUserPlanSettings(user.id, {
         maxBrands,
         maxAIModels,
+        maxSpontaneousPrompts,
       });
       onUpdate(updatedUser);
       onClose();
@@ -71,6 +74,7 @@ export const EditPlanSettingsDialog: React.FC<EditPlanSettingsDialogProps> = ({
       if (user) {
         setMaxBrands(user.planSettings?.maxBrands || 1);
         setMaxAIModels(user.planSettings?.maxAIModels || 3);
+        setMaxSpontaneousPrompts(user.planSettings?.maxSpontaneousPrompts || 12);
       }
     }
   };
@@ -166,6 +170,20 @@ export const EditPlanSettingsDialog: React.FC<EditPlanSettingsDialogProps> = ({
                   startAdornment: <ModelTrainingIcon sx={{ mr: 1, color: 'action.active' }} />,
                 }}
                 helperText="Number of AI models available"
+              />
+            </Box>
+
+            <Box sx={{ flex: 1, minWidth: 200 }}>
+              <TextField
+                fullWidth
+                label="Max Spontaneous Prompts"
+                type="number"
+                value={maxSpontaneousPrompts}
+                onChange={(e) => setMaxSpontaneousPrompts(Math.max(1, parseInt(e.target.value) || 1))}
+                InputProps={{
+                  inputProps: { min: 1 },
+                }}
+                helperText="Number of spontaneous prompts allowed"
               />
             </Box>
           </Box>

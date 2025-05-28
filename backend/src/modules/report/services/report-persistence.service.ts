@@ -32,7 +32,7 @@ export class ReportPersistenceService {
       const reportData = {
         companyId: report.companyId,
         generatedAt: report.generatedAt || new Date(),
-        weekStart: report.weekStart,
+        date: report.date,
         batchExecutionId: report.batchExecutionId,
         // New structure fields
         brand: report.brand,
@@ -61,7 +61,7 @@ export class ReportPersistenceService {
       }
 
       // Generate an access token and send email notification
-      const reportDate = saved.weekStart;
+      const reportDate = saved.date;
       const user = await this.userService.findOne(company.userId);
       const recipientEmail = user.email;
       const companyName = company.brandName || report.companyId;

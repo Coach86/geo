@@ -16,6 +16,15 @@ class PlanSettingsDto {
   })
   @IsNumber()
   maxAIModels: number;
+
+  @ApiProperty({
+    description: 'Maximum number of spontaneous prompts allowed',
+    example: 12,
+    required: false,
+  })
+  @IsNumber()
+  @IsOptional()
+  maxSpontaneousPrompts?: number;
 }
 
 export class UpdateUserDto {

@@ -13,7 +13,7 @@ This repository contains a brand insights service that:
 
 - **Runtime**: Node.js 20 LTS
 - **Framework**: NestJS 10
-- **Database**: PostgreSQL (AWS RDS) / SQLite for local dev with Prisma ORM
+- **Database**: MongoDB
 - **Infrastructure**: AWS Fargate + ALB
 - **CI/CD**: GitHub Actions → ECR → ECS
 - **LLM Providers**: OpenAI, Anthropic, Google, DeepSeek, Grok, LLAMA, Mistral, Perplexity
@@ -25,7 +25,7 @@ The service is designed as a single-container application that:
 - Runs scheduled batch jobs using NestJS's built-in scheduler
 - Interfaces with multiple LLM providers through a common adapter interface
 - Uses a concurrency limiter to manage LLM API rate limits
-- Stores data in PostgreSQL/SQLite using Prisma ORM
+- Stores data in MongoDB
 
 ## Key Files and Directories
 
@@ -42,7 +42,6 @@ The service is designed as a single-container application that:
     - `batch/`: Weekly batch job
     - `health/`: Health check endpoints
   - `utils/`: Utility functions and helpers
-- `prisma/`: Database schema and migrations
 - `test-*.js`: Test scripts for different application features
 
 ## Testing Scripts
@@ -66,9 +65,6 @@ npm run test:batch:auto
 # Install dependencies
 npm install
 
-# Set up database, generate Prisma client, and build
-npm run setup
-
 # Start development server
 npm run start:dev
 
@@ -77,15 +73,6 @@ npm test
 
 # Run linting
 npm run lint
-
-# Run Prisma migrations
-npm run prisma:migrate
-
-# Generate Prisma client
-npm run prisma:generate
-
-# View database with Prisma Studio
-npm run prisma:studio
 
 # Build for production
 npm run build
@@ -116,6 +103,47 @@ To test the LLM adapters:
    ```
 
 See `LLM_TESTING.md` for more details.
+
+## Rate Limiting and Retry Logic
+
+The application includes built-in retry logic for handling rate limiting errors from LLM providers:
+
+### Configuration
+
+Retry behavior can be configured via environment variables:
+
+```env
+LLM_MAX_RETRIES=3           # Maximum number of retries (default: 3)
+LLM_BASE_DELAY_MS=1000      # Base delay in milliseconds (default: 1000)
+LLM_MAX_DELAY_MS=30000      # Maximum delay in milliseconds (default: 30000)
+LLM_BACKOFF_FACTOR=2.0      # Exponential backoff factor (default: 2.0)
+```
+
+### How It Works
+
+1. **Rate Limit Detection**: Automatically detects rate limiting errors based on:
+   - HTTP 429 status codes
+   - Error messages containing keywords like "rate limit", "quota exceeded", "too many requests"
+   - Retry-After headers or retry delay information in error responses
+
+2. **Exponential Backoff**: Uses exponential backoff with jitter to spread out retry attempts:
+   - First retry: 1 second (+ jitter)
+   - Second retry: 2 seconds (+ jitter)
+   - Third retry: 4 seconds (+ jitter)
+   - Maximum delay: 30 seconds
+
+3. **Provider-Specific Delays**: If the API provider specifies a retry delay in the error response, that delay is respected instead of the exponential backoff.
+
+4. **Comprehensive Logging**: All retry attempts are logged with details about delays and error messages.
+
+### Supported Providers
+
+The retry logic works with all LLM providers and automatically handles rate limiting from:
+- OpenAI (GPT models)
+- Anthropic (Claude models)
+- Google (Gemini models)
+- Perplexity
+- Other providers that return standard rate limiting errors
 
 ## Implementation Status
 

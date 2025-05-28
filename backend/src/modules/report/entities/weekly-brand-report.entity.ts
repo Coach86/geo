@@ -66,7 +66,7 @@ export class WeeklyBrandReport {
   brand: string;
 
   @ApiProperty({ description: 'Week start date' })
-  weekStart: Date;
+  date: Date;
 
   @ApiProperty({ description: 'Report metadata' })
   metadata: {

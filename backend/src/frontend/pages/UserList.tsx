@@ -137,6 +137,7 @@ const UserList: React.FC = () => {
                     <TableCell>Plan</TableCell>
                     <TableCell>Brands</TableCell>
                     <TableCell>AI Models</TableCell>
+                    <TableCell>Spontaneous Prompts</TableCell>
                     <TableCell>Created</TableCell>
                     <TableCell align="center">Actions</TableCell>
                   </TableRow>
@@ -182,6 +183,11 @@ const UserList: React.FC = () => {
                       <TableCell>
                         <Typography variant="body2">
                           {user.planSettings?.maxAIModels || 3}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {user.planSettings?.maxSpontaneousPrompts || 12}
                         </Typography>
                       </TableCell>
                       <TableCell>

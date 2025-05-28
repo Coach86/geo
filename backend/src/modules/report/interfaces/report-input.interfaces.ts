@@ -21,7 +21,7 @@ export interface BatchReportInput {
   companyId: string;
 
   /** Start of the week (Monday 00:00:00 UTC) */
-  weekStart: Date;
+  date: Date;
 
   /** Spontaneous mention results from the spontaneous pipeline */
   spontaneous?: SpontaneousResults;

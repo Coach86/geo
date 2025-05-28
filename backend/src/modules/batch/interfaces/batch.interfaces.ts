@@ -212,7 +212,7 @@ export type BrandBattleResults = ComparisonResults;
  */
 export interface WeeklyBrandReport {
   companyId: string;
-  weekStart: Date; // Monday 00-00-00Z
+  date: Date; // Monday 00-00-00Z
   spontaneous: SpontaneousResults;
   sentimentAccuracy: SentimentResults;
   accuracy?: AccuracyResults; // New field for accuracy results

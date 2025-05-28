@@ -41,6 +41,10 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
+import { PricingCard } from "@/components/pricing/pricing-card";
+import { usePlans } from "@/hooks/use-plans";
+import { redirectToStripeCheckout } from "@/lib/stripe-utils";
+import { useAuth } from "@/providers/auth-provider";
 
 interface PricingPageProps {
   forcedRecommendedPlan?: string;
@@ -51,6 +55,8 @@ export default function PricingPage({
 }: PricingPageProps) {
   const router = useRouter();
   const { formData } = useOnboarding();
+  const { plans, loading, error } = usePlans();
+  const { user } = useAuth();
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">(
     "yearly"
   );
@@ -203,30 +209,45 @@ export default function PricingPage({
     return { amount: savings, percentage };
   };
 
-  const handleStartTrial = (plan: string) => {
-    setSelectedPlan(plan as any);
+  const handleStartTrial = async (planId: string | undefined, planName: string) => {
+    setSelectedPlan(planName.toLowerCase() as any);
     setIsSubmitting(true);
 
-    // Rediriger vers les liens Stripe en fonction du plan et de la période de facturation
-    setTimeout(() => {
-      if (plan === "starter") {
-        if (billingPeriod === "monthly") {
-          window.location.href =
-            "https://buy.stripe.com/00wbJ2gbEaSSe8LecIasg08"; // Starter mensuel
-        } else {
-          window.location.href =
-            "https://buy.stripe.com/eVqaEYgbEe54e8L5Gcasg0b"; // Starter annuel
-        }
-      } else if (plan === "growth") {
-        if (billingPeriod === "monthly") {
-          window.location.href =
-            "https://buy.stripe.com/9B64gA5x0e548Orb0wasg09"; // Growth mensuel
-        } else {
-          window.location.href =
-            "https://buy.stripe.com/cNi8wQ0cG7GGc0D5Gcasg0a"; // Growth annuel
-        }
+    // Handle contact sales for Enterprise/Agencies
+    if (planName === "Enterprise" || planName === "Agencies") {
+      window.location.href = `mailto:contact@getmint.ai?subject=${planName} Plan Inquiry`;
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!planId) {
+      console.error('Plan ID is required for subscription plans');
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Get userId - if not authenticated, redirect to login
+    if (!user?.id) {
+      router.push('/auth/login');
+      return;
+    }
+
+    try {
+      // Create checkout session with user context
+      const success = await redirectToStripeCheckout({
+        planId: planId,
+        userId: user.id,
+        billingPeriod: billingPeriod,
+      });
+      
+      if (!success) {
+        console.error('Failed to create checkout session for plan:', planName);
+        setIsSubmitting(false);
       }
-    }, 500); // Délai court pour montrer l'état de chargement
+    } catch (error) {
+      console.error('Error creating checkout:', error);
+      setIsSubmitting(false);
+    }
   };
 
   const handleFeatureClick = (featureId: string) => {
@@ -430,65 +451,39 @@ export default function PricingPage({
     },
   ];
 
-  // Pricing plans
-  const pricingPlans = [
-    {
-      name: "Starter",
-      badge: null,
-      badgeColor: "",
-      tagline: "For solo founders & small brands",
-      tagBgColor: "bg-gray-100",
-      tagTextColor: "text-gray-600",
-      description: "Understand how AIs talk about your brand",
-      price: billingPeriod === "monthly" ? "€89" : "€69",
+  // Dynamic pricing plans from API
+  const dynamicPlans = plans.slice(0, 2).map((plan, index) => {
+    const monthlyPrice = plan.prices?.monthly || 0;
+    const yearlyPrice = plan.prices?.yearly || 0;
+    const currentPrice = billingPeriod === "monthly" ? monthlyPrice : yearlyPrice;
+    const savingsAmount = billingPeriod === "yearly" ? calculateSavings(monthlyPrice).amount : null;
+    
+    return {
+      name: plan.name,
+      badge: plan.isMostPopular ? "Most Popular" : null,
+      badgeColor: plan.isMostPopular ? "#6366f1" : "",
+      tagline: plan.tag,
+      tagBgColor: index === 0 ? "bg-gray-100" : "bg-accent-100",
+      tagTextColor: index === 0 ? "text-gray-600" : "text-accent-700",
+      description: plan.subtitle,
+      price: `€${currentPrice}`,
       pricePeriod: "/mo",
-      billedAnnually: billingPeriod === "yearly" ? true : false,
-      savings: billingPeriod === "yearly" ? calculateSavings(89).amount : null,
-      features: [
-        "Track how often AIs mention you",
-        "See the tone AIs use",
-        "Check alignment with brand values",
-        "Compare visibility with competitors",
-        "Know which sources AIs use",
-      ],
-      included: ["1 brand, 1 market/language", "5 AI models", "Weekly reports"],
+      billedAnnually: billingPeriod === "yearly",
+      savings: savingsAmount,
+      features: plan.features,
+      included: plan.included,
       ctaText: "Get Started",
-      ctaAction: () => handleStartTrial("starter"),
-      ctaColor: "bg-gray-800 hover:bg-gray-900",
-      checkColor: "text-green-500",
-      plusColor: "",
-      isPopular: false,
-    },
-    {
-      name: "Growth",
-      badge: "Most Popular",
-      badgeColor: "#6366f1", // Solid color instead of Tailwind class
-      tagline: "For scaling marketing teams",
-      tagBgColor: "bg-accent-100",
-      tagTextColor: "text-accent-700",
-      description: "Advanced insights & multi-brand coverage",
-      price: billingPeriod === "monthly" ? "€199" : "€159",
-      pricePeriod: "/mo",
-      billedAnnually: billingPeriod === "yearly" ? true : false,
-      savings: billingPeriod === "yearly" ? calculateSavings(199).amount : null,
-      features: [
-        "Track multiple brands and geographies",
-        "Benchmark visibility vs competitors",
-        "Improve brand alignment with Lift",
-        "Export raw data (CSV)",
-      ],
-      included: [
-        "3 brands, 3 markets each",
-        "8+ AI models",
-        "Lift + CSV Export",
-      ],
-      ctaText: "Get Started",
-      ctaAction: () => handleStartTrial("growth"),
-      ctaColor: "bg-accent-500 hover:bg-accent-600",
-      checkColor: "text-accent-500",
-      plusColor: "text-accent-500",
-      isPopular: true,
-    },
+      ctaAction: () => handleStartTrial(plan.id, plan.name),
+      ctaColor: index === 0 ? "bg-gray-800 hover:bg-gray-900" : "bg-accent-500 hover:bg-accent-600",
+      checkColor: index === 0 ? "text-green-500" : "text-accent-500",
+      plusColor: index === 0 ? "" : "text-accent-500",
+      isPopular: plan.isMostPopular,
+      isRecommended: plan.isRecommended,
+    };
+  });
+
+  // Static plans for Enterprise and Agencies
+  const staticPlans = [
     {
       name: "Enterprise",
       badge: null,
@@ -511,10 +506,7 @@ export default function PricingPage({
         "SSO and dedicated support",
       ],
       ctaText: "Contact Sales",
-      ctaAction: () =>
-        window.open(
-          "mailto:contact@getmint.ai?subject=Enterprise Plan Inquiry"
-        ),
+      ctaAction: () => handleStartTrial(undefined, "Enterprise"),
       ctaColor: "bg-purple-600 hover:bg-purple-700",
       checkColor: "text-purple-500",
       plusColor: "text-purple-500",
@@ -542,14 +534,34 @@ export default function PricingPage({
         "Prompts, personas, API (beta)",
       ],
       ctaText: "Contact Sales",
-      ctaAction: () =>
-        window.open("mailto:contact@getmint.ai?subject=Agencies Plan Inquiry"),
+      ctaAction: () => handleStartTrial(undefined, "Agencies"),
       ctaColor: "bg-teal-600 hover:bg-teal-700",
       checkColor: "text-teal-500",
       plusColor: "text-teal-500",
       isPopular: false,
     },
   ];
+
+  // Combine dynamic and static plans
+  const pricingPlans = loading ? [] : [...dynamicPlans, ...staticPlans];
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-500"></div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-red-500">Failed to load pricing plans. Please try again later.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="py-12 animate-fade-in">
@@ -916,300 +928,60 @@ export default function PricingPage({
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
             {pricingPlans.slice(0, 3).map((plan, index) => (
-              <div
+              <PricingCard
                 key={index}
-                className={`relative rounded-xl border ${
-                  plan.name.toLowerCase() === recommendedPlan
-                    ? "border-2 border-accent-500 bg-accent-50/20"
-                    : plan.isPopular
-                    ? "border-2 border-accent-300 bg-gray-50"
-                    : "border-gray-200 bg-white"
-                } shadow-md hover:shadow-lg transition-all duration-300 ${
-                  plan.name.toLowerCase() === recommendedPlan
-                    ? "transform hover:-translate-y-1"
-                    : ""
-                }`}
-              >
-                {/* Badge - Correction: utiliser une couleur solide au lieu d'une classe Tailwind */}
-                {plan.badge && (
-                  <div
-                    className="absolute -top-3 left-4 px-3 py-1 text-white text-xs font-medium rounded-full shadow-sm z-10"
-                    style={{ backgroundColor: plan.badgeColor }}
-                  >
-                    {plan.badge}
-                  </div>
-                )}
-
-                {/* Recommended Badge */}
-                {plan.name.toLowerCase() === recommendedPlan && (
-                  <div className="absolute -top-3 left-4 px-3 py-1 text-white text-xs font-medium rounded-full shadow-sm z-10 bg-accent-500">
-                    Recommended for You
-                  </div>
-                )}
-
-                <div className="p-6 flex flex-col h-full">
-                  {/* Section 1: Plan Header - Hauteur fixe */}
-                  <div className="mb-4 h-[120px] flex flex-col">
-                    <div className="flex items-center mb-1">
-                      <h3 className="text-xl font-bold text-mono-900">
-                        {plan.name}
-                      </h3>
-                    </div>
-                    <div className="mb-2">
-                      <span
-                        className={`text-xs font-medium ${plan.tagTextColor} ${plan.tagBgColor} px-2 py-0.5 rounded-full`}
-                      >
-                        {plan.tagline}
-                      </span>
-                    </div>
-                    <p className="text-sm font-medium text-mono-700 mt-2">
-                      {plan.description}
-                    </p>
-                  </div>
-
-                  {/* Section 2: Price - Hauteur fixe */}
-                  {/* Modifier l'affichage des prix dans la section des cartes de tarification
-                  // Remplacer la section d'affichage des prix par celle-ci (dans le rendu des cartes): */}
-                  <div className="pb-4 border-b border-mono-100 mb-4 h-[80px] flex items-center">
-                    <div>
-                      <div className="flex items-baseline">
-                        <span
-                          className={`${
-                            plan.price === "Contact Us" ? "text-xl" : "text-3xl"
-                          } font-bold text-mono-900`}
-                        >
-                          {plan.price}
-                        </span>
-                        {plan.pricePeriod && (
-                          <span className="text-mono-500 ml-1 text-sm">
-                            {plan.pricePeriod}
-                          </span>
-                        )}
-                        {plan.billedAnnually && (
-                          <span className="text-mono-500 ml-2 text-xs">
-                            billed annually
-                          </span>
-                        )}
-                      </div>
-                      {plan.savings && (
-                        <div className="mt-1 text-xs text-green-600 font-medium flex items-center">
-                          <ArrowRight className="h-3 w-3 mr-1 rotate-45" />
-                          Save €{plan.savings} per year
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Section 3: Features - Hauteur augmentée pour éviter le chevauchement */}
-                  <div className="mb-4 h-[240px]">
-                    <h4 className="text-sm font-medium mb-4">
-                      {index > 0 && (
-                        <span
-                          className={`${
-                            index === 1
-                              ? "bg-accent-100 text-accent-700"
-                              : index === 2
-                              ? "bg-purple-50 text-purple-700"
-                              : "bg-teal-50 text-teal-700"
-                          } px-2 py-1 rounded-md inline-block mb-1`}
-                        >
-                          Everything in {index === 1 ? "Starter" : "Growth"},
-                          plus
-                        </span>
-                      )}
-                      {index === 0 && (
-                        <span className="text-mono-700">What you can do</span>
-                      )}
-                    </h4>
-                    <ul className="space-y-3">
-                      {plan.features.map((feature, i) => (
-                        <li key={i} className="flex items-start">
-                          {index === 0 ? (
-                            <Check
-                              className={`h-4 w-4 ${plan.checkColor} mr-2 mt-0.5 flex-shrink-0`}
-                            />
-                          ) : (
-                            <Plus
-                              className={`h-4 w-4 ${plan.plusColor} mr-2 mt-0.5 flex-shrink-0`}
-                            />
-                          )}
-                          <span className="text-sm text-mono-600">
-                            {feature}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* Section 4: What's included - Hauteur réduite pour éviter le chevauchement */}
-                  <div className="mb-4 h-[120px] py-4">
-                    <h4 className="text-sm font-medium text-mono-700 mb-3">
-                      What's included
-                    </h4>
-                    <ul className="space-y-2">
-                      {plan.included.map((item, i) => (
-                        <li key={i} className="flex items-start">
-                          <Check
-                            className={`h-4 w-4 ${plan.checkColor} mr-2 mt-0.5 flex-shrink-0`}
-                          />
-                          <span className="text-sm text-mono-600">{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* Section 5: CTA Button - Hauteur fixe */}
-                  <div className="mt-auto pt-8 h-[100px]">
-                    <Button
-                      className={`w-full ${
-                        plan.name.toLowerCase() === recommendedPlan
-                          ? "bg-accent-500 hover:bg-accent-600 text-white ring-2 ring-accent-300 ring-offset-2"
-                          : plan.ctaColor
-                      } text-white h-11`}
-                      onClick={plan.ctaAction}
-                      disabled={
-                        isSubmitting && selectedPlan === plan.name.toLowerCase()
-                      }
-                    >
-                      {isSubmitting &&
-                      selectedPlan === plan.name.toLowerCase() ? (
-                        <div className="flex items-center">
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                          Processing...
-                        </div>
-                      ) : (
-                        <>
-                          {plan.ctaText === "Contact Sales" && (
-                            <Phone className="h-4 w-4 mr-2" />
-                          )}
-                          {plan.ctaText}
-                        </>
-                      )}
-                    </Button>
-                    {plan.ctaText === "Get Started" && (
-                      <p className="text-xs text-center text-mono-500 mt-2">
-                        Cancel anytime
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
+                name={plan.name}
+                tag={plan.tagline}
+                subtitle={plan.description}
+                features={plan.features}
+                included={plan.included}
+                price={plan.price}
+                pricePeriod={plan.pricePeriod}
+                billedAnnually={plan.billedAnnually}
+                savings={plan.savings}
+                isRecommended={plan.name.toLowerCase() === recommendedPlan}
+                isMostPopular={plan.isPopular}
+                ctaText={plan.ctaText}
+                ctaAction={plan.ctaAction}
+                ctaColor={plan.ctaColor}
+                checkColor={plan.checkColor}
+                plusColor={plan.plusColor}
+                isSubmitting={isSubmitting}
+                selectedPlan={selectedPlan}
+                previousPlanName={index > 0 ? pricingPlans[index - 1].name : undefined}
+                tagBgColor={plan.tagBgColor}
+                tagTextColor={plan.tagTextColor}
+              />
             ))}
           </div>
 
           {/* Agencies Plan - Séparé et avec un fond différent */}
           <div className="md:col-span-1">
-            <div
-              className={`relative rounded-xl border ${
-                recommendedPlan === "agencies"
-                  ? "border-2 border-accent-500 bg-teal-50/50 transform hover:-translate-y-1"
-                  : "border-teal-200 bg-teal-50/30"
-              } shadow-md hover:shadow-lg transition-all duration-300 h-full`}
-            >
-              {/* Recommended Badge */}
-              {recommendedPlan === "agencies" && (
-                <div className="absolute -top-3 left-4 px-3 py-1 text-white text-xs font-medium rounded-full shadow-sm z-10 bg-accent-500">
-                  Recommended for You
-                </div>
-              )}
-
-              <div className="p-6 flex flex-col h-full">
-                {/* Section 1: Plan Header - Hauteur fixe */}
-                <div className="mb-4 h-[120px] flex flex-col">
-                  <div className="flex items-center mb-1">
-                    <h3 className="text-xl font-bold text-mono-900">
-                      {pricingPlans[3].name}
-                    </h3>
-                  </div>
-                  <div className="mb-2">
-                    <span
-                      className={`text-xs font-medium ${pricingPlans[3].tagTextColor} ${pricingPlans[3].tagBgColor} px-2 py-0.5 rounded-full`}
-                    >
-                      {pricingPlans[3].tagline}
-                    </span>
-                  </div>
-                  <p className="text-sm font-medium text-mono-700 mt-2">
-                    {pricingPlans[3].description}
-                  </p>
-                </div>
-
-                {/* Section 2: Price - Hauteur fixe */}
-                <div className="pb-4 border-b border-teal-200 mb-4 h-[80px] flex items-center">
-                  <div>
-                    <div className="flex items-baseline">
-                      <span className="text-xl font-bold text-mono-900">
-                        {pricingPlans[3].price}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Section 3: Features - Hauteur augmentée pour éviter le chevauchement */}
-                <div className="mb-4 h-[240px]">
-                  <h4 className="text-sm font-medium mb-4">
-                    <span className="bg-teal-100 text-teal-700 px-2 py-1 rounded-md inline-block mb-1">
-                      Built for client impact
-                    </span>
-                  </h4>
-                  <ul className="space-y-3">
-                    {pricingPlans[3].features.map((feature, i) => (
-                      <li key={i} className="flex items-start">
-                        <Plus
-                          className={`h-4 w-4 ${pricingPlans[3].plusColor} mr-2 mt-0.5 flex-shrink-0`}
-                        />
-                        <span className="text-sm text-mono-600">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Section 4: What's included - Hauteur réduite pour éviter le chevauchement */}
-                <div className="mb-4 h-[120px] py-4">
-                  <h4 className="text-sm font-medium text-mono-700 mb-3">
-                    What's included
-                  </h4>
-                  <ul className="space-y-2">
-                    {pricingPlans[3].included.map((item, i) => (
-                      <li key={i} className="flex items-start">
-                        <Check
-                          className={`h-4 w-4 ${pricingPlans[3].checkColor} mr-2 mt-0.5 flex-shrink-0`}
-                        />
-                        <span className="text-sm text-mono-600">{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Section 5: CTA Button - Hauteur fixe */}
-                <div className="mt-auto pt-8 h-[100px]">
-                  <Button
-                    className={`w-full ${
-                      recommendedPlan === "agencies"
-                        ? "bg-accent-500 hover:bg-accent-600 text-white ring-2 ring-accent-300 ring-offset-2"
-                        : pricingPlans[3].ctaColor
-                    } text-white h-11`}
-                    onClick={pricingPlans[3].ctaAction}
-                    disabled={
-                      isSubmitting &&
-                      selectedPlan === pricingPlans[3].name.toLowerCase()
-                    }
-                  >
-                    {isSubmitting &&
-                    selectedPlan === pricingPlans[3].name.toLowerCase() ? (
-                      <div className="flex items-center">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Processing...
-                      </div>
-                    ) : (
-                      <>
-                        <Phone className="h-4 w-4 mr-2" />
-                        {pricingPlans[3].ctaText}
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </div>
+            {pricingPlans[3] && (
+              <PricingCard
+                name={pricingPlans[3].name}
+                tag={pricingPlans[3].tagline}
+                subtitle={pricingPlans[3].description}
+                features={pricingPlans[3].features}
+                included={pricingPlans[3].included}
+                price={pricingPlans[3].price}
+                pricePeriod={pricingPlans[3].pricePeriod}
+                billedAnnually={pricingPlans[3].billedAnnually}
+                savings={pricingPlans[3].savings}
+                isRecommended={recommendedPlan === "agencies"}
+                isMostPopular={pricingPlans[3].isPopular}
+                ctaText={pricingPlans[3].ctaText}
+                ctaAction={pricingPlans[3].ctaAction}
+                ctaColor={pricingPlans[3].ctaColor}
+                checkColor={pricingPlans[3].checkColor}
+                plusColor={pricingPlans[3].plusColor}
+                isSubmitting={isSubmitting}
+                selectedPlan={selectedPlan}
+                previousPlanName="Growth"
+                tagBgColor={pricingPlans[3].tagBgColor}
+                tagTextColor={pricingPlans[3].tagTextColor}
+              />
+            )}
           </div>
         </div>
       </section>

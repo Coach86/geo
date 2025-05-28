@@ -171,7 +171,7 @@ export class ReportConverterService {
       id: '', // This will be set by the persistence layer
       companyId: input.companyId,
       generatedAt: input.generatedAt || new Date(),
-      weekStart: input.weekStart,
+      date: input.date,
       batchExecutionId: input.batchExecutionId,
       // New structured fields
       brand: identityCard?.brandName || input.companyId,
@@ -180,7 +180,7 @@ export class ReportConverterService {
         market: identityCard?.market || 'Unknown Market',
         flag: getMarketFlag(identityCard?.market),
         competitors: identityCard?.competitors?.join(', ') || 'Unknown Competitors',
-        date: input.weekStart.toISOString().split('T')[0],
+        date: input.date.toISOString().split('T')[0],
         models: modelsList,
       },
       kpi: {
@@ -241,7 +241,7 @@ export class ReportConverterService {
         id: document.id,
         companyId: document.companyId,
         brand: document.brand,
-        weekStart: document.weekStart,
+        date: document.date,
         generatedAt: document.generatedAt,
         batchExecutionId: document.batchExecutionId,
         metadata: document.metadata,
@@ -279,7 +279,7 @@ export class ReportConverterService {
     // Otherwise, convert from raw batch data
     const batchInput: BatchReportInput = {
       companyId: document.companyId,
-      weekStart: document.weekStart,
+      date: document.date,
       llmVersions: document.llmVersions || {},
       generatedAt: document.generatedAt,
       batchExecutionId: document.batchExecutionId,

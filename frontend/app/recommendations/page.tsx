@@ -23,241 +23,337 @@ import {
   MessageSquare,
   Brain,
   Shield,
+  Settings,
+  BarChart3,
+  Globe,
+  Award,
 } from "lucide-react";
 
 const geoCategories = [
   {
-    id: "content",
-    title: "Content Structure & Format",
-    icon: FileText,
+    id: "technical",
+    title: "Technical & Structural Essentials",
+    icon: Settings,
     color: "bg-blue-50 text-blue-700",
     recommendations: [
       {
-        title: "Use Question-and-Answer Format",
-        description:
-          "Structure content as clear Q&A pairs that directly address user queries, making it easier for AI engines to extract and cite.",
+        title: "Whitelist Legitimate AI Crawlers",
+        description: "Update robots.txt to allow AI crawlers access to your content",
+        researchBacking: "Essential prerequisite for AI visibility",
+        implementationSteps: [
+          "Update robots.txt to allow GPTBot, Google's AI crawler, xxx",
+          "Check crawler logs to verify successful access", 
+          "Test with crawler simulation tools",
+          "Monitor for new AI crawlers monthly"
+        ],
         impact: "High",
         difficulty: "Easy",
-        tips: [
-          "Start with common questions your audience asks",
-          "Provide concise, direct answers (50-150 words)",
-          "Use H2/H3 headings for questions",
-          "Include follow-up questions for comprehensive coverage",
-        ],
       },
       {
-        title: "Create Hierarchical Content Structure",
-        description:
-          "Organize content with clear headings, subheadings, and logical flow to help AI engines understand context and relationships.",
+        title: "Clear, Consistent Headings",
+        description: "Ensure H1 tags and title tags are aligned for better AI comprehension",
+        researchBacking: "80% of cited pages have matching H1 + title tags",
+        implementationSteps: [
+          "Compare H1 vs. <title> for discrepancies",
+          "Align first 80 characters for consistency",
+          "Synchronize URL slug with key terms",
+          "Submit updated sitemap to accelerate discovery"
+        ],
+        example: "H1 and title both using \"Best 2025 Trail Running Shoes for Technical Terrain\"",
         impact: "High",
         difficulty: "Easy",
-        tips: [
-          "Use H1 for main topics, H2 for subtopics, H3 for details",
-          "Maintain consistent heading hierarchy",
-          "Include table of contents for long articles",
-          "Use numbered and bulleted lists for clarity",
-        ],
       },
       {
-        title: "Write in Clear, Concise Language",
-        description:
-          "Use simple, direct language that AI engines can easily parse and understand for accurate citations.",
+        title: "Frontload Key Insights",
+        description: "Place your most important information at the beginning of content",
+        researchBacking: "AI systems prioritize content appearing early in the document",
+        implementationSteps: [
+          "Place TL;DR summaries within first 150 words",
+          "Begin with direct answers to primary queries",
+          "Use bolded text for key definitions",
+          "Test extraction with AI tools"
+        ],
+        example: "\"Direct Answer: Organic cotton requires 88% less water than conventional cotton according to the 2025 Textile Sustainability Report.\"",
+        impact: "High",
+        difficulty: "Medium",
+      },
+      {
+        title: "Paragraph Compression",
+        description: "Keep paragraphs short and focused for better AI processing",
+        researchBacking: "LLM retrieval splits documents into ~200-400 token chunks. Shorter paragraphs with less than 90 words (≈ 120 tokens) facilitate extraction",
+        implementationSteps: [
+          "Target Hemingway grade ≤8 readability (https://hemingwayapp.com/readability-checker)",
+          "Break long content blocks into shorter sections",
+          "Add bullet points for key concepts",
+          "Re-check readability score post-editing"
+        ],
+        example: "Convert a 180-word dense paragraph into three 60-word sections with clear topic sentence at start",
         impact: "Medium",
-        difficulty: "Easy",
-        tips: [
-          "Avoid jargon and complex terminology",
-          "Use short sentences (15-20 words max)",
-          "Write in active voice",
-          "Define technical terms when first introduced",
-        ],
+        difficulty: "Medium",
       },
     ],
   },
   {
-    id: "authority",
-    title: "Authority & Credibility",
-    icon: Shield,
+    id: "content-formats",
+    title: "Content Formats & Optimization",
+    icon: FileText,
     color: "bg-green-50 text-green-700",
     recommendations: [
       {
-        title: "Include Verifiable Citations",
-        description:
-          "Add credible sources, statistics, and references that AI engines can validate and use to establish content authority.",
+        title: "Lists & Tables",
+        description: "Use structured formats to improve content extraction",
+        researchBacking: "Structured formats increase AI extraction rates by 45%",
+        implementationSteps: [
+          "Convert paragraph-based comparisons to tables",
+          "Use consistent column headers and formatting",
+          "Implement proper table markup with <thead> and <tbody>",
+          "Include clear caption or summary text"
+        ],
+        example: "Replace narrative product comparisons with structured comparison tables featuring consistent metrics across all products",
         impact: "High",
         difficulty: "Medium",
-        tips: [
-          "Link to authoritative sources (academic papers, government data)",
-          "Include publication dates for all citations",
-          "Use proper citation formats",
-          "Verify all facts and figures before publication",
-        ],
       },
       {
-        title: "Maintain Objective, Expert Tone",
-        description:
-          "Write from an authoritative perspective with balanced, fact-based content that demonstrates expertise.",
+        title: "FAQ Schema",
+        description: "Implement structured data for question-answer content",
+        researchBacking: "FAQ markup and detailed answer ranked as a top tactic and called \"critical for AI agents\"",
+        implementationSteps: [
+          "Collect People Also Ask (PAA) questions from competitor analysis",
+          "Draft concise answers (≤120 characters)",
+          "Implement JSON-LD schema with proper formatting",
+          "Validate implementation in Google's Rich Results Test"
+        ],
+        example: "How much does organic certification cost? Organic certification typically costs between $400-$2,000 annually depending on farm size and production volume",
         impact: "High",
-        difficulty: "Medium",
-        tips: [
-          "Avoid promotional or biased language",
-          "Present multiple viewpoints when relevant",
-          "Use data to support claims",
-          "Showcase expertise through detailed analysis",
-        ],
+        difficulty: "Hard",
       },
       {
-        title: "Provide Concrete Examples",
-        description:
-          "Include specific, real-world examples that AI engines can reference as practical applications of concepts.",
+        title: "How-To Schema",
+        description: "Add structured markup for instructional content",
+        researchBacking: "Structured steps boost visibility by 32% for instructional queries",
+        implementationSteps: [
+          "Write ordered lists with supporting images for each step",
+          "Build How-To schema with complete markup",
+          "Include totalTime and tool/supply metadata",
+          "Test in Google's Rich Results Test"
+        ],
+        example: "How-To schema for \"Lacing Trail Running Shoes for Steep Descents (6 steps)\"",
+        impact: "Medium",
+        difficulty: "Hard",
+      },
+      {
+        title: "Embed Semantic Cues",
+        description: "Use clear markers to guide AI understanding",
+        researchBacking: "Clear signposting improves AI comprehension by 27%",
+        implementationSteps: [
+          "Use explicit phrase markers (\"Key Takeaway:\", \"In Summary:\")",
+          "Apply consistent formatting to cue types",
+          "Place cues at strategically important content points",
+          "Test extraction with AI summarization tools"
+        ],
+        example: "\"Key Takeaway: Regenerative agriculture practices can sequester 5-10 tons of carbon per acre annually while improving soil health.\"",
         impact: "Medium",
         difficulty: "Easy",
-        tips: [
-          "Use case studies from recognizable companies",
-          "Include specific numbers and metrics",
-          "Provide step-by-step examples",
-          "Show before/after scenarios",
+      },
+      {
+        title: "Multimedia & Transcripts",
+        description: "Provide text alternatives for video and audio content",
+        researchBacking: "Adding transcripts lifted inclusion for 2/3 of videos in analysis",
+        implementationSteps: [
+          "Generate accurate transcripts for video content (e.g. activated for YouTube)",
+          "Embed transcript directly below video",
+          "Add ClipSchema markup with timestamps",
+          "Ping index for recrawling"
         ],
+        example: "Full text transcript with timestamps for product demonstration video",
+        impact: "High",
+        difficulty: "Medium",
       },
     ],
   },
   {
-    id: "optimization",
-    title: "Technical Optimization",
-    icon: Search,
+    id: "authoritativeness",
+    title: "Authoritativeness & Trust Signals",
+    icon: Shield,
     color: "bg-purple-50 text-purple-700",
     recommendations: [
       {
-        title: "Implement Semantic Metadata",
-        description:
-          "Use structured data and schema markup to help AI engines understand content context and relationships.",
-        impact: "High",
-        difficulty: "Hard",
-        tips: [
-          "Add JSON-LD structured data",
-          "Use appropriate schema.org types",
-          "Include breadcrumb markup",
-          "Implement FAQ schema for Q&A content",
+        title: "Primary Statistics",
+        description: "Include recent, verifiable data to boost credibility",
+        researchBacking: "Fresh statistics lifted AI inclusion by +40% in a 100k-query benchmark",
+        implementationSteps: [
+          "Source statistics less than 12 months old",
+          "Embed inline with citation",
+          "Highlight with <strong> tag for visual emphasis",
+          "Calendar yearly updates to maintain freshness"
         ],
-      },
-      {
-        title: "Optimize for Featured Snippets",
-        description:
-          "Format content to appear in featured snippets, which AI engines often reference and cite.",
-        impact: "Medium",
+        example: "\"Organic cotton acreage grew 17% YoY (Textile Exchange 2025), outpacing conventional cotton for the first time.\"",
+        impact: "High",
         difficulty: "Medium",
-        tips: [
-          "Answer questions within first 40-60 words",
-          "Use tables for comparison data",
-          "Create numbered lists for processes",
-          "Include definition paragraphs for key terms",
-        ],
       },
       {
-        title: "Create Content Clusters",
-        description:
-          "Build topical authority by creating interconnected content around your expertise areas.",
+        title: "Expert Quotes",
+        description: "Feature authoritative voices to enhance trust",
+        researchBacking: "Quotes raise visibility by approximately 25% on informational queries",
+        implementationSteps: [
+          "Interview credible subject matter experts",
+          "Insert ≤40-word blockquotes with attribution",
+          "Link to expert bio or credentials",
+          "Implement author schema markup"
+        ],
+        example: "\"> Circularity is the next S-curve in sustainable manufacturing, with potential to reduce waste by 60%. —Dr. Ana Willis, MIT Sustainable Manufacturing Lab\"",
         impact: "High",
         difficulty: "Hard",
-        tips: [
-          "Identify core topics in your industry",
-          "Create pillar pages for main topics",
-          "Link related content strategically",
-          "Update clusters regularly with new insights",
+      },
+      {
+        title: "Peer-Reviewed Citations",
+        description: "Reference academic and industry sources",
+        researchBacking: "52% of AI-Overview sources sit outside Google's top-10 yet carry authoritative references",
+        implementationSteps: [
+          "Identify pages with low citation factor",
+          "Add relevant academic or industry citations (every ~300 words)",
+          "Place within first 150 pixels of target keyword",
+          "Re-score after 24 hours"
         ],
+        example: "\"According to The Lancet (2024), coronary heart disease rates have decreased 12% over the past decade.\"",
+        impact: "High",
+        difficulty: "Medium",
+      },
+      {
+        title: "Author Credentials (E-E-A-T)",
+        description: "Showcase expertise and authority signals",
+        researchBacking: "SEJ research stresses E-E-A-T for AI overview inclusion",
+        implementationSteps: [
+          "Add Person schema markup with credentials",
+          "Link to author publications and social profiles",
+          "Showcase relevant credentials inline",
+          "Re-score after implementation"
+        ],
+        example: "Bio: \"Jane Doe, PhD in Environmental Science, has published 12 peer-reviewed studies on sustainable textile manufacturing.\"",
+        impact: "High",
+        difficulty: "Medium",
       },
     ],
   },
   {
     id: "freshness",
-    title: "Content Freshness & Updates",
+    title: "Freshness & Consistency",
     icon: TrendingUp,
     color: "bg-orange-50 text-orange-700",
     recommendations: [
       {
-        title: "Regular Content Updates",
-        description:
-          "Keep content current as AI engines prefer fresh, up-to-date information for citations.",
+        title: "Content Freshness Ping",
+        description: "Keep content updated and signal changes to crawlers",
+        researchBacking: "AI prefers recent sources",
+        implementationSteps: [
+          "Update date stamps with true modification dates",
+          "Increment version metadata in HTML",
+          "Resubmit URL via Search Console/indexing API",
+          "Monitor recrawling activity"
+        ],
+        example: "\"Last reviewed: May 19, 2025\" with true revision date",
         impact: "High",
-        difficulty: "Medium",
-        tips: [
-          "Review and update content quarterly",
-          "Add new data and statistics regularly",
-          "Update examples with current events",
-          "Refresh publication dates after major updates",
-        ],
-      },
-      {
-        title: "Monitor AI Engine Citations",
-        description:
-          "Track how often your content is cited by AI engines and optimize based on patterns.",
-        impact: "Medium",
-        difficulty: "Medium",
-        tips: [
-          "Set up Google Alerts for your brand mentions",
-          "Monitor ChatGPT, Claude, and Perplexity responses",
-          "Track which content gets cited most",
-          "Analyze competitor citation patterns",
-        ],
-      },
-      {
-        title: "Trend-Based Content Creation",
-        description:
-          "Create content around emerging topics and trends in your industry to capture early AI citations.",
-        impact: "Medium",
         difficulty: "Easy",
-        tips: [
-          "Use Google Trends for topic research",
-          "Monitor industry news and reports",
-          "Create content around seasonal trends",
-          "Address current events in your expertise area",
+      },
+      {
+        title: "Internal Topic Clusters",
+        description: "Build interconnected content around core topics",
+        researchBacking: "Interlinks increase surface area for answer synthesis by 27%",
+        implementationSteps: [
+          "Map pillar/cluster content structure",
+          "Add contextual internal links with descriptive anchor text",
+          "Implement breadcrumb schema",
+          "Check for and fix orphaned pages"
         ],
+        example: "Well-structured product page linking to \"See also: sizing guide, care instructions, and technical specifications\"",
+        impact: "Medium",
+        difficulty: "Medium",
       },
     ],
   },
   {
-    id: "strategy",
-    title: "GEO Strategy & Integration",
-    icon: Brain,
+    id: "off-site",
+    title: "Off-Site Optimization",
+    icon: Globe,
     color: "bg-red-50 text-red-700",
     recommendations: [
       {
-        title: "Integrate GEO with SEO Strategy",
-        description:
-          "Combine GEO tactics with traditional SEO for comprehensive search optimization across all engines.",
-        impact: "High",
-        difficulty: "Medium",
-        tips: [
-          "Maintain keyword optimization alongside GEO",
-          "Create content that works for both humans and AI",
-          "Track traditional and AI search performance",
-          "Allocate budget between SEO and GEO efforts",
+        title: "External Co-Citation Partnerships",
+        description: "Build relationships with authoritative sources",
+        researchBacking: "87% of SearchGPT citations mirror established authoritative sources",
+        implementationSteps: [
+          "Identify top aggregators in your industry",
+          "Pitch guest data contributions with unique insights",
+          "Secure do-follow links with precise brand mentions",
+          "Track citation patterns and attribution"
         ],
-      },
-      {
-        title: "Multi-AI Engine Optimization",
-        description:
-          "Optimize for multiple AI engines (ChatGPT, Claude, Gemini, Perplexity) as they have different preferences.",
+        example: "Contribute proprietary statistics to industry reports published on authoritative domains",
         impact: "High",
         difficulty: "Hard",
-        tips: [
-          "Test content across different AI engines",
-          "Understand each engine's citation preferences",
-          "Create varied content formats",
-          "Monitor performance across all platforms",
-        ],
       },
       {
-        title: "Human Oversight and Quality Control",
-        description:
-          "Implement human review processes to ensure GEO content maintains quality and accuracy.",
-        impact: "High",
-        difficulty: "Medium",
-        tips: [
-          "Establish editorial guidelines for GEO content",
-          "Regular fact-checking processes",
-          "Expert review for technical content",
-          "User feedback integration for improvements",
+        title: "Off-Site Authority Building",
+        description: "Establish presence across multiple platforms",
+        researchBacking: "External mentions increase brand citation probability by 35%",
+        implementationSteps: [
+          "Develop media outreach strategy targeting industry publications",
+          "Secure guest post opportunities on authoritative sites",
+          "Participate in industry podcasts with transcript publication",
+          "Monitor brand mentions across key platforms"
         ],
+        example: "Series of expert guest posts on leading industry blogs with consistent brand positioning and messaging",
+        impact: "High",
+        difficulty: "Hard",
+      },
+      {
+        title: "Engage in Online Communities",
+        description: "Participate in relevant Q&A platforms and forums",
+        researchBacking: "Q&A platforms show 3-4x higher citation rates for expert responses",
+        implementationSteps: [
+          "Map relevant subreddits, Stack Exchange sites, and Quora topics",
+          "Create branded expert profiles",
+          "Schedule weekly engagement sessions",
+          "Link to detailed resources when contextually appropriate"
+        ],
+        example: "Regularly answer questions on r/sustainability with data-backed responses linking to comprehensive resources",
+        impact: "Medium",
+        difficulty: "Medium",
+      },
+    ],
+  },
+  {
+    id: "metrics",
+    title: "Metrics & Monitoring",
+    icon: BarChart3,
+    color: "bg-indigo-50 text-indigo-700",
+    recommendations: [
+      {
+        title: "Track AI Visibility, Tone, Compliance",
+        description: "Monitor how AI engines cite your brand",
+        researchBacking: "Brand citation and compliance tracking correlates with downstream conversion lift",
+        implementationSteps: [
+          "Implement AI response monitoring tools",
+          "Track brand mentions across major AI platforms",
+          "Establish baseline citation rates",
+          "Create dashboards for citation performance"
+        ],
+        example: "Weekly citation tracking report showing brand mention frequency and compliance across key models: ChatGPT, Gemini, Perplexity, Anthropic and Google / Bing AI Overviews",
+        impact: "High",
+        difficulty: "Hard",
+      },
+      {
+        title: "Shift Budget & Metrics",
+        description: "Allocate resources specifically for GEO initiatives",
+        researchBacking: "Companies allocating GEO budget can see 40%+ higher AI visibility",
+        implementationSteps: [
+          "Reassess KPI framework to include AI citation metrics",
+          "Reallocate budget from traditional SEO to GEO initiatives",
+          "Develop GEO-specific reporting",
+          "Train team on new metrics and optimization approaches"
+        ],
+        example: "New reporting dashboard featuring AI citation rate, mention share, and content extractability scores alongside traditional SEO metrics",
+        impact: "High",
+        difficulty: "Hard",
       },
     ],
   },
@@ -351,7 +447,7 @@ export default function RecommendationsPage() {
               <div className="flex items-center gap-2">
                 <CheckCircle className="w-5 h-5 text-purple-600" />
                 <div>
-                  <div className="text-2xl font-bold text-purple-600">20+</div>
+                  <div className="text-2xl font-bold text-purple-600">15+</div>
                   <div className="text-sm text-gray-600">
                     Optimization Tactics
                   </div>
@@ -414,23 +510,46 @@ export default function RecommendationsPage() {
                         </div>
                       </div>
 
-                      <div>
-                        <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
-                          <Zap className="w-4 h-4 text-yellow-500" />
-                          Implementation Tips
+                      {/* Research Backing */}
+                      <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                        <h4 className="font-medium text-blue-900 mb-1 flex items-center gap-2">
+                          <Award className="w-4 h-4" />
+                          Research Backing
                         </h4>
-                        <ul className="space-y-1">
-                          {rec.tips.map((tip, tipIndex) => (
+                        <p className="text-sm text-blue-800">{rec.researchBacking}</p>
+                      </div>
+
+                      {/* Implementation Steps */}
+                      <div className="mb-4">
+                        <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-500" />
+                          Implementation Steps
+                        </h4>
+                        <ol className="space-y-1">
+                          {rec.implementationSteps.map((step, stepIndex) => (
                             <li
-                              key={tipIndex}
+                              key={stepIndex}
                               className="text-sm text-gray-600 flex items-start gap-2"
                             >
-                              <div className="w-1.5 h-1.5 bg-gray-400 rounded-full mt-2 flex-shrink-0"></div>
-                              {tip}
+                              <span className="flex-shrink-0 w-5 h-5 bg-green-100 text-green-700 rounded-full text-xs flex items-center justify-center font-medium mt-0.5">
+                                {stepIndex + 1}
+                              </span>
+                              {step}
                             </li>
                           ))}
-                        </ul>
+                        </ol>
                       </div>
+
+                      {/* Example Implementation */}
+                      {rec.example && (
+                        <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                          <h4 className="font-medium text-gray-900 mb-1 flex items-center gap-2">
+                            <Zap className="w-4 h-4 text-yellow-500" />
+                            Example Implementation
+                          </h4>
+                          <p className="text-sm text-gray-700 italic">{rec.example}</p>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

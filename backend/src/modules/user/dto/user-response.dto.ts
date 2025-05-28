@@ -41,12 +41,20 @@ export class UserResponseDto {
   stripePlanId?: string;
 
   @ApiProperty({
+    description: 'Plan ID reference',
+    example: '507f1f77bcf86cd799439011',
+    required: false,
+  })
+  planId?: string;
+
+  @ApiProperty({
     description: 'Plan settings including limits',
-    example: { maxBrands: 1, maxAIModels: 3 },
+    example: { maxBrands: 1, maxAIModels: 3, maxSpontaneousPrompts: 12 },
   })
   planSettings: {
     maxBrands: number;
     maxAIModels: number;
+    maxSpontaneousPrompts?: number;
   };
 
   @ApiProperty({

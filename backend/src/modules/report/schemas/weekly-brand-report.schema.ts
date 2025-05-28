@@ -28,7 +28,7 @@ export class WeeklyBrandReport {
     required: true,
     index: true,
   })
-  weekStart: Date;
+  date: Date;
 
   @Prop({
     type: Date,

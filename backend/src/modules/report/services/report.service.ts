@@ -51,21 +51,6 @@ export class ReportService implements OnModuleInit {
   }
 
   /**
-   * Helper method to get the start of the current week (Monday 00:00:00 UTC)
-   */
-  private getCurrentWeekStart(): Date {
-    const now = new Date();
-    const dayOfWeek = now.getUTCDay();
-    const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Adjust for Sunday
-
-    const monday = new Date(now);
-    monday.setUTCDate(now.getUTCDate() - diff);
-    monday.setUTCHours(0, 0, 0, 0);
-
-    return monday;
-  }
-
-  /**
    * Extract LLM versions from results
    */
   private extractLlmVersions(results: any[]): Record<string, string> {
@@ -260,8 +245,7 @@ export class ReportService implements OnModuleInit {
         throw new NotFoundException(`Identity card not found for company ${companyId}`);
       }
 
-      // Current week's start date (Monday 00:00:00 UTC)
-      const weekStart = this.getCurrentWeekStart();
+      const date = new Date();
 
       // Extract LLM versions from available results
       const allResults = [
@@ -275,7 +259,7 @@ export class ReportService implements OnModuleInit {
       // Create the batch report input with only the available data
       const batchReportInput: BatchReportInput = {
         companyId,
-        weekStart,
+        date,
         llmVersions,
         generatedAt: new Date(),
       };
@@ -337,7 +321,7 @@ export class ReportService implements OnModuleInit {
       return this.accessService.sendReportAccessEmail(
         reportId,
         token,
-        report.weekStart,
+        report.date,
         user.email,
         companyName,
       );
@@ -377,7 +361,7 @@ export class ReportService implements OnModuleInit {
         reportId,
         emailAddress,
         customSubject,
-        report.weekStart,
+        report.date,
         companyName,
       );
     } catch (error) {
