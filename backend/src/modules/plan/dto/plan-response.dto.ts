@@ -12,10 +12,6 @@ export class PlanResponseDto {
   features: string[];
   included: string[];
   stripeProductId: string;
-  stripeCheckoutUrls?: {
-    monthly?: string;
-    yearly?: string;
-  };
   maxModels: number;
   maxBrands: number;
   maxMarkets: number;

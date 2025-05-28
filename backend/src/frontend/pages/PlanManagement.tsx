@@ -35,7 +35,6 @@ import {
   updatePlan,
   deletePlan,
   getStripeProducts,
-  generateCheckoutUrls,
 } from '../utils/api-plans';
 
 interface PlanFormData {
@@ -45,10 +44,6 @@ interface PlanFormData {
   features: string[];
   included: string[];
   stripeProductId: string;
-  stripeCheckoutUrls?: {
-    monthly?: string;
-    yearly?: string;
-  };
   maxModels: number;
   maxBrands: number;
   maxMarkets: number;
@@ -88,7 +83,6 @@ export default function PlanManagement() {
   const [formData, setFormData] = useState<PlanFormData>(defaultPlanData);
   const [featureInput, setFeatureInput] = useState('');
   const [includedInput, setIncludedInput] = useState('');
-  const [generatingUrls, setGeneratingUrls] = useState<string | null>(null);
 
   useEffect(() => {
     loadPlans();
@@ -126,7 +120,6 @@ export default function PlanManagement() {
       features: plan.features,
       included: plan.included,
       stripeProductId: plan.stripeProductId,
-      stripeCheckoutUrls: plan.stripeCheckoutUrls,
       maxModels: plan.maxModels,
       maxBrands: plan.maxBrands,
       maxMarkets: plan.maxMarkets,
@@ -205,20 +198,6 @@ export default function PlanManagement() {
       ...formData,
       included: formData.included.filter((_, i) => i !== index),
     });
-  };
-
-  const handleGenerateCheckoutUrls = async (planId: string) => {
-    try {
-      setGeneratingUrls(planId);
-      const urls = await generateCheckoutUrls(planId);
-      console.log('Generated checkout URLs:', urls);
-      loadPlans(); // Reload to show updated URLs
-    } catch (err) {
-      setError('Failed to generate checkout URLs');
-      console.error(err);
-    } finally {
-      setGeneratingUrls(null);
-    }
   };
 
   if (loading) {
@@ -300,43 +279,6 @@ export default function PlanManagement() {
                   <Typography variant="body2" color="text.secondary">
                     Max Spontaneous Prompts: {plan.maxSpontaneousPrompts}
                   </Typography>
-                </Box>
-
-                {/* Checkout URLs Section */}
-                <Box mb={2}>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Stripe Checkout URLs
-                  </Typography>
-                  {plan.stripeCheckoutUrls ? (
-                    <Box>
-                      {plan.stripeCheckoutUrls.monthly && (
-                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                          Monthly: {plan.stripeCheckoutUrls.monthly.substring(0, 50)}...
-                        </Typography>
-                      )}
-                      {plan.stripeCheckoutUrls.yearly && (
-                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                          Yearly: {plan.stripeCheckoutUrls.yearly.substring(0, 50)}...
-                        </Typography>
-                      )}
-                    </Box>
-                  ) : (
-                    <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                      No checkout URLs generated
-                    </Typography>
-                  )}
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    onClick={() => handleGenerateCheckoutUrls(plan.id)}
-                    disabled={generatingUrls === plan.id || !plan.stripeProductId}
-                    sx={{ mt: 1 }}
-                  >
-                    {generatingUrls === plan.id ? (
-                      <CircularProgress size={16} sx={{ mr: 1 }} />
-                    ) : null}
-                    Generate URLs
-                  </Button>
                 </Box>
 
                 <Chip

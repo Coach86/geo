@@ -23,12 +23,6 @@ export class Plan {
   @Prop({ required: true })
   stripeProductId: string;
 
-  @Prop({ type: Object })
-  stripeCheckoutUrls: {
-    monthly?: string;
-    yearly?: string;
-  };
-
   @Prop({ required: true, default: 5 })
   maxModels: number;
 

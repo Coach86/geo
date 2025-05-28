@@ -37,11 +37,6 @@ export class PlanController {
     return this.planService.getStripeProducts();
   }
 
-  @Post(':id/generate-checkout-urls')
-  generateCheckoutUrls(@Param('id') id: string): Promise<{ monthly?: string; yearly?: string }> {
-    return this.planService.generateCheckoutUrls(id);
-  }
-
   @Post(':id/create-checkout-session')
   createCheckoutSession(
     @Param('id') planId: string,
