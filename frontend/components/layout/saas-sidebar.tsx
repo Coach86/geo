@@ -9,6 +9,7 @@ import {
   Shield,
   Swords,
   Building2,
+  Settings,
 } from "lucide-react";
 import { IdentityCardResponse } from "@/lib/auth-api";
 import {
@@ -171,6 +172,28 @@ export default function SaasSidebar({
           </ul>
         </div>
       </nav>
+
+      {/* Settings Section - Fixed at bottom */}
+      <div className="p-4 border-t">
+        <Link
+          href="/settings"
+          className={`
+            flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors
+            ${
+              pathname === "/settings"
+                ? "bg-accent-50 text-accent-700"
+                : "text-dark-600 hover:bg-dark-50"
+            }
+          `}
+        >
+          <Settings
+            className={`w-5 h-5 ${
+              pathname === "/settings" ? "text-accent-600" : "text-dark-400"
+            }`}
+          />
+          <span className="flex-1">Settings</span>
+        </Link>
+      </div>
     </aside>
   );
 }

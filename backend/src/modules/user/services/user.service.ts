@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { UpdatePhoneDto } from '../dto/update-phone.dto';
+import { UpdateEmailDto } from '../dto/update-email.dto';
 import { UserResponseDto } from '../dto/user-response.dto';
 import { UserRepository } from '../repositories/user.repository';
 import { UserDocument } from '../schemas/user.schema';
@@ -69,8 +70,7 @@ export class UserService {
   async findOne(id: string): Promise<UserResponseDto> {
     try {
       const user = await this.userRepository.findById(id);
-      const userWithCompanies = await this.userRepository.mapToEntityWithCompanies(user);
-      return this.mapToEntityDto(userWithCompanies);
+      return this.mapToResponseDto(user);
     } catch (error) {
       this.logger.error(`Failed to find user: ${error.message}`, error.stack);
       throw error;
@@ -151,6 +151,39 @@ export class UserService {
   }
 
   /**
+   * Update user email
+   * @param id - User ID
+   * @param updateEmailDto - Email update data
+   * @returns Updated user
+   */
+  async updateEmail(id: string, updateEmailDto: UpdateEmailDto): Promise<UserResponseDto> {
+    try {
+      this.logger.log(`Updating email for user: ${id}`);
+      
+      // Check if user exists
+      await this.findOne(id);
+
+      // Check if email is already taken by another user
+      const existingUser = await this.userRepository.findByEmail(updateEmailDto.email);
+      if (existingUser && existingUser.id !== id) {
+        throw new Error('Email already in use');
+      }
+
+      const updateData = {
+        email: updateEmailDto.email,
+      };
+
+      const updatedUser = await this.userRepository.update(id, updateData);
+      this.logger.log(`Email updated successfully for user: ${id}`);
+      
+      return this.mapToResponseDto(updatedUser);
+    } catch (error) {
+      this.logger.error(`Failed to update email: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
    * Remove a user
    * @param id - User ID
    * @returns Deleted user
@@ -185,6 +218,9 @@ export class UserService {
       email: entity.email,
       language: entity.language,
       phoneNumber: entity.phoneNumber,
+      stripeCustomerId: entity.stripeCustomerId,
+      stripePlanId: entity.stripePlanId,
+      planSettings: entity.planSettings,
       createdAt: entity.createdAt.toISOString(),
       updatedAt: entity.updatedAt.toISOString(),
       companyIds,
@@ -199,5 +235,20 @@ export class UserService {
   private mapToResponseDto(user: UserDocument): UserResponseDto {
     const entity = this.userRepository.mapToEntity(user);
     return this.mapToEntityDto(entity);
+  }
+
+  /**
+   * Get company IDs for a user
+   * @param userId - User ID
+   * @returns Array of company IDs
+   */
+  async getUserCompanyIds(userId: string): Promise<string[]> {
+    try {
+      const companies = await this.userRepository.findCompaniesForUser(userId);
+      return companies ? companies.map(c => c.id) : [];
+    } catch (error) {
+      this.logger.error(`Failed to get user company IDs: ${error.message}`, error.stack);
+      return [];
+    }
   }
 }

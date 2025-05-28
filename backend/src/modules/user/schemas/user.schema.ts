@@ -28,6 +28,27 @@ export class User {
 
   @Prop({ type: String, required: false })
   phoneNumber?: string;
+
+  @Prop({ type: String, required: false })
+  stripeCustomerId?: string;
+
+  @Prop({ type: String, required: false })
+  stripePlanId?: string;
+
+  @Prop({
+    type: {
+      maxBrands: { type: Number, default: 1 },
+      maxAIModels: { type: Number, default: 3 },
+    },
+    default: {
+      maxBrands: 1,
+      maxAIModels: 3,
+    },
+  })
+  planSettings: {
+    maxBrands: number;
+    maxAIModels: number;
+  };
   
   @Prop({ type: Date })
   createdAt: Date;

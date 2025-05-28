@@ -27,6 +27,29 @@ export class UserResponseDto {
   phoneNumber?: string;
 
   @ApiProperty({
+    description: 'Stripe customer ID',
+    example: 'cus_123456789',
+    required: false,
+  })
+  stripeCustomerId?: string;
+
+  @ApiProperty({
+    description: 'Stripe plan ID',
+    example: 'plan_123456789',
+    required: false,
+  })
+  stripePlanId?: string;
+
+  @ApiProperty({
+    description: 'Plan settings including limits',
+    example: { maxBrands: 1, maxAIModels: 3 },
+  })
+  planSettings: {
+    maxBrands: number;
+    maxAIModels: number;
+  };
+
+  @ApiProperty({
     description: 'Timestamp when the user was created',
     example: '2023-01-01T00:00:00.000Z',
   })

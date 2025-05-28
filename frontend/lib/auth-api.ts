@@ -347,6 +347,32 @@ export interface UpdatePhoneResponse {
   email: string;
   language: string;
   phoneNumber?: string;
+  stripeCustomerId?: string;
+  stripePlanId?: string;
+  planSettings: {
+    maxBrands: number;
+    maxAIModels: number;
+  };
+  createdAt: string;
+  updatedAt: string;
+  companyIds?: string[];
+}
+
+export interface UpdateEmailRequest {
+  email: string;
+}
+
+export interface UpdateEmailResponse {
+  id: string;
+  email: string;
+  language: string;
+  phoneNumber?: string;
+  stripeCustomerId?: string;
+  stripePlanId?: string;
+  planSettings: {
+    maxBrands: number;
+    maxAIModels: number;
+  };
   createdAt: string;
   updatedAt: string;
   companyIds?: string[];
@@ -385,11 +411,50 @@ export async function updatePhoneNumber(
   }
 }
 
+/**
+ * Update user email (requires token authentication)
+ */
+export async function updateEmail(
+  request: UpdateEmailRequest,
+  token: string
+): Promise<UpdateEmailResponse> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/user/profile/email`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const error = await response
+        .json()
+        .catch(() => ({ message: "Failed to update email" }));
+      throw new Error(error.message || "Failed to update email");
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Email update error:", error);
+    throw new Error(
+      error instanceof Error ? error.message : "Failed to update email"
+    );
+  }
+}
+
 export interface UserProfile {
   id: string;
   email: string;
   language: string;
   phoneNumber?: string;
+  stripeCustomerId?: string;
+  stripePlanId?: string;
+  planSettings: {
+    maxBrands: number;
+    maxAIModels: number;
+  };
   createdAt: string;
   updatedAt: string;
   companyIds: string[];

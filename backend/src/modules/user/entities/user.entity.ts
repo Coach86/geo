@@ -5,6 +5,12 @@ export class User {
   email: string;
   language: string;
   phoneNumber?: string;
+  stripeCustomerId?: string;
+  stripePlanId?: string;
+  planSettings: {
+    maxBrands: number;
+    maxAIModels: number;
+  };
   companies?: CompanyIdentityCard[];
   createdAt: Date;
   updatedAt: Date;
