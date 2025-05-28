@@ -55,7 +55,7 @@ export class ReportRetrievalService {
         id: document.id,
         companyId: document.companyId,
         brand: document.brand || document.companyId,
-        weekStart: document.weekStart,
+        date: document.date,
         generatedAt: document.generatedAt,
         batchExecutionId: document.batchExecutionId,
         metadata: document.metadata || {
@@ -63,7 +63,7 @@ export class ReportRetrievalService {
           market: '',
           flag: '',
           competitors: '',
-          date: document.weekStart.toISOString().split('T')[0],
+          date: document.date.toISOString().split('T')[0],
           models: '',
         },
         kpi: document.kpi || {
@@ -149,7 +149,7 @@ export class ReportRetrievalService {
       return {
         reports: reports.map((report) => ({
           id: report.id,
-          weekStart: report.weekStart,
+          date: report.date,
           generatedAt: report.generatedAt || new Date(),
           brand: report.brand || null, // Include brand if available in new structure
         })),

@@ -60,10 +60,7 @@ export class WeeklyBrandReportRepository {
    */
   async findLatestByCompanyId(companyId: string): Promise<WeeklyBrandReportDocument | null> {
     this.logger.debug(`Finding latest report for company: ${companyId}`);
-    const report = await this.weeklyReportModel
-      .findOne({ companyId })
-      .sort({ weekStart: -1 })
-      .exec();
+    const report = await this.weeklyReportModel.findOne({ companyId }).sort({ date: -1 }).exec();
     return report;
   }
 
@@ -76,7 +73,7 @@ export class WeeklyBrandReportRepository {
     this.logger.debug(`Finding latest report for company (lean): ${companyId}`);
     const report = await this.weeklyReportModel
       .findOne({ companyId })
-      .sort({ weekStart: -1 })
+      .sort({ date: -1 })
       .lean()
       .exec();
     return report;
@@ -89,10 +86,7 @@ export class WeeklyBrandReportRepository {
    */
   async findAllByCompanyId(companyId: string): Promise<WeeklyBrandReportDocument[]> {
     this.logger.debug(`Finding all reports for company: ${companyId}`);
-    const reports = await this.weeklyReportModel
-      .find({ companyId })
-      .sort({ weekStart: -1 })
-      .exec();
+    const reports = await this.weeklyReportModel.find({ companyId }).sort({ date: -1 }).exec();
     return reports;
   }
 

@@ -29,10 +29,44 @@ export interface User {
   planSettings: {
     maxBrands: number;
     maxAIModels: number;
+    maxSpontaneousPrompts?: number;
   };
   createdAt: string;
   updatedAt: string;
   companyIds?: string[];
+}
+
+// Plan interfaces
+export interface PlanPriceDto {
+  monthly: number;
+  yearly: number;
+  currency: string;
+}
+
+export interface PlanResponseDto {
+  id: string;
+  name: string;
+  tag: string;
+  subtitle: string;
+  features: string[];
+  included: string[];
+  stripeProductId: string;
+  stripeCheckoutUrls?: {
+    monthly?: string;
+    yearly?: string;
+  };
+  maxModels: number;
+  maxBrands: number;
+  maxMarkets: number;
+  maxSpontaneousPrompts: number;
+  isActive: boolean;
+  isRecommended: boolean;
+  isMostPopular: boolean;
+  order: number;
+  metadata: Record<string, any>;
+  prices?: PlanPriceDto;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 // Prompt Set interfaces
@@ -270,21 +304,4 @@ export interface BatchProcessResults {
   sentiment?: SentimentResults;
   comparison?: ComparisonResults;
   accuracy?: AccuracyResults;
-}
-
-// User interface
-export interface User {
-  id: string;
-  email: string;
-  language: string;
-  phoneNumber?: string;
-  stripeCustomerId?: string;
-  stripePlanId?: string;
-  planSettings: {
-    maxBrands: number;
-    maxAIModels: number;
-  };
-  createdAt: string;
-  updatedAt: string;
-  companyIds?: string[];
 }

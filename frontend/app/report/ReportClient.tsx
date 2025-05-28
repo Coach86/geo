@@ -17,7 +17,7 @@ import BrandReport from "@/components/reports/brand-report";
 interface ReportData {
   id: string;
   companyId: string;
-  weekStart: string;
+  date: string;
   generatedAt: string;
   // Report content sections
   brand: string;

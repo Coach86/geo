@@ -24,7 +24,7 @@ export interface BatchReportInput {
   companyId: string;
 
   /** Start of the week (Monday 00:00:00 UTC) */
-  weekStart: Date;
+  date: Date;
 
   /** Spontaneous mention results from the spontaneous pipeline */
   spontaneous?: SpontaneousResults;
@@ -147,7 +147,7 @@ export interface WeeklyBrandReportEntity {
   brand: string;
 
   /** Week start date */
-  weekStart: Date;
+  date: Date;
 
   /** Report metadata */
   metadata: {
@@ -259,7 +259,7 @@ export interface WeeklyBrandReportDocument {
   batchExecutionId?: string;
 
   /** Week start date */
-  weekStart: Date;
+  date: Date;
 
   /** Brand name from identity card */
   brand?: string;
@@ -343,7 +343,7 @@ export interface WeeklyBrandReportDocument {
  */
 export interface WeeklyReportResponseDto {
   companyId: string;
-  weekStart: Date;
+  date: Date;
   spontaneous: SpontaneousResults;
   sentiment: SentimentResults;
   comparison: ComparisonResults;

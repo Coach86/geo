@@ -1,0 +1,31 @@
+export class PlanPriceDto {
+  monthly: number;
+  yearly: number;
+  currency: string;
+}
+
+export class PlanResponseDto {
+  id: string;
+  name: string;
+  tag: string;
+  subtitle: string;
+  features: string[];
+  included: string[];
+  stripeProductId: string;
+  stripeCheckoutUrls?: {
+    monthly?: string;
+    yearly?: string;
+  };
+  maxModels: number;
+  maxBrands: number;
+  maxMarkets: number;
+  maxSpontaneousPrompts: number;
+  isActive: boolean;
+  isRecommended: boolean;
+  isMostPopular: boolean;
+  order: number;
+  metadata: Record<string, any>;
+  prices?: PlanPriceDto;
+  createdAt: Date;
+  updatedAt: Date;
+}

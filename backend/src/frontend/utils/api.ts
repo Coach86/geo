@@ -94,7 +94,7 @@ export const deleteUser = async (id: string): Promise<User> => {
 
 export const updateUserPlanSettings = async (
   id: string,
-  planSettings: { maxBrands: number; maxAIModels: number },
+  planSettings: { maxBrands: number; maxAIModels: number; maxSpontaneousPrompts?: number },
 ): Promise<User> => {
   const response = await authApi.patch(`/users/${id}/plan-settings`, planSettings);
   return response.data;
@@ -307,7 +307,7 @@ export const generateReportFromBatch = async (
   id: string;
   companyId: string;
   generatedAt: Date;
-  weekStart: Date;
+  date: Date;
   includedTypes?: string[];
   message: string;
 }> => {

@@ -6,7 +6,7 @@ export class WeeklyReportResponseDto {
   companyId: string;
 
   @ApiProperty({ description: 'Start of the week (Monday 00:00:00 UTC)' })
-  weekStart: Date;
+  date: Date;
 
   @ApiProperty({
     description: 'Spontaneous mention results per LLM and prompt',

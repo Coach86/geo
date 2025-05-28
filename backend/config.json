@@ -87,5 +87,12 @@
     "spontaneous": 150,
     "sentiment": 100,
     "comparison": 80
+  },
+  "retryConfig": {
+    "maxRetries": 3,
+    "baseDelayMs": 1000,
+    "maxDelayMs": 30000,
+    "backoffFactor": 2.0,
+    "description": "Retry configuration for LLM API calls when rate limited"
   }
 }

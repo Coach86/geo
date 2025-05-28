@@ -125,7 +125,7 @@ export class AdminReportController {
         id: report.id,
         companyId: report.companyId,
         generatedAt: report.generatedAt,
-        weekStart: report.weekStart,
+        date: report.date,
         message: `Report generated successfully from batch execution ${batchExecutionId}`,
       };
     } catch (error) {
@@ -147,7 +147,9 @@ export class AdminReportController {
   })
   @ApiResponse({ status: 400, description: 'Invalid request' })
   @ApiResponse({ status: 404, description: 'Report not found' })
-  async generateReportToken(@Param('reportId') reportId: string): Promise<ReportTokenDebugResponseDto> {
+  async generateReportToken(
+    @Param('reportId') reportId: string,
+  ): Promise<ReportTokenDebugResponseDto> {
     try {
       this.logger.log(`Admin generating token for report ${reportId}`);
 

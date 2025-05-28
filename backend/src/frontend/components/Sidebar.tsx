@@ -17,6 +17,7 @@ import PeopleIcon from '@mui/icons-material/People';
 import AppIcon from '@mui/icons-material/Apps';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import LightModeIcon from '@mui/icons-material/LightMode';
+import CardMembershipIcon from '@mui/icons-material/CardMembership';
 import { useThemeContext } from '../utils/ThemeContext';
 import logo from '../assets/logo-small.png';
 
@@ -36,6 +37,11 @@ const managementItems = [
     title: 'Users',
     path: '/users',
     icon: <PeopleIcon />,
+  },
+  {
+    title: 'Plans',
+    path: '/plans',
+    icon: <CardMembershipIcon />,
   },
 ];
 

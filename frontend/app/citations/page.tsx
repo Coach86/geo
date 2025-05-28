@@ -348,6 +348,16 @@ export default function CitationsPage() {
                         </Badge>
                       </div>
                     </div>
+                    <div className="pt-2 border-t">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">
+                          Total Citations
+                        </span>
+                        <span className="text-lg font-semibold text-gray-900">
+                          {citationsData.citations.length}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
