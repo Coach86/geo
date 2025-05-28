@@ -92,6 +92,14 @@ export const deleteUser = async (id: string): Promise<User> => {
   return response.data;
 };
 
+export const updateUserPlanSettings = async (
+  id: string,
+  planSettings: { maxBrands: number; maxAIModels: number },
+): Promise<User> => {
+  const response = await authApi.patch(`/users/${id}/plan-settings`, planSettings);
+  return response.data;
+};
+
 // Config API
 export const getConfig = async () => {
   const response = await authApi.get('/config');

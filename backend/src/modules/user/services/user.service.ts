@@ -113,6 +113,7 @@ export class UserService {
         ...(updateUserDto.email && { email: updateUserDto.email }),
         ...(updateUserDto.language && { language: updateUserDto.language }),
         ...(updateUserDto.phoneNumber !== undefined && { phoneNumber: updateUserDto.phoneNumber }),
+        ...(updateUserDto.planSettings && { planSettings: updateUserDto.planSettings }),
       };
 
       const updatedUser = await this.userRepository.update(id, updateData);

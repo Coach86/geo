@@ -1,5 +1,22 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsOptional, IsString, Matches } from 'class-validator';
+import { IsEmail, IsOptional, IsString, Matches, IsObject, ValidateNested, IsNumber } from 'class-validator';
+import { Type } from 'class-transformer';
+
+class PlanSettingsDto {
+  @ApiProperty({
+    description: 'Maximum number of brands allowed',
+    example: 1,
+  })
+  @IsNumber()
+  maxBrands: number;
+
+  @ApiProperty({
+    description: 'Maximum number of AI models allowed',
+    example: 3,
+  })
+  @IsNumber()
+  maxAIModels: number;
+}
 
 export class UpdateUserDto {
   @ApiProperty({
@@ -29,4 +46,15 @@ export class UpdateUserDto {
     message: 'Phone number must be a valid international format (e.g., +1234567890)' 
   })
   phoneNumber?: string;
+
+  @ApiProperty({
+    description: 'Plan settings for the user',
+    type: PlanSettingsDto,
+    required: false,
+  })
+  @IsObject()
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PlanSettingsDto)
+  planSettings?: PlanSettingsDto;
 }
