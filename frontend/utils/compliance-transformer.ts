@@ -2,15 +2,28 @@ import type {
   ComplianceResults,
   ComplianceSummary,
   DetailedComplianceResult,
-  AttributeScore,
   AttributeAlignmentSummaryItem,
 } from "@/types/compliance";
 
-// Locally define AccuracyResults and AccuracyPipelineResult types (matching backend)
+/**
+ * Backend accuracy result types - properly typed versions of what we receive from the API
+ */
 interface AttributeAccuracyScore {
   attribute: string;
   score: number;
   evaluation: string;
+}
+
+interface Citation {
+  url: string;
+  title?: string;
+  text?: string;
+}
+
+interface ToolUsage {
+  type: string;
+  input?: Record<string, unknown>;
+  execution?: Record<string, unknown>;
 }
 
 interface AccuracyPipelineResult {
@@ -21,73 +34,139 @@ interface AccuracyPipelineResult {
   llmResponse?: string;
   error?: string;
   usedWebSearch?: boolean;
-  citations?: any[];
-  toolUsage?: any[];
-  webSearchQueries?: any[];
+  citations?: Citation[];
+  toolUsage?: ToolUsage[];
+}
+
+interface AccuracySummary {
+  averageAttributeScores: Record<string, number>;
+  overallComplianceScore?: number;
+  attributeAlignmentSummary?: AttributeAlignmentSummaryItem[];
 }
 
 interface AccuracyResults {
   results: AccuracyPipelineResult[];
-  summary: {
-    averageAttributeScores: Record<string, number>;
-    [key: string]: unknown;
+  summary: AccuracySummary;
+  webSearchSummary?: {
+    usedWebSearch: boolean;
+    webSearchCount: number;
+    consultedWebsites: string[];
   };
-  webSearchSummary?: unknown;
 }
 
-// Transform batch accuracy result to compliance format
+/**
+ * Calculates overall compliance score from attribute scores
+ */
+function calculateOverallScore(attributeScores: Record<string, number>): number {
+  const scores = Object.values(attributeScores).filter(score => 
+    typeof score === 'number' && !isNaN(score)
+  );
+  
+  if (scores.length === 0) {
+    return 0;
+  }
+  
+  return scores.reduce((sum, score) => sum + score, 0) / scores.length;
+}
+
+/**
+ * Converts a score (0-1) to a qualitative alignment indicator
+ */
+function scoreToAlignment(score: number): string {
+  if (score >= 0.8) return "✅ High";
+  if (score >= 0.6) return "⚠️ Medium"; 
+  return "❌ Low";
+}
+
+/**
+ * Calculates mention rate as a percentage
+ */
+function calculateMentionRate(
+  attribute: string,
+  results: AccuracyPipelineResult[]
+): string {
+  const totalResults = results.length;
+  if (totalResults === 0) return "0%";
+  
+  const mentionCount = results.filter(result => 
+    result.attributeScores?.some(score => score.attribute === attribute)
+  ).length;
+  
+  const percentage = Math.round((mentionCount / totalResults) * 100);
+  return `${percentage}%`;
+}
+
+/**
+ * Creates attribute alignment summary from average scores
+ */
+function createAttributeAlignmentSummary(
+  attributeScores: Record<string, number>,
+  results: AccuracyPipelineResult[]
+): AttributeAlignmentSummaryItem[] {
+  return Object.entries(attributeScores).map(([attribute, averageScore]) => ({
+    name: attribute,
+    mentionRate: calculateMentionRate(attribute, results),
+    alignment: scoreToAlignment(averageScore)
+  }));
+}
+
+/**
+ * Transforms backend accuracy results to frontend compliance format
+ */
 export function transformAccordToCompliance(
   batchResult: AccuracyResults
 ): ComplianceResults {
-  if (!batchResult) {
-    throw new Error("No batch result data available");
+  if (!batchResult || typeof batchResult !== 'object') {
+    throw new Error("Invalid batch result data");
   }
 
-  // Use summary and results directly from batch result
-  const summary: ComplianceSummary =
-    batchResult.summary && typeof batchResult.summary === "object"
-      ? {
-          overallComplianceScore:
-            (batchResult.summary as any).overallComplianceScore ?? 0,
-          averageAttributeScores:
-            (batchResult.summary as any).averageAttributeScores ?? {},
-          attributeAlignmentSummary:
-            (batchResult.summary as any).attributeAlignmentSummary ?? [],
-        }
-      : {
-          overallComplianceScore: 0,
-          averageAttributeScores: {},
-          attributeAlignmentSummary: [],
-        };
-
-  // If the summary does not have overallComplianceScore, try to infer it from averageAttributeScores
-  if (
-    summary &&
-    summary.averageAttributeScores &&
-    (summary as any).overallComplianceScore === undefined
-  ) {
-    const scores = Object.values(summary.averageAttributeScores).map(Number);
-    (summary as any).overallComplianceScore =
-      scores.length > 0
-        ? scores.reduce((a, b) => Number(a) + Number(b), 0) / scores.length
-        : 0;
+  if (!Array.isArray(batchResult.results)) {
+    throw new Error("Batch result must contain a results array");
   }
 
-  // Use detailed results from batch result
-  const detailedResults: DetailedComplianceResult[] = Array.isArray(
-    batchResult.results
-  )
-    ? batchResult.results.map((result) => ({
-        llmProvider: result.llmProvider,
-        promptIndex: result.promptIndex,
-        originalPrompt: result.originalPrompt,
-        llmResponse: result.llmResponse,
-        attributeScores: result.attributeScores || [],
-        citations: result.citations || [],
-        toolUsage: result.toolUsage || [],
-        error: result.error,
-      }))
-    : [];
+  if (!batchResult.summary || typeof batchResult.summary !== 'object') {
+    throw new Error("Batch result must contain a summary object");
+  }
 
-  return { summary, detailedResults };
+  const { summary: rawSummary, results } = batchResult;
+
+  // Ensure averageAttributeScores is a valid object
+  const averageAttributeScores = rawSummary.averageAttributeScores || {};
+  
+  // Calculate overall compliance score if not provided
+  const overallComplianceScore = rawSummary.overallComplianceScore ?? 
+    calculateOverallScore(averageAttributeScores);
+
+  // Create attribute alignment summary if not provided
+  const attributeAlignmentSummary = rawSummary.attributeAlignmentSummary ?? 
+    createAttributeAlignmentSummary(averageAttributeScores, results);
+
+  const summary: ComplianceSummary = {
+    overallComplianceScore,
+    averageAttributeScores,
+    attributeAlignmentSummary
+  };
+
+  // Transform detailed results with proper type safety
+  const detailedResults: DetailedComplianceResult[] = results.map(result => ({
+    llmProvider: result.llmProvider,
+    promptIndex: result.promptIndex,
+    originalPrompt: result.originalPrompt || '',
+    llmResponse: result.llmResponse || '',
+    attributeScores: result.attributeScores || [],
+    citations: result.citations || [],
+    toolUsage: result.toolUsage || [],
+    error: result.error
+  }));
+
+  console.log('Transformed compliance results:', {
+    overallScore: summary.overallComplianceScore,
+    attributeCount: Object.keys(summary.averageAttributeScores).length,
+    resultsCount: detailedResults.length
+  });
+
+  return {
+    summary,
+    detailedResults
+  };
 }
