@@ -30,72 +30,11 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { FeatureComparisonDialog } from "@/components/shared/dialogs/feature-comparison-dialog";
 import { analyzeWebsite, type IdentityCardResponse } from "@/lib/auth-api";
-
-// Map of countries to their default languages
-const countryToLanguage: Record<string, string[]> = {
-  "United States": ["English"],
-  "United Kingdom": ["English"],
-  Canada: ["English", "Français"],
-  Australia: ["English"],
-  France: ["Français"],
-  Germany: ["Deutsch"],
-  Japan: ["日本語"],
-  China: ["中文"],
-  India: ["English", "हिन्दी"],
-  Brazil: ["Português"],
-  Mexico: ["Español"],
-  Spain: ["Español"],
-  Italy: ["Italiano"],
-  Netherlands: ["Nederlands"],
-  Sweden: ["Svenska"],
-  Switzerland: ["Deutsch", "Français", "Italiano"],
-  Singapore: ["English", "中文"],
-  "South Korea": ["한국어"],
-  Russia: ["Русский"],
-  "South Africa": ["English"],
-};
-
-// Liste des pays avec leurs drapeaux
-const countries = [
-  { value: "United States", label: "🇺🇸 United States" },
-  { value: "United Kingdom", label: "🇬🇧 United Kingdom" },
-  { value: "Canada", label: "🇨🇦 Canada" },
-  { value: "Australia", label: "🇦🇺 Australia" },
-  { value: "France", label: "🇫🇷 France" },
-  { value: "Germany", label: "🇩🇪 Germany" },
-  { value: "Japan", label: "🇯🇵 Japan" },
-  { value: "China", label: "🇨🇳 China" },
-  { value: "India", label: "🇮🇳 India" },
-  { value: "Brazil", label: "🇧🇷 Brazil" },
-  { value: "Mexico", label: "🇲🇽 Mexico" },
-  { value: "Spain", label: "🇪🇸 Spain" },
-  { value: "Italy", label: "🇮🇹 Italy" },
-  { value: "Netherlands", label: "🇳🇱 Netherlands" },
-  { value: "Sweden", label: "🇸🇪 Sweden" },
-  { value: "Switzerland", label: "🇨🇭 Switzerland" },
-  { value: "Singapore", label: "🇸🇬 Singapore" },
-  { value: "South Korea", label: "🇰🇷 South Korea" },
-  { value: "Russia", label: "🇷🇺 Russia" },
-  { value: "South Africa", label: "🇿🇦 South Africa" },
-];
-
-// Liste des langues avec leurs drapeaux
-const languages = [
-  { value: "English", label: "🇬🇧 English" },
-  { value: "Français", label: "🇫🇷 Français" },
-  { value: "Español", label: "🇪🇸 Español" },
-  { value: "Deutsch", label: "🇩🇪 Deutsch" },
-  { value: "Italiano", label: "🇮🇹 Italiano" },
-  { value: "Português", label: "🇵🇹 Português" },
-  { value: "Nederlands", label: "🇳🇱 Netherlands" },
-  { value: "Svenska", label: "🇸🇪 Svenska" },
-  { value: "日本語", label: "🇯🇵 日本語" },
-  { value: "中文", label: "🇨🇳 China" },
-  { value: "한국어", label: "🇰🇷 한국어" },
-  { value: "Русский", label: "🇷🇺 Russia" },
-  { value: "العربية", label: "🇸🇦 العربية" },
-  { value: "हिन्दी", label: "🇮🇳 हिन्दी" },
-];
+import { 
+  countries, 
+  languages, 
+  countryToLanguage 
+} from "@/constants/markets-languages";
 
 export default function CompanyInfo() {
   const router = useRouter();

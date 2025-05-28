@@ -285,6 +285,49 @@ export async function createIdentityCard(
   }
 }
 
+export interface CreateCompanyFromUrlRequest {
+  url: string;
+  market: string;
+  language?: string;
+}
+
+/**
+ * Create identity card from URL (requires token authentication)
+ */
+export async function createCompanyFromUrl(
+  request: CreateCompanyFromUrlRequest,
+  token: string
+): Promise<IdentityCardResponse> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/user/identity-card/create-from-url`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: "Failed to create company" }));
+      
+      // Pass through the full error object for plan limit errors
+      if (errorData.code === "BRAND_LIMIT_EXCEEDED") {
+        const error = new Error(errorData.message);
+        (error as any).response = { data: errorData };
+        throw error;
+      }
+      
+      throw new Error(errorData.message || "Failed to create company");
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Company creation error:", error);
+    throw error;
+  }
+}
+
 export interface GeneratePromptsRequest {
   brandName: string;
   website: string;

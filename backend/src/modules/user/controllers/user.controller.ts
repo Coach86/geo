@@ -92,6 +92,25 @@ export class UserController {
     return await this.userService.update(id, updateUserDto);
   }
 
+  @Patch(':id/plan-settings')
+  @ApiOperation({ summary: 'Update user plan settings' })
+  @ApiParam({ name: 'id', description: 'User ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Plan settings successfully updated',
+    type: UserResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'User not found',
+  })
+  async updatePlanSettings(
+    @Param('id') id: string,
+    @Body() planSettings: { maxBrands: number; maxAIModels: number },
+  ): Promise<UserResponseDto> {
+    return await this.userService.update(id, { planSettings });
+  }
+
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a user' })
   @ApiParam({ name: 'id', description: 'User ID' })

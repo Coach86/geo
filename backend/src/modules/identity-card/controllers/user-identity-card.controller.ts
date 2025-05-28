@@ -210,6 +210,105 @@ export class UserIdentityCardController {
     }
   }
 
+  @Post('create-from-url')
+  @TokenRoute() // Mark this route as token-authenticated
+  @ApiOperation({ summary: 'Create identity card from URL analysis' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        url: { type: 'string', format: 'uri', example: 'https://example.com' },
+        market: { type: 'string', example: 'United States' },
+        language: { type: 'string', example: 'en' },
+      },
+      required: ['url', 'market'],
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Identity card created successfully',
+    type: IdentityCardResponseDto,
+  })
+  @ApiResponse({ status: 400, description: 'Invalid URL or request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Token required' })
+  @ApiResponse({ status: 403, description: 'Plan limit exceeded' })
+  async createFromUrl(
+    @Req() request: any,
+    @Body() body: { url: string; market: string; language?: string },
+  ): Promise<IdentityCardResponseDto> {
+    try {
+      this.logger.log(`Token-based identity card creation from URL: ${body.url}`);
+      
+      // Validate user authentication
+      if (!request.userId) {
+        if (request.token) {
+          const validation = await this.tokenService.validateAccessToken(request.token);
+          if (validation.valid && validation.userId) {
+            request.userId = validation.userId;
+          } else {
+            throw new UnauthorizedException('Invalid or expired token');
+          }
+        } else {
+          throw new UnauthorizedException('User not authenticated');
+        }
+      }
+
+      // Market is required
+      if (!body.market) {
+        throw new BadRequestException('Market is required');
+      }
+
+      // Check user plan limits
+      const user = await this.identityCardRepository.findUserById(request.userId);
+      if (!user) {
+        throw new BadRequestException('User not found');
+      }
+
+      // Get existing companies count
+      const existingCompanies = await this.identityCardService.findAll(request.userId);
+      const currentBrandCount = existingCompanies.length;
+      const maxBrands = user.planSettings?.maxBrands || 1;
+
+      if (currentBrandCount >= maxBrands) {
+        this.logger.warn(`User ${request.userId} has reached their brand limit: ${currentBrandCount}/${maxBrands}`);
+        throw new BadRequestException({
+          message: 'Brand limit reached',
+          code: 'BRAND_LIMIT_EXCEEDED',
+          currentCount: currentBrandCount,
+          maxAllowed: maxBrands,
+        });
+      }
+
+      this.logger.log(`Creating identity card for user ${request.userId} from URL: ${body.url}`);
+      
+      // Create DTO for identity card service
+      const createDto = new CreateIdentityCardDto();
+      createDto.url = body.url;
+      createDto.userId = request.userId;
+      
+      if (!createDto.data) {
+        createDto.data = {};
+      }
+      createDto.data.market = body.market;
+      
+      if (body.language) {
+        createDto.data.language = body.language;
+      }
+
+      // Create the identity card
+      const identityCard = await this.identityCardService.create(createDto);
+      
+      this.logger.log(`Identity card created successfully with ID: ${identityCard.companyId}`);
+      return this.mapToResponseDto(identityCard);
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof UnauthorizedException) {
+        throw error;
+      }
+      this.logger.error(`Failed to create identity card from URL: ${error.message}`, error.stack);
+      throw new BadRequestException(`Failed to create identity card: ${error.message}`);
+    }
+  }
+
   @Post('create')
   @TokenRoute() // Mark this route as token-authenticated
   @ApiOperation({ summary: 'Save identity card data directly (without re-analysis)' })

@@ -23,13 +23,18 @@ import AddIcon from '@mui/icons-material/Add';
 import BusinessIcon from '@mui/icons-material/Business';
 import EmailIcon from '@mui/icons-material/Email';
 import LanguageIcon from '@mui/icons-material/Language';
+import SettingsIcon from '@mui/icons-material/Settings';
+import CreditCardIcon from '@mui/icons-material/CreditCard';
 import { getUsers } from '../utils/api';
 import { User } from '../utils/types';
+import { EditPlanSettingsDialog } from '../components/EditPlanSettingsDialog';
 
 const UserList: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isPlanSettingsOpen, setIsPlanSettingsOpen] = useState(false);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -47,6 +52,22 @@ const UserList: React.FC = () => {
 
     fetchUsers();
   }, []);
+
+  const handleEditPlanSettings = (user: User) => {
+    setSelectedUser(user);
+    setIsPlanSettingsOpen(true);
+  };
+
+  const handlePlanSettingsUpdate = (updatedUser: User) => {
+    setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
+  };
+
+  const getPlanBadge = (user: User) => {
+    if (!user.stripePlanId) {
+      return <Chip label="Free" size="small" color="default" />;
+    }
+    return <Chip label="Pro" size="small" color="primary" />;
+  };
 
   if (loading) {
     return (
@@ -113,8 +134,11 @@ const UserList: React.FC = () => {
                   <TableRow>
                     <TableCell>Email</TableCell>
                     <TableCell>Language</TableCell>
-                    <TableCell>Companies</TableCell>
+                    <TableCell>Plan</TableCell>
+                    <TableCell>Brands</TableCell>
+                    <TableCell>AI Models</TableCell>
                     <TableCell>Created</TableCell>
+                    <TableCell align="center">Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -138,15 +162,41 @@ const UserList: React.FC = () => {
                         </Box>
                       </TableCell>
                       <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <CreditCardIcon sx={{ mr: 1, color: 'text.secondary', fontSize: 20 }} />
+                          {getPlanBadge(user)}
+                        </Box>
+                      </TableCell>
+                      <TableCell>
                         <Chip
                           icon={<BusinessIcon />}
-                          label={user.companyIds?.length || 0}
+                          label={`${user.companyIds?.length || 0} / ${user.planSettings?.maxBrands || 1}`}
                           size="small"
-                          color={user.companyIds && user.companyIds.length > 0 ? "success" : "default"}
+                          color={
+                            (user.companyIds?.length || 0) >= (user.planSettings?.maxBrands || 1) 
+                              ? "warning" 
+                              : "success"
+                          }
                         />
                       </TableCell>
                       <TableCell>
+                        <Typography variant="body2">
+                          {user.planSettings?.maxAIModels || 3}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
                         {new Date(user.createdAt).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell align="center">
+                        <Tooltip title="Edit Plan Settings">
+                          <IconButton 
+                            size="small" 
+                            onClick={() => handleEditPlanSettings(user)}
+                            color="primary"
+                          >
+                            <SettingsIcon />
+                          </IconButton>
+                        </Tooltip>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -156,6 +206,14 @@ const UserList: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Plan Settings Dialog */}
+      <EditPlanSettingsDialog
+        open={isPlanSettingsOpen}
+        onClose={() => setIsPlanSettingsOpen(false)}
+        user={selectedUser}
+        onUpdate={handlePlanSettingsUpdate}
+      />
     </Container>
   );
 };

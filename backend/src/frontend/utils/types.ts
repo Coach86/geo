@@ -23,6 +23,13 @@ export interface User {
   id: string;
   email: string;
   language: string;
+  phoneNumber?: string;
+  stripeCustomerId?: string;
+  stripePlanId?: string;
+  planSettings: {
+    maxBrands: number;
+    maxAIModels: number;
+  };
   createdAt: string;
   updatedAt: string;
   companyIds?: string[];
@@ -270,6 +277,13 @@ export interface User {
   id: string;
   email: string;
   language: string;
+  phoneNumber?: string;
+  stripeCustomerId?: string;
+  stripePlanId?: string;
+  planSettings: {
+    maxBrands: number;
+    maxAIModels: number;
+  };
   createdAt: string;
   updatedAt: string;
   companyIds?: string[];

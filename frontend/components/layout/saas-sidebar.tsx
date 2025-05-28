@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import {
   User,
   Eye,
@@ -12,7 +13,11 @@ import {
   Settings,
   Plus,
 } from "lucide-react";
-import { IdentityCardResponse } from "@/lib/auth-api";
+import { 
+  IdentityCardResponse, 
+  getUserProfile, 
+  createCompanyFromUrl 
+} from "@/lib/auth-api";
 import {
   Select,
   SelectContent,
@@ -20,6 +25,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import AddCompanyModal from "@/components/AddCompanyModal";
+import { useAuth } from "@/providers/auth-provider";
+import { toast } from "sonner";
 
 interface SidebarItem {
   label: string;
@@ -52,6 +60,57 @@ export default function SaasSidebar({
   onCompanySelect,
 }: SaasSidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { token } = useAuth();
+  const [isAddCompanyModalOpen, setIsAddCompanyModalOpen] = useState(false);
+  const [userProfile, setUserProfile] = useState<any>(null);
+
+  // Fetch user profile to check plan limits
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!token) return;
+      try {
+        const profile = await getUserProfile(token);
+        setUserProfile(profile);
+      } catch (error) {
+        console.error("Failed to fetch user profile:", error);
+      }
+    };
+    fetchProfile();
+  }, [token]);
+
+  const handleAddCompanyClick = () => {
+    if (!userProfile) {
+      setIsAddCompanyModalOpen(true);
+      return;
+    }
+
+    const currentBrandCount = identityCards.length;
+    const maxBrands = userProfile.planSettings?.maxBrands || 1;
+
+    if (currentBrandCount >= maxBrands) {
+      // Redirect to update plan page
+      router.push("/update-plan");
+    } else {
+      setIsAddCompanyModalOpen(true);
+    }
+  };
+
+  const handleCreateCompany = async (data: {
+    url: string;
+    market: string;
+    language: string;
+  }) => {
+    if (!token) throw new Error("Not authenticated");
+    
+    const result = await createCompanyFromUrl(data, token);
+    return result;
+  };
+
+  const handleCompanyCreated = (companyId: string) => {
+    // Reload the page to refresh the company list
+    window.location.reload();
+  };
 
   return (
     <aside className="fixed left-0 top-0 z-30 flex h-full w-60 flex-col border-r bg-white shadow-sm">
@@ -178,13 +237,13 @@ export default function SaasSidebar({
       <div className="border-t">
         {/* Add Company Button */}
         <div className="p-4 pb-2">
-          <Link
-            href="/onboarding"
+          <button
+            onClick={handleAddCompanyClick}
             className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors bg-primary-50 text-primary-700 hover:bg-primary-100 w-full"
           >
             <Plus className="w-5 h-5 text-primary-600" />
             <span className="flex-1">Add Company</span>
-          </Link>
+          </button>
         </div>
 
         {/* Settings Link */}
@@ -209,6 +268,14 @@ export default function SaasSidebar({
           </Link>
         </div>
       </div>
+      
+      {/* Add Company Modal */}
+      <AddCompanyModal
+        isOpen={isAddCompanyModalOpen}
+        onClose={() => setIsAddCompanyModalOpen(false)}
+        onSuccess={handleCompanyCreated}
+        onCreateCompany={handleCreateCompany}
+      />
     </aside>
   );
 }
