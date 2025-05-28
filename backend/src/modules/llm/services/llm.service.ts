@@ -4,12 +4,14 @@ import pLimit from 'p-limit';
 import { LlmAdapter, LlmCallOptions, LlmResponse } from '../interfaces/llm-adapter.interface';
 import { ZodSchema } from 'zod';
 import { LlmProvider } from '../interfaces/llm-provider.enum';
+import { RetryUtil, RetryOptions } from '../../../utils/retry.util';
 
 @Injectable()
 export class LlmService {
   private readonly logger = new Logger(LlmService.name);
   private readonly limiter: ReturnType<typeof pLimit>;
   private readonly adapters: Record<LlmProvider, LlmAdapter>;
+  private readonly retryOptions: RetryOptions;
 
   constructor(
     private readonly configService: ConfigService,
@@ -23,7 +25,22 @@ export class LlmService {
 
     this.limiter = pLimit(concurrencyLimit);
     this.adapters = llmAdapters;
+
+    // Configure retry options from environment variables
+    this.retryOptions = {
+      maxRetries: parseInt(this.configService.get<string>('LLM_MAX_RETRIES', '3'), 10),
+      baseDelayMs: parseInt(this.configService.get<string>('LLM_BASE_DELAY_MS', '1000'), 10),
+      maxDelayMs: parseInt(this.configService.get<string>('LLM_MAX_DELAY_MS', '30000'), 10),
+      backoffFactor: parseFloat(this.configService.get<string>('LLM_BACKOFF_FACTOR', '2.0')),
+      retryCondition: RetryUtil.isRateLimitError,
+    };
+
     this.logger.log(`Initialized LLM service with concurrency limit of ${concurrencyLimit}`);
+    this.logger.log(
+      `Retry configuration: maxRetries=${this.retryOptions.maxRetries}, ` +
+      `baseDelay=${this.retryOptions.baseDelayMs}ms, maxDelay=${this.retryOptions.maxDelayMs}ms, ` +
+      `backoffFactor=${this.retryOptions.backoffFactor}`
+    );
   }
 
   /**
@@ -49,11 +66,15 @@ export class LlmService {
     const promises = adapters.map((adapter) =>
       this.limiter(async () => {
         try {
-          const response = await adapter.call(prompt, options);
+          const response = await RetryUtil.withRetry(
+            () => adapter.call(prompt, options),
+            this.retryOptions,
+            `${adapter.name} API call`
+          );
           results[adapter.name] = response;
           return { adapter: adapter.name, success: true };
         } catch (error) {
-          this.logger.error(`Error calling ${adapter.name}: ${error.message}`);
+          this.logger.error(`Error calling ${adapter.name} after retries: ${error.message}`);
           return { adapter: adapter.name, success: false, error: error.message };
         }
       }),
@@ -73,7 +94,13 @@ export class LlmService {
     options?: LlmCallOptions,
   ): Promise<LlmResponse> {
     const adapter = this.getAdapter(provider);
-    return this.limiter(() => adapter.call(prompt, options));
+    return this.limiter(() => 
+      RetryUtil.withRetry(
+        () => adapter.call(prompt, options),
+        this.retryOptions,
+        `${provider} API call`
+      )
+    );
   }
 
   /**
@@ -95,7 +122,13 @@ export class LlmService {
       throw new Error(`Provider '${provider}' does not support structured output`);
     }
 
-    return this.limiter(() => adapter.getStructuredOutput!(prompt, schema, options));
+    return this.limiter(() => 
+      RetryUtil.withRetry(
+        () => adapter.getStructuredOutput!(prompt, schema, options),
+        this.retryOptions,
+        `${provider} structured output call`
+      )
+    );
   }
 
   /**
