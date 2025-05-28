@@ -154,7 +154,7 @@ export default function Home() {
         )}
 
         {!loading && !error && selectedCompany && (
-          <div className="space-y-6 animate-in fade-in-50 duration-500">
+          <div className="space-y-6">
             {/* Company Header */}
             <CompanyHeader 
               company={selectedCompany}
