@@ -333,7 +333,7 @@ export default function AttributeScoresByModelTable({
                                 <strong>Query:</strong>{" "}
                                 {tool.parameters?.query || "N/A"}
                               </p>
-                              <p>
+                              <div>
                                 <strong>Status:</strong>{" "}
                                 <Badge
                                   variant={
@@ -344,7 +344,7 @@ export default function AttributeScoresByModelTable({
                                 >
                                   {tool.execution_details?.status || "N/A"}
                                 </Badge>
-                              </p>
+                              </div>
                               {tool.execution_details?.result && (
                                 <p className="mt-1 italic">
                                   Result:{" "}
