@@ -24,7 +24,6 @@ import {
 } from '@mui/material';
 import {
   Edit as EditIcon,
-  Delete as DeleteIcon,
   Add as AddIcon,
   DragIndicator as DragIcon,
 } from '@mui/icons-material';
@@ -33,7 +32,6 @@ import {
   getPlans,
   createPlan,
   updatePlan,
-  deletePlan,
   getStripeProducts,
 } from '../utils/api-plans';
 
@@ -154,17 +152,6 @@ export default function PlanManagement() {
     }
   };
 
-  const handleDelete = async (planId: string) => {
-    if (window.confirm('Are you sure you want to delete this plan?')) {
-      try {
-        await deletePlan(planId);
-        loadPlans();
-      } catch (err) {
-        setError('Failed to delete plan');
-        console.error(err);
-      }
-    }
-  };
 
   const addFeature = () => {
     if (featureInput.trim()) {
@@ -290,9 +277,6 @@ export default function PlanManagement() {
               <CardActions>
                 <IconButton onClick={() => handleEdit(plan)} color="primary">
                   <EditIcon />
-                </IconButton>
-                <IconButton onClick={() => handleDelete(plan.id)} color="error">
-                  <DeleteIcon />
                 </IconButton>
               </CardActions>
             </Card>

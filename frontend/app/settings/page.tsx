@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/layout/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -32,6 +33,7 @@ interface UserProfile {
 
 export default function SettingsPage() {
   const { token } = useAuth();
+  const router = useRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -200,7 +202,9 @@ export default function SettingsPage() {
                       <Badge variant="secondary">{profile.stripePlanId || "free"}</Badge>
                     </div>
                   </div>
-                  <Button variant="outline">Upgrade Plan</Button>
+                  <Button variant="outline" onClick={() => router.push('/update-plan')}>
+                    Upgrade Plan
+                  </Button>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 pt-4">
