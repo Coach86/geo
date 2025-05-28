@@ -13,7 +13,6 @@ import { AlertCircle, Check, Mail, Crown, Building } from "lucide-react";
 import { useAuth } from "@/providers/auth-provider";
 import { getUserProfile, updateEmail } from "@/lib/auth-api";
 import { toast } from "sonner";
-import { motion } from "framer-motion";
 
 interface UserProfile {
   id: string;
@@ -145,11 +144,7 @@ export default function SettingsPage() {
 
         <div className="space-y-6">
           {/* Account Information */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
+          <div>
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -185,14 +180,10 @@ export default function SettingsPage() {
                 </div>
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
 
           {/* Plan Information */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.1 }}
-          >
+          <div>
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -260,7 +251,7 @@ export default function SettingsPage() {
                 )}
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
         </div>
       </div>
     </DashboardLayout>

@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, X, Crown, Building, Zap } from "lucide-react";
-import { motion } from "framer-motion";
 
 const PLANS = [
   {
@@ -94,12 +93,7 @@ export default function UpdatePlanPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {PLANS.map((plan, index) => (
-            <motion.div
-              key={plan.name}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.1 }}
-            >
+            <div key={plan.name}>
               <Card className={`relative h-full ${plan.popular ? "border-primary shadow-lg" : ""}`}>
                 {plan.popular && (
                   <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
@@ -147,7 +141,7 @@ export default function UpdatePlanPage() {
                   </div>
                 </CardContent>
               </Card>
-            </motion.div>
+            </div>
           ))}
         </div>
 

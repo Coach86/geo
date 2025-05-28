@@ -31,7 +31,6 @@ import {
   CitationsData,
 } from "@/lib/auth-api";
 import type { ReportResponse } from "@/types/reports";
-import { motion } from "framer-motion";
 import type { HTMLAttributes } from "react";
 
 interface ProcessedReport extends ReportResponse {}
@@ -303,12 +302,7 @@ export default function CitationsPage() {
 
         {/* Citations Content */}
         {!loading && !loadingCitations && selectedReport && citationsData && (
-          <motion.div
-            className="space-y-6"
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: [0.4, 0, 0.2, 1] }}
-          >
+          <div className="space-y-6">
             {/* First Row: Two Columns */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Web Access Stats */}
@@ -508,7 +502,7 @@ export default function CitationsPage() {
                 )}
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
         )}
 
         {/* No Reports State */}

@@ -9,8 +9,6 @@ import {
   AccordionTrigger,
   AccordionContent,
 } from "@/components/ui/accordion";
-import { motion } from "framer-motion";
-import { useInView } from "react-intersection-observer";
 import AttributeScoresByModelTable from "@/components/compliance/attribute-scores-table";
 import { getCompanyReports, getBatchResults } from "@/lib/auth-api";
 import { useAuth } from "@/providers/auth-provider";
@@ -52,15 +50,7 @@ export default function CompliancePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [overviewRef, overviewInView] = useInView({
-    triggerOnce: true,
-    threshold: 0.1,
-  });
 
-  const [tableRef, tableInView] = useInView({
-    triggerOnce: true,
-    threshold: 0.1,
-  });
 
   // Get selected company from localStorage and listen for changes
   useEffect(() => {
@@ -282,12 +272,7 @@ export default function CompliancePage() {
             </span>
           </div>
 
-          <motion.div
-            ref={tableRef}
-            initial={{ opacity: 0, y: 20 }}
-            animate={tableInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-            transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
-          >
+          <div>
             <Card className="w-full bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
               <CardHeader className="px-6 py-5 border-b border-gray-200 bg-gray-50/80">
                 <CardTitle className="text-lg font-semibold text-gray-700">
@@ -314,7 +299,7 @@ export default function CompliancePage() {
                 </div>
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
         </div>
       </div>
     </DashboardLayout>
