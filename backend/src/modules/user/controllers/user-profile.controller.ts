@@ -4,8 +4,6 @@ import {
   Patch,
   Body,
   Req,
-  UseInterceptors,
-  ClassSerializerInterceptor,
   BadRequestException,
   UnauthorizedException,
   Logger,
@@ -13,13 +11,13 @@ import {
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { UserService } from '../services/user.service';
 import { UpdatePhoneDto } from '../dto/update-phone.dto';
+import { UpdateEmailDto } from '../dto/update-email.dto';
 import { UserResponseDto } from '../dto/user-response.dto';
 import { TokenRoute } from '../../auth/decorators/token-route.decorator';
 import { TokenService } from '../../auth/services/token.service';
 
 @ApiTags('user-profile')
 @Controller('user/profile')
-@UseInterceptors(ClassSerializerInterceptor)
 export class UserProfileController {
   private readonly logger = new Logger(UserProfileController.name);
 
@@ -61,9 +59,16 @@ export class UserProfileController {
       if (!user) {
         throw new BadRequestException('User not found');
       }
+
+      // Get company IDs separately to avoid circular reference
+      const companyIds = await this.userService.getUserCompanyIds(request.userId);
+      const userWithCompanyIds = {
+        ...user,
+        companyIds,
+      };
       
       this.logger.log(`Profile retrieved successfully for user: ${request.userId}`);
-      return user;
+      return userWithCompanyIds;
     } catch (error) {
       if (error instanceof BadRequestException || error instanceof UnauthorizedException) {
         throw error;
@@ -128,6 +133,67 @@ export class UserProfileController {
       }
       this.logger.error(`Failed to update phone number: ${error.message}`, error.stack);
       throw new BadRequestException(`Failed to update phone number: ${error.message}`);
+    }
+  }
+
+  @Patch('email')
+  @TokenRoute() // Mark this route as token-authenticated
+  @ApiOperation({ summary: 'Update user email address' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        email: { 
+          type: 'string', 
+          example: 'newemail@example.com',
+          format: 'email'
+        },
+      },
+      required: ['email'],
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Email updated successfully',
+    type: UserResponseDto,
+  })
+  @ApiResponse({ status: 400, description: 'Invalid email or email already in use' })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Token required' })
+  async updateEmail(
+    @Req() request: any,
+    @Body() updateEmailDto: UpdateEmailDto,
+  ): Promise<UserResponseDto> {
+    try {
+      this.logger.log(`Token-based email update request`);
+      
+      // Validate user authentication
+      if (!request.userId) {
+        if (request.token) {
+          const validation = await this.tokenService.validateAccessToken(request.token);
+          if (validation.valid && validation.userId) {
+            request.userId = validation.userId;
+          } else {
+            throw new UnauthorizedException('Invalid or expired token');
+          }
+        } else {
+          throw new UnauthorizedException('User not authenticated');
+        }
+      }
+
+      this.logger.log(`Updating email for user: ${request.userId}`);
+      const updatedUser = await this.userService.updateEmail(request.userId, updateEmailDto);
+      
+      this.logger.log(`Email updated successfully for user: ${request.userId}`);
+      return updatedUser;
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof UnauthorizedException) {
+        throw error;
+      }
+      if (error.message === 'Email already in use') {
+        throw new BadRequestException('Email already in use');
+      }
+      this.logger.error(`Failed to update email: ${error.message}`, error.stack);
+      throw new BadRequestException(`Failed to update email: ${error.message}`);
     }
   }
 }

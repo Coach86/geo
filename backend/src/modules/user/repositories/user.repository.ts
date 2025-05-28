@@ -98,6 +98,12 @@ export class UserRepository {
       email: document.email,
       language: document.language,
       phoneNumber: document.phoneNumber,
+      stripeCustomerId: document.stripeCustomerId,
+      stripePlanId: document.stripePlanId,
+      planSettings: document.planSettings || {
+        maxBrands: 1,
+        maxAIModels: 3,
+      },
       createdAt: document.createdAt instanceof Date ? document.createdAt : new Date(),
       updatedAt: document.updatedAt instanceof Date ? document.updatedAt : new Date(),
     };
