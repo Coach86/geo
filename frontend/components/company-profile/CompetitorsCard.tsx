@@ -35,8 +35,7 @@ export function CompetitorsCard({ company, onEdit }: CompetitorsCardProps) {
               <Badge
                 key={index}
                 variant="outline"
-                className="border-purple-200 text-purple-700 hover:bg-purple-50 transition-colors duration-200 animate-in slide-in-from-right-5"
-                style={{ animationDelay: `${index * 50}ms` }}
+                className="border-purple-200 text-purple-700 hover:bg-purple-50 transition-colors duration-200"
               >
                 {competitor}
               </Badge>

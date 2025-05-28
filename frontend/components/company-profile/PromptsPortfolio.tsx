@@ -65,8 +65,7 @@ export function PromptsPortfolio({ promptSet, companyId, token, onUpdate }: Prom
       {prompts.map((prompt, index) => (
         <div
           key={index}
-          className="p-3 bg-gray-50 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors animate-in slide-in-from-bottom-2 cursor-pointer"
-          style={{ animationDelay: `${index * 30}ms` }}
+          className="p-3 bg-gray-50 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
           onClick={() => {
             setEditingPromptType(type);
             setEditingPromptIndex(index);
