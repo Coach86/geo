@@ -91,6 +91,10 @@
         {
           "name": "GOOGLE_API_KEY",
           "valueFrom": "arn:aws:secretsmanager:eu-west-1:767828741433:secret:GOOGLE_API_KEY-ykWBcb"
+        },
+        {
+          "name": "STRIPE_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-west-1:767828741433:secret:STRIPE_API_KEY-8rZeMI"
         }
       ],
       "environmentFiles": [],
