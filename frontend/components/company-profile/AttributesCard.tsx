@@ -35,8 +35,7 @@ export function AttributesCard({ company, onEdit }: AttributesCardProps) {
               <Badge
                 key={index}
                 variant="secondary"
-                className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 transition-colors duration-200 animate-in slide-in-from-left-5"
-                style={{ animationDelay: `${index * 50}ms` }}
+                className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 transition-colors duration-200"
               >
                 {attribute}
               </Badge>

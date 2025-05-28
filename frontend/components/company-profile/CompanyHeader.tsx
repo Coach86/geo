@@ -55,7 +55,7 @@ export function CompanyHeader({ company, isDescriptionExpanded, setIsDescription
       <CardHeader className="bg-gradient-to-r from-gray-50 to-white pb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-white rounded-xl shadow-sm animate-in zoom-in-50 duration-300">
+            <div className="p-3 bg-white rounded-xl shadow-sm">
               <Building2 className="h-8 w-8 text-gray-700" />
             </div>
             <div>
