@@ -39,8 +39,3 @@ export async function getPublicPlans(): Promise<PlanResponseDto[]> {
 
   return response.json();
 }
-
-export async function generateCheckoutUrls(planId: string): Promise<{ monthly?: string; yearly?: string }> {
-  const response = await authApi.post(`/plans/${planId}/generate-checkout-urls`);
-  return response.data;
-}
