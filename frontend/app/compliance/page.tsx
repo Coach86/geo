@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/accordion";
 import { motion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
-import AttributeAlignmentTable from "@/components/compliance/attribute-alignment-table";
 import AttributeScoresByModelTable from "@/components/compliance/attribute-scores-table";
 import { getCompanyReports, getBatchResults } from "@/lib/auth-api";
 import { useAuth } from "@/providers/auth-provider";
