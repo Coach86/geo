@@ -3,8 +3,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Brain } from "lucide-react";
-import { motion } from "framer-motion";
-import { useInView } from "react-intersection-observer";
 
 interface SpontaneousData {
   summary?: {
@@ -22,28 +20,15 @@ interface TopMentionsProps {
 }
 
 export function TopMentions({ spontaneousData, loadingSpontaneous }: TopMentionsProps) {
-  const [ref, inView] = useInView({
-    triggerOnce: true,
-    threshold: 0.1,
-  });
 
   return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 20 }}
-      animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-      transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
-    >
+    <div>
       <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
         <CardHeader className="pb-4">
           <CardTitle className="text-lg font-semibold text-dark-700 flex items-center gap-2">
-            <motion.div
-              initial={{ rotate: -10, scale: 0 }}
-              animate={inView ? { rotate: 0, scale: 1 } : { rotate: -10, scale: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-            >
+            <div>
               <Brain className="h-5 w-5 text-accent-600" />
-            </motion.div>
+            </div>
             Top Mentions
           </CardTitle>
           <p className="text-sm text-gray-600 mt-1">
@@ -52,38 +37,18 @@ export function TopMentions({ spontaneousData, loadingSpontaneous }: TopMentions
         </CardHeader>
       <CardContent>
         {loadingSpontaneous ? (
-          <motion.div 
-            className="flex items-center justify-center py-8"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-          >
+          <div className="flex items-center justify-center py-8">
             <div className="text-sm text-gray-500">Loading top mentions...</div>
-          </motion.div>
+          </div>
         ) : (
           <>
-            <motion.div 
-              className="flex flex-wrap gap-2 mt-2"
-              initial={{ opacity: 0 }}
-              animate={inView ? { opacity: 1 } : { opacity: 0 }}
-              transition={{ duration: 0.6, delay: 0.6 }}
-            >
+            <div className="flex flex-wrap gap-2 mt-2">
               {spontaneousData?.summary?.topMentions && spontaneousData.summary.topMentions.length > 0 ? (
                 // Check if we have actual counts from spontaneous data
                 spontaneousData.summary.topMentionCounts ? (
                   // Display mentions with counts if available
                   spontaneousData.summary.topMentionCounts.map((item, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ scale: 0, opacity: 0 }}
-                      animate={inView ? { scale: 1, opacity: 1 } : { scale: 0, opacity: 0 }}
-                      transition={{ 
-                        duration: 0.4, 
-                        delay: 0.8 + (index * 0.1),
-                        ease: "easeOut"
-                      }}
-                      whileHover={{ scale: 1.05 }}
-                    >
+                    <div key={index}>
                       <Badge
                         variant={index < 3 ? "default" : "outline"}
                         className={`
@@ -96,32 +61,17 @@ export function TopMentions({ spontaneousData, loadingSpontaneous }: TopMentions
                       >
                         {item.mention} ({item.count})
                         {index === 0 && (
-                          <motion.span
-                            className="ml-1 text-xs"
-                            initial={{ rotate: 0 }}
-                            animate={{ rotate: [0, 10, -10, 0] }}
-                            transition={{ duration: 1, delay: 1.5 }}
-                          >
+                          <span className="ml-1 text-xs">
                             👑
-                          </motion.span>
+                          </span>
                         )}
                       </Badge>
-                    </motion.div>
+                    </div>
                   ))
                 ) : (
                   // Fallback to displaying just mentions without counts
                   spontaneousData.summary.topMentions.map((mention, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ scale: 0, opacity: 0 }}
-                      animate={inView ? { scale: 1, opacity: 1 } : { scale: 0, opacity: 0 }}
-                      transition={{ 
-                        duration: 0.4, 
-                        delay: 0.8 + (index * 0.1),
-                        ease: "easeOut"
-                      }}
-                      whileHover={{ scale: 1.05 }}
-                    >
+                    <div key={index}>
                       <Badge
                         variant={index < 3 ? "default" : "outline"}
                         className={`
@@ -134,42 +84,27 @@ export function TopMentions({ spontaneousData, loadingSpontaneous }: TopMentions
                       >
                         {mention}
                         {index === 0 && (
-                          <motion.span
-                            className="ml-1 text-xs"
-                            initial={{ rotate: 0 }}
-                            animate={{ rotate: [0, 10, -10, 0] }}
-                            transition={{ duration: 1, delay: 1.5 }}
-                          >
+                          <span className="ml-1 text-xs">
                             👑
-                          </motion.span>
+                          </span>
                         )}
                       </Badge>
-                    </motion.div>
+                    </div>
                   ))
                 )
               ) : (
-                <motion.p 
-                  className="text-sm text-gray-400 italic"
-                  initial={{ opacity: 0 }}
-                  animate={inView ? { opacity: 1 } : { opacity: 0 }}
-                  transition={{ duration: 0.4, delay: 0.8 }}
-                >
+                <p className="text-sm text-gray-400 italic">
                   No top mentions found.
-                </motion.p>
+                </p>
               )}
-            </motion.div>
-            <motion.p 
-              className="text-sm text-gray-600 mt-3"
-              initial={{ opacity: 0 }}
-              animate={inView ? { opacity: 1 } : { opacity: 0 }}
-              transition={{ duration: 0.4, delay: 1.2 }}
-            >
+            </div>
+            <p className="text-sm text-gray-600 mt-3">
               These are the brands most frequently mentioned in responses.
-            </motion.p>
+            </p>
           </>
         )}
       </CardContent>
     </Card>
-    </motion.div>
+    </div>
   );
 }

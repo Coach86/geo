@@ -22,7 +22,6 @@ import {
 } from "@/lib/auth-api";
 import type { ReportResponse } from "@/types/reports";
 import type { BrandBattleData } from "@/types/brand-battle";
-import { AnimatePresence, motion } from "framer-motion";
 
 interface ProcessedReport extends ReportResponse {
   brandName: string;
@@ -344,13 +343,7 @@ function BrandBattleTable({
   const totalStrengthsAndWeaknesses = strengths.length + weaknesses.length;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 30 }}
-      transition={{ duration: 0.6, ease: "easeOut" }}
-      className="mb-16 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden"
-    >
+    <div className="mb-16 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       <div className="px-6 py-5 border-b border-gray-100 bg-gray-50">
         <h2 className="text-2xl font-bold text-gray-900">
           Brand Battle vs Pre‑selected Competitors
@@ -363,17 +356,11 @@ function BrandBattleTable({
 
       <div className="p-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <AnimatePresence initial={false}>
-            {data.competitorAnalyses.map((competitor, index) => (
-              <motion.div
-                key={competitor.competitor}
-                initial={{ opacity: 0, y: 30, scale: 0.97 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 30, scale: 0.97 }}
-                transition={{ duration: 0.4, ease: "easeOut" }}
-                layout
-                className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden"
-              >
+          {data.competitorAnalyses.map((competitor, index) => (
+            <div 
+              key={competitor.competitor}
+              className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden"
+            >
                 <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
                   <h3 className="text-base font-bold text-gray-800">
                     {brand} vs{" "}
@@ -498,9 +485,8 @@ function BrandBattleTable({
                     </table>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             ))}
-          </AnimatePresence>
         </div>
 
         {/* Common strengths and weaknesses section */}
@@ -551,6 +537,6 @@ function BrandBattleTable({
           </div>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 }

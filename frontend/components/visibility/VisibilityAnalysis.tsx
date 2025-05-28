@@ -5,8 +5,6 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { ModelIcon } from "@/components/ui/model-icon";
 import { Eye } from "lucide-react";
-import { motion } from "framer-motion";
-import { useInView } from "react-intersection-observer";
 
 interface ModeMetric {
   model: string;
@@ -36,10 +34,6 @@ export function VisibilityAnalysis({
   brandName,
   selectedCompetitors = [],
 }: VisibilityAnalysisProps) {
-  const [ref, inView] = useInView({
-    triggerOnce: true,
-    threshold: 0.1,
-  });
 
   // Get model badge color
   const getModelColor = (model: string) => {
@@ -59,22 +53,13 @@ export function VisibilityAnalysis({
   };
 
   return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 8 }}
-      animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
-      transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
-    >
+    <div>
       <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
         <CardHeader className="pb-4">
           <CardTitle className="text-lg font-semibold text-dark-700 flex items-center gap-2">
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={inView ? { scale: 1 } : { scale: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-            >
+            <div>
               <Eye className="h-5 w-5 text-primary-600" />
-            </motion.div>
+            </div>
             Brand Visibility Analysis
           </CardTitle>
           <p className="text-sm text-gray-600 mt-1">
@@ -84,12 +69,7 @@ export function VisibilityAnalysis({
         <CardContent>
           <div className="space-y-6">
             {/* Overall Mention Rate */}
-            <motion.div
-              className="pb-4 border-b border-gray-200"
-              initial={{ opacity: 0 }}
-              animate={inView ? { opacity: 1 } : { opacity: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-            >
+            <div className="pb-4 border-b border-gray-200">
               <h4 className="text-sm font-semibold text-gray-700 mb-4">
                 Overall Mention Rate
               </h4>
@@ -101,23 +81,13 @@ export function VisibilityAnalysis({
                     <span className="text-sm font-medium text-gray-700">
                       {brandName}
                     </span>
-                    <motion.span
-                      className="text-lg font-bold text-secondary-600"
-                      initial={{ scale: 0 }}
-                      animate={inView ? { scale: 1 } : { scale: 0 }}
-                      transition={{ duration: 0.5, delay: 0.5 }}
-                    >
+                    <span className="text-lg font-bold text-secondary-600">
                       {mentionRate || 0}%
-                    </motion.span>
+                    </span>
                   </div>
-                  <motion.div
-                    initial={{ scaleX: 0 }}
-                    animate={inView ? { scaleX: 1 } : { scaleX: 0 }}
-                    transition={{ duration: 1, delay: 0.6 }}
-                    style={{ transformOrigin: "left" }}
-                  >
+                  <div>
                     <Progress value={mentionRate || 0} className="h-2" />
-                  </motion.div>
+                  </div>
                 </div>
 
                 {/* Selected competitors mention rates */}
@@ -139,43 +109,22 @@ export function VisibilityAnalysis({
                   }
 
                   return (
-                    <motion.div
-                      key={competitorName}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={
-                        inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }
-                      }
-                      transition={{ duration: 0.2, delay: 0.05 + index * 0.05 }}
-                    >
+                    <div key={competitorName}>
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium text-gray-600">
                           {competitorName}
                         </span>
-                        <motion.span
+                        <span
                           className={`text-lg font-bold ${
                             competitorMentionRate > mentionRate
                               ? "text-primary-600"
                               : "text-gray-600"
                           }`}
-                          initial={{ scale: 0 }}
-                          animate={inView ? { scale: 1 } : { scale: 0 }}
-                          transition={{
-                            duration: 0.2,
-                            delay: 0.1 + index * 0.05,
-                          }}
                         >
                           {competitorMentionRate}%
-                        </motion.span>
+                        </span>
                       </div>
-                      <motion.div
-                        initial={{ scaleX: 0 }}
-                        animate={inView ? { scaleX: 1 } : { scaleX: 0 }}
-                        transition={{
-                          duration: 0.3,
-                          delay: 0.15 + index * 0.05,
-                        }}
-                        style={{ transformOrigin: "left" }}
-                      >
+                      <div>
                         <Progress
                           value={competitorMentionRate}
                           className={`h-2 ${
@@ -184,29 +133,20 @@ export function VisibilityAnalysis({
                               : "[&>div]:bg-gray-400"
                           }`}
                         />
-                      </motion.div>
-                    </motion.div>
+                      </div>
+                    </div>
                   );
                 })}
               </div>
 
-              <motion.p
-                className="text-xs text-gray-500 mt-3"
-                initial={{ opacity: 0 }}
-                animate={inView ? { opacity: 1 } : { opacity: 0 }}
-                transition={{ duration: 0.4, delay: 1.0 }}
-              >
+              <p className="text-xs text-gray-500 mt-3">
                 Percentage of relevant conversations mentioning each brand
                 across all models
-              </motion.p>
-            </motion.div>
+              </p>
+            </div>
 
             {/* By Model Breakdown */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={inView ? { opacity: 1 } : { opacity: 0 }}
-              transition={{ duration: 0.6, delay: 0.9 }}
-            >
+            <div>
               <h4 className="text-sm font-semibold text-gray-700 mb-3">
                 Breakdown by Model
               </h4>
@@ -271,28 +211,11 @@ export function VisibilityAnalysis({
                       .filter((comp) => comp.rate > 0);
 
                     return (
-                      <motion.div
+                      <div
                         key={model}
                         className="p-4 rounded-lg bg-gray-50"
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={
-                          inView ? { opacity: 1, x: 0 } : { opacity: 0, x: -20 }
-                        }
-                        transition={{
-                          duration: 0.5,
-                          delay: 1.1 + index * 0.1,
-                          ease: "easeOut",
-                        }}
                       >
-                        <motion.div
-                          initial={{ scale: 0 }}
-                          animate={inView ? { scale: 1 } : { scale: 0 }}
-                          transition={{
-                            duration: 0.4,
-                            delay: 1.2 + index * 0.1,
-                          }}
-                          className="mb-3"
-                        >
+                        <div className="mb-3">
                           <Badge
                             variant="outline"
                             className={`${getModelColor(
@@ -302,7 +225,7 @@ export function VisibilityAnalysis({
                             <ModelIcon model={model} size="xs" />
                             {model}
                           </Badge>
-                        </motion.div>
+                        </div>
 
                         <div className="space-y-3">
                           {/* Brand mention rate */}
@@ -311,81 +234,33 @@ export function VisibilityAnalysis({
                               <span className="text-sm font-medium text-gray-700">
                                 {brandName}
                               </span>
-                              <motion.span
-                                className="text-sm font-semibold text-secondary-600"
-                                initial={{ opacity: 0 }}
-                                animate={
-                                  inView ? { opacity: 1 } : { opacity: 0 }
-                                }
-                                transition={{
-                                  duration: 0.4,
-                                  delay: 1.4 + index * 0.1,
-                                }}
-                              >
+                              <span className="text-sm font-semibold text-secondary-600">
                                 {brandRate}%
-                              </motion.span>
+                              </span>
                             </div>
-                            <motion.div
-                              initial={{ scaleX: 0 }}
-                              animate={inView ? { scaleX: 1 } : { scaleX: 0 }}
-                              transition={{
-                                duration: 0.8,
-                                delay: 1.5 + index * 0.1,
-                                ease: "easeOut",
-                              }}
-                              style={{ transformOrigin: "left" }}
-                            >
+                            <div>
                               <Progress value={brandRate} className="h-2" />
-                            </motion.div>
+                            </div>
                           </div>
 
                           {/* Selected competitors mention rates */}
                           {selectedCompetitorRates.map((comp, compIndex) => (
-                            <motion.div
-                              key={comp.name}
-                              initial={{ opacity: 0, y: 5 }}
-                              animate={
-                                inView
-                                  ? { opacity: 1, y: 0 }
-                                  : { opacity: 0, y: 5 }
-                              }
-                              transition={{
-                                duration: 0.2,
-                                delay: 0.05 + compIndex * 0.02,
-                              }}
-                            >
+                            <div key={comp.name}>
                               <div className="flex items-center justify-between mb-1">
                                 <span className="text-sm font-medium text-gray-600">
                                   {comp.name}
                                 </span>
-                                <motion.span
+                                <span
                                   className={`text-sm font-semibold ${
                                     comp.rate > brandRate
                                       ? "text-primary-600"
                                       : "text-gray-600"
                                   }`}
-                                  initial={{ opacity: 0 }}
-                                  animate={
-                                    inView ? { opacity: 1 } : { opacity: 0 }
-                                  }
-                                  transition={{
-                                    duration: 0.2,
-                                    delay: 0.1 + compIndex * 0.02,
-                                  }}
                                 >
                                   {comp.rate}%
-                                </motion.span>
+                                </span>
                               </div>
-                              <motion.div
-                                initial={{ scaleX: 0 }}
-                                animate={inView ? { scaleX: 1 } : { scaleX: 0 }}
-                                transition={{
-                                  duration: 0.3,
-                                  delay: 0.15 + compIndex * 0.02,
-                                  ease: "easeOut",
-                                }}
-                                style={{ transformOrigin: "left" }}
-                              >
+                              <div>
                                 <Progress
                                   value={comp.rate}
                                   className={`h-2 ${
@@ -394,19 +269,19 @@ export function VisibilityAnalysis({
                                       : "[&>div]:bg-gray-400"
                                   }`}
                                 />
-                              </motion.div>
-                            </motion.div>
+                              </div>
+                            </div>
                           ))}
                         </div>
-                      </motion.div>
+                      </div>
                     );
                   });
                 })()}
               </div>
-            </motion.div>
+            </div>
           </div>
         </CardContent>
       </Card>
-    </motion.div>
+    </div>
   );
 }

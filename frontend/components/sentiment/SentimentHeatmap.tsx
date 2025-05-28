@@ -2,8 +2,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ModelIcon } from "@/components/ui/model-icon";
-import { motion } from "framer-motion";
-import { useInView } from "react-intersection-observer";
 
 interface SentimentHeatmapProps {
   sentimentHeatmap: {
@@ -18,10 +16,6 @@ interface SentimentHeatmapProps {
 }
 
 export function SentimentHeatmap({ sentimentHeatmap, onCellClick }: SentimentHeatmapProps) {
-  const [ref, inView] = useInView({
-    triggerOnce: true,
-    threshold: 0.1,
-  });
 
   // Get color based on sentiment
   const getSentimentColor = (status: string) => {
@@ -68,26 +62,17 @@ export function SentimentHeatmap({ sentimentHeatmap, onCellClick }: SentimentHea
   };
 
   return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 20 }}
-      animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-      transition={{ duration: 0.6, ease: "easeOut", delay: 0.3 }}
-    >
+    <div>
       <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
         <CardHeader className="pb-4">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={inView ? { opacity: 1 } : { opacity: 0 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-          >
+          <div>
             <CardTitle className="text-lg font-semibold text-dark-700">
               Sentiment Heatmap
             </CardTitle>
             <p className="text-sm text-gray-600 mt-1">
               Model sentiment analysis across different prompts
             </p>
-          </motion.div>
+          </div>
         </CardHeader>
       <CardContent>
         {sentimentHeatmap.length > 0 ? (
@@ -153,6 +138,6 @@ export function SentimentHeatmap({ sentimentHeatmap, onCellClick }: SentimentHea
         )}
       </CardContent>
     </Card>
-    </motion.div>
+    </div>
   );
 }
