@@ -10,6 +10,7 @@ import {
   Swords,
   Building2,
   Settings,
+  Plus,
 } from "lucide-react";
 import { IdentityCardResponse } from "@/lib/auth-api";
 import {
@@ -173,26 +174,40 @@ export default function SaasSidebar({
         </div>
       </nav>
 
-      {/* Settings Section - Fixed at bottom */}
-      <div className="p-4 border-t">
-        <Link
-          href="/settings"
-          className={`
-            flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors
-            ${
-              pathname === "/settings"
-                ? "bg-accent-50 text-accent-700"
-                : "text-dark-600 hover:bg-dark-50"
-            }
-          `}
-        >
-          <Settings
-            className={`w-5 h-5 ${
-              pathname === "/settings" ? "text-accent-600" : "text-dark-400"
-            }`}
-          />
-          <span className="flex-1">Settings</span>
-        </Link>
+      {/* Bottom Actions - Fixed at bottom */}
+      <div className="border-t">
+        {/* Add Company Button */}
+        <div className="p-4 pb-2">
+          <Link
+            href="/onboarding"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors bg-primary-50 text-primary-700 hover:bg-primary-100 w-full"
+          >
+            <Plus className="w-5 h-5 text-primary-600" />
+            <span className="flex-1">Add Company</span>
+          </Link>
+        </div>
+
+        {/* Settings Link */}
+        <div className="px-4 pb-4">
+          <Link
+            href="/settings"
+            className={`
+              flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors
+              ${
+                pathname === "/settings"
+                  ? "bg-accent-50 text-accent-700"
+                  : "text-dark-600 hover:bg-dark-50"
+              }
+            `}
+          >
+            <Settings
+              className={`w-5 h-5 ${
+                pathname === "/settings" ? "text-accent-600" : "text-dark-400"
+              }`}
+            />
+            <span className="flex-1">Settings</span>
+          </Link>
+        </div>
       </div>
     </aside>
   );
