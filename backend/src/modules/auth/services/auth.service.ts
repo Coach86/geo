@@ -118,7 +118,7 @@ export class AuthService {
       const resend = new Resend(resendApiKey);
 
       const emailResponse = await resend.emails.send({
-        from: 'tailorfeed-ai@tailorfeed.ai',
+        from: 'Mint <mint-ai@getmint.ai>',
         to: email,
         subject: 'Sign in to Mint - Your magic link is ready',
         react: React.createElement(MagicLinkEmail, {

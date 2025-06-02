@@ -74,7 +74,7 @@ export class ReportAccessService {
       const resend = new Resend(resendApiKey);
 
       const emailResponse = await resend.emails.send({
-        from: 'tailorfeed-ai@tailorfeed.ai',
+        from: 'Mint <mint-ai@getmint.ai>',
         to: recipientEmail,
         subject: `Your Mint Reports are ready`,
         react: React.createElement(ReportAccessEmail, {
@@ -145,7 +145,7 @@ export class ReportAccessService {
       const finalProjectName = projectName || 'Your Brand';
 
       const emailResponse = await resend.emails.send({
-        from: 'tailorfeed-ai@tailorfeed.ai',
+        from: 'Mint <mint-ai@getmint.ai>',
         to: emailAddress,
         subject: subject,
         react: React.createElement(ReportAccessEmail, {
