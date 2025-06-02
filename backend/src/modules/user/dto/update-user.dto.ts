@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsOptional, IsString, Matches, IsObject, ValidateNested, IsNumber } from 'class-validator';
+import { IsEmail, IsOptional, IsString, Matches, IsObject, ValidateNested, IsNumber, IsArray, ArrayMaxSize } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class PlanSettingsDto {
@@ -66,4 +66,16 @@ export class UpdateUserDto {
   @ValidateNested()
   @Type(() => PlanSettingsDto)
   planSettings?: PlanSettingsDto;
+
+  @ApiProperty({
+    description: 'Array of selected AI model IDs from config.json',
+    example: ['openai-gpt4o', 'anthropic-claude3.7sonnet'],
+    type: [String],
+    required: false,
+  })
+  @IsArray()
+  @IsOptional()
+  @IsString({ each: true })
+  @ArrayMaxSize(10, { message: 'Cannot select more than 10 models' })
+  selectedModels?: string[];
 }

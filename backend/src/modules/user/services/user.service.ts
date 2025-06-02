@@ -114,6 +114,7 @@ export class UserService {
         ...(updateUserDto.language && { language: updateUserDto.language }),
         ...(updateUserDto.phoneNumber !== undefined && { phoneNumber: updateUserDto.phoneNumber }),
         ...(updateUserDto.planSettings && { planSettings: updateUserDto.planSettings }),
+        ...(updateUserDto.selectedModels !== undefined && { selectedModels: updateUserDto.selectedModels }),
       };
 
       const updatedUser = await this.userRepository.update(id, updateData);
@@ -225,6 +226,7 @@ export class UserService {
       createdAt: entity.createdAt.toISOString(),
       updatedAt: entity.updatedAt.toISOString(),
       companyIds,
+      selectedModels: entity.selectedModels || [],
     };
   }
   

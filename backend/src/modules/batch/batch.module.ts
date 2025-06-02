@@ -21,6 +21,7 @@ import { PromptModule } from '../prompt/prompt.module';
 import { LlmModule } from '../llm/llm.module';
 import { ReportModule } from '../report/report.module';
 import { AuthModule } from '../auth/auth.module';
+import { UserModule } from '../user/user.module';
 import { RawResponse, RawResponseSchema } from './schemas/raw-response.schema';
 import { BatchExecutionRepository } from './repositories/batch-execution.repository';
 import { BatchResultRepository } from './repositories/batch-result.repository';
@@ -37,6 +38,7 @@ import { BatchEventsGateway } from './gateways/batch-events.gateway';
     IdentityCardModule,
     PromptModule,
     LlmModule,
+    UserModule,
     forwardRef(() => ReportModule),
     forwardRef(() => AuthModule),
   ],

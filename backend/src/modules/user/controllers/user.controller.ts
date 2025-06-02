@@ -8,12 +8,15 @@ import {
   Delete,
   Query,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { UserService } from '../services/user.service';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { UserResponseDto } from '../dto/user-response.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @ApiTags('users')
 @Controller('admin/users')
@@ -109,6 +112,81 @@ export class UserController {
     @Body() planSettings: { maxBrands: number; maxAIModels: number; maxSpontaneousPrompts?: number },
   ): Promise<UserResponseDto> {
     return await this.userService.update(id, { planSettings });
+  }
+
+  @Get(':id/available-models')
+  @ApiOperation({ summary: 'Get available AI models for admin selection' })
+  @ApiParam({ name: 'id', description: 'User ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of available AI models',
+    schema: {
+      type: 'object',
+      properties: {
+        models: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string', example: 'openai-gpt4o' },
+              name: { type: 'string', example: 'GPT-4o' },
+              provider: { type: 'string', example: 'OpenAI' },
+              enabled: { type: 'boolean', example: true }
+            }
+          }
+        },
+        maxSelectable: { type: 'number', example: 3 }
+      }
+    }
+  })
+  async getAvailableModels(@Param('id') id: string) {
+    const user = await this.userService.findOne(id);
+    const configPath = path.resolve(process.cwd(), 'config.json');
+    const configContent = fs.readFileSync(configPath, 'utf8');
+    const config = JSON.parse(configContent);
+    
+    return {
+      models: config.llmModels.filter((model: any) => model.enabled),
+      maxSelectable: user.planSettings.maxAIModels
+    };
+  }
+
+  @Patch(':id/selected-models')
+  @ApiOperation({ summary: 'Update user selected AI models (admin)' })
+  @ApiParam({ name: 'id', description: 'User ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Selected models successfully updated',
+    type: UserResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid model selection',
+  })
+  async updateSelectedModels(
+    @Param('id') id: string,
+    @Body() body: { selectedModels: string[] },
+  ): Promise<UserResponseDto> {
+    // Admin can select any models without plan restrictions
+    // But we still validate that the models exist in config.json
+    const configPath = path.resolve(process.cwd(), 'config.json');
+    const configContent = fs.readFileSync(configPath, 'utf8');
+    const config = JSON.parse(configContent);
+    const availableModelIds = config.llmModels
+      .filter((model: any) => model.enabled)
+      .map((model: any) => model.id);
+
+    const invalidModels = body.selectedModels.filter(
+      modelId => !availableModelIds.includes(modelId)
+    );
+
+    if (invalidModels.length > 0) {
+      throw new BadRequestException(
+        `Invalid model IDs: ${invalidModels.join(', ')}`
+      );
+    }
+
+    return await this.userService.update(id, { selectedModels: body.selectedModels });
   }
 
   @Delete(':id')

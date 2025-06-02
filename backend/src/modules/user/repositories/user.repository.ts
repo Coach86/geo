@@ -104,6 +104,7 @@ export class UserRepository {
         maxBrands: 1,
         maxAIModels: 3,
       },
+      selectedModels: document.selectedModels || [],
       createdAt: document.createdAt instanceof Date ? document.createdAt : new Date(),
       updatedAt: document.updatedAt instanceof Date ? document.updatedAt : new Date(),
     };

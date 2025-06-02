@@ -13,6 +13,18 @@
       }
     },
     {
+      "id": "grok-3-latest",
+      "provider": "Grok",
+      "model": "grok-3-latest",
+      "name": "Grok 3 Latest",
+      "enabled": true,
+      "parameters": {
+        "temperature": 0.7,
+        "maxTokens": 500,
+        "systemPrompt": "You are a helpful assistant providing clear, factual information."
+      }
+    },
+    {
       "id": "anthropic-claude3.7sonnet",
       "provider": "Anthropic",
       "model": "claude-3-7-sonnet-20250219",

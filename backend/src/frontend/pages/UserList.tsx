@@ -181,9 +181,19 @@ const UserList: React.FC = () => {
                         />
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2">
-                          {user.planSettings?.maxAIModels || 3}
-                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography variant="body2">
+                            {user.selectedModels?.length || 0} / {user.planSettings?.maxAIModels || 3}
+                          </Typography>
+                          {user.selectedModels?.length > 0 && (
+                            <Chip
+                              label={`${user.selectedModels.length} selected`}
+                              size="small"
+                              color="primary"
+                              variant="outlined"
+                            />
+                          )}
+                        </Box>
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2">

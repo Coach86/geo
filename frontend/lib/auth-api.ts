@@ -498,6 +498,7 @@ export interface UserProfile {
     maxBrands: number;
     maxAIModels: number;
   };
+  selectedModels: string[];
   createdAt: string;
   updatedAt: string;
   companyIds: string[];

@@ -8,6 +8,7 @@ import { IdentityCardService } from '../../identity-card/services/identity-card.
 import { IdentityCardRepository } from '../../identity-card/repositories/identity-card.repository';
 import { PromptService } from '../../prompt/services/prompt.service';
 import { PromptSetRepository } from '../../prompt/repositories/prompt-set.repository';
+import { UserService } from '../../user/services/user.service';
 import { LlmService } from '../../llm/services/llm.service';
 import { ReportService } from '../../report/services/report.service';
 import { BatchReportInput } from '../../report/interfaces/report-input.interfaces';
@@ -40,6 +41,7 @@ export class BatchService {
     private readonly sentimentPipelineService: SentimentPipelineService,
     private readonly accuracyPipelineService: AccuracyPipelineService,
     private readonly comparisonPipelineService: ComparisonPipelineService,
+    private readonly userService: UserService,
   ) {
     // Initialize the concurrency limiter with high parallelism
     // Ensure concurrencyLimit is a number and at least 1
@@ -98,6 +100,20 @@ export class BatchService {
               return;
             }
 
+            // Get the user's selected models if userId is available
+            let selectedModels: string[] = [];
+            if (company.userId) {
+              try {
+                const user = await this.userService.findOne(company.userId);
+                selectedModels = user.selectedModels || [];
+                this.logger.log(`Found ${selectedModels.length} selected models for user ${company.userId}: ${selectedModels.join(', ')}`);
+              } catch (error) {
+                this.logger.warn(`Failed to get user selected models for user ${company.userId}: ${error.message}`);
+              }
+            } else {
+              this.logger.warn(`Company ${company.id} has no associated user - will use all enabled models`);
+            }
+
             const context: CompanyBatchContext = {
               companyId: company.id,
               brandName: company.brandName,
@@ -106,6 +122,8 @@ export class BatchService {
               promptSet,
               websiteUrl: company.website,
               market: company.market,
+              userId: company.userId,
+              selectedModels,
             };
 
             await this.processCompanyInternal(context, date);
@@ -436,6 +454,20 @@ export class BatchService {
       throw new Error(`Company ${companyId} has no prompt sets`);
     }
 
+    // Get the user's selected models if userId is available
+    let selectedModels: string[] = [];
+    if (company.userId) {
+      try {
+        const user = await this.userService.findOne(company.userId);
+        selectedModels = user.selectedModels || [];
+        this.logger.log(`Found ${selectedModels.length} selected models for user ${company.userId}: ${selectedModels.join(', ')}`);
+      } catch (error) {
+        this.logger.warn(`Failed to get user selected models for user ${company.userId}: ${error.message}`);
+      }
+    } else {
+      this.logger.warn(`Company ${companyId} has no associated user - will use all enabled models`);
+    }
+
     return {
       companyId: company.id,
       brandName: company.brandName,
@@ -444,6 +476,8 @@ export class BatchService {
       market: company.market,
       promptSet,
       websiteUrl: company.website,
+      userId: company.userId,
+      selectedModels,
     };
   }
 

@@ -74,17 +74,31 @@ export class AccuracyPipelineService extends BasePipelineService {
         prompt.replace(/{COMPANY}/g, context.brandName),
       );
 
-      // Get the enabled LLM models
-      const enabledModels = this.getEnabledModels();
+      // Get the models to use - either user-selected or all enabled models
+      const allEnabledModels = this.getEnabledModels();
+      this.logger.log(`All enabled models: ${JSON.stringify(allEnabledModels)}`);
+      this.logger.log(`Selected models: ${JSON.stringify(context.selectedModels)}`);
+      const modelsToUse =
+        context.selectedModels && context.selectedModels.length > 0
+          ? allEnabledModels.filter((model) => context.selectedModels!.includes(model.id))
+          : allEnabledModels;
 
-      if (enabledModels.length === 0) {
-        throw new Error('No enabled LLM models found in configuration');
+      if (modelsToUse.length === 0) {
+        throw new Error(
+          context.selectedModels && context.selectedModels.length > 0
+            ? 'No selected models are available in configuration'
+            : 'No enabled LLM models found in configuration',
+        );
       }
+
+      this.logger.log(
+        `Using ${modelsToUse.length} models for accuracy pipeline: ${modelsToUse.map((m) => `${m.provider}/${m.model}`).join(', ')}`,
+      );
 
       // Create tasks for each model and prompt
       const tasks = [];
 
-      for (const modelConfig of enabledModels) {
+      for (const modelConfig of modelsToUse) {
         for (let i = 0; i < formattedPrompts.length; i++) {
           tasks.push(
             this.limiter(async () => {

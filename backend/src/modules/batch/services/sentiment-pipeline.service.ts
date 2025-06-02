@@ -63,7 +63,14 @@ export class SentimentPipelineService extends BasePipelineService {
       );
 
       // Get the enabled LLM models
-      const enabledModels = this.getEnabledModels();
+      const allEnabledModels = this.getEnabledModels();
+      this.logger.log(`All enabled models: ${JSON.stringify(allEnabledModels)}`);
+      this.logger.log(`Selected models: ${JSON.stringify(context.selectedModels)}`);
+      // Filter by user's selected models if available
+      const enabledModels =
+        context.selectedModels && context.selectedModels.length > 0
+          ? allEnabledModels.filter((model) => context.selectedModels!.includes(model.id))
+          : allEnabledModels;
 
       if (enabledModels.length === 0) {
         throw new Error('No enabled LLM models found in configuration');
