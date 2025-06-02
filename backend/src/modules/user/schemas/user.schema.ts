@@ -9,17 +9,17 @@ export type UserDocument = User & Document;
   timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' }, // Explicitly name timestamp fields
 })
 export class User {
-  @Prop({ 
-    type: String, 
+  @Prop({
+    type: String,
     default: () => uuidv4(),
     index: true,
   })
   id: string;
 
-  @Prop({ 
-    required: true, 
-    unique: true, 
-    index: true 
+  @Prop({
+    required: true,
+    unique: true,
+    index: true,
   })
   email: string;
 
@@ -44,12 +44,14 @@ export class User {
       maxAIModels: { type: Number, default: 3 },
       maxSpontaneousPrompts: { type: Number, default: 12 },
       maxUrls: { type: Number, default: 1 },
+      maxCompetitors: { type: Number, default: 5 },
     },
     default: {
       maxProjects: 1,
       maxAIModels: 3,
       maxSpontaneousPrompts: 12,
       maxUrls: 1,
+      maxCompetitors: 5,
     },
   })
   planSettings: {
@@ -57,25 +59,26 @@ export class User {
     maxAIModels: number;
     maxSpontaneousPrompts: number;
     maxUrls: number;
+    maxCompetitors: number;
   };
 
   @Prop({
     type: [String],
     default: [],
     validate: {
-      validator: function(value: string[]) {
+      validator: function (value: string[]) {
         // Ensure the array doesn't exceed maxAIModels limit
         const maxModels = this.planSettings?.maxAIModels || 3;
         return value.length <= maxModels;
       },
-      message: 'Selected models cannot exceed the plan limit'
-    }
+      message: 'Selected models cannot exceed the plan limit',
+    },
   })
   selectedModels: string[];
-  
+
   @Prop({ type: Date })
   createdAt: Date;
-  
+
   @Prop({ type: Date })
   updatedAt: Date;
 }

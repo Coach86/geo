@@ -49,6 +49,9 @@ export class Plan {
 
   @Prop({ type: Object, default: {} })
   metadata: Record<string, any>;
+
+  @Prop({ required: true, default: 5 })
+  maxCompetitors: number;
 }
 
 export const PlanSchema = SchemaFactory.createForClass(Plan);

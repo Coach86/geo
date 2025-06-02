@@ -1,14 +1,14 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import Image from "next/image"
-import { useOnboarding } from "@/providers/onboarding-provider"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { useOnboarding } from "@/providers/onboarding-provider";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ArrowRight,
   Building,
@@ -28,8 +28,13 @@ import {
   ExternalLink,
   XCircle,
   Maximize2,
-} from "lucide-react"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+} from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   Dialog,
   DialogContent,
@@ -38,23 +43,28 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogClose,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 
 // Feature descriptions
 const featureDescriptions = {
-  pulse: "Mesure la visibilité et la présence de votre marque dans les réponses des modèles d'IA.",
+  pulse:
+    "Mesure la visibilité et la présence de votre marque dans les réponses des modèles d'IA.",
   tone: "Analyse le ton et le sentiment associés à votre marque dans les réponses générées.",
-  accord: "Évalue la cohérence des informations sur votre marque à travers différents modèles d'IA.",
+  accord:
+    "Évalue la cohérence des informations sur votre marque à travers différents modèles d'IA.",
   area: "Identifie les domaines thématiques où votre marque est le plus souvent mentionnée.",
   trace: "Suit l'évolution de la présence de votre marque dans le temps.",
   lift: "Fournit des recommandations personnalisées pour améliorer la présence de votre marque.",
   csv: "Permet d'exporter les données brutes au format CSV pour analyse approfondie.",
   api: "Accès programmatique aux données via une API REST.",
-  custom_prompts: "Possibilité de définir vos propres prompts pour tester des scénarios spécifiques.",
-  custom_personas: "Création de personas personnalisés pour simuler différents types d'utilisateurs.",
+  custom_prompts:
+    "Possibilité de définir vos propres prompts pour tester des scénarios spécifiques.",
+  custom_personas:
+    "Création de personas personnalisés pour simuler différents types d'utilisateurs.",
   daily_refresh: "Mise à jour quotidienne des données au lieu d'hebdomadaire.",
-  white_label: "Portail personnalisé avec votre marque pour vos clients ou équipes.",
-}
+  white_label:
+    "Portail personnalisé avec votre marque pour vos clients ou équipes.",
+};
 
 // Feature examples with detailed explanations
 const featureExamples = {
@@ -154,68 +164,76 @@ const featureExamples = {
       { name: "Priorité haute", value: "4 actions" },
     ],
   },
-}
+};
 
 export default function PricingPlans() {
-  const router = useRouter()
-  const { formData } = useOnboarding()
-  const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("monthly")
-  const [expandedSection, setExpandedSection] = useState<string | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [expandedFaq, setExpandedFaq] = useState<string | null>("faq-1")
+  const router = useRouter();
+  const { formData } = useOnboarding();
+  const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">(
+    "monthly"
+  );
+  const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [expandedFaq, setExpandedFaq] = useState<string | null>("faq-1");
   // Modifier la déclaration de l'état activeTab pour n'avoir que "features" et "faq" comme options
-  const [activeTab, setActiveTab] = useState<"features" | "faq">("features")
-  const [selectedFeature, setSelectedFeature] = useState<string | null>(null)
-  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [activeTab, setActiveTab] = useState<"features" | "faq">("features");
+  const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   // Ajouter un nouvel état pour suivre les plans dont les modèles sont affichés
-  const [expandedModels, setExpandedModels] = useState<string | null>(null)
+  const [expandedModels, setExpandedModels] = useState<string | null>(null);
 
   // Determine recommended plan based on user data
-  const urlCount = formData.website ? 1 : 0
-  const competitorCount = formData.competitors ? formData.competitors.filter((comp) => comp.selected).length : 0
+  const urlCount = formData.website ? 1 : 0;
+  const competitorCount = formData.competitors
+    ? formData.competitors.filter((comp) => comp.selected).length
+    : 0;
   const promptCount =
-    (formData.visibilityPrompts ? formData.visibilityPrompts.filter((p) => p.selected).length : 0) +
-    (formData.perceptionPrompts ? formData.perceptionPrompts.filter((p) => p.selected).length : 0)
+    (formData.visibilityPrompts
+      ? formData.visibilityPrompts.filter((p) => p.selected).length
+      : 0) +
+    (formData.perceptionPrompts
+      ? formData.perceptionPrompts.filter((p) => p.selected).length
+      : 0);
 
   // Mettre à jour la fonction getRecommendedPlan pour prendre en compte le changement de "pro" à "agencies"
   const getRecommendedPlan = () => {
     if (urlCount > 5 || competitorCount > 5) {
-      return "agencies"
+      return "agencies";
     } else if (urlCount > 1 || competitorCount > 2 || promptCount > 50) {
-      return "growth"
+      return "growth";
     }
-    return "starter"
-  }
+    return "starter";
+  };
 
-  const recommendedPlan = getRecommendedPlan()
+  const recommendedPlan = getRecommendedPlan();
 
   // Calculate yearly price (20% discount)
   const getYearlyPrice = (monthlyPrice: number) => {
-    return Math.round(monthlyPrice * 12 * 0.8)
-  }
+    return Math.round(monthlyPrice * 12 * 0.8);
+  };
 
   // Calculate savings
   const calculateSavings = (monthlyPrice: number | null) => {
-    if (!monthlyPrice) return { amount: 0, percentage: 0 }
+    if (!monthlyPrice) return { amount: 0, percentage: 0 };
 
-    const monthlyCost = monthlyPrice * 12
-    const yearlyCost = getYearlyPrice(monthlyPrice)
-    const savings = monthlyCost - yearlyCost
-    const percentage = Math.round((savings / monthlyCost) * 100)
+    const monthlyCost = monthlyPrice * 12;
+    const yearlyCost = getYearlyPrice(monthlyPrice);
+    const savings = monthlyCost - yearlyCost;
+    const percentage = Math.round((savings / monthlyCost) * 100);
 
-    return { amount: savings, percentage }
-  }
+    return { amount: savings, percentage };
+  };
 
   const handleStartTrial = (plan: string) => {
     // Mettre à jour la déclaration de l'état selectedPlan
-    setSelectedPlan(plan as any)
-    setIsSubmitting(true)
+    setSelectedPlan(plan as any);
+    setIsSubmitting(true);
 
     // Simulate API call
     setTimeout(() => {
-      router.push("/results")
-    }, 1500)
-  }
+      router.push("/results");
+    }, 1500);
+  };
 
   // Feature definitions with detailed descriptions
   const features = {
@@ -229,13 +247,35 @@ export default function PricingPlans() {
     advanced: [
       { id: "lift", name: "Lift", description: featureDescriptions.lift },
       { id: "csv", name: "CSV Export", description: featureDescriptions.csv },
-      { id: "api", name: "API Access", description: featureDescriptions.api, beta: true },
-      { id: "custom_prompts", name: "Custom Prompts", description: featureDescriptions.custom_prompts },
-      { id: "custom_personas", name: "Custom Personas", description: featureDescriptions.custom_personas },
-      { id: "daily_refresh", name: "Daily Refresh", description: featureDescriptions.daily_refresh, beta: true },
-      { id: "white_label", name: "White-label Portal", description: featureDescriptions.white_label },
+      {
+        id: "api",
+        name: "API Access",
+        description: featureDescriptions.api,
+        beta: true,
+      },
+      {
+        id: "custom_prompts",
+        name: "Custom Prompts",
+        description: featureDescriptions.custom_prompts,
+      },
+      {
+        id: "custom_personas",
+        name: "Custom Personas",
+        description: featureDescriptions.custom_personas,
+      },
+      {
+        id: "daily_refresh",
+        name: "Daily Refresh",
+        description: featureDescriptions.daily_refresh,
+        beta: true,
+      },
+      {
+        id: "white_label",
+        name: "White-label Portal",
+        description: featureDescriptions.white_label,
+      },
     ],
-  }
+  };
 
   // Mettre à jour les données des plans
   const plans = [
@@ -244,10 +284,22 @@ export default function PricingPlans() {
       name: "Starter",
       monthlyPrice: 89,
       description: "Solo sites & early-stage brands",
-      bestFor: "Solo sites & early-stage brands that want to see how AIs talk about them",
+      bestFor:
+        "Solo sites & early-stage brands that want to see how AIs talk about them",
       recommended: recommendedPlan === "starter",
-      features: ["1 URL, 1 market / language", "Weekly report", "5 AI models coverage", "Core features suite"],
-      models: ["OpenAI: ChatGPT o4", "Anthropic: Claude 3.7", "Perplexity sonnar Pro", "Grok", "Gemini"],
+      features: [
+        "1 URL, 1 market / language",
+        "Weekly report",
+        "5 AI models coverage",
+        "Core features suite",
+      ],
+      models: [
+        "OpenAI: ChatGPT o4",
+        "Anthropic: Claude 3.7",
+        "Perplexity sonnar Pro",
+        "Grok",
+        "Gemini",
+      ],
       featureDetails: ["Pulse", "Tone", "Accord", "Area", "Trace"],
       featureAccess: {
         pulse: true,
@@ -374,7 +426,11 @@ export default function PricingPlans() {
         "White-label portal for your clients or internal teams",
         "SOC 2-type II compliant",
       ],
-      models: ["All models", "Early access to new models", "Custom model integration"],
+      models: [
+        "All models",
+        "Early access to new models",
+        "Custom model integration",
+      ],
       featureDetails: [
         "All Agencies features plus:",
         "White-label portal",
@@ -403,7 +459,7 @@ export default function PricingPlans() {
       hoverColor: "hover:bg-purple-700",
       borderColor: "border-purple-200",
     },
-  ]
+  ];
 
   // FAQ data
   const faqItems = [
@@ -443,7 +499,7 @@ export default function PricingPlans() {
       answer:
         "Yes, you can cancel your subscription at any time. Your access will continue until the end of your current billing period.",
     },
-  ]
+  ];
 
   // Feature tooltip component
   const FeatureTooltip = ({ feature, children }) => (
@@ -457,24 +513,33 @@ export default function PricingPlans() {
         </TooltipTrigger>
         <TooltipContent className="max-w-xs">
           <p>{feature.description}</p>
-          {feature.beta && <Badge className="mt-1 bg-amber-100 text-amber-800">Beta</Badge>}
+          {feature.beta && (
+            <Badge className="mt-1 bg-amber-100 text-amber-800">Beta</Badge>
+          )}
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
-  )
+  );
 
   // Feature example modal component
   const FeatureExampleModal = ({ featureId }) => {
-    const feature = featureExamples[featureId]
-    if (!feature) return null
+    const feature = featureExamples[featureId];
+    if (!feature) return null;
 
     return (
-      <DialogContent className={`${isFullscreen ? "max-w-[90vw] h-[90vh]" : "max-w-3xl"} overflow-auto`}>
+      <DialogContent
+        className={`${
+          isFullscreen ? "max-w-[90vw] h-[90vh]" : "max-w-3xl"
+        } overflow-auto`}
+      >
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="text-xl">{feature.title}</DialogTitle>
             <div className="flex items-center space-x-2">
-              <button onClick={() => setIsFullscreen(!isFullscreen)} className="p-1 rounded-md hover:bg-gray-100">
+              <button
+                onClick={() => setIsFullscreen(!isFullscreen)}
+                className="p-1 rounded-md hover:bg-gray-100"
+              >
                 <Maximize2 className="h-5 w-5 text-gray-500" />
               </button>
               <DialogClose className="p-1 rounded-md hover:bg-gray-100">
@@ -482,7 +547,9 @@ export default function PricingPlans() {
               </DialogClose>
             </div>
           </div>
-          <DialogDescription className="text-gray-600">{feature.description}</DialogDescription>
+          <DialogDescription className="text-gray-600">
+            {feature.description}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="relative mt-4 rounded-lg overflow-hidden border border-gray-200">
@@ -512,9 +579,16 @@ export default function PricingPlans() {
             <h3 className="text-lg font-medium mb-3">Métriques principales</h3>
             <div className="space-y-3">
               {feature.metrics.map((metric, index) => (
-                <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-md">
-                  <span className="text-sm font-medium text-gray-700">{metric.name}</span>
-                  <Badge className="bg-accent-100 text-accent-700">{metric.value}</Badge>
+                <div
+                  key={index}
+                  className="flex items-center justify-between bg-gray-50 p-3 rounded-md"
+                >
+                  <span className="text-sm font-medium text-gray-700">
+                    {metric.name}
+                  </span>
+                  <Badge className="bg-accent-100 text-accent-700">
+                    {metric.value}
+                  </Badge>
                 </div>
               ))}
             </div>
@@ -522,32 +596,39 @@ export default function PricingPlans() {
         </div>
 
         <div className="mt-6 pt-4 border-t border-gray-200">
-          <h3 className="text-lg font-medium mb-3">Plans incluant cette fonctionnalité</h3>
+          <h3 className="text-lg font-medium mb-3">
+            Plans incluant cette fonctionnalité
+          </h3>
           <div className="flex flex-wrap gap-2">
             {plans.map(
               (plan) =>
                 plan.featureAccess[featureId] && (
-                  <Badge key={plan.id} className={`${plan.color} ${plan.textColor} border ${plan.borderColor}`}>
+                  <Badge
+                    key={plan.id}
+                    className={`${plan.color} ${plan.textColor} border ${plan.borderColor}`}
+                  >
                     {plan.name}
                   </Badge>
-                ),
+                )
             )}
           </div>
         </div>
       </DialogContent>
-    )
-  }
+    );
+  };
 
   // Feature card component for the features tab
   const FeatureCard = ({ feature }) => {
-    const featureId = feature.id
-    const hasExample = !!featureExamples[featureId]
+    const featureId = feature.id;
+    const hasExample = !!featureExamples[featureId];
 
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all">
         <h3 className="text-lg font-semibold mb-2 text-mono-900 flex items-center justify-between">
           {feature.name}
-          {feature.beta && <Badge className="bg-amber-100 text-amber-800">Beta</Badge>}
+          {feature.beta && (
+            <Badge className="bg-amber-100 text-amber-800">Beta</Badge>
+          )}
         </h3>
         <p className="text-gray-600 mb-4">{feature.description}</p>
 
@@ -557,10 +638,13 @@ export default function PricingPlans() {
             {plans.map(
               (plan) =>
                 plan.featureAccess[feature.id] && (
-                  <Badge key={plan.id} className={`${plan.color} ${plan.textColor} border ${plan.borderColor}`}>
+                  <Badge
+                    key={plan.id}
+                    className={`${plan.color} ${plan.textColor} border ${plan.borderColor}`}
+                  >
                     {plan.name}
                   </Badge>
-                ),
+                )
             )}
           </div>
         </div>
@@ -581,15 +665,17 @@ export default function PricingPlans() {
           </Dialog>
         )}
       </div>
-    )
-  }
+    );
+  };
 
   // Feature badge component for the plan cards
   const FeatureBadge = ({ featureId, plan }) => {
-    const feature = [...features.core, ...features.advanced].find((f) => f.id === featureId)
-    const hasExample = !!featureExamples[featureId]
+    const feature = [...features.core, ...features.advanced].find(
+      (f) => f.id === featureId
+    );
+    const hasExample = !!featureExamples[featureId];
 
-    if (!feature) return null
+    if (!feature) return null;
 
     // Si la fonctionnalité n'est pas disponible dans ce plan, afficher un badge désactivé
     if (!plan.featureAccess[featureId]) {
@@ -598,7 +684,7 @@ export default function PricingPlans() {
           {feature.name}
           {feature.beta && <span className="ml-1 text-amber-500">β</span>}
         </div>
-      )
+      );
     }
 
     // Si la fonctionnalité est disponible mais n'a pas d'exemple, afficher un badge normal
@@ -610,7 +696,7 @@ export default function PricingPlans() {
           {feature.name}
           {feature.beta && <span className="ml-1 text-amber-500">β</span>}
         </div>
-      )
+      );
     }
 
     // Si la fonctionnalité est disponible et a un exemple, afficher un badge cliquable
@@ -631,17 +717,19 @@ export default function PricingPlans() {
         </DialogTrigger>
         <FeatureExampleModal featureId={featureId} />
       </Dialog>
-    )
-  }
+    );
+  };
 
   // Ajouter cette fonction pour gérer le clic sur la ligne des modèles d'IA
   const toggleModelsVisibility = (planId: string, event: React.MouseEvent) => {
-    event.stopPropagation()
-    setExpandedModels(expandedModels === planId ? null : planId)
-  }
+    event.stopPropagation();
+    setExpandedModels(expandedModels === planId ? null : planId);
+  };
 
   // Mettre à jour la déclaration de l'état selectedPlan
-  const [selectedPlan, setSelectedPlan] = useState<"starter" | "growth" | "agencies" | "enterprise">("growth")
+  const [selectedPlan, setSelectedPlan] = useState<
+    "starter" | "growth" | "agencies" | "enterprise"
+  >("growth");
 
   return (
     <div className="py-8 animate-fade-in">
@@ -650,22 +738,30 @@ export default function PricingPlans() {
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-accent-100 text-accent-500 mb-4">
           <Sparkles className="h-8 w-8" />
         </div>
-        <h1 className="text-3xl font-bold mb-2 text-mono-900">Your Brand Analysis is Ready!</h1>
+        <h1 className="text-3xl font-bold mb-2 text-mono-900">
+          Your Brand Analysis is Ready!
+        </h1>
         <p className="text-lg text-gray-600 max-w-xl mx-auto mb-4">
-          Choose a plan to access your full report and start optimizing your brand's AI presence.
+          Choose a plan to access your full report and start optimizing your
+          brand's AI presence.
         </p>
 
         <div className="flex items-center justify-center">
           <Badge className="bg-green-100 text-green-700 px-3 py-1">
             <CheckCircle2 className="h-4 w-4 mr-2" />
-            Analysis complete for <span className="font-medium ml-1">{formData.brandName || "Your Brand"}</span>
+            Analysis complete for{" "}
+            <span className="font-medium ml-1">
+              {formData.brandName || "Your Brand"}
+            </span>
           </Badge>
         </div>
       </div>
 
       {/* Analysis Summary */}
       <div className="max-w-md mx-auto mb-10 bg-gray-50 rounded-lg border border-gray-200 p-4">
-        <h3 className="text-sm font-medium text-gray-700 mb-3">Your analysis includes:</h3>
+        <h3 className="text-sm font-medium text-gray-700 mb-3">
+          Your analysis includes:
+        </h3>
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
@@ -682,7 +778,8 @@ export default function PricingPlans() {
               <span className="text-sm">Competitor comparison</span>
             </div>
             <Badge variant="outline" className="text-xs">
-              {formData.competitors?.filter((c) => c.selected).length || 0} competitors
+              {formData.competitors?.filter((c) => c.selected).length || 0}{" "}
+              competitors
             </Badge>
           </div>
           <div className="flex items-center justify-between">
@@ -691,8 +788,10 @@ export default function PricingPlans() {
               <span className="text-sm">AI model responses</span>
             </div>
             <Badge variant="outline" className="text-xs">
-              {(formData.visibilityPrompts?.filter((p) => p.selected).length || 0) +
-                (formData.perceptionPrompts?.filter((p) => p.selected).length || 0)}{" "}
+              {(formData.visibilityPrompts?.filter((p) => p.selected).length ||
+                0) +
+                (formData.perceptionPrompts?.filter((p) => p.selected).length ||
+                  0)}{" "}
               prompts
             </Badge>
           </div>
@@ -706,7 +805,9 @@ export default function PricingPlans() {
         <div className="inline-flex items-center bg-gray-100 p-1 rounded-full">
           <button
             className={`px-6 py-2 rounded-full text-sm font-medium transition-colors ${
-              billingPeriod === "monthly" ? "bg-white text-mono-900 shadow-sm" : "text-mono-600"
+              billingPeriod === "monthly"
+                ? "bg-white text-mono-900 shadow-sm"
+                : "text-mono-600"
             }`}
             onClick={() => setBillingPeriod("monthly")}
           >
@@ -714,12 +815,16 @@ export default function PricingPlans() {
           </button>
           <button
             className={`px-6 py-2 rounded-full text-sm font-medium transition-colors flex items-center ${
-              billingPeriod === "yearly" ? "bg-white text-mono-900 shadow-sm" : "text-mono-600"
+              billingPeriod === "yearly"
+                ? "bg-white text-mono-900 shadow-sm"
+                : "text-mono-600"
             }`}
             onClick={() => setBillingPeriod("yearly")}
           >
             Yearly
-            <span className="ml-2 text-xs px-2 py-0.5 bg-green-100 text-green-800 rounded-full">Save 20%</span>
+            <span className="ml-2 text-xs px-2 py-0.5 bg-green-100 text-green-800 rounded-full">
+              Save 20%
+            </span>
           </button>
         </div>
       </div>
@@ -732,17 +837,30 @@ export default function PricingPlans() {
         <div className="hidden md:block max-w-7xl mx-auto mb-12">
           <div className="grid grid-cols-4 gap-4">
             {plans.map((plan) => {
-              const price = billingPeriod === "monthly" ? plan.monthlyPrice : getYearlyPrice(plan.monthlyPrice || 0)
-              const savings = calculateSavings(plan.monthlyPrice)
-              const isRecommended = plan.recommended
-              const isSelected = selectedPlan === plan.id
+              const price =
+                billingPeriod === "monthly"
+                  ? plan.monthlyPrice
+                  : getYearlyPrice(plan.monthlyPrice || 0);
+              const savings = calculateSavings(plan.monthlyPrice);
+              const isRecommended = plan.recommended;
+              const isSelected = selectedPlan === plan.id;
 
               return (
                 <div
                   key={plan.id}
-                  className={`relative rounded-xl border ${plan.borderColor} bg-white transition-all duration-300
-                    ${isRecommended ? "shadow-md transform scale-105 z-10" : "shadow-sm"}
-                    ${isSelected ? `ring-2 ring-${plan.textColor.replace("text-", "")}` : ""}
+                  className={`relative rounded-xl border ${
+                    plan.borderColor
+                  } bg-white transition-all duration-300
+                    ${
+                      isRecommended
+                        ? "shadow-md transform scale-105 z-10"
+                        : "shadow-sm"
+                    }
+                    ${
+                      isSelected
+                        ? `ring-2 ring-${plan.textColor.replace("text-", "")}`
+                        : ""
+                    }
                     hover:shadow-lg hover:-translate-y-1`}
                 >
                   {/* Recommended Badge */}
@@ -755,10 +873,18 @@ export default function PricingPlans() {
                   {/* Plan Header */}
                   <div className={`p-6 ${isRecommended ? "pt-8" : "pt-6"}`}>
                     <div className="flex items-center mb-4">
-                      <div className={`p-2 rounded-md ${plan.color} ${plan.textColor} mr-3`}>{plan.icon}</div>
+                      <div
+                        className={`p-2 rounded-md ${plan.color} ${plan.textColor} mr-3`}
+                      >
+                        {plan.icon}
+                      </div>
                       <div>
-                        <h3 className="text-lg font-semibold text-mono-900">{plan.name}</h3>
-                        <p className="text-xs text-gray-500">{plan.description}</p>
+                        <h3 className="text-lg font-semibold text-mono-900">
+                          {plan.name}
+                        </h3>
+                        <p className="text-xs text-gray-500">
+                          {plan.description}
+                        </p>
                       </div>
                     </div>
 
@@ -767,7 +893,9 @@ export default function PricingPlans() {
                       {plan.monthlyPrice ? (
                         <>
                           <div className="flex items-baseline">
-                            <span className="text-3xl font-bold text-mono-900">€{price}</span>
+                            <span className="text-3xl font-bold text-mono-900">
+                              €{price}
+                            </span>
                             <span className="text-gray-500 ml-1 text-sm">
                               /{billingPeriod === "monthly" ? "mo" : "yr"}
                             </span>
@@ -781,7 +909,9 @@ export default function PricingPlans() {
                         </>
                       ) : (
                         <div className="flex items-baseline">
-                          <span className="text-xl font-bold text-mono-900">Contact us</span>
+                          <span className="text-xl font-bold text-mono-900">
+                            Contact us
+                          </span>
                         </div>
                       )}
                     </div>
@@ -791,46 +921,67 @@ export default function PricingPlans() {
 
                     {/* Features */}
                     <div className="space-y-4 mb-6">
-                      <h4 className="text-sm font-medium text-gray-700">Includes:</h4>
+                      <h4 className="text-sm font-medium text-gray-700">
+                        Includes:
+                      </h4>
                       <ul className="space-y-3">
                         {plan.features.map((feature, index) => {
                           // Vérifier si c'est la ligne des modèles d'IA
                           const isAIModelsFeature =
-                            typeof feature === "string" && feature.includes("AI models coverage")
+                            typeof feature === "string" &&
+                            feature.includes("AI models coverage");
 
                           return (
                             <li key={index} className="flex items-start">
-                              <Check className={`h-4 w-4 ${plan.textColor} mr-2 mt-0.5 flex-shrink-0`} />
+                              <Check
+                                className={`h-4 w-4 ${plan.textColor} mr-2 mt-0.5 flex-shrink-0`}
+                              />
                               {isAIModelsFeature ? (
                                 <div
                                   className="flex items-center cursor-pointer group w-full"
-                                  onClick={(e) => toggleModelsVisibility(plan.id, e)}
+                                  onClick={(e) =>
+                                    toggleModelsVisibility(plan.id, e)
+                                  }
                                 >
                                   <span className="text-sm text-gray-600 group-hover:text-accent-600 transition-colors">
                                     {feature}
                                   </span>
                                   <ChevronDown
-                                    className={`h-4 w-4 ml-1.5 text-gray-400 group-hover:text-accent-600 transition-transform ${expandedModels === plan.id ? "rotate-180" : ""}`}
+                                    className={`h-4 w-4 ml-1.5 text-gray-400 group-hover:text-accent-600 transition-transform ${
+                                      expandedModels === plan.id
+                                        ? "rotate-180"
+                                        : ""
+                                    }`}
                                   />
                                 </div>
                               ) : (
                                 <span className="text-sm text-gray-600">
-                                  {typeof feature === "string" ? feature : feature.text}
+                                  {typeof feature === "string"
+                                    ? feature
+                                    : feature.text}
                                 </span>
                               )}
                             </li>
-                          )
+                          );
                         })}
                       </ul>
 
                       {/* Afficher les modèles d'IA si ce plan est développé */}
                       {expandedModels === plan.id && (
                         <div className="mt-2 bg-gray-50 rounded-md p-3 text-sm border border-gray-200">
-                          <h5 className="font-medium text-gray-700 mb-2">AI Models:</h5>
+                          <h5 className="font-medium text-gray-700 mb-2">
+                            AI Models:
+                          </h5>
                           <ul className="space-y-1">
                             {plan.models.map((model, idx) => (
-                              <li key={idx} className="flex items-start text-gray-600">
-                                <span className={`${plan.textColor} mr-1.5`}>•</span> {model}
+                              <li
+                                key={idx}
+                                className="flex items-start text-gray-600"
+                              >
+                                <span className={`${plan.textColor} mr-1.5`}>
+                                  •
+                                </span>{" "}
+                                {model}
                               </li>
                             ))}
                           </ul>
@@ -840,20 +991,32 @@ export default function PricingPlans() {
 
                     {/* Core Features */}
                     <div className="mb-6">
-                      <h4 className="text-sm font-medium text-gray-700 mb-3">Core Features:</h4>
+                      <h4 className="text-sm font-medium text-gray-700 mb-3">
+                        Core Features:
+                      </h4>
                       <div className="flex flex-wrap gap-2">
                         {features.core.map((feature) => (
-                          <FeatureBadge key={feature.id} featureId={feature.id} plan={plan} />
+                          <FeatureBadge
+                            key={feature.id}
+                            featureId={feature.id}
+                            plan={plan}
+                          />
                         ))}
                       </div>
                     </div>
 
                     {/* Advanced Features */}
                     <div className="mb-6">
-                      <h4 className="text-sm font-medium text-gray-700 mb-3">Advanced Features:</h4>
+                      <h4 className="text-sm font-medium text-gray-700 mb-3">
+                        Advanced Features:
+                      </h4>
                       <div className="flex flex-wrap gap-2">
                         {features.advanced.map((feature) => (
-                          <FeatureBadge key={feature.id} featureId={feature.id} plan={plan} />
+                          <FeatureBadge
+                            key={feature.id}
+                            featureId={feature.id}
+                            plan={plan}
+                          />
                         ))}
                       </div>
                     </div>
@@ -861,9 +1024,15 @@ export default function PricingPlans() {
                     {/* Expandable Details */}
                     <div
                       className={`text-sm ${plan.textColor} cursor-pointer hover:underline flex items-center justify-center mb-4`}
-                      onClick={() => setExpandedSection(expandedSection === plan.id ? null : plan.id)}
+                      onClick={() =>
+                        setExpandedSection(
+                          expandedSection === plan.id ? null : plan.id
+                        )
+                      }
                     >
-                      {expandedSection === plan.id ? "Hide details" : "View details"}
+                      {expandedSection === plan.id
+                        ? "Hide details"
+                        : "View details"}
                       {expandedSection === plan.id ? (
                         <ChevronUp className="h-4 w-4 ml-1" />
                       ) : (
@@ -875,37 +1044,55 @@ export default function PricingPlans() {
                     {expandedSection === plan.id && (
                       <div className="bg-gray-50 rounded-md p-4 mb-6 text-sm">
                         <div className="mb-4">
-                          <h5 className="font-medium text-gray-700 mb-2">AI Models:</h5>
+                          <h5 className="font-medium text-gray-700 mb-2">
+                            AI Models:
+                          </h5>
                           <ul className="space-y-1">
                             {plan.models.map((model, idx) => (
-                              <li key={idx} className="flex items-start text-gray-600">
-                                <span className={`${plan.textColor} mr-1.5`}>•</span> {model}
+                              <li
+                                key={idx}
+                                className="flex items-start text-gray-600"
+                              >
+                                <span className={`${plan.textColor} mr-1.5`}>
+                                  •
+                                </span>{" "}
+                                {model}
                               </li>
                             ))}
                           </ul>
                         </div>
 
                         <div className="mb-4">
-                          <h5 className="font-medium text-gray-700 mb-2">Feature Details:</h5>
+                          <h5 className="font-medium text-gray-700 mb-2">
+                            Feature Details:
+                          </h5>
                           <ul className="space-y-1">
                             {plan.featureDetails.map((detail, idx) => (
-                              <li key={idx} className="flex items-start text-gray-600">
-                                <span className={`${plan.textColor} mr-1.5`}>•</span> {detail}
+                              <li
+                                key={idx}
+                                className="flex items-start text-gray-600"
+                              >
+                                <span className={`${plan.textColor} mr-1.5`}>
+                                  •
+                                </span>{" "}
+                                {detail}
                               </li>
                             ))}
                           </ul>
                         </div>
 
                         <div>
-                          <h5 className="font-medium text-gray-700 mb-2">Support:</h5>
+                          <h5 className="font-medium text-gray-700 mb-2">
+                            Support:
+                          </h5>
                           <p className="text-gray-600">
                             {plan.id === "enterprise"
                               ? "Dedicated account manager with priority support"
                               : plan.id === "agencies"
-                                ? "Priority email support with 24-hour response time"
-                                : plan.id === "growth"
-                                  ? "Email support with 48-hour response time"
-                                  : "Community support"}
+                              ? "Priority email support with 24-hour response time"
+                              : plan.id === "growth"
+                              ? "Email support with 48-hour response time"
+                              : "Community support"}
                           </p>
                         </div>
                       </div>
@@ -928,21 +1115,31 @@ export default function PricingPlans() {
                         )}
                       </Button>
                     ) : (
-                      <Button
-                        className={`w-full ${plan.accentColor} ${plan.hoverColor} text-white h-11`}
-                        onClick={() => window.open("mailto:sales@brandgpt.com?subject=Enterprise Plan Inquiry")}
+                      <a
+                        href="mailto:contact@getmint.ai?subject=Enterprise Plan Inquiry"
+                        style={{ textDecoration: "none" }}
+                        className="w-full inline-block"
                       >
-                        <Phone className="h-4 w-4 mr-2" /> Contact Sales
-                      </Button>
+                        <Button
+                          className={`w-full ${plan.accentColor} ${plan.hoverColor} text-white h-11`}
+                          asChild
+                        >
+                          <span className="flex items-center">
+                            <Phone className="h-4 w-4 mr-2" /> Contact Sales
+                          </span>
+                        </Button>
+                      </a>
                     )}
 
                     {/* No Credit Card */}
                     {plan.id !== "enterprise" && (
-                      <p className="text-xs text-center text-gray-500 mt-2">Cancel anytime</p>
+                      <p className="text-xs text-center text-gray-500 mt-2">
+                        Cancel anytime
+                      </p>
                     )}
                   </div>
                 </div>
-              )
+              );
             })}
           </div>
         </div>
@@ -952,7 +1149,11 @@ export default function PricingPlans() {
           <Tabs defaultValue="growth" className="w-full">
             <TabsList className="grid grid-cols-4 mb-6">
               {plans.map((plan) => (
-                <TabsTrigger key={plan.id} value={plan.id} className={plan.recommended ? "relative" : ""}>
+                <TabsTrigger
+                  key={plan.id}
+                  value={plan.id}
+                  className={plan.recommended ? "relative" : ""}
+                >
                   {plan.recommended && (
                     <span className="absolute -top-6 left-0 right-0 text-xs font-medium text-accent-500">
                       RECOMMENDED
@@ -964,18 +1165,31 @@ export default function PricingPlans() {
             </TabsList>
 
             {plans.map((plan) => {
-              const price = billingPeriod === "monthly" ? plan.monthlyPrice : getYearlyPrice(plan.monthlyPrice || 0)
-              const savings = calculateSavings(plan.monthlyPrice)
+              const price =
+                billingPeriod === "monthly"
+                  ? plan.monthlyPrice
+                  : getYearlyPrice(plan.monthlyPrice || 0);
+              const savings = calculateSavings(plan.monthlyPrice);
 
               return (
                 <TabsContent key={plan.id} value={plan.id} className="mt-0">
-                  <div className={`rounded-xl border ${plan.borderColor} bg-white shadow-sm`}>
+                  <div
+                    className={`rounded-xl border ${plan.borderColor} bg-white shadow-sm`}
+                  >
                     <div className="p-6">
                       <div className="flex items-center mb-4">
-                        <div className={`p-2 rounded-md ${plan.color} ${plan.textColor} mr-3`}>{plan.icon}</div>
+                        <div
+                          className={`p-2 rounded-md ${plan.color} ${plan.textColor} mr-3`}
+                        >
+                          {plan.icon}
+                        </div>
                         <div>
-                          <h3 className="text-lg font-semibold text-mono-900">{plan.name}</h3>
-                          <p className="text-xs text-gray-500">{plan.description}</p>
+                          <h3 className="text-lg font-semibold text-mono-900">
+                            {plan.name}
+                          </h3>
+                          <p className="text-xs text-gray-500">
+                            {plan.description}
+                          </p>
                         </div>
                       </div>
 
@@ -984,70 +1198,98 @@ export default function PricingPlans() {
                         {plan.monthlyPrice ? (
                           <>
                             <div className="flex items-baseline">
-                              <span className="text-3xl font-bold text-mono-900">€{price}</span>
+                              <span className="text-3xl font-bold text-mono-900">
+                                €{price}
+                              </span>
                               <span className="text-gray-500 ml-1 text-sm">
                                 /{billingPeriod === "monthly" ? "mo" : "yr"}
                               </span>
                             </div>
-                            {billingPeriod === "yearly" && savings.amount > 0 && (
-                              <div className="mt-1 text-xs text-green-600 font-medium flex items-center">
-                                <ArrowRight className="h-3 w-3 mr-1 rotate-45" />
-                                Save €{savings.amount} per year
-                              </div>
-                            )}
+                            {billingPeriod === "yearly" &&
+                              savings.amount > 0 && (
+                                <div className="mt-1 text-xs text-green-600 font-medium flex items-center">
+                                  <ArrowRight className="h-3 w-3 mr-1 rotate-45" />
+                                  Save €{savings.amount} per year
+                                </div>
+                              )}
                           </>
                         ) : (
                           <div className="flex items-baseline">
-                            <span className="text-xl font-bold text-mono-900">Contact us</span>
+                            <span className="text-xl font-bold text-mono-900">
+                              Contact us
+                            </span>
                           </div>
                         )}
                       </div>
 
                       {/* Best For */}
-                      <p className="text-sm text-gray-600 mb-6">{plan.bestFor}</p>
+                      <p className="text-sm text-gray-600 mb-6">
+                        {plan.bestFor}
+                      </p>
 
                       {/* Features */}
                       <div className="space-y-4 mb-6">
-                        <h4 className="text-sm font-medium text-gray-700">Includes:</h4>
+                        <h4 className="text-sm font-medium text-gray-700">
+                          Includes:
+                        </h4>
                         <ul className="space-y-3">
                           {plan.features.map((feature, index) => {
                             // Vérifier si c'est la ligne des modèles d'IA
                             const isAIModelsFeature =
-                              typeof feature === "string" && feature.includes("AI models coverage")
+                              typeof feature === "string" &&
+                              feature.includes("AI models coverage");
 
                             return (
                               <li key={index} className="flex items-start">
-                                <Check className={`h-4 w-4 ${plan.textColor} mr-2 mt-0.5 flex-shrink-0`} />
+                                <Check
+                                  className={`h-4 w-4 ${plan.textColor} mr-2 mt-0.5 flex-shrink-0`}
+                                />
                                 {isAIModelsFeature ? (
                                   <div
                                     className="flex items-center cursor-pointer group w-full"
-                                    onClick={(e) => toggleModelsVisibility(plan.id, e)}
+                                    onClick={(e) =>
+                                      toggleModelsVisibility(plan.id, e)
+                                    }
                                   >
                                     <span className="text-sm text-gray-600 group-hover:text-accent-600 transition-colors">
                                       {feature}
                                     </span>
                                     <ChevronDown
-                                      className={`h-4 w-4 ml-1.5 text-gray-400 group-hover:text-accent-600 transition-transform ${expandedModels === plan.id ? "rotate-180" : ""}`}
+                                      className={`h-4 w-4 ml-1.5 text-gray-400 group-hover:text-accent-600 transition-transform ${
+                                        expandedModels === plan.id
+                                          ? "rotate-180"
+                                          : ""
+                                      }`}
                                     />
                                   </div>
                                 ) : (
                                   <span className="text-sm text-gray-600">
-                                    {typeof feature === "string" ? feature : feature.text}
+                                    {typeof feature === "string"
+                                      ? feature
+                                      : feature.text}
                                   </span>
                                 )}
                               </li>
-                            )
+                            );
                           })}
                         </ul>
 
                         {/* Afficher les modèles d'IA si ce plan est développé */}
                         {expandedModels === plan.id && (
                           <div className="mt-2 bg-gray-50 rounded-md p-3 text-sm border border-gray-200">
-                            <h5 className="font-medium text-gray-700 mb-2">AI Models:</h5>
+                            <h5 className="font-medium text-gray-700 mb-2">
+                              AI Models:
+                            </h5>
                             <ul className="space-y-1">
                               {plan.models.map((model, idx) => (
-                                <li key={idx} className="flex items-start text-gray-600">
-                                  <span className={`${plan.textColor} mr-1.5`}>•</span> {model}
+                                <li
+                                  key={idx}
+                                  className="flex items-start text-gray-600"
+                                >
+                                  <span className={`${plan.textColor} mr-1.5`}>
+                                    •
+                                  </span>{" "}
+                                  {model}
                                 </li>
                               ))}
                             </ul>
@@ -1057,20 +1299,32 @@ export default function PricingPlans() {
 
                       {/* Core Features */}
                       <div className="mb-6">
-                        <h4 className="text-sm font-medium text-gray-700 mb-3">Core Features:</h4>
+                        <h4 className="text-sm font-medium text-gray-700 mb-3">
+                          Core Features:
+                        </h4>
                         <div className="flex flex-wrap gap-2">
                           {features.core.map((feature) => (
-                            <FeatureBadge key={feature.id} featureId={feature.id} plan={plan} />
+                            <FeatureBadge
+                              key={feature.id}
+                              featureId={feature.id}
+                              plan={plan}
+                            />
                           ))}
                         </div>
                       </div>
 
                       {/* Advanced Features */}
                       <div className="mb-6">
-                        <h4 className="text-sm font-medium text-gray-700 mb-3">Advanced Features:</h4>
+                        <h4 className="text-sm font-medium text-gray-700 mb-3">
+                          Advanced Features:
+                        </h4>
                         <div className="flex flex-wrap gap-2">
                           {features.advanced.map((feature) => (
-                            <FeatureBadge key={feature.id} featureId={feature.id} plan={plan} />
+                            <FeatureBadge
+                              key={feature.id}
+                              featureId={feature.id}
+                              plan={plan}
+                            />
                           ))}
                         </div>
                       </div>
@@ -1078,9 +1332,15 @@ export default function PricingPlans() {
                       {/* Expandable Details */}
                       <div
                         className={`text-sm ${plan.textColor} cursor-pointer hover:underline flex items-center justify-center mb-4`}
-                        onClick={() => setExpandedSection(expandedSection === plan.id ? null : plan.id)}
+                        onClick={() =>
+                          setExpandedSection(
+                            expandedSection === plan.id ? null : plan.id
+                          )
+                        }
                       >
-                        {expandedSection === plan.id ? "Hide details" : "View details"}
+                        {expandedSection === plan.id
+                          ? "Hide details"
+                          : "View details"}
                         {expandedSection === plan.id ? (
                           <ChevronUp className="h-4 w-4 ml-1" />
                         ) : (
@@ -1092,37 +1352,55 @@ export default function PricingPlans() {
                       {expandedSection === plan.id && (
                         <div className="bg-gray-50 rounded-md p-4 mb-6 text-sm">
                           <div className="mb-4">
-                            <h5 className="font-medium text-gray-700 mb-2">AI Models:</h5>
+                            <h5 className="font-medium text-gray-700 mb-2">
+                              AI Models:
+                            </h5>
                             <ul className="space-y-1">
                               {plan.models.map((model, idx) => (
-                                <li key={idx} className="flex items-start text-gray-600">
-                                  <span className={`${plan.textColor} mr-1.5`}>•</span> {model}
+                                <li
+                                  key={idx}
+                                  className="flex items-start text-gray-600"
+                                >
+                                  <span className={`${plan.textColor} mr-1.5`}>
+                                    •
+                                  </span>{" "}
+                                  {model}
                                 </li>
                               ))}
                             </ul>
                           </div>
 
                           <div className="mb-4">
-                            <h5 className="font-medium text-gray-700 mb-2">Feature Details:</h5>
+                            <h5 className="font-medium text-gray-700 mb-2">
+                              Feature Details:
+                            </h5>
                             <ul className="space-y-1">
                               {plan.featureDetails.map((detail, idx) => (
-                                <li key={idx} className="flex items-start text-gray-600">
-                                  <span className={`${plan.textColor} mr-1.5`}>•</span> {detail}
+                                <li
+                                  key={idx}
+                                  className="flex items-start text-gray-600"
+                                >
+                                  <span className={`${plan.textColor} mr-1.5`}>
+                                    •
+                                  </span>{" "}
+                                  {detail}
                                 </li>
                               ))}
                             </ul>
                           </div>
 
                           <div>
-                            <h5 className="font-medium text-gray-700 mb-2">Support:</h5>
+                            <h5 className="font-medium text-gray-700 mb-2">
+                              Support:
+                            </h5>
                             <p className="text-gray-600">
                               {plan.id === "enterprise"
                                 ? "Dedicated account manager with priority support"
                                 : plan.id === "agencies"
-                                  ? "Priority email support with 24-hour response time"
-                                  : plan.id === "growth"
-                                    ? "Email support with 48-hour response time"
-                                    : "Community support"}
+                                ? "Priority email support with 24-hour response time"
+                                : plan.id === "growth"
+                                ? "Email support with 48-hour response time"
+                                : "Community support"}
                             </p>
                           </div>
                         </div>
@@ -1145,22 +1423,32 @@ export default function PricingPlans() {
                           )}
                         </Button>
                       ) : (
-                        <Button
-                          className={`w-full ${plan.accentColor} ${plan.hoverColor} text-white h-11`}
-                          onClick={() => window.open("mailto:sales@brandgpt.com?subject=Enterprise Plan Inquiry")}
+                        <a
+                          href="mailto:contact@getmint.ai?subject=Enterprise Plan Inquiry"
+                          style={{ textDecoration: "none" }}
+                          className="w-full inline-block"
                         >
-                          <Phone className="h-4 w-4 mr-2" /> Contact Sales
-                        </Button>
+                          <Button
+                            className={`w-full ${plan.accentColor} ${plan.hoverColor} text-white h-11`}
+                            asChild
+                          >
+                            <span className="flex items-center">
+                              <Phone className="h-4 w-4 mr-2" /> Contact Sales
+                            </span>
+                          </Button>
+                        </a>
                       )}
 
                       {/* No Credit Card */}
                       {plan.id !== "enterprise" && (
-                        <p className="text-xs text-center text-gray-500 mt-2">Cancel anytime</p>
+                        <p className="text-xs text-center text-gray-500 mt-2">
+                          Cancel anytime
+                        </p>
                       )}
                     </div>
                   </div>
                 </TabsContent>
-              )
+              );
             })}
           </Tabs>
         </div>
@@ -1173,7 +1461,9 @@ export default function PricingPlans() {
           <div className="inline-flex items-center bg-gray-100 p-1 rounded-full">
             <button
               className={`px-6 py-2 rounded-full text-sm font-medium transition-colors ${
-                activeTab === "features" ? "bg-white text-mono-900 shadow-sm" : "text-mono-600"
+                activeTab === "features"
+                  ? "bg-white text-mono-900 shadow-sm"
+                  : "text-mono-600"
               }`}
               onClick={() => setActiveTab("features")}
             >
@@ -1181,7 +1471,9 @@ export default function PricingPlans() {
             </button>
             <button
               className={`px-6 py-2 rounded-full text-sm font-medium transition-colors ${
-                activeTab === "faq" ? "bg-white text-mono-900 shadow-sm" : "text-mono-600"
+                activeTab === "faq"
+                  ? "bg-white text-mono-900 shadow-sm"
+                  : "text-mono-600"
               }`}
               onClick={() => setActiveTab("faq")}
             >
@@ -1196,7 +1488,9 @@ export default function PricingPlans() {
         <div className="max-w-4xl mx-auto mb-12">
           {/* Core Features Section */}
           <div className="mb-12">
-            <h2 className="text-2xl font-semibold text-center mb-8">Core Features</h2>
+            <h2 className="text-2xl font-semibold text-center mb-8">
+              Core Features
+            </h2>
             <div className="grid md:grid-cols-2 gap-6">
               {features.core.map((feature) => (
                 <FeatureCard key={feature.id} feature={feature} />
@@ -1206,7 +1500,9 @@ export default function PricingPlans() {
 
           {/* Advanced Features Section */}
           <div>
-            <h2 className="text-2xl font-semibold text-center mb-8">Advanced Features</h2>
+            <h2 className="text-2xl font-semibold text-center mb-8">
+              Advanced Features
+            </h2>
             <div className="grid md:grid-cols-2 gap-6">
               {features.advanced.map((feature) => (
                 <FeatureCard key={feature.id} feature={feature} />
@@ -1219,20 +1515,28 @@ export default function PricingPlans() {
       {/* FAQ TAB */}
       {activeTab === "faq" && (
         <div className="max-w-2xl mx-auto mb-12">
-          <h2 className="text-xl font-semibold text-center mb-6">Frequently Asked Questions</h2>
+          <h2 className="text-xl font-semibold text-center mb-6">
+            Frequently Asked Questions
+          </h2>
           <div className="space-y-3">
             {faqItems.map((item) => (
               <div
                 key={item.id}
                 className={`border rounded-lg overflow-hidden ${
-                  expandedFaq === item.id ? "border-accent-200 bg-accent-50" : "border-gray-200"
+                  expandedFaq === item.id
+                    ? "border-accent-200 bg-accent-50"
+                    : "border-gray-200"
                 }`}
               >
                 <button
                   className="w-full px-4 py-3 text-left flex items-center justify-between focus:outline-none"
-                  onClick={() => setExpandedFaq(expandedFaq === item.id ? null : item.id)}
+                  onClick={() =>
+                    setExpandedFaq(expandedFaq === item.id ? null : item.id)
+                  }
                 >
-                  <span className="font-medium text-gray-800">{item.question}</span>
+                  <span className="font-medium text-gray-800">
+                    {item.question}
+                  </span>
                   {expandedFaq === item.id ? (
                     <ChevronUp className="h-5 w-5 text-gray-500" />
                   ) : (
@@ -1253,17 +1557,25 @@ export default function PricingPlans() {
 
       {/* Feature Comparison Table - Always visible */}
       <div className="max-w-4xl mx-auto mb-12">
-        <h2 className="text-xl font-semibold text-center mb-6">Compare All Features</h2>
+        <h2 className="text-xl font-semibold text-center mb-6">
+          Compare All Features
+        </h2>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-gray-50">
-                <th className="p-3 text-left text-sm font-medium text-gray-700 border-b border-gray-200">Feature</th>
-                <th className="p-3 text-center text-sm font-medium text-gray-700 border-b border-gray-200">Starter</th>
+                <th className="p-3 text-left text-sm font-medium text-gray-700 border-b border-gray-200">
+                  Feature
+                </th>
+                <th className="p-3 text-center text-sm font-medium text-gray-700 border-b border-gray-200">
+                  Starter
+                </th>
                 <th className="p-3 text-center text-sm font-medium text-gray-700 border-b border-gray-200 bg-accent-50">
                   Growth
                 </th>
-                <th className="p-3 text-center text-sm font-medium text-gray-700 border-b border-gray-200">Agencies</th>
+                <th className="p-3 text-center text-sm font-medium text-gray-700 border-b border-gray-200">
+                  Agencies
+                </th>
                 <th className="p-3 text-center text-sm font-medium text-gray-700 border-b border-gray-200">
                   Enterprise
                 </th>
@@ -1272,39 +1584,80 @@ export default function PricingPlans() {
             <tbody>
               {/* Basic features */}
               <tr>
-                <td className="p-3 text-sm text-gray-700 border-b border-gray-200">URLs</td>
-                <td className="p-3 text-center text-sm text-gray-600 border-b border-gray-200">1</td>
-                <td className="p-3 text-center text-sm text-gray-600 border-b border-gray-200 bg-accent-50">Up to 3</td>
-                <td className="p-3 text-center text-sm text-gray-600 border-b border-gray-200">15</td>
-                <td className="p-3 text-center text-sm text-gray-600 border-b border-gray-200">Unlimited</td>
+                <td className="p-3 text-sm text-gray-700 border-b border-gray-200">
+                  URLs
+                </td>
+                <td className="p-3 text-center text-sm text-gray-600 border-b border-gray-200">
+                  1
+                </td>
+                <td className="p-3 text-center text-sm text-gray-600 border-b border-gray-200 bg-accent-50">
+                  Up to 3
+                </td>
+                <td className="p-3 text-center text-sm text-gray-600 border-b border-gray-200">
+                  15
+                </td>
+                <td className="p-3 text-center text-sm text-gray-600 border-b border-gray-200">
+                  Unlimited
+                </td>
               </tr>
               <tr>
-                <td className="p-3 text-sm text-gray-700 border-b border-gray-200">Markets/Languages</td>
-                <td className="p-3 text-center text-sm text-gray-600 border-b border-gray-200">1</td>
+                <td className="p-3 text-sm text-gray-700 border-b border-gray-200">
+                  Markets/Languages
+                </td>
+                <td className="p-3 text-center text-sm text-gray-600 border-b border-gray-200">
+                  1
+                </td>
                 <td className="p-3 text-center text-sm text-gray-600 border-b border-gray-200 bg-accent-50">
                   3 per URL
                 </td>
-                <td className="p-3 text-center text-sm text-gray-600 border-b border-gray-200">3 per URL</td>
-                <td className="p-3 text-center text-sm text-gray-600 border-b border-gray-200">Unlimited</td>
+                <td className="p-3 text-center text-sm text-gray-600 border-b border-gray-200">
+                  3 per URL
+                </td>
+                <td className="p-3 text-center text-sm text-gray-600 border-b border-gray-200">
+                  Unlimited
+                </td>
               </tr>
               <tr>
-                <td className="p-3 text-sm text-gray-700 border-b border-gray-200">AI Models</td>
-                <td className="p-3 text-center text-sm text-gray-600 border-b border-gray-200">5</td>
-                <td className="p-3 text-center text-sm text-gray-600 border-b border-gray-200 bg-accent-50">8+</td>
-                <td className="p-3 text-center text-sm text-gray-600 border-b border-gray-200">All</td>
-                <td className="p-3 text-center text-sm text-gray-600 border-b border-gray-200">All + Custom</td>
+                <td className="p-3 text-sm text-gray-700 border-b border-gray-200">
+                  AI Models
+                </td>
+                <td className="p-3 text-center text-sm text-gray-600 border-b border-gray-200">
+                  5
+                </td>
+                <td className="p-3 text-center text-sm text-gray-600 border-b border-gray-200 bg-accent-50">
+                  8+
+                </td>
+                <td className="p-3 text-center text-sm text-gray-600 border-b border-gray-200">
+                  All
+                </td>
+                <td className="p-3 text-center text-sm text-gray-600 border-b border-gray-200">
+                  All + Custom
+                </td>
               </tr>
               <tr>
-                <td className="p-3 text-sm text-gray-700 border-b border-gray-200">Refresh Frequency</td>
-                <td className="p-3 text-center text-sm text-gray-600 border-b border-gray-200">Weekly</td>
-                <td className="p-3 text-center text-sm text-gray-600 border-b border-gray-200 bg-accent-50">Weekly</td>
-                <td className="p-3 text-center text-sm text-gray-600 border-b border-gray-200">Daily (beta)</td>
-                <td className="p-3 text-center text-sm text-gray-600 border-b border-gray-200">Daily & On demand</td>
+                <td className="p-3 text-sm text-gray-700 border-b border-gray-200">
+                  Refresh Frequency
+                </td>
+                <td className="p-3 text-center text-sm text-gray-600 border-b border-gray-200">
+                  Weekly
+                </td>
+                <td className="p-3 text-center text-sm text-gray-600 border-b border-gray-200 bg-accent-50">
+                  Weekly
+                </td>
+                <td className="p-3 text-center text-sm text-gray-600 border-b border-gray-200">
+                  Daily (beta)
+                </td>
+                <td className="p-3 text-center text-sm text-gray-600 border-b border-gray-200">
+                  Daily & On demand
+                </td>
               </tr>
 
               {/* Core Features */}
               <tr className="bg-gray-50">
-                <td colSpan={5} className="p-3 text-sm font-medium text-gray-700 border-b border-gray-200">
+                <td
+                  colSpan={5}
+                  className="p-3 text-sm font-medium text-gray-700 border-b border-gray-200"
+                >
                   Core Features
                 </td>
               </tr>
@@ -1316,20 +1669,34 @@ export default function PricingPlans() {
                       <DialogTrigger asChild>
                         <button className="flex items-center text-left hover:underline focus:outline-none">
                           {feature.name}
-                          {featureExamples[feature.id] && <ExternalLink className="h-3.5 w-3.5 ml-1 text-gray-400" />}
+                          {featureExamples[feature.id] && (
+                            <ExternalLink className="h-3.5 w-3.5 ml-1 text-gray-400" />
+                          )}
                         </button>
                       </DialogTrigger>
-                      {featureExamples[feature.id] && <FeatureExampleModal featureId={feature.id} />}
+                      {featureExamples[feature.id] && (
+                        <FeatureExampleModal featureId={feature.id} />
+                      )}
                     </Dialog>
                   </td>
                   {plans.map((plan) => (
                     <td
                       key={plan.id}
-                      className={`p-3 text-center border-b border-gray-200 ${plan.id === "growth" ? "bg-accent-50" : ""}`}
+                      className={`p-3 text-center border-b border-gray-200 ${
+                        plan.id === "growth" ? "bg-accent-50" : ""
+                      }`}
                     >
                       {plan.featureAccess[feature.id] ? (
                         <Check
-                          className={`h-4 w-4 mx-auto ${plan.id === "starter" ? "text-gray-500" : plan.id === "growth" ? "text-accent-500" : plan.id === "agencies" ? "text-blue-500" : "text-purple-500"}`}
+                          className={`h-4 w-4 mx-auto ${
+                            plan.id === "starter"
+                              ? "text-gray-500"
+                              : plan.id === "growth"
+                              ? "text-accent-500"
+                              : plan.id === "agencies"
+                              ? "text-blue-500"
+                              : "text-purple-500"
+                          }`}
                         />
                       ) : (
                         <X className="h-4 w-4 text-gray-400 mx-auto" />
@@ -1341,7 +1708,10 @@ export default function PricingPlans() {
 
               {/* Advanced Features */}
               <tr className="bg-gray-50">
-                <td colSpan={5} className="p-3 text-sm font-medium text-gray-700 border-b border-gray-200">
+                <td
+                  colSpan={5}
+                  className="p-3 text-sm font-medium text-gray-700 border-b border-gray-200"
+                >
                   Advanced Features
                 </td>
               </tr>
@@ -1352,21 +1722,40 @@ export default function PricingPlans() {
                     <Dialog>
                       <DialogTrigger asChild>
                         <button className="flex items-center text-left hover:underline focus:outline-none">
-                          {feature.name} {feature.beta && <span className="text-xs text-amber-500 ml-1">(Beta)</span>}
-                          {featureExamples[feature.id] && <ExternalLink className="h-3.5 w-3.5 ml-1 text-gray-400" />}
+                          {feature.name}{" "}
+                          {feature.beta && (
+                            <span className="text-xs text-amber-500 ml-1">
+                              (Beta)
+                            </span>
+                          )}
+                          {featureExamples[feature.id] && (
+                            <ExternalLink className="h-3.5 w-3.5 ml-1 text-gray-400" />
+                          )}
                         </button>
                       </DialogTrigger>
-                      {featureExamples[feature.id] && <FeatureExampleModal featureId={feature.id} />}
+                      {featureExamples[feature.id] && (
+                        <FeatureExampleModal featureId={feature.id} />
+                      )}
                     </Dialog>
                   </td>
                   {plans.map((plan) => (
                     <td
                       key={plan.id}
-                      className={`p-3 text-center border-b border-gray-200 ${plan.id === "growth" ? "bg-accent-50" : ""}`}
+                      className={`p-3 text-center border-b border-gray-200 ${
+                        plan.id === "growth" ? "bg-accent-50" : ""
+                      }`}
                     >
                       {plan.featureAccess[feature.id] ? (
                         <Check
-                          className={`h-4 w-4 mx-auto ${plan.id === "starter" ? "text-gray-500" : plan.id === "growth" ? "text-accent-500" : plan.id === "agencies" ? "text-blue-500" : "text-purple-500"}`}
+                          className={`h-4 w-4 mx-auto ${
+                            plan.id === "starter"
+                              ? "text-gray-500"
+                              : plan.id === "growth"
+                              ? "text-accent-500"
+                              : plan.id === "agencies"
+                              ? "text-blue-500"
+                              : "text-purple-500"
+                          }`}
                         />
                       ) : (
                         <X className="h-4 w-4 text-gray-400 mx-auto" />
@@ -1389,7 +1778,9 @@ export default function PricingPlans() {
           </div>
           <div className="flex items-center">
             <Shield className="h-4 w-4 mr-2 text-gray-500" />
-            <span className="text-sm text-gray-600">30-day money back guarantee</span>
+            <span className="text-sm text-gray-600">
+              30-day money back guarantee
+            </span>
           </div>
           <div className="flex items-center">
             <CheckCircle2 className="h-4 w-4 mr-2 text-gray-500" />
@@ -1401,9 +1792,12 @@ export default function PricingPlans() {
       {/* Final CTA */}
       <div className="max-w-lg mx-auto text-center">
         <div className="bg-accent-50 border border-accent-200 rounded-xl p-8 shadow-sm">
-          <h3 className="text-xl font-semibold mb-3">Ready to optimize your brand's AI presence?</h3>
+          <h3 className="text-xl font-semibold mb-3">
+            Ready to optimize your brand's AI presence?
+          </h3>
           <p className="text-gray-600 mb-6">
-            Subscribe today and see how your brand is perceived across all major AI models.
+            Subscribe today and see how your brand is perceived across all major
+            AI models.
           </p>
           <Button
             className={`bg-accent-500 hover:bg-accent-600 text-white h-12 px-8 text-lg shadow-sm hover:shadow-md transition-all`}
@@ -1417,14 +1811,17 @@ export default function PricingPlans() {
               </div>
             ) : (
               <>
-                Get Started with {plans.find((p) => p.id === recommendedPlan)?.name}
+                Get Started with{" "}
+                {plans.find((p) => p.id === recommendedPlan)?.name}
                 <ArrowRight className="ml-2 h-5 w-5" />
               </>
             )}
           </Button>
-          <p className="text-sm text-gray-500 mt-3">Easy cancellation anytime. 30-day money-back guarantee.</p>
+          <p className="text-sm text-gray-500 mt-3">
+            Easy cancellation anytime. 30-day money-back guarantee.
+          </p>
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -29,10 +29,10 @@ export class PlanService {
   }
 
   async findAll(includeInactive = false): Promise<PlanResponseDto[]> {
-    const plans = includeInactive 
+    const plans = includeInactive
       ? await this.planRepository.findAllIncludingInactive()
       : await this.planRepository.findAll();
-    
+
     const plansWithPrices = await Promise.all(
       plans.map(async (plan) => {
         const response = this.mapPlanToResponse(plan);
@@ -42,7 +42,7 @@ export class PlanService {
           console.error(`Failed to fetch Stripe prices for plan ${plan.name}:`, error);
         }
         return response;
-      })
+      }),
     );
 
     return plansWithPrices;
@@ -53,14 +53,14 @@ export class PlanService {
     if (!plan) {
       throw new NotFoundException(`Plan with ID ${id} not found`);
     }
-    
+
     const response = this.mapPlanToResponse(plan);
     try {
       response.prices = await this.getStripePrices(plan.stripeProductId);
     } catch (error) {
       console.error(`Failed to fetch Stripe prices for plan ${plan.name}:`, error);
     }
-    
+
     return response;
   }
 
@@ -92,11 +92,10 @@ export class PlanService {
     return products.data;
   }
 
-
   async createUserCheckoutSession(
     planId: string,
     userId: string,
-    billingPeriod: 'monthly' | 'yearly'
+    billingPeriod: 'monthly' | 'yearly',
   ): Promise<{ url: string }> {
     if (!this.stripe) {
       throw new BadRequestException('Stripe is not configured');
@@ -113,7 +112,8 @@ export class PlanService {
     });
 
     const targetPrice = prices.data.find(
-      (price: Stripe.Price) => price.recurring?.interval === (billingPeriod === 'yearly' ? 'year' : 'month')
+      (price: Stripe.Price) =>
+        price.recurring?.interval === (billingPeriod === 'yearly' ? 'year' : 'month'),
     );
 
     if (!targetPrice) {
@@ -124,10 +124,12 @@ export class PlanService {
 
     const session = await this.stripe.checkout.sessions.create({
       mode: 'subscription',
-      line_items: [{
-        price: targetPrice.id,
-        quantity: 1,
-      }],
+      line_items: [
+        {
+          price: targetPrice.id,
+          quantity: 1,
+        },
+      ],
       metadata: {
         userId: userId,
         planId: planId,
@@ -155,10 +157,10 @@ export class PlanService {
     });
 
     const monthlyPrice = prices.data.find(
-      (price: Stripe.Price) => price.recurring?.interval === 'month'
+      (price: Stripe.Price) => price.recurring?.interval === 'month',
     );
     const yearlyPrice = prices.data.find(
-      (price: Stripe.Price) => price.recurring?.interval === 'year'
+      (price: Stripe.Price) => price.recurring?.interval === 'year',
     );
 
     return {
@@ -181,6 +183,7 @@ export class PlanService {
       maxProjects: plan.maxProjects,
       maxUrls: plan.maxUrls,
       maxSpontaneousPrompts: plan.maxSpontaneousPrompts,
+      maxCompetitors: plan.maxCompetitors,
       isActive: plan.isActive,
       isRecommended: plan.isRecommended,
       isMostPopular: plan.isMostPopular,

@@ -22,18 +22,9 @@ import {
   Alert,
   CircularProgress,
 } from '@mui/material';
-import {
-  Edit as EditIcon,
-  Add as AddIcon,
-  DragIndicator as DragIcon,
-} from '@mui/icons-material';
+import { Edit as EditIcon, Add as AddIcon, DragIndicator as DragIcon } from '@mui/icons-material';
 import { PlanResponseDto } from '../utils/types';
-import {
-  getPlans,
-  createPlan,
-  updatePlan,
-  getStripeProducts,
-} from '../utils/api-plans';
+import { getPlans, createPlan, updatePlan, getStripeProducts } from '../utils/api-plans';
 
 interface PlanFormData {
   name: string;
@@ -46,6 +37,7 @@ interface PlanFormData {
   maxProjects: number;
   maxUrls: number;
   maxSpontaneousPrompts: number;
+  maxCompetitors: number;
   isActive: boolean;
   isRecommended: boolean;
   isMostPopular: boolean;
@@ -64,6 +56,7 @@ const defaultPlanData: PlanFormData = {
   maxProjects: 1,
   maxUrls: 1,
   maxSpontaneousPrompts: 12,
+  maxCompetitors: 5,
   isActive: true,
   isRecommended: false,
   isMostPopular: false,
@@ -122,6 +115,7 @@ export default function PlanManagement() {
       maxProjects: plan.maxProjects,
       maxUrls: plan.maxUrls,
       maxSpontaneousPrompts: plan.maxSpontaneousPrompts,
+      maxCompetitors: plan.maxCompetitors,
       isActive: plan.isActive,
       isRecommended: plan.isRecommended,
       isMostPopular: plan.isMostPopular,
@@ -151,7 +145,6 @@ export default function PlanManagement() {
       console.error(err);
     }
   };
-
 
   const addFeature = () => {
     if (featureInput.trim()) {
@@ -199,12 +192,7 @@ export default function PlanManagement() {
     <Box p={3}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4">Plan Management</Typography>
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<AddIcon />}
-          onClick={handleCreate}
-        >
+        <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={handleCreate}>
           Create Plan
         </Button>
       </Box>
@@ -218,75 +206,79 @@ export default function PlanManagement() {
       <Box display="grid" gridTemplateColumns="repeat(auto-fill, minmax(300px, 1fr))" gap={3}>
         {plans.map((plan) => (
           <Card key={plan.id}>
-              <CardContent>
-                <Box display="flex" justifyContent="space-between" alignItems="start">
-                  <Box>
-                    {plan.isRecommended && (
-                      <Chip label="Recommended" color="success" size="small" sx={{ mb: 1 }} />
-                    )}
-                    {plan.isMostPopular && (
-                      <Chip label="Most Popular" color="primary" size="small" sx={{ mb: 1 }} />
-                    )}
-                    <Typography variant="h5" gutterBottom>
-                      {plan.name}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      {plan.tag}
-                    </Typography>
-                    <Typography variant="body1" paragraph>
-                      {plan.subtitle}
-                    </Typography>
-                  </Box>
-                  <IconButton size="small">
-                    <DragIcon />
-                  </IconButton>
-                </Box>
-
-                {plan.prices && (
-                  <Box mb={2}>
-                    <Typography variant="h6">
-                      ${plan.prices.monthly}/mo
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      ${plan.prices.yearly}/year
-                    </Typography>
-                  </Box>
-                )}
-
-                <Box mb={2}>
-                  <Typography variant="body2" color="text.secondary">
-                    Max Models: {plan.maxModels}
+            <CardContent>
+              <Box display="flex" justifyContent="space-between" alignItems="start">
+                <Box>
+                  {plan.isRecommended && (
+                    <Chip label="Recommended" color="success" size="small" sx={{ mb: 1 }} />
+                  )}
+                  {plan.isMostPopular && (
+                    <Chip label="Most Popular" color="primary" size="small" sx={{ mb: 1 }} />
+                  )}
+                  <Typography variant="h5" gutterBottom>
+                    {plan.name}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Max Projects: {plan.maxProjects}
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    {plan.tag}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Max URLs: {plan.maxUrls}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Max Spontaneous Prompts: {plan.maxSpontaneousPrompts}
+                  <Typography variant="body1" paragraph>
+                    {plan.subtitle}
                   </Typography>
                 </Box>
-
-                <Chip
-                  label={plan.isActive ? 'Active' : 'Inactive'}
-                  color={plan.isActive ? 'success' : 'default'}
-                  size="small"
-                />
-              </CardContent>
-              <CardActions>
-                <IconButton onClick={() => handleEdit(plan)} color="primary">
-                  <EditIcon />
+                <IconButton size="small">
+                  <DragIcon />
                 </IconButton>
-              </CardActions>
-            </Card>
+              </Box>
+
+              {plan.prices && (
+                <Box mb={2}>
+                  <Typography variant="h6">${plan.prices.monthly}/mo</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    ${plan.prices.yearly}/year
+                  </Typography>
+                </Box>
+              )}
+
+              <Box mb={2}>
+                <Typography variant="body2" color="text.secondary">
+                  Max Models: {plan.maxModels}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Max Projects: {plan.maxProjects}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Max URLs: {plan.maxUrls}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Max Spontaneous Prompts: {plan.maxSpontaneousPrompts}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Max Competitors: {plan.maxCompetitors}
+                </Typography>
+              </Box>
+
+              <Chip
+                label={plan.isActive ? 'Active' : 'Inactive'}
+                color={plan.isActive ? 'success' : 'default'}
+                size="small"
+              />
+            </CardContent>
+            <CardActions>
+              <IconButton onClick={() => handleEdit(plan)} color="primary">
+                <EditIcon />
+              </IconButton>
+            </CardActions>
+          </Card>
         ))}
       </Box>
 
-      <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>
-          {editingPlan ? 'Edit Plan' : 'Create Plan'}
-        </DialogTitle>
+      <Dialog
+        open={editDialogOpen}
+        onClose={() => setEditDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>{editingPlan ? 'Edit Plan' : 'Create Plan'}</DialogTitle>
         <DialogContent>
           <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr' }} gap={2}>
@@ -313,7 +305,9 @@ export default function PlanManagement() {
               <InputLabel>Stripe Product</InputLabel>
               <Select
                 value={formData.stripeProductId}
-                onChange={(e) => setFormData({ ...formData, stripeProductId: e.target.value as string })}
+                onChange={(e) =>
+                  setFormData({ ...formData, stripeProductId: e.target.value as string })
+                }
                 label="Stripe Product"
               >
                 {stripeProducts.map((product) => (
@@ -336,7 +330,9 @@ export default function PlanManagement() {
                 type="number"
                 label="Max Projects"
                 value={formData.maxProjects}
-                onChange={(e) => setFormData({ ...formData, maxProjects: parseInt(e.target.value) })}
+                onChange={(e) =>
+                  setFormData({ ...formData, maxProjects: parseInt(e.target.value) })
+                }
               />
               <TextField
                 fullWidth
@@ -350,7 +346,18 @@ export default function PlanManagement() {
                 type="number"
                 label="Max Spontaneous Prompts"
                 value={formData.maxSpontaneousPrompts}
-                onChange={(e) => setFormData({ ...formData, maxSpontaneousPrompts: parseInt(e.target.value) })}
+                onChange={(e) =>
+                  setFormData({ ...formData, maxSpontaneousPrompts: parseInt(e.target.value) })
+                }
+              />
+              <TextField
+                fullWidth
+                type="number"
+                label="Max Competitors"
+                value={formData.maxCompetitors}
+                onChange={(e) =>
+                  setFormData({ ...formData, maxCompetitors: parseInt(e.target.value) })
+                }
               />
               <TextField
                 fullWidth
@@ -378,11 +385,7 @@ export default function PlanManagement() {
               </Box>
               <Box display="flex" flexWrap="wrap" gap={1}>
                 {formData.features.map((feature, index) => (
-                  <Chip
-                    key={index}
-                    label={feature}
-                    onDelete={() => removeFeature(index)}
-                  />
+                  <Chip key={index} label={feature} onDelete={() => removeFeature(index)} />
                 ))}
               </Box>
             </Box>
@@ -404,11 +407,7 @@ export default function PlanManagement() {
               </Box>
               <Box display="flex" flexWrap="wrap" gap={1}>
                 {formData.included.map((item, index) => (
-                  <Chip
-                    key={index}
-                    label={item}
-                    onDelete={() => removeIncluded(index)}
-                  />
+                  <Chip key={index} label={item} onDelete={() => removeIncluded(index)} />
                 ))}
               </Box>
             </Box>
