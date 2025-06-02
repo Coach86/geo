@@ -8,6 +8,7 @@ import {
   ComparisonResults,
   User,
   BatchExecution,
+  AIModel,
 } from './types';
 
 const API_BASE = '/api/admin';
@@ -97,6 +98,20 @@ export const updateUserPlanSettings = async (
   planSettings: { maxBrands: number; maxAIModels: number; maxSpontaneousPrompts?: number },
 ): Promise<User> => {
   const response = await authApi.patch(`/users/${id}/plan-settings`, planSettings);
+  return response.data;
+};
+
+// AI Models API for admin
+export const getAvailableModels = async (userId: string): Promise<{ models: AIModel[]; maxSelectable: number }> => {
+  const response = await authApi.get(`/users/${userId}/available-models`);
+  return response.data;
+};
+
+export const updateUserSelectedModels = async (
+  id: string,
+  selectedModels: string[],
+): Promise<User> => {
+  const response = await authApi.patch(`/users/${id}/selected-models`, { selectedModels });
   return response.data;
 };
 

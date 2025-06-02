@@ -97,7 +97,7 @@
           "valueFrom": "arn:aws:secretsmanager:eu-west-1:767828741433:secret:STRIPE_API_KEY-8rZeMI"
         },
         {
-          "name": "GROQ_API_KEY",
+          "name": "GROK_API_KEY",
           "valueFrom": "arn:aws:secretsmanager:eu-west-1:767828741433:secret:GROQ_API_KEY-EJNQMR"
         }
       ],

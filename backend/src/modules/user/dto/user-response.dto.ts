@@ -75,4 +75,11 @@ export class UserResponseDto {
     type: [String],
   })
   companyIds?: string[];
+
+  @ApiProperty({
+    description: 'Array of selected AI model IDs',
+    example: ['openai-gpt4o', 'anthropic-claude3.7sonnet'],
+    type: [String],
+  })
+  selectedModels: string[];
 }

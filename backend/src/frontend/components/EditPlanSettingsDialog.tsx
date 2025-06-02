@@ -11,12 +11,19 @@ import {
   Alert,
   Chip,
   Divider,
+  FormControl,
+  FormLabel,
+  FormGroup,
+  FormControlLabel,
+  Checkbox,
+  Skeleton,
 } from '@mui/material';
-import { User } from '../utils/types';
-import { updateUserPlanSettings } from '../utils/api';
+import { User, AIModel } from '../utils/types';
+import { updateUserPlanSettings, getAvailableModels, updateUserSelectedModels } from '../utils/api';
 import BusinessIcon from '@mui/icons-material/Business';
 import ModelTrainingIcon from '@mui/icons-material/ModelTraining';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
+import CpuIcon from '@mui/icons-material/Memory';
 
 interface EditPlanSettingsDialogProps {
   open: boolean;
@@ -36,14 +43,46 @@ export const EditPlanSettingsDialog: React.FC<EditPlanSettingsDialogProps> = ({
   const [maxSpontaneousPrompts, setMaxSpontaneousPrompts] = useState(12);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // AI Models state
+  const [availableModels, setAvailableModels] = useState<AIModel[]>([]);
+  const [selectedModels, setSelectedModels] = useState<string[]>([]);
+  const [modelsLoading, setModelsLoading] = useState(false);
 
   useEffect(() => {
     if (user) {
       setMaxBrands(user.planSettings?.maxBrands || 1);
       setMaxAIModels(user.planSettings?.maxAIModels || 3);
       setMaxSpontaneousPrompts(user.planSettings?.maxSpontaneousPrompts || 12);
+      setSelectedModels(user.selectedModels || []);
+
+      // Fetch available models
+      const fetchModels = async () => {
+        try {
+          setModelsLoading(true);
+          const data = await getAvailableModels(user.id);
+          setAvailableModels(data.models || []);
+        } catch (err) {
+          console.error('Failed to fetch available models:', err);
+        } finally {
+          setModelsLoading(false);
+        }
+      };
+
+      fetchModels();
     }
   }, [user]);
+
+  const handleModelToggle = (modelId: string) => {
+    setSelectedModels(prev => {
+      const isSelected = prev.includes(modelId);
+      if (isSelected) {
+        return prev.filter(id => id !== modelId);
+      } else {
+        return [...prev, modelId];
+      }
+    });
+  };
 
   const handleSave = async () => {
     if (!user) return;
@@ -52,16 +91,21 @@ export const EditPlanSettingsDialog: React.FC<EditPlanSettingsDialogProps> = ({
     setSaving(true);
 
     try {
+      // Update plan settings
       const updatedUser = await updateUserPlanSettings(user.id, {
         maxBrands,
         maxAIModels,
         maxSpontaneousPrompts,
       });
-      onUpdate(updatedUser);
+
+      // Update selected models
+      const finalUpdatedUser = await updateUserSelectedModels(user.id, selectedModels);
+      
+      onUpdate(finalUpdatedUser);
       onClose();
     } catch (err) {
-      console.error('Failed to update plan settings:', err);
-      setError('Failed to update plan settings. Please try again.');
+      console.error('Failed to update user settings:', err);
+      setError('Failed to update user settings. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -75,6 +119,7 @@ export const EditPlanSettingsDialog: React.FC<EditPlanSettingsDialogProps> = ({
         setMaxBrands(user.planSettings?.maxBrands || 1);
         setMaxAIModels(user.planSettings?.maxAIModels || 3);
         setMaxSpontaneousPrompts(user.planSettings?.maxSpontaneousPrompts || 12);
+        setSelectedModels(user.selectedModels || []);
       }
     }
   };
@@ -186,6 +231,80 @@ export const EditPlanSettingsDialog: React.FC<EditPlanSettingsDialogProps> = ({
                 helperText="Number of spontaneous prompts allowed"
               />
             </Box>
+          </Box>
+
+          {/* AI Models Selection */}
+          <Divider sx={{ my: 3 }} />
+          <Box sx={{ mb: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+              <CpuIcon fontSize="small" color="action" />
+              <Typography variant="h6" color="textPrimary">
+                AI Models Selection
+              </Typography>
+            </Box>
+            <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+              Select which AI models this user can use for batch processing (admin can select without restrictions)
+            </Typography>
+            
+            {modelsLoading ? (
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                {[...Array(4)].map((_, i) => (
+                  <Skeleton key={i} variant="rounded" width={200} height={40} />
+                ))}
+              </Box>
+            ) : (
+              <FormControl component="fieldset" variant="standard">
+                <FormLabel component="legend">
+                  <Typography variant="body2" color="textSecondary">
+                    {selectedModels.length} of {availableModels.length} models selected
+                  </Typography>
+                </FormLabel>
+                <FormGroup sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+                  {availableModels.map((model) => (
+                    <FormControlLabel
+                      key={model.id}
+                      control={
+                        <Checkbox
+                          checked={selectedModels.includes(model.id)}
+                          onChange={() => handleModelToggle(model.id)}
+                          size="small"
+                        />
+                      }
+                      label={
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                            {model.name}
+                          </Typography>
+                          <Chip 
+                            label={model.provider} 
+                            size="small" 
+                            variant="outlined" 
+                            sx={{ fontSize: 10, height: 20 }}
+                          />
+                        </Box>
+                      }
+                      sx={{ 
+                        border: '1px solid',
+                        borderColor: selectedModels.includes(model.id) ? 'primary.main' : 'divider',
+                        borderRadius: 1,
+                        p: 1,
+                        m: 0,
+                        minWidth: 200,
+                        bgcolor: selectedModels.includes(model.id) ? 'primary.light' : 'transparent',
+                        '&:hover': {
+                          bgcolor: selectedModels.includes(model.id) ? 'primary.light' : 'action.hover',
+                        }
+                      }}
+                    />
+                  ))}
+                </FormGroup>
+                {availableModels.length === 0 && (
+                  <Alert severity="info" sx={{ mt: 1 }}>
+                    No AI models are currently available in the configuration.
+                  </Alert>
+                )}
+              </FormControl>
+            )}
           </Box>
 
           {/* Stripe Customer Info */}

@@ -179,10 +179,21 @@ export class ComparisonPipelineService extends BasePipelineService {
     );
 
     // Get the enabled LLM models
-    const enabledModels = this.getEnabledModels();
+    const allEnabledModels = this.getEnabledModels();
+
+    if (allEnabledModels.length === 0) {
+      throw new Error('No enabled LLM models found in configuration');
+    }
+
+    // Filter by selected models if provided
+    const enabledModels = context.selectedModels?.length 
+      ? allEnabledModels.filter(model => 
+          context.selectedModels!.includes(model.id)
+        )
+      : allEnabledModels;
 
     if (enabledModels.length === 0) {
-      throw new Error('No enabled LLM models found in configuration');
+      throw new Error('None of the selected models are enabled');
     }
 
     // Create tasks for each model, prompt, and competitor

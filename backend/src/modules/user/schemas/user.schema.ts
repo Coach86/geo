@@ -55,6 +55,20 @@ export class User {
     maxAIModels: number;
     maxSpontaneousPrompts: number;
   };
+
+  @Prop({
+    type: [String],
+    default: [],
+    validate: {
+      validator: function(value: string[]) {
+        // Ensure the array doesn't exceed maxAIModels limit
+        const maxModels = this.planSettings?.maxAIModels || 3;
+        return value.length <= maxModels;
+      },
+      message: 'Selected models cannot exceed the plan limit'
+    }
+  })
+  selectedModels: string[];
   
   @Prop({ type: Date })
   createdAt: Date;

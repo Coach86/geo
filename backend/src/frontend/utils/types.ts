@@ -31,9 +31,18 @@ export interface User {
     maxAIModels: number;
     maxSpontaneousPrompts?: number;
   };
+  selectedModels: string[];
   createdAt: string;
   updatedAt: string;
   companyIds?: string[];
+}
+
+// AI Model interface for admin
+export interface AIModel {
+  id: string;
+  name: string;
+  provider: string;
+  enabled: boolean;
 }
 
 // Plan interfaces

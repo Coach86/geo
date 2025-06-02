@@ -27,6 +27,8 @@ export interface CompanyBatchContext {
   competitors: string[];
   promptSet: PromptSetType;
   batchExecutionId?: string; // Optional ID of associated batch execution for storing raw responses
+  userId?: string; // User ID to get selected models
+  selectedModels?: string[]; // User's selected AI models
 }
 
 /**

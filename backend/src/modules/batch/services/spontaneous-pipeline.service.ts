@@ -56,10 +56,18 @@ export class SpontaneousPipelineService extends BasePipelineService {
       }
 
       // Get the enabled LLM models from configuration
-      const enabledModels = this.config.llmModels.filter((model) => model.enabled);
+      let modelsToUse = this.config.llmModels.filter((model) => model.enabled);
 
-      if (enabledModels.length === 0) {
-        throw new Error('No enabled LLM models found in configuration');
+      // If the context has selected models, filter to only use those
+      if (context.selectedModels && context.selectedModels.length > 0) {
+        modelsToUse = modelsToUse.filter((model) => context.selectedModels!.includes(model.id));
+        this.logger.log(`Using user-selected models: ${context.selectedModels.join(', ')}`);
+      } else {
+        this.logger.log(`Using all enabled models from configuration`);
+      }
+
+      if (modelsToUse.length === 0) {
+        throw new Error('No models available to run - either no enabled models found in configuration or user has no selected models');
       }
 
       // Get the number of runs per model from config (default to 1 if not specified)
@@ -69,7 +77,7 @@ export class SpontaneousPipelineService extends BasePipelineService {
       // Create tasks for each model and prompt, running each multiple times
       const tasks = [];
 
-      for (const modelConfig of enabledModels) {
+      for (const modelConfig of modelsToUse) {
         for (let i = 0; i < prompts.length; i++) {
           // Run each model/prompt combination multiple times based on config
           for (let runIndex = 0; runIndex < runsPerModel; runIndex++) {

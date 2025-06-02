@@ -11,6 +11,7 @@ export class User {
     maxBrands: number;
     maxAIModels: number;
   };
+  selectedModels: string[];
   companies?: CompanyIdentityCard[];
   createdAt: Date;
   updatedAt: Date;

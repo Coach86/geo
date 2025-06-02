@@ -1,16 +1,21 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import axios from 'axios';
 import { LlmAdapter, LlmCallOptions, LlmResponse } from '../interfaces/llm-adapter.interface';
+import { xai, createXai } from '@ai-sdk/xai';
+import { generateText } from 'ai';
 
 @Injectable()
 export class GrokAdapter implements LlmAdapter {
   private readonly logger = new Logger(GrokAdapter.name);
   private readonly apiKey: string;
   name = 'Grok';
+  private readonly xaiProvider: ReturnType<typeof createXai>;
 
   constructor(private readonly configService: ConfigService) {
     this.apiKey = this.configService.get<string>('GROK_API_KEY', '');
+    this.xaiProvider = createXai({
+      apiKey: this.apiKey,
+    });
   }
 
   isAvailable(): boolean {
@@ -24,41 +29,31 @@ export class GrokAdapter implements LlmAdapter {
     }
 
     try {
-      // Default model
-      const model = 'grok-1';
-
-      const requestBody = {
-        model,
-        messages: [{ role: 'user', content: prompt }],
-        temperature: options?.temperature ?? 0.7,
-        max_tokens: options?.maxTokens ?? 1000,
-        //   top_p: options?.topP
-        //  stop: options?.stopSequences,
-      };
-
-      const response = await axios.post('https://api.xai.com/v1/chat/completions', requestBody, {
-        headers: {
-          'x-api-key': this.apiKey,
-          'Content-Type': 'application/json',
-        },
-        timeout: options?.timeout ?? 30000,
+      const model = options?.model || 'grok-3-beta';
+      const temperature = options?.temperature ?? 0.7;
+      const maxTokens = options?.maxTokens ?? 1000;
+      // The SDK expects a prompt (string) or messages (array). We'll use prompt for now.
+      const result = await generateText({
+        model: this.xaiProvider(model),
+        prompt,
+        temperature,
+        maxTokens,
       });
-
-      const result = response.data;
-      const text = result.choices[0].message.content;
-
       return {
-        text,
-        modelVersion: model,
-        tokenUsage: {
-          input: result.usage?.prompt_tokens || 0,
-          output: result.usage?.completion_tokens || 0,
-          total: result.usage?.total_tokens || 0,
-        },
+        text: result.text,
+        modelVersion: model || 'grok-3-beta',
+        tokenUsage: result.usage
+          ? {
+              input: result.usage.promptTokens || 0,
+              output: result.usage.completionTokens || 0,
+              total: result.usage.totalTokens || 0,
+            }
+          : undefined,
+        responseMetadata: result,
       };
-    } catch (error) {
-      this.logger.error(`Error calling Grok API: ${error.message}`);
-      throw new Error(`Failed to call Grok API: ${error.message}`);
+    } catch (error: any) {
+      this.logger.error(`Error calling Grok SDK: ${error.message}`);
+      throw new Error(`Failed to call Grok SDK: ${error.message}`);
     }
   }
 }
