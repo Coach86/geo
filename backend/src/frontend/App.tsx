@@ -5,9 +5,9 @@ import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Unauthorized from './pages/Unauthorized';
-import CompanyList from './pages/CompanyList';
-import CompanyDetail from './pages/CompanyDetail';
-import CompanyCreation from './pages/CompanyCreation';
+import ProjectList from './pages/ProjectList';
+import ProjectDetail from './pages/ProjectDetail';
+import ProjectCreation from './pages/ProjectCreation';
 import BatchResults from './pages/BatchResults';
 import UserList from './pages/UserList';
 import UserCreation from './pages/UserCreation';
@@ -52,7 +52,10 @@ const App: React.FC = () => {
         await requestNotificationPermission();
         console.log('Notification permission requested');
       } catch (error) {
-        console.warn('Notification permission not granted, browser notifications will be disabled:', error);
+        console.warn(
+          'Notification permission not granted, browser notifications will be disabled:',
+          error,
+        );
       }
     };
 
@@ -79,17 +82,17 @@ const App: React.FC = () => {
               </ProtectedRoute>
             }
           >
-            <Route index element={<Navigate to="/companies" replace />} />
-            <Route path="companies" element={<CompanyList />} />
-            <Route path="companies/:id" element={<CompanyDetail />} />
-            <Route path="companies/new" element={<CompanyCreation />} />
+            <Route index element={<Navigate to="/projects" replace />} />
+            <Route path="projects" element={<ProjectList />} />
+            <Route path="projects/:id" element={<ProjectDetail />} />
+            <Route path="projects/new" element={<ProjectCreation />} />
             <Route path="batch-results/:id" element={<BatchResults />} />
             <Route path="users" element={<UserList />} />
             <Route path="users/new" element={<UserCreation />} />
             <Route path="email-preview" element={<EmailPreview />} />
             <Route path="config" element={<Config />} />
             <Route path="plans" element={<PlanManagement />} />
-            <Route path="*" element={<Navigate to="/companies" replace />} />
+            <Route path="*" element={<Navigate to="/projects" replace />} />
           </Route>
         </Routes>
       </Box>

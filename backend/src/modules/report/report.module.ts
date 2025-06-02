@@ -4,7 +4,7 @@ import { AdminReportController } from './controllers/admin-report.controller';
 import { PublicReportController } from './controllers/public-report.controller';
 import { ReportService } from './services/report.service';
 import { WeeklyBrandReport, WeeklyBrandReportSchema } from './schemas/weekly-brand-report.schema';
-import { IdentityCardModule } from '../identity-card/identity-card.module';
+import { ProjectModule } from '../project/project.module';
 import { AuthModule } from '../auth/auth.module';
 import { BatchModule } from '../batch/batch.module';
 
@@ -26,7 +26,7 @@ import { ConfigModule } from '@nestjs/config';
     MongooseModule.forFeature([
       { name: WeeklyBrandReport.name, schema: WeeklyBrandReportSchema },
     ]),
-    IdentityCardModule, // Import the IdentityCard module to access its service
+    ProjectModule, // Import the Project module to access its service
     UserModule,
     forwardRef(() => AuthModule),
     forwardRef(() => BatchModule), // Import the Batch module

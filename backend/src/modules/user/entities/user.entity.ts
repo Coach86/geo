@@ -1,4 +1,4 @@
-import { CompanyIdentityCard } from '../../identity-card/entities/company-identity-card.entity';
+import { Project } from '../../project/entities/project.entity';
 
 export class User {
   id: string;
@@ -8,11 +8,13 @@ export class User {
   stripeCustomerId?: string;
   stripePlanId?: string;
   planSettings: {
-    maxBrands: number;
+    maxProjects: number;
     maxAIModels: number;
+    maxSpontaneousPrompts?: number;
+    maxUrls: number;
   };
   selectedModels: string[];
-  companies?: CompanyIdentityCard[];
+  projects?: Project[];
   createdAt: Date;
   updatedAt: Date;
 }

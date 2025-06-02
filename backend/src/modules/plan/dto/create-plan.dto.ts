@@ -25,11 +25,11 @@ export class CreatePlanDto {
   maxModels: number;
 
   @IsNumber()
-  maxBrands: number;
+  maxProjects: number;
 
   @IsNumber()
   @IsOptional()
-  maxMarkets?: number;
+  maxUrls?: number;
 
   @IsNumber()
   @IsOptional()

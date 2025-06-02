@@ -83,47 +83,47 @@ export const showNotification = (
 
 /**
  * Show a batch start notification
- * @param companyName Name of the company
+ * @param projectName Name of the project
  * @param batchType Type of batch that is starting
  */
 export const showBatchStartNotification = (
-  companyName: string,
+  projectName: string,
   batchType: string,
 ): Notification | null => {
-  console.log('Showing batch start notification for:', companyName, batchType);
-  const title = `Batch Analysis Started: ${companyName}`;
-  const body = `The ${batchType} analysis for ${companyName} has been initiated and is processing.`;
+  console.log('Showing batch start notification for:', projectName, batchType);
+  const title = `Batch Analysis Started: ${projectName}`;
+  const body = `The ${batchType} analysis for ${projectName} has been initiated and is processing.`;
 
   return showNotification(title, {
     body,
-    tag: `batch-start-${companyName}-${Date.now()}`, // Unique tag
+    tag: `batch-start-${projectName}-${Date.now()}`, // Unique tag
     requireInteraction: false, // Auto-dismiss after a few seconds
   });
 };
 
 /**
  * Show a batch completion notification
- * @param companyName Name of the company
+ * @param projectName Name of the project
  * @param batchType Type of batch that completed
  * @param success Whether the batch completed successfully
  */
 export const showBatchCompletionNotification = (
-  companyName: string,
+  projectName: string,
   batchType: string,
   success: boolean,
 ): Notification | null => {
-  console.log('Showing batch completion notification for:', companyName, batchType, success);
+  console.log('Showing batch completion notification for:', projectName, batchType, success);
   const title = success
-    ? `Batch Analysis Complete: ${companyName}`
-    : `Batch Analysis Failed: ${companyName}`;
+    ? `Batch Analysis Complete: ${projectName}`
+    : `Batch Analysis Failed: ${projectName}`;
 
   const body = success
-    ? `The ${batchType} analysis for ${companyName} has completed successfully.`
-    : `The ${batchType} analysis for ${companyName} encountered an error.`;
+    ? `The ${batchType} analysis for ${projectName} has completed successfully.`
+    : `The ${batchType} analysis for ${projectName} encountered an error.`;
 
   return showNotification(title, {
     body,
-    tag: `batch-${companyName}-${Date.now()}`, // Unique tag
+    tag: `batch-${projectName}-${Date.now()}`, // Unique tag
     requireInteraction: true, // The notification will remain visible until the user dismisses it
   });
 };

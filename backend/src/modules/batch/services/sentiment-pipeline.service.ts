@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { LlmService } from '../../llm/services/llm.service';
 import { RawResponseService } from './raw-response.service';
 import {
-  CompanyBatchContext,
+  ProjectBatchContext,
   SentimentPipelineResult,
   SentimentResults,
   WebSearchSummary,
@@ -46,8 +46,8 @@ export class SentimentPipelineService extends BasePipelineService {
    * @param context Company batch context
    * @returns Pipeline results
    */
-  async run(context: CompanyBatchContext): Promise<SentimentResults> {
-    this.logger.log(`Running sentiment pipeline for ${context.companyId} (${context.brandName})`);
+  async run(context: ProjectBatchContext): Promise<SentimentResults> {
+    this.logger.log(`Running sentiment pipeline for ${context.projectId} (${context.brandName})`);
 
     try {
       // Get the prompts for this pipeline
@@ -141,7 +141,7 @@ export class SentimentPipelineService extends BasePipelineService {
       const webSearchSummary = this.createWebSearchSummary(results);
 
       this.logger.log(
-        `Completed sentiment pipeline for ${context.companyId} with ${results.length} results`,
+        `Completed sentiment pipeline for ${context.projectId} with ${results.length} results`,
       );
 
       if (webSearchSummary.usedWebSearch) {
@@ -157,7 +157,7 @@ export class SentimentPipelineService extends BasePipelineService {
       };
     } catch (error) {
       this.logger.error(
-        `Failed to run sentiment pipeline for ${context.companyId}: ${error.message}`,
+        `Failed to run sentiment pipeline for ${context.projectId}: ${error.message}`,
         error.stack,
       );
       throw error;

@@ -21,30 +21,30 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { 
-  countries, 
-  languages, 
-  countryToLanguage, 
-  languageToCode 
+import {
+  countries,
+  languages,
+  countryToLanguage,
+  languageToCode,
 } from "@/constants/markets-languages";
 
-interface AddCompanyModalProps {
+interface AddProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (companyId: string) => void;
-  onCreateCompany: (data: {
+  onSuccess: (projectId: string) => void;
+  onCreateProject: (data: {
     url: string;
     market: string;
     language: string;
   }) => Promise<{ id: string }>;
 }
 
-export default function AddCompanyModal({
+export default function AddProjectModal({
   isOpen,
   onClose,
   onSuccess,
-  onCreateCompany,
-}: AddCompanyModalProps) {
+  onCreateProject,
+}: AddProjectModalProps) {
   const [url, setUrl] = useState("");
   const [market, setMarket] = useState("");
   const [language, setLanguage] = useState("English");
@@ -54,11 +54,11 @@ export default function AddCompanyModal({
   // Get available languages based on selected market
   const getAvailableLanguages = () => {
     if (!market) return languages;
-    
+
     const marketLanguages = countryToLanguage[market];
     if (!marketLanguages) return languages;
-    
-    return languages.filter(lang => marketLanguages.includes(lang.value));
+
+    return languages.filter((lang) => marketLanguages.includes(lang.value));
   };
 
   // Update language when market changes
@@ -66,7 +66,7 @@ export default function AddCompanyModal({
     if (market) {
       const availableLanguages = getAvailableLanguages();
       const marketLanguages = countryToLanguage[market];
-      
+
       // If current language is not available in the new market, set to first available
       if (marketLanguages && !marketLanguages.includes(language)) {
         setLanguage(marketLanguages[0] || "English");
@@ -80,7 +80,7 @@ export default function AddCompanyModal({
 
     // Validate inputs
     if (!url) {
-      setError("Please enter a company URL");
+      setError("Please enter a project URL");
       return;
     }
 
@@ -102,29 +102,31 @@ export default function AddCompanyModal({
     try {
       // Convert language name to code for API
       const languageCode = languageToCode[language] || "en";
-      
-      const result = await onCreateCompany({
+
+      const result = await onCreateProject({
         url,
         market,
         language: languageCode,
       });
 
-      toast.success("Company created successfully!");
+      toast.success("Project created successfully!");
       onSuccess(result.id);
-      
+
       // Reset form
       setUrl("");
       setMarket("");
       setLanguage("English");
       onClose();
     } catch (err: any) {
-      console.error("Failed to create company:", err);
-      
+      console.error("Failed to create project:", err);
+
       // Check if it's a plan limit error
       if (err.response?.data?.code === "BRAND_LIMIT_EXCEEDED") {
-        setError("You've reached your plan's brand limit. Please upgrade to add more companies.");
+        setError(
+          "You've reached your plan's brand limit. Please upgrade to add more projects."
+        );
       } else {
-        setError(err.message || "Failed to create company. Please try again.");
+        setError(err.message || "Failed to create project. Please try again.");
       }
     } finally {
       setIsSubmitting(false);
@@ -135,15 +137,16 @@ export default function AddCompanyModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add New Company</DialogTitle>
+          <DialogTitle>Add New Project</DialogTitle>
           <DialogDescription>
-            Enter the company's website URL to analyze and add it to your portfolio.
+            Enter the project's website URL to analyze and add it to your
+            portfolio.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="url">Company Website URL</Label>
+            <Label htmlFor="url">Project Website URL</Label>
             <Input
               id="url"
               type="url"
@@ -218,7 +221,7 @@ export default function AddCompanyModal({
                   Creating...
                 </>
               ) : (
-                "Create Company"
+                "Create Project"
               )}
             </Button>
           </div>

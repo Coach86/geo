@@ -24,13 +24,13 @@ interface UserProfile {
   stripeCustomerId?: string;
   stripePlanId?: string;
   planSettings: {
-    maxBrands: number;
+    maxProjects: number;
     maxAIModels: number;
   };
   selectedModels: string[];
   createdAt: string;
   updatedAt: string;
-  companyIds: string[];
+  projectIds: string[];
 }
 
 interface AIModel {
@@ -49,7 +49,7 @@ export default function SettingsPage() {
   const [newEmail, setNewEmail] = useState("");
   const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
   const [emailError, setEmailError] = useState("");
-  
+
   // AI Models state
   const [availableModels, setAvailableModels] = useState<AIModel[]>([]);
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
@@ -57,35 +57,42 @@ export default function SettingsPage() {
   const [modelsLoading, setModelsLoading] = useState(false);
 
   // API Functions
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+  const API_BASE_URL =
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
   const fetchAvailableModels = async () => {
-    const response = await fetch(`${API_BASE_URL}/user/profile/available-models`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await fetch(
+      `${API_BASE_URL}/user/profile/available-models`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
     if (!response.ok) {
-      throw new Error('Failed to fetch available models');
+      throw new Error("Failed to fetch available models");
     }
 
     return response.json();
   };
 
   const updateSelectedModels = async (models: string[]) => {
-    const response = await fetch(`${API_BASE_URL}/user/profile/selected-models`, {
-      method: 'PATCH',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ selectedModels: models }),
-    });
+    const response = await fetch(
+      `${API_BASE_URL}/user/profile/selected-models`,
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ selectedModels: models }),
+      }
+    );
 
     if (!response.ok) {
-      throw new Error('Failed to update selected models');
+      throw new Error("Failed to update selected models");
     }
 
     return response.json();
@@ -159,14 +166,16 @@ export default function SettingsPage() {
   };
 
   const handleModelToggle = (modelId: string) => {
-    setSelectedModels(prev => {
+    setSelectedModels((prev) => {
       const isSelected = prev.includes(modelId);
       if (isSelected) {
-        return prev.filter(id => id !== modelId);
+        return prev.filter((id) => id !== modelId);
       } else {
         // Check if we can add more models
         if (prev.length >= (profile?.planSettings.maxAIModels || 3)) {
-          toast.error(`You can only select up to ${profile?.planSettings.maxAIModels} models with your current plan`);
+          toast.error(
+            `You can only select up to ${profile?.planSettings.maxAIModels} models with your current plan`
+          );
           return prev;
         }
         return [...prev, modelId];
@@ -290,13 +299,20 @@ export default function SettingsPage() {
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">Current Plan</p>
+                    <p className="text-sm text-muted-foreground">
+                      Current Plan
+                    </p>
                     <div className="flex items-center gap-2 mt-1">
                       <p className="text-2xl font-bold">{getPlanName()}</p>
-                      <Badge variant="secondary">{profile.stripePlanId || "free"}</Badge>
+                      <Badge variant="secondary">
+                        {profile.stripePlanId || "free"}
+                      </Badge>
                     </div>
                   </div>
-                  <Button variant="outline" onClick={() => router.push('/update-plan')}>
+                  <Button
+                    variant="outline"
+                    onClick={() => router.push("/update-plan")}
+                  >
                     Upgrade Plan
                   </Button>
                 </div>
@@ -305,19 +321,26 @@ export default function SettingsPage() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Building className="h-4 w-4 text-muted-foreground" />
-                      <Label>Brand Limit</Label>
+                      <Label>Project Limit</Label>
                     </div>
                     <div className="flex items-center gap-2">
                       <p className="text-2xl font-semibold">
-                        {profile.companyIds.length} / {profile.planSettings.maxBrands}
+                        {profile.projectIds.length} /{" "}
+                        {profile.planSettings.maxProjects}
                       </p>
-                      <span className="text-sm text-muted-foreground">brands</span>
+                      <span className="text-sm text-muted-foreground">
+                        projects
+                      </span>
                     </div>
                     <div className="w-full bg-secondary rounded-full h-2">
                       <div
                         className="bg-primary h-2 rounded-full transition-all"
                         style={{
-                          width: `${(profile.companyIds.length / profile.planSettings.maxBrands) * 100}%`,
+                          width: `${
+                            (profile.projectIds.length /
+                              profile.planSettings.maxProjects) *
+                            100
+                          }%`,
                         }}
                       />
                     </div>
@@ -330,15 +353,22 @@ export default function SettingsPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <p className="text-2xl font-semibold">
-                        {selectedModels.length} / {profile.planSettings.maxAIModels}
+                        {selectedModels.length} /{" "}
+                        {profile.planSettings.maxAIModels}
                       </p>
-                      <span className="text-sm text-muted-foreground">selected</span>
+                      <span className="text-sm text-muted-foreground">
+                        selected
+                      </span>
                     </div>
                     <div className="w-full bg-secondary rounded-full h-2">
                       <div
                         className="bg-primary h-2 rounded-full transition-all"
                         style={{
-                          width: `${(selectedModels.length / profile.planSettings.maxAIModels) * 100}%`,
+                          width: `${
+                            (selectedModels.length /
+                              profile.planSettings.maxAIModels) *
+                            100
+                          }%`,
                         }}
                       />
                     </div>
@@ -369,15 +399,21 @@ export default function SettingsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">
-                      Select up to {profile.planSettings.maxAIModels} AI models for batch processing
+                      Select up to {profile.planSettings.maxAIModels} AI models
+                      for batch processing
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {selectedModels.length} of {profile.planSettings.maxAIModels} models selected
+                      {selectedModels.length} of{" "}
+                      {profile.planSettings.maxAIModels} models selected
                     </p>
                   </div>
                   <Button
                     onClick={handleSaveModels}
-                    disabled={isUpdatingModels || JSON.stringify(selectedModels.sort()) === JSON.stringify((profile.selectedModels || []).sort())}
+                    disabled={
+                      isUpdatingModels ||
+                      JSON.stringify(selectedModels.sort()) ===
+                        JSON.stringify((profile.selectedModels || []).sort())
+                    }
                   >
                     {isUpdatingModels ? "Saving..." : "Save Changes"}
                   </Button>
@@ -400,7 +436,11 @@ export default function SettingsPage() {
                           id={model.id}
                           checked={selectedModels.includes(model.id)}
                           onCheckedChange={() => handleModelToggle(model.id)}
-                          disabled={!selectedModels.includes(model.id) && selectedModels.length >= profile.planSettings.maxAIModels}
+                          disabled={
+                            !selectedModels.includes(model.id) &&
+                            selectedModels.length >=
+                              profile.planSettings.maxAIModels
+                          }
                         />
                         <div className="flex-1 space-y-1">
                           <div className="flex items-center gap-2">
@@ -427,7 +467,8 @@ export default function SettingsPage() {
                   <Alert>
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                      No AI models are currently available. Please contact support.
+                      No AI models are currently available. Please contact
+                      support.
                     </AlertDescription>
                   </Alert>
                 )}

@@ -10,7 +10,7 @@ import {
   AccordionContent,
 } from "@/components/ui/accordion";
 import AttributeScoresByModelTable from "@/components/compliance/attribute-scores-table";
-import { getCompanyReports, getBatchResults } from "@/lib/auth-api";
+import { getProjectReports, getBatchResults } from "@/lib/auth-api";
 import { useAuth } from "@/providers/auth-provider";
 import {
   Select,
@@ -24,14 +24,16 @@ import { transformAccordToCompliance } from "@/utils/compliance-transformer";
 import {
   ComplianceLoading,
   ComplianceError,
-  ComplianceNoCompany,
+  ComplianceNoProject,
   ComplianceNoData,
 } from "@/components/compliance/ComplianceStates";
 import type { AttributeItem } from "@/types/reports";
+import { ProjectHeader } from "@/components/project-profile/ProjectHeader";
+import { ProjectMetadata } from "@/components/project-profile/ProjectMetadata";
 
 interface ProcessedReport {
   id: string;
-  companyId: string;
+  projectId: string;
   reportDate: string;
   createdAt: string;
   complianceData: ComplianceResults;
@@ -40,7 +42,7 @@ interface ProcessedReport {
 
 export default function CompliancePage() {
   const { token } = useAuth();
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     null
   );
   const [reports, setReports] = useState<ProcessedReport[]>([]);
@@ -50,34 +52,32 @@ export default function CompliancePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-
-
-  // Get selected company from localStorage and listen for changes
+  // Get selected project from localStorage and listen for changes
   useEffect(() => {
     const fetchComplianceData = async () => {
-      const companyId = localStorage.getItem("selectedCompanyId");
+      const projectId = localStorage.getItem("selectedProjectId");
 
       console.log(
-        "[Compliance] Selected companyId:",
-        companyId,
+        "[Compliance] Selected projectId:",
+        projectId,
         "token:",
         token
       );
 
-      if (!companyId || !token) {
-        console.log("[Compliance] No companyId or token");
-        setSelectedCompanyId(null);
+      if (!projectId || !token) {
+        console.log("[Compliance] No projectId or token");
+        setSelectedProjectId(null);
         setReports([]);
         setSelectedReport(null);
         setIsLoading(false);
         return;
       }
 
-      setSelectedCompanyId(companyId);
+      setSelectedProjectId(projectId);
       setIsLoading(true);
       setError(null);
       try {
-        const apiReports = await getCompanyReports(companyId, token);
+        const apiReports = await getProjectReports(projectId, token);
         console.log("[Compliance] apiReports:", apiReports);
 
         if (!apiReports || apiReports.length === 0) {
@@ -131,7 +131,7 @@ export default function CompliancePage() {
           if (complianceData) {
             processedReports.push({
               id: report.id,
-              companyId: report.companyId,
+              projectId: report.projectId,
               reportDate: report.generatedAt,
               createdAt: report.generatedAt,
               complianceData,
@@ -174,7 +174,7 @@ export default function CompliancePage() {
 
     fetchComplianceData();
 
-    // Listen for company selection changes
+    // Listen for project selection changes
     const handleStorageChange = () => {
       fetchComplianceData();
     };
@@ -182,12 +182,12 @@ export default function CompliancePage() {
     window.addEventListener("storage", handleStorageChange);
 
     // Also listen for custom events from the same tab
-    window.addEventListener("companySelectionChanged", handleStorageChange);
+    window.addEventListener("projectSelectionChanged", handleStorageChange);
 
     return () => {
       window.removeEventListener("storage", handleStorageChange);
       window.removeEventListener(
-        "companySelectionChanged",
+        "projectSelectionChanged",
         handleStorageChange
       );
     };
@@ -197,7 +197,7 @@ export default function CompliancePage() {
 
   if (error) return <ComplianceError error={error} />;
 
-  if (!selectedCompanyId || !token) return <ComplianceNoCompany />;
+  if (!selectedProjectId || !token) return <ComplianceNoProject />;
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);

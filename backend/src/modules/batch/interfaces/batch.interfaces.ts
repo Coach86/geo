@@ -8,7 +8,7 @@
  */
 export interface PromptSetType {
   id?: string;
-  companyId?: string;
+  projectId?: string;
   spontaneous: string[];
   direct?: string[];
   comparison: string[];
@@ -18,8 +18,8 @@ export interface PromptSetType {
   updatedAt?: Date;
 }
 
-export interface CompanyBatchContext {
-  companyId: string;
+export interface ProjectBatchContext {
+  projectId: string;
   brandName: string;
   keyBrandAttributes: string[];
   market: string;
@@ -213,7 +213,7 @@ export type BrandBattleResults = ComparisonResults;
  * Weekly Report Interface
  */
 export interface WeeklyBrandReport {
-  companyId: string;
+  projectId: string;
   date: Date; // Monday 00-00-00Z
   spontaneous: SpontaneousResults;
   sentimentAccuracy: SentimentResults;

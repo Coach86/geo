@@ -17,8 +17,8 @@ import {
  * should provide to the report module when saving a new report.
  */
 export interface BatchReportInput {
-  /** Company identifier */
-  companyId: string;
+  /** Project identifier */
+  projectId: string;
 
   /** Start of the week (Monday 00:00:00 UTC) */
   date: Date;

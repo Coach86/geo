@@ -8,7 +8,7 @@ import { UserResponseDto } from '../dto/user-response.dto';
 import { UserRepository } from '../repositories/user.repository';
 import { UserDocument } from '../schemas/user.schema';
 import { User as UserEntity } from '../entities/user.entity';
-import { CompanyIdentityCard } from '../../identity-card/entities/company-identity-card.entity';
+import { Project } from '../../project/entities/project.entity';
 
 @Injectable()
 export class UserService {
@@ -48,13 +48,13 @@ export class UserService {
     try {
       const users = await this.userRepository.findAll();
       const userDtos = [];
-      
+
       for (const user of users) {
-        // Get user with companies
-        const userWithCompanies = await this.userRepository.mapToEntityWithCompanies(user);
-        userDtos.push(this.mapToEntityDto(userWithCompanies));
+        // Get user with projects
+        const userWithProjects = await this.userRepository.mapToEntityWithProjects(user);
+        userDtos.push(this.mapToEntityDto(userWithProjects));
       }
-      
+
       return userDtos;
     } catch (error) {
       this.logger.error(`Failed to find users: ${error.message}`, error.stack);
@@ -90,8 +90,8 @@ export class UserService {
         throw new NotFoundException(`User with email ${email} not found`);
       }
 
-      const userWithCompanies = await this.userRepository.mapToEntityWithCompanies(user);
-      return this.mapToEntityDto(userWithCompanies);
+      const userWithProjects = await this.userRepository.mapToEntityWithProjects(user);
+      return this.mapToEntityDto(userWithProjects);
     } catch (error) {
       this.logger.error(`Failed to find user by email: ${error.message}`, error.stack);
       throw error;
@@ -114,7 +114,9 @@ export class UserService {
         ...(updateUserDto.language && { language: updateUserDto.language }),
         ...(updateUserDto.phoneNumber !== undefined && { phoneNumber: updateUserDto.phoneNumber }),
         ...(updateUserDto.planSettings && { planSettings: updateUserDto.planSettings }),
-        ...(updateUserDto.selectedModels !== undefined && { selectedModels: updateUserDto.selectedModels }),
+        ...(updateUserDto.selectedModels !== undefined && {
+          selectedModels: updateUserDto.selectedModels,
+        }),
       };
 
       const updatedUser = await this.userRepository.update(id, updateData);
@@ -134,7 +136,7 @@ export class UserService {
   async updatePhone(id: string, updatePhoneDto: UpdatePhoneDto): Promise<UserResponseDto> {
     try {
       this.logger.log(`Updating phone number for user: ${id}`);
-      
+
       // Check if user exists
       await this.findOne(id);
 
@@ -144,7 +146,7 @@ export class UserService {
 
       const updatedUser = await this.userRepository.update(id, updateData);
       this.logger.log(`Phone number updated successfully for user: ${id}`);
-      
+
       return this.mapToResponseDto(updatedUser);
     } catch (error) {
       this.logger.error(`Failed to update phone number: ${error.message}`, error.stack);
@@ -161,7 +163,7 @@ export class UserService {
   async updateEmail(id: string, updateEmailDto: UpdateEmailDto): Promise<UserResponseDto> {
     try {
       this.logger.log(`Updating email for user: ${id}`);
-      
+
       // Check if user exists
       await this.findOne(id);
 
@@ -177,7 +179,7 @@ export class UserService {
 
       const updatedUser = await this.userRepository.update(id, updateData);
       this.logger.log(`Email updated successfully for user: ${id}`);
-      
+
       return this.mapToResponseDto(updatedUser);
     } catch (error) {
       this.logger.error(`Failed to update email: ${error.message}`, error.stack);
@@ -194,7 +196,7 @@ export class UserService {
     try {
       // Check if user exists and get the user before deleting
       const user = await this.findOne(id);
-      
+
       // Delete the user
       await this.userRepository.remove(id);
 
@@ -211,10 +213,10 @@ export class UserService {
    * @returns UserResponseDto
    */
   private mapToEntityDto(entity: UserEntity): UserResponseDto {
-    const companyIds = entity.companies 
-      ? entity.companies.map((company: CompanyIdentityCard) => company.companyId) 
+    const projectIds = entity.projects
+      ? entity.projects.map((project: Project) => project.projectId)
       : [];
-    
+
     return {
       id: entity.id,
       email: entity.email,
@@ -222,14 +224,19 @@ export class UserService {
       phoneNumber: entity.phoneNumber,
       stripeCustomerId: entity.stripeCustomerId,
       stripePlanId: entity.stripePlanId,
-      planSettings: entity.planSettings,
+      planSettings: {
+        maxProjects: entity.planSettings?.maxProjects || 1,
+        maxAIModels: entity.planSettings?.maxAIModels || 3,
+        maxSpontaneousPrompts: entity.planSettings?.maxSpontaneousPrompts || 12,
+        maxUrls: entity.planSettings?.maxUrls || 1,
+      },
       createdAt: entity.createdAt.toISOString(),
       updatedAt: entity.updatedAt.toISOString(),
-      companyIds,
+      projectIds,
       selectedModels: entity.selectedModels || [],
     };
   }
-  
+
   /**
    * Map a Mongoose User model to a UserResponseDto
    * @param user - Mongoose User model
@@ -241,14 +248,14 @@ export class UserService {
   }
 
   /**
-   * Get company IDs for a user
+   * Get project IDs for a user
    * @param userId - User ID
-   * @returns Array of company IDs
+   * @returns Array of project IDs
    */
-  async getUserCompanyIds(userId: string): Promise<string[]> {
+  async getUserProjectIds(userId: string): Promise<string[]> {
     try {
-      const companies = await this.userRepository.findCompaniesForUser(userId);
-      return companies ? companies.map(c => c.id) : [];
+      const projects = await this.userRepository.findProjectsForUser(userId);
+      return projects ? projects.map((p) => p.id) : [];
     } catch (error) {
       this.logger.error(`Failed to get user company IDs: ${error.message}`, error.stack);
       return [];

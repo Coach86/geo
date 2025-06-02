@@ -27,10 +27,10 @@ export class Plan {
   maxModels: number;
 
   @Prop({ required: true, default: 1 })
-  maxBrands: number;
+  maxProjects: number;
 
   @Prop({ default: 1 })
-  maxMarkets: number;
+  maxUrls: number;
 
   @Prop({ default: 12 })
   maxSpontaneousPrompts: number;

@@ -4,7 +4,7 @@ import { Resend } from 'resend';
 import { renderAsync } from '@react-email/render';
 import React from 'react';
 import { BrandIntelligenceReport } from '../email';
-import { IdentityCardService } from '../../identity-card/services/identity-card.service';
+import { ProjectService } from '../../project/services/project.service';
 import { BatchExecutionRepository } from '../../batch/repositories/batch-execution.repository';
 import { BatchResultRepository } from '../../batch/repositories/batch-result.repository';
 import { PipelineType } from '../../batch/interfaces/llm.interfaces';
@@ -18,26 +18,26 @@ export class ReportIntegrationService {
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly identityCardService: IdentityCardService,
+    private readonly projectService: ProjectService,
     private readonly batchExecutionRepository: BatchExecutionRepository,
     private readonly batchResultRepository: BatchResultRepository,
   ) {}
 
   /**
-   * Get the identity card for a company, with proper type safety
-   * Uses properly injected IdentityCardService instead of direct mongoose access
+   * Get the project by ID, with proper type safety
+   * Uses properly injected ProjectService instead of direct mongoose access
    *
-   * @param companyId The ID of the company to get the identity card for
-   * @returns The identity card entity or null if not found
+   * @param projectId The ID of the project to get
+   * @returns The project entity or null if not found
    */
-  async getCompanyIdentityCard(companyId: string) {
+  async getCompanyProject(projectId: string) {
     try {
       // Call the properly injected service instead of using mongoose directly
-      const identityCard = await this.identityCardService.findById(companyId);
-      return identityCard;
+      const project = await this.projectService.findById(projectId);
+      return project;
     } catch (error) {
       // The findById method throws NotFoundException if not found, so we catch and return null
-      this.logger.debug(`Identity card not found for company ${companyId}: ${error.message}`);
+      this.logger.debug(`Project not found with ID ${projectId}: ${error.message}`);
       return null; // Return null instead of throwing, as this is not critical
     }
   }

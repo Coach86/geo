@@ -52,7 +52,7 @@ export class ReportAccessService {
     token: string,
     reportDate: Date,
     recipientEmail: string,
-    companyName: string,
+    projectName: string,
   ): Promise<void> {
     try {
       this.logger.log(`Sending report access email for user ${recipientEmail}`);
@@ -80,7 +80,7 @@ export class ReportAccessService {
         react: React.createElement(ReportAccessEmail, {
           reportDate: formattedReportDate,
           accessUrl,
-          companyName,
+          companyName: projectName,
         }),
       });
 
@@ -106,7 +106,7 @@ export class ReportAccessService {
     emailAddress: string,
     customSubject?: string,
     reportDate?: Date,
-    companyName?: string,
+    projectName?: string,
   ): Promise<boolean> {
     try {
       this.logger.log(`Attempting to send report email for user ${userId} to ${emailAddress}`);
@@ -141,15 +141,15 @@ export class ReportAccessService {
       // Create default subject if not provided
       const subject = customSubject || `Your Mint Reports`;
 
-      // Use default company name if not provided
-      const finalCompanyName = companyName || 'Your Brand';
+      // Use default project name if not provided
+      const finalProjectName = projectName || 'Your Brand';
 
       const emailResponse = await resend.emails.send({
         from: 'tailorfeed-ai@tailorfeed.ai',
         to: emailAddress,
         subject: subject,
         react: React.createElement(ReportAccessEmail, {
-          companyName: finalCompanyName,
+          companyName: finalProjectName,
           reportDate: reportDateFormatted,
           accessUrl,
         }),

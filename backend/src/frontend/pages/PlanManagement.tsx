@@ -43,8 +43,8 @@ interface PlanFormData {
   included: string[];
   stripeProductId: string;
   maxModels: number;
-  maxBrands: number;
-  maxMarkets: number;
+  maxProjects: number;
+  maxUrls: number;
   maxSpontaneousPrompts: number;
   isActive: boolean;
   isRecommended: boolean;
@@ -61,8 +61,8 @@ const defaultPlanData: PlanFormData = {
   included: [],
   stripeProductId: '',
   maxModels: 5,
-  maxBrands: 1,
-  maxMarkets: 1,
+  maxProjects: 1,
+  maxUrls: 1,
   maxSpontaneousPrompts: 12,
   isActive: true,
   isRecommended: false,
@@ -119,8 +119,8 @@ export default function PlanManagement() {
       included: plan.included,
       stripeProductId: plan.stripeProductId,
       maxModels: plan.maxModels,
-      maxBrands: plan.maxBrands,
-      maxMarkets: plan.maxMarkets,
+      maxProjects: plan.maxProjects,
+      maxUrls: plan.maxUrls,
       maxSpontaneousPrompts: plan.maxSpontaneousPrompts,
       isActive: plan.isActive,
       isRecommended: plan.isRecommended,
@@ -258,10 +258,10 @@ export default function PlanManagement() {
                     Max Models: {plan.maxModels}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Max Brands: {plan.maxBrands}
+                    Max Projects: {plan.maxProjects}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Max Markets: {plan.maxMarkets}
+                    Max URLs: {plan.maxUrls}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Max Spontaneous Prompts: {plan.maxSpontaneousPrompts}
@@ -334,16 +334,16 @@ export default function PlanManagement() {
               <TextField
                 fullWidth
                 type="number"
-                label="Max Brands"
-                value={formData.maxBrands}
-                onChange={(e) => setFormData({ ...formData, maxBrands: parseInt(e.target.value) })}
+                label="Max Projects"
+                value={formData.maxProjects}
+                onChange={(e) => setFormData({ ...formData, maxProjects: parseInt(e.target.value) })}
               />
               <TextField
                 fullWidth
                 type="number"
-                label="Max Markets"
-                value={formData.maxMarkets}
-                onChange={(e) => setFormData({ ...formData, maxMarkets: parseInt(e.target.value) })}
+                label="Max URLs"
+                value={formData.maxUrls}
+                onChange={(e) => setFormData({ ...formData, maxUrls: parseInt(e.target.value) })}
               />
               <TextField
                 fullWidth

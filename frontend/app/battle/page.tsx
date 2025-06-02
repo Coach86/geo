@@ -16,22 +16,22 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-import {
-  getCompanyReports,
-  getCompanyById,
-} from "@/lib/auth-api";
+import { getProjectReports, getProjectById } from "@/lib/auth-api";
 import type { ReportResponse } from "@/types/reports";
 import type { BrandBattleData } from "@/types/brand-battle";
 
 interface ProcessedReport extends ReportResponse {
+  brandBattle: BrandBattleData;
   brandName: string;
   competitors: string[];
-  brandBattle?: BrandBattleData;
+  reportDate: string;
+  createdAt: string;
+  projectId: string;
 }
 
 export default function BattlePage() {
   const { token } = useAuth();
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     null
   );
   const [reports, setReports] = useState<ProcessedReport[]>([]);
@@ -45,42 +45,39 @@ export default function BattlePage() {
   // Get selected company from localStorage and listen for changes
   useEffect(() => {
     const fetchReports = async () => {
-      const companyId = localStorage.getItem("selectedCompanyId");
+      const projectId = localStorage.getItem("selectedProjectId");
 
-      if (!companyId || !token) {
-        setSelectedCompanyId(null);
+      if (!projectId || !token) {
+        setSelectedProjectId(null);
         setReports([]);
         setSelectedReport(null);
         setLoading(false);
         return;
       }
 
-      setSelectedCompanyId(companyId);
+      setSelectedProjectId(projectId);
       setLoading(true);
       setError(null);
 
       try {
-        // Fetch company details to get competitors
-        const companyDetails = await getCompanyById(companyId, token);
-        const competitors = companyDetails.competitors || [];
+        // Fetch project details to get competitors
+        const projectDetails = await getProjectById(projectId, token);
+        const competitors = projectDetails.competitors || [];
 
         // Fetch reports from API
-        const apiReports = await getCompanyReports(companyId, token);
+        const apiReports = await getProjectReports(projectId, token);
 
         // Process API response to match our interface
         const processedReports: ProcessedReport[] = apiReports.map(
-          (report: ReportResponse) => {
-            return {
-              id: report.id,
-              companyId: report.companyId,
-              reportDate: report.generatedAt,
-              createdAt: report.generatedAt,
-              brandName:
-                report.brand?.name || companyDetails.brandName || "Your Brand",
-              competitors: competitors,
-              brandBattle: (report as any).brandBattle,
-            };
-          }
+          (report: any) => ({
+            ...report,
+            projectId: report.projectId,
+            reportDate: report.metadata?.date || report.generatedAt,
+            createdAt: report.generatedAt,
+            brandName: report.brand || report.metadata?.brand || "Your Brand",
+            competitors: report.competitors || [],
+            brandBattle: report.brandBattle,
+          })
         );
 
         // Sort reports by date (most recent first)
@@ -104,17 +101,17 @@ export default function BattlePage() {
 
     fetchReports();
 
-    // Listen for company selection changes (same-tab updates)
-    const handleCompanyChange = () => {
+    // Listen for project selection changes (same-tab updates)
+    const handleProjectChange = () => {
       fetchReports();
     };
 
-    window.addEventListener("companySelectionChanged", handleCompanyChange);
+    window.addEventListener("projectSelectionChanged", handleProjectChange);
 
     return () => {
       window.removeEventListener(
-        "companySelectionChanged",
-        handleCompanyChange
+        "projectSelectionChanged",
+        handleProjectChange
       );
     };
   }, [token]);
@@ -142,7 +139,7 @@ export default function BattlePage() {
     };
   };
 
-  if (!selectedCompanyId) {
+  if (!selectedProjectId) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-[50vh]">
@@ -357,136 +354,134 @@ function BrandBattleTable({
       <div className="p-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {data.competitorAnalyses.map((competitor, index) => (
-            <div 
+            <div
               key={competitor.competitor}
               className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden"
             >
-                <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-                  <h3 className="text-base font-bold text-gray-800">
-                    {brand} vs{" "}
-                    <span className="text-[#805AD5]">
-                      {competitor.competitor}
-                    </span>
-                  </h3>
-                </div>
-                <div className="p-3">
-                  <div>
-                    <table className="w-full border-collapse table-fixed">
-                      <thead>
-                        <tr>
-                          <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500 border-b-2 border-gray-200 w-[40px]"></th>
-                          {models.map((model, mIndex) => {
-                            return (
-                              <th
-                                key={mIndex}
-                                className="px-2 py-2 text-center text-xs font-bold text-gray-700 border-b-2 border-gray-200"
-                              >
-                                {model}
-                              </th>
-                            );
-                          })}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {/* Strengths row */}
-                        <tr className="bg-[#E3F2FD]">
-                          <td className="px-2 py-2 border-b border-gray-200 font-bold text-[#0D47A1] text-sm text-center">
-                            <div
-                              className="flex items-center justify-center"
-                              title="Strengths"
+              <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                <h3 className="text-base font-bold text-gray-800">
+                  {brand} vs{" "}
+                  <span className="text-[#805AD5]">
+                    {competitor.competitor}
+                  </span>
+                </h3>
+              </div>
+              <div className="p-3">
+                <div>
+                  <table className="w-full border-collapse table-fixed">
+                    <thead>
+                      <tr>
+                        <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500 border-b-2 border-gray-200 w-[40px]"></th>
+                        {models.map((model, mIndex) => {
+                          return (
+                            <th
+                              key={mIndex}
+                              className="px-2 py-2 text-center text-xs font-bold text-gray-700 border-b-2 border-gray-200"
                             >
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 24 24"
-                                fill="currentColor"
-                                className="w-5 h-5"
-                              >
-                                <path
-                                  fillRule="evenodd"
-                                  d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z"
-                                  clipRule="evenodd"
-                                />
-                              </svg>
-                            </div>
-                          </td>
-                          {models.map((model, mIndex) => {
-                            const analysis = competitor.analysisByModel.find(
-                              (a) => a.model === model
-                            );
-                            return (
-                              <td
-                                key={mIndex}
-                                className="px-2 py-2 border-b border-gray-200 text-xs"
-                              >
-                                {analysis?.strengths.map((strength, sIndex) => (
-                                  <div
-                                    key={sIndex}
-                                    className="mb-1 flex items-start"
-                                  >
-                                    <span className="text-[#2196F3] mr-1 mt-0.5 flex-shrink-0">
-                                      •
-                                    </span>
-                                    <span className="text-gray-800">
-                                      {strength}
-                                    </span>
-                                  </div>
-                                ))}
-                              </td>
-                            );
-                          })}
-                        </tr>
-                        {/* Weaknesses row */}
-                        <tr className="bg-[#FCE4EC]">
-                          <td className="px-2 py-2 font-bold text-[#AD1457] text-sm text-center">
-                            <div
-                              className="flex items-center justify-center"
-                              title="Weaknesses"
+                              {model}
+                            </th>
+                          );
+                        })}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {/* Strengths row */}
+                      <tr className="bg-[#E3F2FD]">
+                        <td className="px-2 py-2 border-b border-gray-200 font-bold text-[#0D47A1] text-sm text-center">
+                          <div
+                            className="flex items-center justify-center"
+                            title="Strengths"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                              className="w-5 h-5"
                             >
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 24 24"
-                                fill="currentColor"
-                                className="w-5 h-5"
-                              >
-                                <path
-                                  fillRule="evenodd"
-                                  d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm-1.72 6.97a.75.75 0 10-1.06 1.06L10.94 12l-1.72 1.72a.75.75 0 101.06 1.06L12 13.06l1.72 1.72a.75.75 0 101.06-1.06L13.06 12l1.72-1.72a.75.75 0 10-1.06-1.06L12 10.94l-1.72-1.72z"
-                                  clipRule="evenodd"
-                                />
-                              </svg>
-                            </div>
-                          </td>
-                          {models.map((model, mIndex) => {
-                            const analysis = competitor.analysisByModel.find(
-                              (a) => a.model === model
-                            );
-                            return (
-                              <td key={mIndex} className="px-2 py-2 text-xs">
-                                {analysis?.weaknesses.map(
-                                  (weakness, wIndex) => (
-                                    <div
-                                      key={wIndex}
-                                      className="mb-1 flex items-start"
-                                    >
-                                      <span className="text-[#C2185B] mr-1 mt-0.5 flex-shrink-0">
-                                        •
-                                      </span>
-                                      <span className="text-gray-800">
-                                        {weakness}
-                                      </span>
-                                    </div>
-                                  )
-                                )}
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
+                              <path
+                                fillRule="evenodd"
+                                d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          </div>
+                        </td>
+                        {models.map((model, mIndex) => {
+                          const analysis = competitor.analysisByModel.find(
+                            (a) => a.model === model
+                          );
+                          return (
+                            <td
+                              key={mIndex}
+                              className="px-2 py-2 border-b border-gray-200 text-xs"
+                            >
+                              {analysis?.strengths.map((strength, sIndex) => (
+                                <div
+                                  key={sIndex}
+                                  className="mb-1 flex items-start"
+                                >
+                                  <span className="text-[#2196F3] mr-1 mt-0.5 flex-shrink-0">
+                                    •
+                                  </span>
+                                  <span className="text-gray-800">
+                                    {strength}
+                                  </span>
+                                </div>
+                              ))}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                      {/* Weaknesses row */}
+                      <tr className="bg-[#FCE4EC]">
+                        <td className="px-2 py-2 font-bold text-[#AD1457] text-sm text-center">
+                          <div
+                            className="flex items-center justify-center"
+                            title="Weaknesses"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                              className="w-5 h-5"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm-1.72 6.97a.75.75 0 10-1.06 1.06L10.94 12l-1.72 1.72a.75.75 0 101.06 1.06L12 13.06l1.72 1.72a.75.75 0 101.06-1.06L13.06 12l1.72-1.72a.75.75 0 10-1.06-1.06L12 10.94l-1.72-1.72z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          </div>
+                        </td>
+                        {models.map((model, mIndex) => {
+                          const analysis = competitor.analysisByModel.find(
+                            (a) => a.model === model
+                          );
+                          return (
+                            <td key={mIndex} className="px-2 py-2 text-xs">
+                              {analysis?.weaknesses.map((weakness, wIndex) => (
+                                <div
+                                  key={wIndex}
+                                  className="mb-1 flex items-start"
+                                >
+                                  <span className="text-[#C2185B] mr-1 mt-0.5 flex-shrink-0">
+                                    •
+                                  </span>
+                                  <span className="text-gray-800">
+                                    {weakness}
+                                  </span>
+                                </div>
+                              ))}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </div>
-            ))}
+            </div>
+          ))}
         </div>
 
         {/* Common strengths and weaknesses section */}

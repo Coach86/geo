@@ -2,7 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { BatchExecutionRepository } from '../repositories/batch-execution.repository';
 import { BatchResultRepository } from '../repositories/batch-result.repository';
 import { RawResponseRepository } from '../repositories/raw-response.repository';
-import { IdentityCardRepository } from '../../identity-card/repositories/identity-card.repository';
+import { ProjectRepository } from '../../project/repositories/project.repository';
 
 @Injectable()
 export class BatchExecutionService {
@@ -11,32 +11,32 @@ export class BatchExecutionService {
   constructor(
     private readonly batchExecutionRepository: BatchExecutionRepository,
     private readonly batchResultRepository: BatchResultRepository,
-    private readonly identityCardRepository: IdentityCardRepository,
+    private readonly projectRepository: ProjectRepository,
     private readonly rawResponseRepository: RawResponseRepository,
   ) {}
 
   /**
    * Create a new batch execution
-   * @param companyId The ID of the company
+   * @param projectId The ID of the project
    * @returns The created batch execution
    */
-  async createBatchExecution(companyId: string): Promise<any> {
+  async createBatchExecution(projectId: string): Promise<any> {
     try {
-      // Verify the company exists
-      const company = await this.identityCardRepository.findById(companyId);
+      // Verify the project exists
+      const project = await this.projectRepository.findById(projectId);
 
-      if (!company) {
-        throw new NotFoundException(`Company with ID ${companyId} not found`);
+      if (!project) {
+        throw new NotFoundException(`Project with ID ${projectId} not found`);
       }
 
       // Create a new batch execution
       const batchExecution = await this.batchExecutionRepository.create({
-        companyId,
+        projectId,
         status: 'running',
         executedAt: new Date(),
       });
 
-      this.logger.log(`Created batch execution ${batchExecution.id} for company ${companyId}`);
+      this.logger.log(`Created batch execution ${batchExecution.id} for project ${projectId}`);
       return batchExecution;
     } catch (error) {
       this.logger.error(`Failed to create batch execution: ${error.message}`, error.stack);
@@ -210,13 +210,13 @@ export class BatchExecutionService {
       // Get the associated results
       const batchResults = await this.batchResultRepository.findAllByExecutionId(batchExecutionId);
 
-      // Get the company details
-      const identityCard = await this.identityCardRepository.findById(batchExecution.companyId);
+      // Get the project details
+      const project = await this.projectRepository.findById(batchExecution.projectId);
 
       return {
         ...batchExecution,  // Using lean() so it's already a plain object
         finalResults: batchResults,
-        identityCard: identityCard,
+        project: project,
       };
     } catch (error) {
       this.logger.error(`Failed to get batch execution: ${error.message}`, error.stack);
@@ -241,14 +241,14 @@ export class BatchExecutionService {
   }
 
   /**
-   * Get all batch executions for a company
-   * @param companyId The ID of the company
-   * @returns The batch executions for the company
+   * Get all batch executions for a project
+   * @param projectId The ID of the project
+   * @returns The batch executions for the project
    */
-  async getBatchExecutionsByCompany(companyId: string): Promise<any[]> {
+  async getBatchExecutionsByProject(projectId: string): Promise<any[]> {
     try {
-      // Get all batch executions for this company
-      const batchExecutions = await this.batchExecutionRepository.findAllByCompanyId(companyId);
+      // Get all batch executions for this project
+      const batchExecutions = await this.batchExecutionRepository.findByProjectId(projectId);
 
       // Get all batch execution IDs
       const batchExecutionIds = batchExecutions.map((be: { id: string }) => be.id);
@@ -280,7 +280,7 @@ export class BatchExecutionService {
       }));
     } catch (error) {
       this.logger.error(
-        `Failed to get batch executions for company: ${error.message}`,
+        `Failed to get batch executions for project: ${error.message}`,
         error.stack,
       );
       throw error;

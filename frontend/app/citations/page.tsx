@@ -26,18 +26,21 @@ import {
   Download,
 } from "lucide-react";
 import {
-  getCompanyReports,
+  getProjectReports,
   getReportCitations,
   CitationsData,
 } from "@/lib/auth-api";
 import type { ReportResponse } from "@/types/reports";
 import type { HTMLAttributes } from "react";
 
-interface ProcessedReport extends ReportResponse {}
+interface ProcessedReport extends ReportResponse {
+  createdAt: string;
+  reportDate: string;
+}
 
 export default function CitationsPage() {
   const { token } = useAuth();
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     null
   );
   const [reports, setReports] = useState<ProcessedReport[]>([]);
@@ -51,13 +54,13 @@ export default function CitationsPage() {
   const [loadingCitations, setLoadingCitations] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Get selected company from localStorage and listen for changes
+  // Get selected project from localStorage and listen for changes
   useEffect(() => {
     const fetchReports = async () => {
-      const companyId = localStorage.getItem("selectedCompanyId");
+      const projectId = localStorage.getItem("selectedProjectId");
 
-      if (!companyId || !token) {
-        setSelectedCompanyId(null);
+      if (!projectId || !token) {
+        setSelectedProjectId(null);
         setReports([]);
         setSelectedReport(null);
         setCitationsData(null);
@@ -65,17 +68,16 @@ export default function CitationsPage() {
         return;
       }
 
-      setSelectedCompanyId(companyId);
+      setSelectedProjectId(projectId);
       setLoading(true);
       setError(null);
 
       try {
-        const apiReports = await getCompanyReports(companyId, token);
+        const apiReports = await getProjectReports(projectId, token);
 
         const processedReports: ProcessedReport[] = apiReports.map(
           (report: any) => ({
-            id: report.id,
-            companyId: report.companyId,
+            ...report,
             reportDate: report.metadata?.date || report.generatedAt,
             createdAt: report.generatedAt,
           })
@@ -100,16 +102,16 @@ export default function CitationsPage() {
 
     fetchReports();
 
-    const handleCompanyChange = () => {
+    const handleProjectChange = () => {
       fetchReports();
     };
 
-    window.addEventListener("companySelectionChanged", handleCompanyChange);
+    window.addEventListener("projectSelectionChanged", handleProjectChange);
 
     return () => {
       window.removeEventListener(
-        "companySelectionChanged",
-        handleCompanyChange
+        "projectSelectionChanged",
+        handleProjectChange
       );
     };
   }, [token]);
@@ -201,7 +203,7 @@ export default function CitationsPage() {
     document.body.removeChild(link);
   };
 
-  if (!selectedCompanyId) {
+  if (!selectedProjectId) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-[50vh]">
@@ -210,7 +212,7 @@ export default function CitationsPage() {
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Please select a company from the sidebar to view citations
+                  Please select a project from the sidebar to view citations
                   data.
                 </AlertDescription>
               </Alert>

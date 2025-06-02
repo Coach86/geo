@@ -4,8 +4,8 @@ export class PromptSet {
   @ApiProperty({ description: 'Unique identifier for the prompt set' })
   id: string;
 
-  @ApiProperty({ description: 'Company ID this prompt set is associated with' })
-  companyId: string;
+  @ApiProperty({ description: 'Project ID this prompt set is associated with' })
+  projectId: string;
 
   @ApiProperty({ 
     description: 'List of spontaneous prompts without brand name but with industry keywords',

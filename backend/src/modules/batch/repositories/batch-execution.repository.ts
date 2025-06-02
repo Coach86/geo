@@ -25,7 +25,7 @@ export class BatchExecutionRepository {
    * @returns The created batch execution document
    */
   async create(batchExecutionData: Partial<BatchExecution>): Promise<BatchExecutionDocument> {
-    this.logger.debug(`Creating new batch execution for company ${batchExecutionData.companyId}`);
+    this.logger.debug(`Creating new batch execution for project ${batchExecutionData.projectId}`);
     const newBatchExecution = new this.batchExecutionModel(batchExecutionData);
     return newBatchExecution.save();
   }
@@ -53,62 +53,51 @@ export class BatchExecutionRepository {
   }
 
   /**
-   * Get all batch executions for a company
-   * @param companyId The company ID
+   * Get all batch executions for a project
+   * @param projectId The project ID
    * @returns Array of batch executions sorted by date (newest first)
    */
-  async findAllByCompanyId(companyId: string): Promise<Record<string, any>[]> {
-    this.logger.debug(`Finding all batch executions for company: ${companyId}`);
+  async findByProjectId(projectId: string): Promise<Record<string, any>[]> {
+    this.logger.debug(`Finding all batch executions for project: ${projectId}`);
     const batchExecutions = await this.batchExecutionModel
-      .find({ companyId })
+      .find({ projectId: projectId })
       .sort({ executedAt: -1 })
       .lean()
       .exec();
     return batchExecutions;
   }
 
+
   /**
-   * Find batch executions by companyId and status
-   * @param companyId The company ID
+   * Find batch executions by projectId and status
+   * @param projectId The project ID
    * @param status The status of batch executions to find
    * @returns Array of batch executions with the specified status
    */
-  async findByCompanyIdAndStatus(companyId: string, status: string): Promise<BatchExecutionDocument[]> {
-    this.logger.debug(`Finding ${status} batch executions for company: ${companyId}`);
+  async findByProjectIdAndStatus(projectId: string, status: string): Promise<BatchExecutionDocument[]> {
+    this.logger.debug(`Finding ${status} batch executions for project: ${projectId}`);
     const batchExecutions = await this.batchExecutionModel
-      .find({ companyId, status })
+      .find({ projectId: projectId, status })
       .sort({ executedAt: -1 })
       .lean()
       .exec();
     return batchExecutions;
   }
 
-  /**
-   * Find all batch executions for a company
-   * @param companyId The company ID
-   * @returns Array of batch executions as plain objects
-   */
-  async findByCompanyId(companyId: string): Promise<Record<string, any>[]> {
-    this.logger.debug(`Finding batch executions for company: ${companyId}`);
-    const batchExecutions = await this.batchExecutionModel
-      .find({ companyId })
-      .lean()
-      .exec();
-    return batchExecutions;
-  }
+
 
   /**
-   * Find the latest batch execution for a company
-   * @param companyId The company ID
+   * Find the latest batch execution for a project
+   * @param projectId The project ID
    * @param status Optional status filter
    * @returns The latest batch execution or null if none exists
    */
-  async findLatestByCompanyId(
-    companyId: string, 
+  async findLatestByProjectId(
+    projectId: string, 
     status?: 'running' | 'completed' | 'failed'
   ): Promise<BatchExecutionDocument | null> {
-    this.logger.debug(`Finding latest batch execution for company: ${companyId}${status ? ` with status: ${status}` : ''}`);
-    const query: any = { companyId };
+    this.logger.debug(`Finding latest batch execution for project: ${projectId}${status ? ` with status: ${status}` : ''}`);
+    const query: any = { projectId: projectId };
     if (status) {
       query.status = status;
     }
@@ -119,15 +108,17 @@ export class BatchExecutionRepository {
     return batchExecution;
   }
 
+
   /**
-   * Count how many batch executions exist for a company
-   * @param companyId The company ID
+   * Count how many batch executions exist for a project
+   * @param projectId The project ID
    * @returns The number of batch executions
    */
-  async countByCompanyId(companyId: string): Promise<number> {
-    this.logger.debug(`Counting batch executions for company: ${companyId}`);
-    return this.batchExecutionModel.countDocuments({ companyId }).exec();
+  async countByProjectId(projectId: string): Promise<number> {
+    this.logger.debug(`Counting batch executions for project: ${projectId}`);
+    return this.batchExecutionModel.countDocuments({ projectId: projectId }).exec();
   }
+
 
   /**
    * Update a batch execution by ID
@@ -173,15 +164,16 @@ export class BatchExecutionRepository {
   }
 
   /**
-   * Delete all batch executions for a company
-   * @param companyId The company ID
+   * Delete all batch executions for a project
+   * @param projectId The project ID
    * @returns The number of batch executions deleted
    */
-  async deleteByCompanyId(companyId: string): Promise<number> {
-    this.logger.debug(`Deleting all batch executions for company: ${companyId}`);
-    const result = await this.batchExecutionModel.deleteMany({ companyId }).exec();
+  async deleteByProjectId(projectId: string): Promise<number> {
+    this.logger.debug(`Deleting all batch executions for project: ${projectId}`);
+    const result = await this.batchExecutionModel.deleteMany({ projectId: projectId }).exec();
     return result.deletedCount;
   }
+
 
   /**
    * Find stalled batch executions older than a cutoff date

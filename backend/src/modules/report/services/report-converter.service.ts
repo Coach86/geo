@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ComparisonResults, WebSearchSummary } from '@/modules/batch/interfaces/batch.interfaces';
 import { BatchReportInput } from '../interfaces/report-input.interfaces';
 import { ReportTransformationService } from './report-transformation.service';
-import { CompanyIdentityCard } from '@/modules/identity-card/entities/company-identity-card.entity';
+import { Project } from '@/modules/project/entities/project.entity';
 import { getMarketFlag } from '@/common/constants/markets';
 import {
   WeeklyBrandReportEntity,
@@ -92,7 +92,7 @@ export class ReportConverterService {
 
   private getAccordDataForReport(
     input: BatchReportInput,
-    identityCard: CompanyIdentityCard,
+    project: Project,
   ): WeeklyBrandReportEntity['accord'] {
     // Calculate average of attribute scores
     const attributeScores = input.accord?.summary?.averageAttributeScores || {};
@@ -104,7 +104,7 @@ export class ReportConverterService {
     const accordStatus = (avgScore > 0.6 ? 'green' : 'yellow') as 'green' | 'yellow' | 'red';
 
     const safeAttributes = this.transformationService.generateAttributesList(
-      identityCard,
+      project,
       input.accord,
     );
     return {
@@ -118,12 +118,12 @@ export class ReportConverterService {
 
   private getArenaDataForReport(
     input: BatchReportInput,
-    identityCard: CompanyIdentityCard,
+    project: Project,
   ): WeeklyBrandReportEntity['arena'] {
     // Only pass the comparison data, regardless of format
     const formattedArena = this.transformationService.formatArenaData(
       input.spontaneous,
-      identityCard?.competitors || [],
+      project?.competitors || [],
     );
     return formattedArena;
   }
@@ -134,14 +134,14 @@ export class ReportConverterService {
    * raw batch data is converted to the structured report format
    *
    * @param input Batch report data from the batch module
-   * @param identityCard Optional company identity card for additional metadata
+   * @param project Optional company project for additional metadata
    * @returns A fully formed report entity with both new and legacy structures
    */
   convertBatchInputToReportEntity(
     input: BatchReportInput,
-    identityCard: CompanyIdentityCard,
+    project: Project,
   ): WeeklyBrandReportEntity {
-    this.logger.debug(`Converting batch input to report entity for company ${input.companyId}`);
+    this.logger.debug(`Converting batch input to report entity for project ${input.projectId}`);
     // Get config data for models list by using the llmVersions keys
     const modelsList = Object.keys(input.llmVersions || {})
       .map((provider) => `${provider}`)
@@ -169,17 +169,17 @@ export class ReportConverterService {
     return {
       // Base fields
       id: '', // This will be set by the persistence layer
-      companyId: input.companyId,
+      projectId: input.projectId,
       generatedAt: input.generatedAt || new Date(),
       date: input.date,
       batchExecutionId: input.batchExecutionId,
       // New structured fields
-      brand: identityCard?.brandName || input.companyId,
+      brand: project?.brandName || input.projectId,
       metadata: {
-        url: identityCard?.website || `Unknown Website`,
-        market: identityCard?.market || 'Unknown Market',
-        flag: getMarketFlag(identityCard?.market),
-        competitors: identityCard?.competitors?.join(', ') || 'Unknown Competitors',
+        url: project?.website || `Unknown Website`,
+        market: project?.market || 'Unknown Market',
+        flag: getMarketFlag(project?.market),
+        competitors: project?.competitors?.join(', ') || 'Unknown Competitors',
         date: input.date.toISOString().split('T')[0],
         models: modelsList,
       },
@@ -199,14 +199,14 @@ export class ReportConverterService {
           description: 'Brand compliance with provided attributes',
         },
         arena: {
-          competitors: this.getArenaDataForReport(input, identityCard)?.competitors,
+          competitors: this.getArenaDataForReport(input, project)?.competitors,
           description: 'Top competitors mentioned by AI models',
         },
       },
       pulse: this.getPulseDataForReport(input),
       tone: this.getToneDataForReport(input),
-      accord: this.getAccordDataForReport(input, identityCard),
-      arena: this.getArenaDataForReport(input, identityCard),
+      accord: this.getAccordDataForReport(input, project),
+      arena: this.getArenaDataForReport(input, project),
       brandBattle: this.getBrandBattleDataForReport(input),
       trace: this.getTraceDataForReport(input),
       llmVersions: input.llmVersions || {},
@@ -228,18 +228,18 @@ export class ReportConverterService {
   /**
    * Convert a MongoDB document to a fully formatted entity
    * @param document The MongoDB document from the database
-   * @param identityCard The identity card for additional context
+   * @param project The project for additional context
    * @returns A properly formatted WeeklyBrandReportEntity
    */
   convertDocumentToEntity(
     document: Record<string, any>,
-    identityCard: CompanyIdentityCard,
+    project: Project,
   ): WeeklyBrandReportEntity {
     // For MongoDB documents that already have formatted data, use it directly
     if (document.brand && document.metadata && document.kpi) {
       const entity: WeeklyBrandReportEntity = {
         id: document.id,
-        companyId: document.companyId,
+        projectId: document.projectId,
         brand: document.brand,
         date: document.date,
         generatedAt: document.generatedAt,
@@ -278,7 +278,7 @@ export class ReportConverterService {
 
     // Otherwise, convert from raw batch data
     const batchInput: BatchReportInput = {
-      companyId: document.companyId,
+      projectId: document.projectId,
       date: document.date,
       llmVersions: document.llmVersions || {},
       generatedAt: document.generatedAt,
@@ -289,7 +289,7 @@ export class ReportConverterService {
       brandBattle: document.brandBattle,
     };
 
-    return this.convertBatchInputToReportEntity(batchInput, identityCard);
+    return this.convertBatchInputToReportEntity(batchInput, project);
   }
 
   /**
@@ -301,7 +301,7 @@ export class ReportConverterService {
     // Create a response DTO that matches the entity structure
     const responseDto: ReportContentResponseDto = {
       id: reportEntity.id,
-      companyId: reportEntity.companyId,
+      projectId: reportEntity.projectId,
       generatedAt: reportEntity.generatedAt,
       batchExecutionId: reportEntity.batchExecutionId,
       brand: reportEntity.brand,

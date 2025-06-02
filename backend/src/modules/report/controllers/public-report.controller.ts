@@ -17,7 +17,7 @@ import { ReportService } from '../services/report.service';
 import { ReportContentResponseDto } from '../dto/report-content-response.dto';
 import { ReportConverterService } from '../services/report-converter.service';
 import { TokenRoute } from '../../auth/decorators/token-route.decorator';
-import { IdentityCardService } from '../../identity-card/services/identity-card.service';
+import { ProjectService } from '../../project/services/project.service';
 import { TokenService } from '../../auth/services/token.service';
 import { BatchResultRepository } from '../../batch/repositories/batch-result.repository';
 
@@ -29,7 +29,7 @@ export class PublicReportController {
 
   constructor(
     private readonly reportService: ReportService,
-    @Inject(IdentityCardService) private readonly identityCardService: IdentityCardService,
+    @Inject(ProjectService) private readonly projectService: ProjectService,
     @Inject(TokenService) private readonly tokenService: TokenService,
     private readonly reportConverterService: ReportConverterService,
     private readonly batchResultRepository: BatchResultRepository,
@@ -50,11 +50,13 @@ export class PublicReportController {
   @ApiResponse({ status: 404, description: 'Report not found.' })
   async getReportContent(
     @Param('reportId') reportId: string,
-    @Req() request: any
+    @Req() request: any,
   ): Promise<ReportContentResponseDto> {
     try {
       this.logger.log(`Token-based access attempt for report ${reportId}`);
-      this.logger.log(`Request details: userId=${request.userId}, token=${request.token ? request.token.substring(0, 8) + '...' : 'none'}`);
+      this.logger.log(
+        `Request details: userId=${request.userId}, token=${request.token ? request.token.substring(0, 8) + '...' : 'none'}`,
+      );
 
       // The userId is added to the request by the TokenAuthGuard
       if (!request.userId) {
@@ -62,7 +64,9 @@ export class PublicReportController {
 
         // If we have a token but no userId, try to validate it directly
         if (request.token) {
-          this.logger.log(`Attempting to validate token directly: ${request.token.substring(0, 8)}...`);
+          this.logger.log(
+            `Attempting to validate token directly: ${request.token.substring(0, 8)}...`,
+          );
           const validation = await this.tokenService.validateAccessToken(request.token);
 
           if (validation.valid && validation.userId) {
@@ -77,20 +81,24 @@ export class PublicReportController {
         }
       }
 
-      // First, get the report to find out which company it belongs to
+      // First, get the report to find out which project it belongs to
       const report: any = await this.reportService.getReportById(reportId);
-      const companyId = report.companyId;
+      const projectId = report.projectId;
 
-      this.logger.log(`Report ${reportId} belongs to company ${companyId}, verifying user ownership`);
+      this.logger.log(
+        `Report ${reportId} belongs to project ${projectId}, verifying user ownership`,
+      );
 
-      // Get all companies that the user owns
-      const userCompanies = await this.identityCardService.findAll(request.userId);
-      const userCompanyIds = userCompanies.map(company => company.companyId);
+      // Get all projects that the user owns
+      const userProjects = await this.projectService.findAll(request.userId);
+      const userProjectIds = userProjects.map((project) => project.projectId);
 
-      // Check if the user owns the company that the report belongs to
-      if (!userCompanyIds.includes(companyId)) {
-        this.logger.warn(`User ${request.userId} does not own company ${companyId} for report ${reportId}`);
-        this.logger.warn(`User's companies: ${userCompanyIds.join(', ')}`);
+      // Check if the user owns the project that the report belongs to
+      if (!userProjectIds.includes(projectId)) {
+        this.logger.warn(
+          `User ${request.userId} does not own project ${projectId} for report ${reportId}`,
+        );
+        this.logger.warn(`User's projects: ${userProjectIds.join(', ')}`);
         throw new UnauthorizedException('You do not have access to this report');
       }
 
@@ -107,23 +115,23 @@ export class PublicReportController {
     }
   }
 
-  @Get('company/:companyId')
+  @Get('project/:projectId')
   @TokenRoute()
-  @ApiOperation({ summary: 'Get all reports for a company' })
-  @ApiParam({ name: 'companyId', description: 'The ID of the company' })
+  @ApiOperation({ summary: 'Get all reports for a project' })
+  @ApiParam({ name: 'projectId', description: 'The ID of the project' })
   @ApiResponse({
     status: 200,
     description: 'Reports retrieved successfully',
     type: [ReportContentResponseDto],
   })
   @ApiResponse({ status: 401, description: 'Unauthorized - Token required' })
-  @ApiResponse({ status: 404, description: 'Company not found' })
-  async getCompanyReports(
+  @ApiResponse({ status: 404, description: 'Project not found' })
+  async getProjectReports(
     @Req() request: any,
-    @Param('companyId') companyId: string
+    @Param('projectId') projectId: string,
   ): Promise<ReportContentResponseDto[]> {
     try {
-      this.logger.log(`Fetching reports for company ${companyId}`);
+      this.logger.log(`Fetching reports for project ${projectId}`);
 
       // Validate user authentication
       if (!request.userId) {
@@ -139,19 +147,19 @@ export class PublicReportController {
         }
       }
 
-      // Verify user owns this company
-      const userCompanies = await this.identityCardService.findAll(request.userId);
-      const userCompanyIds = userCompanies.map(company => company.companyId);
+      // Verify user owns this project
+      const userProjects = await this.projectService.findAll(request.userId);
+      const userProjectIds = userProjects.map((project) => project.projectId);
 
-      if (!userCompanyIds.includes(companyId)) {
-        this.logger.warn(`User ${request.userId} does not own company ${companyId}`);
-        throw new UnauthorizedException('You do not have access to reports for this company');
+      if (!userProjectIds.includes(projectId)) {
+        this.logger.warn(`User ${request.userId} does not own project ${projectId}`);
+        throw new UnauthorizedException('You do not have access to reports for this project');
       }
 
-      // Get all reports for the company
-      const reportsResult = await this.reportService.getAllCompanyReports(companyId);
+      // Get all reports for the project
+      const reportsResult = await this.reportService.getAllProjectReports(projectId);
 
-      this.logger.log(`Found ${reportsResult.reports.length} reports for company ${companyId}`);
+      this.logger.log(`Found ${reportsResult.reports.length} reports for project ${projectId}`);
 
       // For each report summary, get the full report details
       const fullReports = await Promise.all(
@@ -159,7 +167,7 @@ export class PublicReportController {
           const fullReport = await this.reportService.getReportById(reportSummary.id);
           // The fullReport is already a WeeklyBrandReportEntity, convert it to response DTO
           return this.reportConverterService.convertEntityToResponseDto(fullReport as any);
-        })
+        }),
       );
 
       return fullReports;
@@ -167,8 +175,8 @@ export class PublicReportController {
       if (error instanceof UnauthorizedException) {
         throw error;
       }
-      this.logger.error(`Failed to fetch company reports: ${error.message}`, error.stack);
-      throw new BadRequestException(`Failed to fetch company reports: ${error.message}`);
+      this.logger.error(`Failed to fetch project reports: ${error.message}`, error.stack);
+      throw new BadRequestException(`Failed to fetch project reports: ${error.message}`);
     }
   }
 
@@ -182,10 +190,7 @@ export class PublicReportController {
   })
   @ApiResponse({ status: 401, description: 'Unauthorized - Token required' })
   @ApiResponse({ status: 404, description: 'Report not found' })
-  async getReportCitations(
-    @Req() request: any,
-    @Param('reportId') reportId: string
-  ) {
+  async getReportCitations(@Req() request: any, @Param('reportId') reportId: string) {
     try {
       this.logger.log(`Fetching citations for report ${reportId}`);
 
@@ -205,26 +210,26 @@ export class PublicReportController {
 
       // Get the report to find the batch execution ID and verify ownership
       const report = await this.reportService.getReportById(reportId);
-      const companyId = report.companyId;
+      const projectId = report.projectId;
       const batchExecutionId = (report as unknown as Record<string, string>).batchExecutionId;
 
       if (!batchExecutionId) {
         throw new NotFoundException('No batch execution found for this report');
       }
 
-      // Verify user owns this company
-      const userCompanies = await this.identityCardService.findAll(request.userId);
-      const userCompanyIds = userCompanies.map(company => company.companyId);
+      // Verify user owns this project
+      const userProjects = await this.projectService.findAll(request.userId);
+      const userProjectIds = userProjects.map((project) => project.projectId);
 
-      if (!userCompanyIds.includes(companyId)) {
-        this.logger.warn(`User ${request.userId} does not own company ${companyId}`);
+      if (!userProjectIds.includes(projectId)) {
+        this.logger.warn(`User ${request.userId} does not own project ${projectId}`);
         throw new UnauthorizedException('You do not have access to citations for this report');
       }
 
       // Get the spontaneous batch results
       const spontaneousBatchResult = await this.batchResultRepository.findByExecutionIdAndTypeLean(
         batchExecutionId,
-        'spontaneous'
+        'spontaneous',
       );
 
       if (!spontaneousBatchResult) {
@@ -257,7 +262,7 @@ export class PublicReportController {
                 website: citation.title || citation.url || 'Unknown',
                 webSearchQueries: result.webSearchQueries || [],
                 link: citation.url || '',
-                fullCitation: citation
+                fullCitation: citation,
               });
 
               // Count source frequency for top sources
@@ -271,9 +276,8 @@ export class PublicReportController {
       });
 
       // Calculate percentage
-      const webAccessPercentage = totalResponses > 0
-        ? Math.round((responsesWithWebAccess / totalResponses) * 100)
-        : 0;
+      const webAccessPercentage =
+        totalResponses > 0 ? Math.round((responsesWithWebAccess / totalResponses) * 100) : 0;
 
       // Get top 5 most common sources
       const topSources = Object.entries(sourceFrequency)
@@ -285,12 +289,11 @@ export class PublicReportController {
         webAccess: {
           totalResponses,
           responsesWithWebAccess,
-          percentage: webAccessPercentage
+          percentage: webAccessPercentage,
         },
         topSources,
-        citations: allCitations
+        citations: allCitations,
       };
-
     } catch (error) {
       if (error instanceof UnauthorizedException || error instanceof NotFoundException) {
         throw error;
@@ -310,10 +313,7 @@ export class PublicReportController {
   })
   @ApiResponse({ status: 401, description: 'Unauthorized - Token required' })
   @ApiResponse({ status: 404, description: 'Report not found' })
-  async getReportSpontaneous(
-    @Req() request: any,
-    @Param('reportId') reportId: string
-  ) {
+  async getReportSpontaneous(@Req() request: any, @Param('reportId') reportId: string) {
     try {
       this.logger.log(`Fetching spontaneous data for report ${reportId}`);
 
@@ -333,26 +333,28 @@ export class PublicReportController {
 
       // Get the report to find the batch execution ID and verify ownership
       const report = await this.reportService.getReportById(reportId);
-      const companyId = report.companyId;
+      const projectId = report.projectId;
       const batchExecutionId = (report as unknown as Record<string, string>).batchExecutionId;
 
       if (!batchExecutionId) {
         throw new NotFoundException('No batch execution found for this report');
       }
 
-      // Verify user owns this company
-      const userCompanies = await this.identityCardService.findAll(request.userId);
-      const userCompanyIds = userCompanies.map(company => company.companyId);
+      // Verify user owns this project
+      const userProjects = await this.projectService.findAll(request.userId);
+      const userProjectIds = userProjects.map((project) => project.projectId);
 
-      if (!userCompanyIds.includes(companyId)) {
-        this.logger.warn(`User ${request.userId} does not own company ${companyId}`);
-        throw new UnauthorizedException('You do not have access to spontaneous data for this report');
+      if (!userProjectIds.includes(projectId)) {
+        this.logger.warn(`User ${request.userId} does not own project ${projectId}`);
+        throw new UnauthorizedException(
+          'You do not have access to spontaneous data for this report',
+        );
       }
 
       // Get the spontaneous batch results
       const spontaneousBatchResult = await this.batchResultRepository.findByExecutionIdAndTypeLean(
         batchExecutionId,
-        'spontaneous'
+        'spontaneous',
       );
 
       if (!spontaneousBatchResult) {
@@ -361,7 +363,6 @@ export class PublicReportController {
 
       // Return the spontaneous results directly
       return spontaneousBatchResult.result;
-
     } catch (error) {
       if (error instanceof UnauthorizedException || error instanceof NotFoundException) {
         throw error;

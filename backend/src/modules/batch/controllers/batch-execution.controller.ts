@@ -37,19 +37,19 @@ export class BatchExecutionController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get batch executions for a company' })
-  @ApiQuery({ name: 'companyId', required: true, description: 'The ID of the company' })
+  @ApiOperation({ summary: 'Get batch executions for a project' })
+  @ApiQuery({ name: 'projectId', required: true, description: 'The ID of the project' })
   @ApiResponse({
     status: 200,
-    description: 'Return batch executions for the company',
+    description: 'Return batch executions for the project',
   })
-  async getBatchExecutionsByCompany(@Query('companyId') companyId: string) {
-    if (!companyId) {
-      throw new NotFoundException('Company ID is required');
+  async getBatchExecutionsByProject(@Query('projectId') projectId: string) {
+    if (!projectId) {
+      throw new NotFoundException('Project ID is required');
     }
 
     try {
-      return await this.batchExecutionService.getBatchExecutionsByCompany(companyId);
+      return await this.batchExecutionService.getBatchExecutionsByProject(projectId);
     } catch (error) {
       throw new NotFoundException(`Failed to retrieve batch executions: ${error.message}`);
     }

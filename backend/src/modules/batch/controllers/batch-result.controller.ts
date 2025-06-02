@@ -27,7 +27,7 @@ export class BatchResultController {
     
     return {
       executionId,
-      companyId: execution.companyId,
+      projectId: execution.projectId,
       status: execution.status,
       executedAt: execution.executedAt,
       results: results.map(result => ({
@@ -75,9 +75,9 @@ export class BatchResultController {
     };
   }
 
-  @Get('company/:companyId/latest')
-  @ApiOperation({ summary: 'Get the latest batch results for a company' })
-  @ApiParam({ name: 'companyId', description: 'The ID of the company' })
+  @Get('project/:projectId/latest')
+  @ApiOperation({ summary: 'Get the latest batch results for a project' })
+  @ApiParam({ name: 'projectId', description: 'The ID of the project' })
   @ApiQuery({ 
     name: 'resultType', 
     required: false, 
@@ -85,19 +85,19 @@ export class BatchResultController {
     enum: ['spontaneous', 'sentiment', 'comparison', 'accuracy']
   })
   @ApiResponse({ status: 200, description: 'Return the latest batch results' })
-  async getLatestResultsByCompany(
-    @Param('companyId') companyId: string,
+  async getLatestResultsByProject(
+    @Param('projectId') projectId: string,
     @Query('resultType') resultType?: 'spontaneous' | 'sentiment' | 'comparison' | 'accuracy',
   ) {
-    // Get the latest completed batch execution for this company
-    const latestExecution = await this.batchExecutionRepository.findLatestByCompanyId(
-      companyId,
+    // Get the latest completed batch execution for this project
+    const latestExecution = await this.batchExecutionRepository.findLatestByProjectId(
+      projectId,
       'completed',
     );
 
     if (!latestExecution) {
       throw new NotFoundException(
-        `No completed batch executions found for company ${companyId}`,
+        `No completed batch executions found for project ${projectId}`,
       );
     }
 
@@ -116,7 +116,7 @@ export class BatchResultController {
 
       return {
         executionId: latestExecution.id,
-        companyId: latestExecution.companyId,
+        projectId: latestExecution.projectId,
         executedAt: latestExecution.executedAt,
         result: {
           id: result.id,
@@ -132,7 +132,7 @@ export class BatchResultController {
 
       return {
         executionId: latestExecution.id,
-        companyId: latestExecution.companyId,
+        projectId: latestExecution.projectId,
         executedAt: latestExecution.executedAt,
         results: results.map(result => ({
           id: result.id,

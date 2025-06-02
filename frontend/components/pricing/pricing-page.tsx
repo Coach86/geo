@@ -925,8 +925,8 @@ export default function PricingPage({
 
       {/* Pricing Plan Cards - Nouvelle structure avec grille stricte */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 mb-16">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-stretch">
+          <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
             {pricingPlans.slice(0, 3).map((plan, index) => (
               <PricingCard
                 key={index}
@@ -956,7 +956,7 @@ export default function PricingPage({
           </div>
 
           {/* Agencies Plan - Séparé et avec un fond différent */}
-          <div className="md:col-span-1">
+          <div className="md:col-span-1 flex">
             {pricingPlans[3] && (
               <PricingCard
                 name={pricingPlans[3].name}

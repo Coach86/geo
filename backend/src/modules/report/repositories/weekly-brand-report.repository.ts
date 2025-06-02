@@ -26,7 +26,7 @@ export class WeeklyBrandReportRepository {
    * @returns The created report document
    */
   async create(reportData: Record<string, any>): Promise<WeeklyBrandReportDocument> {
-    this.logger.debug(`Creating new report for company ${reportData.companyId}`);
+    this.logger.debug(`Creating new report for project ${reportData.projectId}`);
     const newReport = new this.weeklyReportModel(reportData);
     return newReport.save();
   }
@@ -54,51 +54,55 @@ export class WeeklyBrandReportRepository {
   }
 
   /**
-   * Get the latest report for a company
-   * @param companyId The company ID
+   * Get the latest report for a project
+   * @param projectId The project ID
    * @returns The most recent report or null if none found
    */
-  async findLatestByCompanyId(companyId: string): Promise<WeeklyBrandReportDocument | null> {
-    this.logger.debug(`Finding latest report for company: ${companyId}`);
-    const report = await this.weeklyReportModel.findOne({ companyId }).sort({ date: -1 }).exec();
+  async findLatestByProjectId(projectId: string): Promise<WeeklyBrandReportDocument | null> {
+    this.logger.debug(`Finding latest report for project: ${projectId}`);
+    const report = await this.weeklyReportModel.findOne({ projectId: projectId }).sort({ date: -1 }).exec();
     return report;
   }
 
+
   /**
-   * Get the latest report for a company as a lean document
-   * @param companyId The company ID
+   * Get the latest report for a project as a lean document
+   * @param projectId The project ID
    * @returns The most recent report as a plain object
    */
-  async findLatestByCompanyIdLean(companyId: string): Promise<Record<string, any> | null> {
-    this.logger.debug(`Finding latest report for company (lean): ${companyId}`);
+  async findLatestByProjectIdLean(projectId: string): Promise<Record<string, any> | null> {
+    this.logger.debug(`Finding latest report for project (lean): ${projectId}`);
     const report = await this.weeklyReportModel
-      .findOne({ companyId })
+      .findOne({ projectId: projectId })
       .sort({ date: -1 })
       .lean()
       .exec();
     return report;
   }
 
+
   /**
-   * Get all reports for a company
-   * @param companyId The company ID
+   * Get all reports for a project
+   * @param projectId The project ID
    * @returns Array of reports sorted by date (newest first)
    */
-  async findAllByCompanyId(companyId: string): Promise<WeeklyBrandReportDocument[]> {
-    this.logger.debug(`Finding all reports for company: ${companyId}`);
-    const reports = await this.weeklyReportModel.find({ companyId }).sort({ date: -1 }).exec();
+  async findByProjectId(projectId: string): Promise<WeeklyBrandReportDocument[]> {
+    this.logger.debug(`Finding all reports for project: ${projectId}`);
+    const reports = await this.weeklyReportModel.find({ projectId: projectId }).sort({ date: -1 }).exec();
     return reports;
   }
 
+
   /**
-   * Count how many reports exist for a company
-   * @param companyId The company ID
+   * Count how many reports exist for a project
+   * @param projectId The project ID
    * @returns The number of reports
    */
-  async countByCompanyId(companyId: string): Promise<number> {
-    this.logger.debug(`Counting reports for company: ${companyId}`);
-    return this.weeklyReportModel.countDocuments({ companyId }).exec();
+  async countByProjectId(projectId: string): Promise<number> {
+    this.logger.debug(`Counting reports for project: ${projectId}`);
+    return this.weeklyReportModel.countDocuments({ projectId: projectId }).exec();
   }
+
 
   /**
    * Update a report by ID
@@ -128,13 +132,14 @@ export class WeeklyBrandReportRepository {
   }
 
   /**
-   * Delete all reports for a company
-   * @param companyId The company ID
+   * Delete all reports for a project
+   * @param projectId The project ID
    * @returns The number of reports deleted
    */
-  async deleteByCompanyId(companyId: string): Promise<number> {
-    this.logger.debug(`Deleting all reports for company: ${companyId}`);
-    const result = await this.weeklyReportModel.deleteMany({ companyId }).exec();
+  async deleteByProjectId(projectId: string): Promise<number> {
+    this.logger.debug(`Deleting all reports for project: ${projectId}`);
+    const result = await this.weeklyReportModel.deleteMany({ projectId: projectId }).exec();
     return result.deletedCount;
   }
+
 }

@@ -12,11 +12,11 @@ import { SentimentPipelineService } from './services/sentiment-pipeline.service'
 import { AccuracyPipelineService } from './services/accuracy-pipeline.service';
 import { ComparisonPipelineService } from './services/comparison-pipeline.service';
 import { BatchExecutionService } from './services/batch-execution.service';
-import { CompanyBatchOrchestratorService } from './services/company-batch-orchestrator.service';
+import { ProjectBatchOrchestratorService } from './services/project-batch-orchestrator.service';
 import { RawResponseService } from './services/raw-response.service';
 import { BatchExecution, BatchExecutionSchema } from './schemas/batch-execution.schema';
 import { BatchResult, BatchResultSchema } from './schemas/batch-result.schema';
-import { IdentityCardModule } from '../identity-card/identity-card.module';
+import { ProjectModule } from '../project/project.module';
 import { PromptModule } from '../prompt/prompt.module';
 import { LlmModule } from '../llm/llm.module';
 import { ReportModule } from '../report/report.module';
@@ -35,7 +35,7 @@ import { BatchEventsGateway } from './gateways/batch-events.gateway';
       { name: BatchResult.name, schema: BatchResultSchema },
       { name: RawResponse.name, schema: RawResponseSchema },
     ]),
-    IdentityCardModule,
+    ProjectModule,
     PromptModule,
     LlmModule,
     UserModule,
@@ -57,7 +57,7 @@ import { BatchEventsGateway } from './gateways/batch-events.gateway';
     SentimentPipelineService,
     AccuracyPipelineService,
     ComparisonPipelineService,
-    CompanyBatchOrchestratorService,
+    ProjectBatchOrchestratorService,
     RawResponseService,
     BatchExecutionRepository,
     BatchResultRepository,
@@ -67,7 +67,7 @@ import { BatchEventsGateway } from './gateways/batch-events.gateway';
   exports: [
     BatchService,
     BatchExecutionService,
-    CompanyBatchOrchestratorService,
+    ProjectBatchOrchestratorService,
     RawResponseService,
     BatchExecutionRepository,
     BatchResultRepository,

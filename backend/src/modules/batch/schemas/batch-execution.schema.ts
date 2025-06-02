@@ -21,7 +21,7 @@ export class BatchExecution {
     required: true,
     index: true, 
   })
-  companyId: string;
+  projectId: string;
 
   @Prop({ 
     type: Date, 

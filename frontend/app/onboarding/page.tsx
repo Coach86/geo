@@ -1,46 +1,64 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { useSearchParams, useRouter } from "next/navigation"
-import { useOnboarding } from "@/providers/onboarding-provider"
-import CompanyInfo from "@/components/onboarding/company-info"
-import BrandIdentity from "@/components/onboarding/brand-identity"
-import PromptSelection from "@/components/onboarding/prompt-selection"
-import ModelSelection from "@/components/onboarding/model-selection"
-import Confirmation from "@/components/onboarding/confirmation"
+import { useEffect, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useOnboarding } from "@/providers/onboarding-provider";
+import ProjectInfo from "@/components/onboarding/project-info";
+import BrandIdentity from "@/components/onboarding/brand-identity";
+import PromptSelection from "@/components/onboarding/prompt-selection";
+import Confirmation from "@/components/onboarding/confirmation";
 // Importer le nouveau composant PhoneVerification
-import PhoneVerification from "@/components/onboarding/phone-verification"
+import PhoneVerification from "@/components/onboarding/phone-verification";
+import { useAuth } from "@/providers/auth-provider";
+import { getUserProjects } from "@/lib/auth-api";
 
 export default function OnboardingPage() {
-  const searchParams = useSearchParams()
-  const router = useRouter()
-  const { currentStep, formData, setFormData } = useOnboarding()
-  const [isLoading, setIsLoading] = useState(false)
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const { currentStep, formData, setFormData } = useOnboarding();
+  const [isLoading, setIsLoading] = useState(false);
+  const { token, isAuthenticated } = useAuth();
 
   // Get URL from query params if available - only run once on initial load
   useEffect(() => {
-    const urlParam = searchParams.get("url")
+    const urlParam = searchParams.get("url");
     if (urlParam && !formData.website) {
-      setFormData((prev) => ({ ...prev, website: urlParam }))
+      setFormData((prev) => ({ ...prev, website: urlParam }));
     }
-  }, []) // Empty dependency array - only run once
+  }, []); // Empty dependency array - only run once
 
   // Simulate loading when changing steps
   useEffect(() => {
-    setIsLoading(true)
+    setIsLoading(true);
     const timer = setTimeout(() => {
-      setIsLoading(false)
-    }, 500)
+      setIsLoading(false);
+    }, 500);
 
-    return () => clearTimeout(timer)
-  }, [currentStep])
+    return () => clearTimeout(timer);
+  }, [currentStep]);
 
   // Redirect to pricing page when reaching step 6
   useEffect(() => {
     if (currentStep === 7) {
-      router.push("/pricing")
+      router.push("/pricing");
     }
-  }, [currentStep, router])
+  }, [currentStep, router]);
+
+  useEffect(() => {
+    const checkProjectsAndRedirect = async () => {
+      if (isAuthenticated && token) {
+        try {
+          const projects = await getUserProjects(token);
+          if (projects && projects.length > 0) {
+            router.replace("/"); // Redirect to dashboard or home
+          }
+        } catch (err) {
+          // Optionally handle error
+        }
+      }
+    };
+    checkProjectsAndRedirect();
+  }, [isAuthenticated, token, router]);
 
   // Render the current step
   const renderStep = () => {
@@ -49,26 +67,24 @@ export default function OnboardingPage() {
         <div className="flex justify-center items-center py-20">
           <div className="animate-pulse w-12 h-12 rounded-full bg-gray-200"></div>
         </div>
-      )
+      );
     }
 
     switch (currentStep) {
       case 1:
-        return <CompanyInfo />
+        return <ProjectInfo />;
       case 2:
-        return <BrandIdentity />
+        return <BrandIdentity />;
       case 3:
-        return <PromptSelection />
+        return <PromptSelection />;
       case 4:
-        return <ModelSelection />
+        return <Confirmation />;
       case 5:
-        return <Confirmation />
-      case 6:
-        return <PhoneVerification />
+        return <PhoneVerification />;
       default:
-        return <CompanyInfo />
+        return <ProjectInfo />;
     }
-  }
+  };
 
-  return <div className="w-full animate-fade-in">{renderStep()}</div>
+  return <div className="w-full animate-fade-in">{renderStep()}</div>;
 }

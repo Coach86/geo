@@ -1,7 +1,7 @@
 import axios from 'axios';
 import authApi from './auth';
 import {
-  CompanyIdentityCard,
+  Project,
   PromptSet,
   SpontaneousResults,
   SentimentResults,
@@ -20,41 +20,42 @@ const api = axios.create({
   },
 });
 
-// Company Identity Card API
-export const getCompanies = async (): Promise<CompanyIdentityCard[]> => {
-  const response = await authApi.get('/identity-card');
+// Project API
+export const getProjects = async (): Promise<Project[]> => {
+  const response = await authApi.get('/project');
   return response.data;
 };
 
-export const getCompanyById = async (id: string): Promise<CompanyIdentityCard> => {
-  const response = await authApi.get(`/identity-card/${id}`);
+export const getProjectById = async (id: string): Promise<Project> => {
+  const response = await authApi.get(`/project/${id}`);
   return response.data;
 };
 
-export const createCompanyFromUrl = async (
+export const createProjectFromUrl = async (
   url: string,
   userId?: string,
   market?: string,
   language?: string,
-): Promise<CompanyIdentityCard> => {
-  const response = await authApi.post('/identity-card/from-url', { url, userId, market, language });
+): Promise<Project> => {
+  const response = await authApi.post('/project/from-url', { url, userId, market, language });
   return response.data;
 };
 
-export const updateCompanyDetails = async (
+export const updateProjectDetails = async (
   id: string,
   data: {
     keyBrandAttributes?: string[];
     competitors?: string[];
   },
-): Promise<CompanyIdentityCard> => {
-  const response = await authApi.patch(`/identity-card/${id}`, data);
+): Promise<Project> => {
+  const response = await authApi.patch(`/project/${id}`, data);
   return response.data;
 };
 
-export const deleteCompany = async (id: string): Promise<void> => {
-  await authApi.delete(`/identity-card/${id}`);
+export const deleteProject = async (id: string): Promise<void> => {
+  await authApi.delete(`/project/${id}`);
 };
+
 
 // User API
 export const getUsers = async (): Promise<User[]> => {
@@ -95,7 +96,7 @@ export const deleteUser = async (id: string): Promise<User> => {
 
 export const updateUserPlanSettings = async (
   id: string,
-  planSettings: { maxBrands: number; maxAIModels: number; maxSpontaneousPrompts?: number },
+  planSettings: { maxProjects: number; maxAIModels: number; maxSpontaneousPrompts?: number; maxUrls: number },
 ): Promise<User> => {
   const response = await authApi.patch(`/users/${id}/plan-settings`, planSettings);
   return response.data;
@@ -122,9 +123,9 @@ export const getConfig = async () => {
 };
 
 // Prompt Set API
-export const getPromptSet = async (companyId: string): Promise<PromptSet | null> => {
+export const getPromptSet = async (projectId: string): Promise<PromptSet | null> => {
   try {
-    const response = await authApi.get(`/prompt-set/${companyId}`);
+    const response = await authApi.get(`/prompt-set/${projectId}`);
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 404) {
@@ -135,7 +136,7 @@ export const getPromptSet = async (companyId: string): Promise<PromptSet | null>
 };
 
 export const updatePromptSet = async (
-  companyId: string,
+  projectId: string,
   data: {
     spontaneous?: string[];
     direct?: string[];
@@ -144,17 +145,17 @@ export const updatePromptSet = async (
     brandBattle?: string[];
   },
 ): Promise<PromptSet> => {
-  const response = await authApi.patch(`/prompt-set/${companyId}`, data);
+  const response = await authApi.patch(`/prompt-set/${projectId}`, data);
   return response.data;
 };
 
-export const regeneratePromptSet = async (companyId: string): Promise<PromptSet> => {
-  const response = await authApi.post(`/prompt-set/${companyId}/regenerate`);
+export const regeneratePromptSet = async (projectId: string): Promise<PromptSet> => {
+  const response = await authApi.post(`/prompt-set/${projectId}/regenerate`);
   return response.data;
 };
 
 export const waitForPromptSet = async (
-  companyId: string,
+  projectId: string,
   timeout = 30000,
   interval = 2000,
 ): Promise<PromptSet | null> => {
@@ -162,7 +163,7 @@ export const waitForPromptSet = async (
 
   while (Date.now() - start < timeout) {
     try {
-      const promptSet = await getPromptSet(companyId);
+      const promptSet = await getPromptSet(projectId);
       if (promptSet) {
         return promptSet;
       }
@@ -180,29 +181,29 @@ export const waitForPromptSet = async (
 
 // Batch Pipeline API
 export const runSpontaneousPipeline = async (
-  companyId: string,
+  projectId: string,
 ): Promise<SpontaneousResults & { batchExecutionId: string }> => {
-  const response = await authApi.post(`/batch/pipeline/spontaneous/${companyId}`);
+  const response = await authApi.post(`/batch/pipeline/spontaneous/${projectId}`);
   return response.data;
 };
 
 export const runSentimentPipeline = async (
-  companyId: string,
+  projectId: string,
 ): Promise<SentimentResults & { batchExecutionId: string }> => {
-  const response = await authApi.post(`/batch/pipeline/sentiment/${companyId}`);
+  const response = await authApi.post(`/batch/pipeline/sentiment/${projectId}`);
   return response.data;
 };
 
 export const runComparisonPipeline = async (
-  companyId: string,
+  projectId: string,
 ): Promise<ComparisonResults & { batchExecutionId: string }> => {
-  const response = await authApi.post(`/batch/pipeline/comparison/${companyId}`);
+  const response = await authApi.post(`/batch/pipeline/comparison/${projectId}`);
   return response.data;
 };
 
 // Full Batch Processing API - Run full batch analysis
 export const runFullBatchAnalysis = async (
-  companyId: string,
+  projectId: string,
 ): Promise<{
   batchExecutionId: string;
   results: {
@@ -212,7 +213,7 @@ export const runFullBatchAnalysis = async (
   };
 }> => {
   // This calls the backend's full batch process endpoint
-  const response = await authApi.post(`/batch/process/${companyId}`);
+  const response = await authApi.post(`/batch/process/${projectId}`);
 
   if (!response.data.success) {
     throw new Error(response.data.error || 'Failed to run batch analysis');
@@ -246,9 +247,9 @@ export const runFullBatchAnalysis = async (
   };
 };
 
-// Get all batch executions for a company
-export const getBatchExecutions = async (companyId: string): Promise<BatchExecution[]> => {
-  const response = await authApi.get(`/batch-executions?companyId=${companyId}`);
+// Get all batch executions for a project
+export const getBatchExecutions = async (projectId: string): Promise<BatchExecution[]> => {
+  const response = await authApi.get(`/batch-executions?projectId=${projectId}`);
   return response.data;
 };
 
@@ -260,19 +261,19 @@ export const getBatchExecution = async (batchId: string): Promise<BatchExecution
 
 // Trigger batch orchestration with email notification
 export const runBatchWithEmailNotification = async (
-  companyId: string,
+  projectId: string,
 ): Promise<{
   success: boolean;
   message: string;
   result: any;
 }> => {
-  const response = await authApi.post(`/batch/orchestrate/${companyId}`);
+  const response = await authApi.post(`/batch/orchestrate/${projectId}`);
   return response.data;
 };
 
-// Get all reports for a company
-export const getAllCompanyReports = async (
-  companyId: string,
+// Get all reports for a project
+export const getAllProjectReports = async (
+  projectId: string,
 ): Promise<{
   reports: {
     id: string;
@@ -280,14 +281,15 @@ export const getAllCompanyReports = async (
   }[];
   total: number;
 }> => {
-  const response = await authApi.get(`/reports/${companyId}/all`);
+  const response = await authApi.get(`/reports/${projectId}/all`);
   return response.data;
 };
+
 
 // Send a report access email to a specific address
 export const sendReportEmail = async (
   reportId: string,
-  companyId: string,
+  projectId: string,
   email: string,
   subject?: string,
 ): Promise<{
@@ -296,7 +298,7 @@ export const sendReportEmail = async (
 }> => {
   const response = await authApi.post('/reports/send-email', {
     reportId,
-    companyId,
+    projectId,
     email,
     subject,
   });
@@ -320,7 +322,7 @@ export const generateReportFromBatch = async (
   batchExecutionId: string,
 ): Promise<{
   id: string;
-  companyId: string;
+  projectId: string;
   generatedAt: Date;
   date: Date;
   includedTypes?: string[];
@@ -330,9 +332,9 @@ export const generateReportFromBatch = async (
   return response.data;
 };
 
-// Get prompt templates used to generate company prompts
+// Get prompt templates used to generate project prompts
 export const getPromptTemplates = async (
-  companyId: string,
+  projectId: string,
 ): Promise<{
   spontaneous: { systemPrompt: string; userPrompt: string };
   direct: { systemPrompt: string; userPrompt: string };
@@ -341,7 +343,7 @@ export const getPromptTemplates = async (
   brandBattle?: { systemPrompt: string; userPrompt: string };
 }> => {
   try {
-    const response = await authApi.get(`/prompt-set/templates/${companyId}`);
+    const response = await authApi.get(`/prompt-set/templates/${projectId}`);
     return response.data;
   } catch (error) {
     console.error('Failed to fetch prompt templates:', error);

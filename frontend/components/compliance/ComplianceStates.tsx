@@ -34,17 +34,15 @@ export function ComplianceError({ error }: { error: string }) {
   );
 }
 
-export function ComplianceNoCompany() {
+export function ComplianceNoProject() {
   return (
     <DashboardLayout>
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <Alert className="max-w-2xl mx-auto">
           <Terminal className="h-5 w-5" />
-          <AlertTitle className="font-semibold">
-            No Company Selected
-          </AlertTitle>
+          <AlertTitle className="font-semibold">No Project Selected</AlertTitle>
           <AlertDescription className="text-sm">
-            Please select a company from the sidebar to view compliance data.
+            Please select a project from the sidebar to view compliance data.
           </AlertDescription>
         </Alert>
       </div>

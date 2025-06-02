@@ -21,7 +21,7 @@ export class PromptSet {
     required: true, 
     index: true 
   })
-  companyId: string;
+  projectId: string;
 
   @Prop({ 
     type: [String], 
@@ -67,5 +67,5 @@ export class PromptSet {
 
 export const PromptSetSchema = SchemaFactory.createForClass(PromptSet);
 
-// Create a unique index for companyId
-PromptSetSchema.index({ companyId: 1 }, { unique: true });
+// Create a unique index for projectId
+PromptSetSchema.index({ projectId: 1 }, { unique: true });

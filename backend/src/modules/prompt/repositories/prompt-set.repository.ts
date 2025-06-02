@@ -22,20 +22,21 @@ export class PromptSetRepository {
    * @returns The created prompt set document
    */
   async create(promptSetData: Partial<PromptSet>): Promise<PromptSetDocument> {
-    this.logger.debug(`Creating new prompt set for company ${promptSetData.companyId}`);
+    this.logger.debug(`Creating new prompt set for project ${promptSetData.projectId}`);
     const newPromptSet = new this.promptSetModel(promptSetData);
     return newPromptSet.save();
   }
 
   /**
-   * Find prompt sets by company ID
-   * @param companyId The company ID
+   * Find prompt sets by project ID
+   * @param projectId The project ID
    * @returns The prompt set document or null if not found
    */
-  async findByCompanyId(companyId: string): Promise<PromptSetDocument | null> {
-    this.logger.debug(`Finding prompt set by company ID: ${companyId}`);
-    return this.promptSetModel.findOne({ companyId }).exec();
+  async findByProjectId(projectId: string): Promise<PromptSetDocument | null> {
+    this.logger.debug(`Finding prompt set by project ID: ${projectId}`);
+    return this.promptSetModel.findOne({ projectId: projectId }).exec();
   }
+
 
   /**
    * Find all prompt sets
@@ -47,49 +48,52 @@ export class PromptSetRepository {
   }
 
   /**
-   * Update a prompt set by company ID
-   * @param companyId The company ID
+   * Update a prompt set by project ID
+   * @param projectId The project ID
    * @param promptSetData The data to update
    * @returns The updated prompt set
    */
-  async updateByCompanyId(
-    companyId: string,
+  async updateByProjectId(
+    projectId: string,
     promptSetData: Partial<PromptSet>,
   ): Promise<PromptSetDocument | null> {
-    this.logger.debug(`Updating prompt set for company: ${companyId}`);
+    this.logger.debug(`Updating prompt set for project: ${projectId}`);
     return this.promptSetModel
-      .findOneAndUpdate({ companyId }, promptSetData, { new: true })
+      .findOneAndUpdate({ projectId: projectId }, promptSetData, { new: true })
       .exec();
   }
 
+
   /**
-   * Upsert a prompt set by company ID
-   * @param companyId The company ID
+   * Upsert a prompt set by project ID
+   * @param projectId The project ID
    * @param promptSetData The data to upsert
    * @returns The upserted prompt set
    */
-  async upsertByCompanyId(
-    companyId: string,
+  async upsertByProjectId(
+    projectId: string,
     promptSetData: Partial<PromptSet>,
   ): Promise<PromptSetDocument | null> {
-    this.logger.debug(`Upserting prompt set for company: ${companyId}`);
+    this.logger.debug(`Upserting prompt set for project: ${projectId}`);
     return this.promptSetModel
       .findOneAndUpdate(
-        { companyId }, 
+        { projectId: projectId }, 
         promptSetData, 
         { new: true, upsert: true }
       )
       .exec();
   }
 
+
   /**
-   * Delete a prompt set by company ID
-   * @param companyId The company ID
+   * Delete a prompt set by project ID
+   * @param projectId The project ID
    * @returns True if deleted, false if not found
    */
-  async deleteByCompanyId(companyId: string): Promise<boolean> {
-    this.logger.debug(`Deleting prompt set for company: ${companyId}`);
-    const result = await this.promptSetModel.deleteOne({ companyId }).exec();
+  async deleteByProjectId(projectId: string): Promise<boolean> {
+    this.logger.debug(`Deleting prompt set for project: ${projectId}`);
+    const result = await this.promptSetModel.deleteOne({ projectId: projectId }).exec();
     return result.deletedCount > 0;
   }
+
 }

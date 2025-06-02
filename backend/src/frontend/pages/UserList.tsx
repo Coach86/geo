@@ -171,10 +171,10 @@ const UserList: React.FC = () => {
                       <TableCell>
                         <Chip
                           icon={<BusinessIcon />}
-                          label={`${user.companyIds?.length || 0} / ${user.planSettings?.maxBrands || 1}`}
+                          label={`${user.projectIds?.length || 0} / ${user.planSettings?.maxProjects || 1}`}
                           size="small"
                           color={
-                            (user.companyIds?.length || 0) >= (user.planSettings?.maxBrands || 1) 
+                            (user.projectIds?.length || 0) >= (user.planSettings?.maxProjects || 1) 
                               ? "warning" 
                               : "success"
                           }

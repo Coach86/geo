@@ -1,7 +1,7 @@
 /**
  * Authentication API utilities for frontend
  */
-import { ReportResponse } from '../types/reports';
+import { ReportResponse } from "../types/reports";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
@@ -16,7 +16,7 @@ export interface CreateUserResponse {
   language: string;
   createdAt: string;
   updatedAt: string;
-  companyIds: string[];
+  projectIds: string[];
 }
 
 export interface GenerateTokenRequest {
@@ -43,13 +43,13 @@ export interface MagicLinkResponse {
   userId: string;
 }
 
-export interface CreateIdentityCardRequest {
+export interface CreateProjectRequest {
   url: string;
   market: string;
   language?: string;
 }
 
-export interface IdentityCardResponse {
+export interface ProjectResponse {
   id: string;
   brandName: string;
   website: string;
@@ -209,12 +209,12 @@ export async function sendMagicLink(email: string): Promise<MagicLinkResponse> {
  * Analyze website from URL without saving (requires token authentication)
  */
 export async function analyzeWebsite(
-  request: CreateIdentityCardRequest,
+  request: CreateProjectRequest,
   token: string
-): Promise<IdentityCardResponse> {
+): Promise<ProjectResponse> {
   try {
     const response = await fetch(
-      `${API_BASE_URL}/user/identity-card/analyze-from-url`,
+      `${API_BASE_URL}/user/project/analyze-from-url`,
       {
         method: "POST",
         headers: {
@@ -241,7 +241,7 @@ export async function analyzeWebsite(
   }
 }
 
-export interface CreateFullIdentityCardRequest {
+export interface CreateFullProjectRequest {
   url: string;
   brandName: string;
   description?: string;
@@ -253,14 +253,14 @@ export interface CreateFullIdentityCardRequest {
 }
 
 /**
- * Create and save identity card (requires token authentication)
+ * Create and save project (requires token authentication)
  */
-export async function createIdentityCard(
-  request: CreateFullIdentityCardRequest,
+export async function createProject(
+  request: CreateFullProjectRequest,
   token: string
-): Promise<IdentityCardResponse> {
+): Promise<ProjectResponse> {
   try {
-    const response = await fetch(`${API_BASE_URL}/user/identity-card/create`, {
+    const response = await fetch(`${API_BASE_URL}/user/project/create`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -272,58 +272,63 @@ export async function createIdentityCard(
     if (!response.ok) {
       const error = await response
         .json()
-        .catch(() => ({ message: "Failed to create identity card" }));
-      throw new Error(error.message || "Failed to create identity card");
+        .catch(() => ({ message: "Failed to create project" }));
+      throw new Error(error.message || "Failed to create project");
     }
 
     return response.json();
   } catch (error) {
-    console.error("Identity card creation error:", error);
+    console.error("Project creation error:", error);
     throw new Error(
-      error instanceof Error ? error.message : "Failed to create identity card"
+      error instanceof Error ? error.message : "Failed to create project"
     );
   }
 }
 
-export interface CreateCompanyFromUrlRequest {
+export interface CreateProjectFromUrlRequest {
   url: string;
   market: string;
   language?: string;
 }
 
 /**
- * Create identity card from URL (requires token authentication)
+ * Create project from URL (requires token authentication)
  */
-export async function createCompanyFromUrl(
-  request: CreateCompanyFromUrlRequest,
+export async function createProjectFromUrl(
+  request: CreateProjectFromUrlRequest,
   token: string
-): Promise<IdentityCardResponse> {
+): Promise<ProjectResponse> {
   try {
-    const response = await fetch(`${API_BASE_URL}/user/identity-card/create-from-url`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(request),
-    });
+    const response = await fetch(
+      `${API_BASE_URL}/user/project/create-from-url`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(request),
+      }
+    );
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: "Failed to create company" }));
-      
+      const errorData = await response
+        .json()
+        .catch(() => ({ message: "Failed to create project" }));
+
       // Pass through the full error object for plan limit errors
-      if (errorData.code === "BRAND_LIMIT_EXCEEDED") {
+      if (errorData.code === "PROJECT_LIMIT_EXCEEDED") {
         const error = new Error(errorData.message);
         (error as any).response = { data: errorData };
         throw error;
       }
-      
-      throw new Error(errorData.message || "Failed to create company");
+
+      throw new Error(errorData.message || "Failed to create project");
     }
 
     return response.json();
   } catch (error) {
-    console.error("Company creation error:", error);
+    console.error("Project creation error:", error);
     throw error;
   }
 }
@@ -393,12 +398,12 @@ export interface UpdatePhoneResponse {
   stripeCustomerId?: string;
   stripePlanId?: string;
   planSettings: {
-    maxBrands: number;
+    maxProjects: number;
     maxAIModels: number;
   };
   createdAt: string;
   updatedAt: string;
-  companyIds?: string[];
+  projectIds?: string[];
 }
 
 export interface UpdateEmailRequest {
@@ -413,12 +418,12 @@ export interface UpdateEmailResponse {
   stripeCustomerId?: string;
   stripePlanId?: string;
   planSettings: {
-    maxBrands: number;
+    maxProjects: number;
     maxAIModels: number;
   };
   createdAt: string;
   updatedAt: string;
-  companyIds?: string[];
+  projectIds?: string[];
 }
 
 /**
@@ -495,13 +500,13 @@ export interface UserProfile {
   stripeCustomerId?: string;
   stripePlanId?: string;
   planSettings: {
-    maxBrands: number;
+    maxProjects: number;
     maxAIModels: number;
   };
   selectedModels: string[];
   createdAt: string;
   updatedAt: string;
-  companyIds: string[];
+  projectIds: string[];
 }
 
 /**
@@ -534,13 +539,13 @@ export async function getUserProfile(token: string): Promise<UserProfile> {
 }
 
 /**
- * Get user's identity cards (requires token authentication)
+ * Get user's projects (requires token authentication)
  */
-export async function getUserIdentityCards(
+export async function getUserProjects(
   token: string
-): Promise<IdentityCardResponse[]> {
+): Promise<ProjectResponse[]> {
   try {
-    const response = await fetch(`${API_BASE_URL}/user/identity-card`, {
+    const response = await fetch(`${API_BASE_URL}/user/project`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -551,57 +556,92 @@ export async function getUserIdentityCards(
     if (!response.ok) {
       const error = await response
         .json()
-        .catch(() => ({ message: "Failed to get identity cards" }));
-      throw new Error(error.message || "Failed to get identity cards");
+        .catch(() => ({ message: "Failed to get projects" }));
+      throw new Error(error.message || "Failed to get projects");
     }
 
     return response.json();
   } catch (error) {
-    console.error("Get identity cards error:", error);
+    console.error("Get projects error:", error);
     throw new Error(
-      error instanceof Error ? error.message : "Failed to get identity cards"
+      error instanceof Error ? error.message : "Failed to get projects"
+    );
+  }
+}
+
+export interface UrlUsageResponse {
+  currentUrls: string[];
+  currentCount: number;
+  maxUrls: number;
+  canAddMore: boolean;
+}
+
+/**
+ * Get user's URL usage information (requires token authentication)
+ */
+export async function getUserUrlUsage(
+  token: string
+): Promise<UrlUsageResponse> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/user/project/url-usage`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response
+        .json()
+        .catch(() => ({ message: "Failed to get URL usage" }));
+      throw new Error(error.message || "Failed to get URL usage");
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Get URL usage error:", error);
+    throw new Error(
+      error instanceof Error ? error.message : "Failed to get URL usage"
     );
   }
 }
 
 /**
- * Get company details by ID (requires token authentication)
+ * Get project details by ID (requires token authentication)
  */
-export async function getCompanyById(
-  companyId: string,
+export async function getProjectById(
+  projectId: string,
   token: string
-): Promise<IdentityCardResponse> {
+): Promise<ProjectResponse> {
   try {
-    const response = await fetch(
-      `${API_BASE_URL}/user/identity-card/${companyId}`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    const response = await fetch(`${API_BASE_URL}/user/project/${projectId}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
     if (!response.ok) {
       const error = await response
         .json()
-        .catch(() => ({ message: "Failed to get company details" }));
-      throw new Error(error.message || "Failed to get company details");
+        .catch(() => ({ message: "Failed to get project details" }));
+      throw new Error(error.message || "Failed to get project details");
     }
 
     return response.json();
   } catch (error) {
-    console.error("Get company details error:", error);
+    console.error("Get project details error:", error);
     throw new Error(
-      error instanceof Error ? error.message : "Failed to get company details"
+      error instanceof Error ? error.message : "Failed to get project details"
     );
   }
 }
 
 export interface PromptSet {
   id: string;
-  companyId: string;
+  projectId: string;
   spontaneous: string[];
   direct: string[];
   comparison: string[];
@@ -658,11 +698,11 @@ export async function getBatchResults(
  * Get prompt set for a company (requires token authentication)
  */
 export async function getPromptSet(
-  companyId: string,
+  projectId: string,
   token: string
 ): Promise<PromptSet> {
   try {
-    const response = await fetch(`${API_BASE_URL}/prompts/${companyId}`, {
+    const response = await fetch(`${API_BASE_URL}/prompts/${projectId}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -687,38 +727,35 @@ export async function getPromptSet(
 }
 
 /**
- * Update identity card attributes and competitors (requires token authentication)
+ * Update project attributes and competitors (requires token authentication)
  */
-export async function updateIdentityCard(
-  companyId: string,
+export async function updateProject(
+  projectId: string,
   data: { keyBrandAttributes?: string[]; competitors?: string[] },
   token: string
-): Promise<IdentityCardResponse> {
+): Promise<ProjectResponse> {
   try {
-    const response = await fetch(
-      `${API_BASE_URL}/user/identity-card/${companyId}`,
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(data),
-      }
-    );
+    const response = await fetch(`${API_BASE_URL}/user/project/${projectId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
 
     if (!response.ok) {
       const error = await response
         .json()
-        .catch(() => ({ message: "Failed to update identity card" }));
-      throw new Error(error.message || "Failed to update identity card");
+        .catch(() => ({ message: "Failed to update project" }));
+      throw new Error(error.message || "Failed to update project");
     }
 
     return response.json();
   } catch (error) {
-    console.error("Update identity card error:", error);
+    console.error("Update project error:", error);
     throw new Error(
-      error instanceof Error ? error.message : "Failed to update identity card"
+      error instanceof Error ? error.message : "Failed to update project"
     );
   }
 }
@@ -727,7 +764,7 @@ export async function updateIdentityCard(
  * Update prompt set for a company (requires token authentication)
  */
 export async function updatePromptSet(
-  companyId: string,
+  projectId: string,
   data: {
     spontaneous?: string[];
     direct?: string[];
@@ -738,7 +775,7 @@ export async function updatePromptSet(
   token: string
 ): Promise<PromptSet> {
   try {
-    const response = await fetch(`${API_BASE_URL}/prompts/${companyId}`, {
+    const response = await fetch(`${API_BASE_URL}/prompts/${projectId}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -763,17 +800,16 @@ export async function updatePromptSet(
   }
 }
 
-
 /**
- * Get all reports for a company (requires token authentication)
+ * Get all reports for a project (requires token authentication)
  */
-export async function getCompanyReports(
-  companyId: string,
+export async function getProjectReports(
+  projectId: string,
   token: string
 ): Promise<ReportResponse[]> {
   try {
     const response = await fetch(
-      `${API_BASE_URL}/reports/company/${companyId}`,
+      `${API_BASE_URL}/reports/project/${projectId}`,
       {
         method: "GET",
         headers: {
@@ -786,15 +822,15 @@ export async function getCompanyReports(
     if (!response.ok) {
       const error = await response
         .json()
-        .catch(() => ({ message: "Failed to get company reports" }));
-      throw new Error(error.message || "Failed to get company reports");
+        .catch(() => ({ message: "Failed to get project reports" }));
+      throw new Error(error.message || "Failed to get project reports");
     }
 
     return response.json();
   } catch (error) {
-    console.error("Get company reports error:", error);
+    console.error("Get project reports error:", error);
     throw new Error(
-      error instanceof Error ? error.message : "Failed to get company reports"
+      error instanceof Error ? error.message : "Failed to get project reports"
     );
   }
 }

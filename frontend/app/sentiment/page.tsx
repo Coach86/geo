@@ -14,14 +14,18 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, X } from "lucide-react";
-import { getCompanyReports } from "@/lib/auth-api";
+import { getProjectReports } from "@/lib/auth-api";
 import type { ReportResponse } from "@/types/reports";
 import { SentimentOverview } from "@/components/sentiment/SentimentOverview";
 import { SentimentDistribution } from "@/components/sentiment/SentimentDistribution";
 import { SentimentHeatmap } from "@/components/sentiment/SentimentHeatmap";
 import { Button } from "@/components/ui/button";
+import { ProjectHeader } from "@/components/project-profile/ProjectHeader";
+import { ProjectMetadata } from "@/components/project-profile/ProjectMetadata";
 
 interface ProcessedReport extends ReportResponse {
+  reportDate: string;
+  createdAt: string;
   sentimentScore: number;
   sentimentCounts: {
     positive: number;
@@ -49,7 +53,7 @@ interface ProcessedReport extends ReportResponse {
 
 export default function SentimentPage() {
   const { token } = useAuth();
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     null
   );
   const [reports, setReports] = useState<ProcessedReport[]>([]);
@@ -61,26 +65,26 @@ export default function SentimentPage() {
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  // Get selected company from localStorage and listen for changes
+  // Get selected project from localStorage and listen for changes
   useEffect(() => {
     const fetchReports = async () => {
-      const companyId = localStorage.getItem("selectedCompanyId");
+      const projectId = localStorage.getItem("selectedProjectId");
 
-      if (!companyId || !token) {
-        setSelectedCompanyId(null);
+      if (!projectId || !token) {
+        setSelectedProjectId(null);
         setReports([]);
         setSelectedReport(null);
         setLoading(false);
         return;
       }
 
-      setSelectedCompanyId(companyId);
+      setSelectedProjectId(projectId);
       setLoading(true);
       setError(null);
 
       try {
         // Fetch reports from API
-        const apiReports = await getCompanyReports(companyId, token);
+        const apiReports = await getProjectReports(projectId, token);
 
         // Process API response to match our interface
         const processedReports: ProcessedReport[] = apiReports.map(
@@ -112,8 +116,7 @@ export default function SentimentPage() {
             const modelSentiments = toneData.sentiments || [];
 
             return {
-              id: report.id,
-              companyId: report.companyId,
+              ...report,
               reportDate: report.metadata?.date || report.generatedAt,
               createdAt: report.generatedAt,
               sentimentScore,
@@ -145,17 +148,17 @@ export default function SentimentPage() {
 
     fetchReports();
 
-    // Listen for company selection changes (same-tab updates)
-    const handleCompanyChange = () => {
+    // Listen for project selection changes (same-tab updates)
+    const handleProjectChange = () => {
       fetchReports();
     };
 
-    window.addEventListener("companySelectionChanged", handleCompanyChange);
+    window.addEventListener("projectSelectionChanged", handleProjectChange);
 
     return () => {
       window.removeEventListener(
-        "companySelectionChanged",
-        handleCompanyChange
+        "projectSelectionChanged",
+        handleProjectChange
       );
     };
   }, [token]);
@@ -227,7 +230,7 @@ export default function SentimentPage() {
     }
   };
 
-  if (!selectedCompanyId) {
+  if (!selectedProjectId) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-[50vh]">
@@ -236,7 +239,7 @@ export default function SentimentPage() {
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Please select a company from the sidebar to view sentiment
+                  Please select a project from the sidebar to view sentiment
                   analysis.
                 </AlertDescription>
               </Alert>

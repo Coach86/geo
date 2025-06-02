@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { LlmService } from '../../llm/services/llm.service';
 import { RawResponseService } from './raw-response.service';
 import {
-  CompanyBatchContext,
+  ProjectBatchContext,
   AccuracyPipelineResult,
   WebSearchSummary,
 } from '../interfaces/batch.interfaces';
@@ -58,8 +58,8 @@ export class AccuracyPipelineService extends BasePipelineService {
    * @param context Company batch context
    * @returns Pipeline results
    */
-  async run(context: CompanyBatchContext): Promise<AccuracyResults> {
-    this.logger.log(`Running accuracy pipeline for ${context.companyId} (${context.brandName})`);
+  async run(context: ProjectBatchContext): Promise<AccuracyResults> {
+    this.logger.log(`Running accuracy pipeline for ${context.projectId} (${context.brandName})`);
 
     try {
       // Get the prompts for this pipeline
@@ -157,7 +157,7 @@ export class AccuracyPipelineService extends BasePipelineService {
       const summary = this.analyzeAccuracyResults(results);
 
       this.logger.log(
-        `Completed accuracy pipeline for ${context.companyId} with ${results.length} results`,
+        `Completed accuracy pipeline for ${context.projectId} with ${results.length} results`,
       );
 
       if (webSearchSummary.usedWebSearch) {
@@ -173,7 +173,7 @@ export class AccuracyPipelineService extends BasePipelineService {
       };
     } catch (error) {
       this.logger.error(
-        `Failed to run accuracy pipeline for ${context.companyId}: ${error.message}`,
+        `Failed to run accuracy pipeline for ${context.projectId}: ${error.message}`,
         error.stack,
       );
       throw error;

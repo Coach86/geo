@@ -7,8 +7,8 @@ import { showBatchCompletionNotification } from '../utils/notifications';
 
 export interface BatchStatus {
   batchExecutionId: string;
-  companyId: string;
-  companyName: string;
+  projectId: string;
+  projectName: string;
   pipelineType: string;
   status: 'started' | 'processing' | 'completed' | 'failed';
   progress: number;
@@ -62,7 +62,7 @@ export const useBatchEvents = (): UseBatchEventsReturn => {
           setHasRecentSuccess(true);
           // Show browser notification
           showBatchCompletionNotification(
-            event.companyName,
+            event.projectName,
             event.pipelineType || 'pipeline',
             true,
           );
@@ -73,21 +73,21 @@ export const useBatchEvents = (): UseBatchEventsReturn => {
           // Set success state
           setHasRecentSuccess(true);
           // Show browser notification
-          showBatchCompletionNotification(event.companyName, event.pipelineType || 'batch', true);
+          showBatchCompletionNotification(event.projectName, event.pipelineType || 'batch', true);
           break;
         case 'pipeline_failed':
         case 'batch_failed':
           status = 'failed';
           // Show browser notification
-          showBatchCompletionNotification(event.companyName, event.pipelineType || 'batch', false);
+          showBatchCompletionNotification(event.projectName, event.pipelineType || 'batch', false);
           break;
       }
 
       const updated: BatchStatus = {
         ...existing, // Spread existing first to be overridden by new values
         batchExecutionId: event.batchExecutionId,
-        companyId: event.companyId,
-        companyName: event.companyName,
+        projectId: event.projectId,
+        projectName: event.projectName,
         pipelineType: event.pipelineType || 'unknown',
         status, // This will now properly override the existing status
         progress,
