@@ -10,7 +10,7 @@ import { join } from 'path';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 
 import { AppController } from './controllers/app.controller';
-import { IdentityCardModule } from './modules/identity-card/identity-card.module';
+import { ProjectModule } from './modules/project/project.module';
 import { PromptModule } from './modules/prompt/prompt.module';
 import { LlmModule } from './modules/llm/llm.module';
 import { ReportModule } from './modules/report/report.module';
@@ -65,7 +65,7 @@ import { getWinstonConfig } from './utils/logger.config';
     ScheduleModule.forRoot(),
     EventEmitterModule.forRoot(),
     UserModule,
-    IdentityCardModule,
+    ProjectModule,
     PromptModule,
     LlmModule,
     ReportModule,

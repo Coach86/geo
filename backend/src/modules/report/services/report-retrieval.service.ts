@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { WeeklyBrandReportEntity } from '../interfaces/report-types';
-import { IdentityCardService } from '@/modules/identity-card/services/identity-card.service';
+import { ProjectService } from '@/modules/project/services/project.service';
 import { ReportService } from './report.service';
 import { ReportConverterService } from './report-converter.service';
 import { WeeklyBrandReportRepository } from '../repositories/weekly-brand-report.repository';
@@ -16,7 +16,7 @@ export class ReportRetrievalService {
   constructor(
     @Inject(forwardRef(() => ReportService))
     private readonly reportService: ReportService,
-    private readonly identityCardService: IdentityCardService,
+    private readonly projectService: ProjectService,
     private readonly converterService: ReportConverterService,
     private readonly weeklyReportRepository: WeeklyBrandReportRepository,
   ) {}
@@ -35,26 +35,26 @@ export class ReportRetrievalService {
         throw new NotFoundException(`Report not found with ID ${reportId}`);
       }
 
-      this.logger.log(`Found report with ID ${reportId}, company ${document.companyId}`);
+      this.logger.log(`Found report with ID ${reportId}, project ${document.projectId}`);
 
       // Get identity card for additional company data if needed
       try {
-        const identityCard = await this.identityCardService.findById(document.companyId);
-        if (identityCard) {
+        const project = await this.projectService.findById(document.projectId);
+        if (project) {
           // Convert MongoDB document to entity using converter service
-          return this.converterService.convertDocumentToEntity(document, identityCard);
+          return this.converterService.convertDocumentToEntity(document, project);
         }
-      } catch (idCardError) {
+      } catch (projectError) {
         this.logger.warn(
-          `Could not find identity card for company ${document.companyId}, returning minimal report data`,
+          `Could not find project for company ${document.projectId}, returning minimal report data`,
         );
       }
 
       // If identity card is not available, create a minimal entity
       return {
         id: document.id,
-        companyId: document.companyId,
-        brand: document.brand || document.companyId,
+        projectId: document.projectId,
+        brand: document.brand || document.projectId,
         date: document.date,
         generatedAt: document.generatedAt,
         batchExecutionId: document.batchExecutionId,
@@ -112,16 +112,16 @@ export class ReportRetrievalService {
   }
 
   /**
-   * Get the latest report for a company
-   * @param companyId The company ID
+   * Get the latest report for a project
+   * @param projectId The project ID
    * @returns The most recent report in entity format
    */
-  async getLatestReport(companyId: string): Promise<WeeklyBrandReportEntity> {
+  async getLatestReport(projectId: string): Promise<WeeklyBrandReportEntity> {
     try {
-      const document = await this.weeklyReportRepository.findLatestByCompanyIdLean(companyId);
+      const document = await this.weeklyReportRepository.findLatestByProjectIdLean(projectId);
 
       if (!document) {
-        throw new NotFoundException(`No reports found for company ${companyId}`);
+        throw new NotFoundException(`No reports found for project ${projectId}`);
       }
 
       // Once we have the latest report, use the same logic as getReportById
@@ -136,15 +136,15 @@ export class ReportRetrievalService {
   }
 
   /**
-   * Get all reports for a company
-   * @param companyId The company ID
+   * Get all reports for a project
+   * @param projectId The project ID
    * @returns A list of summary data for all reports
    */
-  async getAllCompanyReports(companyId: string) {
+  async getAllProjectReports(projectId: string) {
     try {
-      // Get all reports for the company, sorted by week start date (newest first)
-      const reports = await this.weeklyReportRepository.findAllByCompanyId(companyId);
-      const count = await this.weeklyReportRepository.countByCompanyId(companyId);
+      // Get all reports for the project, sorted by week start date (newest first)
+      const reports = await this.weeklyReportRepository.findByProjectId(projectId);
+      const count = await this.weeklyReportRepository.countByProjectId(projectId);
 
       return {
         reports: reports.map((report) => ({
@@ -157,7 +157,7 @@ export class ReportRetrievalService {
       };
     } catch (error) {
       this.logger.error(
-        `Failed to get reports for company ${companyId}: ${error.message}`,
+        `Failed to get reports for project ${projectId}: ${error.message}`,
         error.stack,
       );
       throw new Error(`Failed to retrieve reports: ${error.message}`);

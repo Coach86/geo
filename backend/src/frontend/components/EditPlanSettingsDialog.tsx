@@ -38,9 +38,10 @@ export const EditPlanSettingsDialog: React.FC<EditPlanSettingsDialogProps> = ({
   user,
   onUpdate,
 }) => {
-  const [maxBrands, setMaxBrands] = useState(1);
+  const [maxProjects, setMaxProjects] = useState(1);
   const [maxAIModels, setMaxAIModels] = useState(3);
   const [maxSpontaneousPrompts, setMaxSpontaneousPrompts] = useState(12);
+  const [maxUrls, setMaxUrls] = useState(1);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -51,9 +52,10 @@ export const EditPlanSettingsDialog: React.FC<EditPlanSettingsDialogProps> = ({
 
   useEffect(() => {
     if (user) {
-      setMaxBrands(user.planSettings?.maxBrands || 1);
+      setMaxProjects(user.planSettings?.maxProjects || 1);
       setMaxAIModels(user.planSettings?.maxAIModels || 3);
       setMaxSpontaneousPrompts(user.planSettings?.maxSpontaneousPrompts || 12);
+      setMaxUrls(user.planSettings?.maxUrls || 1);
       setSelectedModels(user.selectedModels || []);
 
       // Fetch available models
@@ -93,9 +95,10 @@ export const EditPlanSettingsDialog: React.FC<EditPlanSettingsDialogProps> = ({
     try {
       // Update plan settings
       const updatedUser = await updateUserPlanSettings(user.id, {
-        maxBrands,
+        maxProjects,
         maxAIModels,
         maxSpontaneousPrompts,
+        maxUrls,
       });
 
       // Update selected models
@@ -116,9 +119,10 @@ export const EditPlanSettingsDialog: React.FC<EditPlanSettingsDialogProps> = ({
       onClose();
       // Reset to original values
       if (user) {
-        setMaxBrands(user.planSettings?.maxBrands || 1);
+        setMaxProjects(user.planSettings?.maxProjects || 1);
         setMaxAIModels(user.planSettings?.maxAIModels || 3);
         setMaxSpontaneousPrompts(user.planSettings?.maxSpontaneousPrompts || 12);
+        setMaxUrls(user.planSettings?.maxUrls || 1);
         setSelectedModels(user.selectedModels || []);
       }
     }
@@ -126,7 +130,7 @@ export const EditPlanSettingsDialog: React.FC<EditPlanSettingsDialogProps> = ({
 
   if (!user) return null;
 
-  const currentBrandCount = user.companyIds?.length || 0;
+  const currentBrandCount = user.projectIds?.length || 0;
   const getPlanName = () => {
     if (!user.stripePlanId) return 'Free';
     // Map plan IDs to names - this would come from your backend
@@ -169,7 +173,7 @@ export const EditPlanSettingsDialog: React.FC<EditPlanSettingsDialogProps> = ({
                   </Typography>
                 </Box>
                 <Typography variant="h6" color="textPrimary">
-                  {currentBrandCount} / {user.planSettings?.maxBrands || 1}
+                  {currentBrandCount} / {user.planSettings?.maxProjects || 1}
                 </Typography>
                 <Typography variant="caption" color="textSecondary">
                   brands
@@ -185,18 +189,18 @@ export const EditPlanSettingsDialog: React.FC<EditPlanSettingsDialogProps> = ({
             <Box sx={{ flex: 1, minWidth: 200 }}>
               <TextField
                 fullWidth
-                label="Max Brands"
+                label="Max Projects"
                 type="number"
-                value={maxBrands}
-                onChange={(e) => setMaxBrands(Math.max(1, parseInt(e.target.value) || 1))}
+                value={maxProjects}
+                onChange={(e) => setMaxProjects(Math.max(1, parseInt(e.target.value) || 1))}
                 InputProps={{
                   inputProps: { min: 1 },
                   startAdornment: <BusinessIcon sx={{ mr: 1, color: 'action.active' }} />,
                 }}
                 helperText={`Currently using ${currentBrandCount} brands`}
-                error={maxBrands < currentBrandCount}
+                error={maxProjects < currentBrandCount}
               />
-              {maxBrands < currentBrandCount && (
+              {maxProjects < currentBrandCount && (
                 <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
                   Warning: This is less than current usage
                 </Typography>
@@ -229,6 +233,20 @@ export const EditPlanSettingsDialog: React.FC<EditPlanSettingsDialogProps> = ({
                   inputProps: { min: 1 },
                 }}
                 helperText="Number of spontaneous prompts allowed"
+              />
+            </Box>
+
+            <Box sx={{ flex: 1, minWidth: 200 }}>
+              <TextField
+                fullWidth
+                label="Max URLs"
+                type="number"
+                value={maxUrls}
+                onChange={(e) => setMaxUrls(Math.max(1, parseInt(e.target.value) || 1))}
+                InputProps={{
+                  inputProps: { min: 1 },
+                }}
+                helperText="Number of unique URLs allowed"
               />
             </Box>
           </Box>

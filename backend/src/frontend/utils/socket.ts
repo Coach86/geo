@@ -5,8 +5,8 @@ import { io, Socket } from 'socket.io-client';
 
 export interface BatchEvent {
   batchExecutionId: string;
-  companyId: string;
-  companyName: string;
+  projectId: string;
+  projectName: string;
   eventType:
     | 'batch_started'
     | 'pipeline_started'

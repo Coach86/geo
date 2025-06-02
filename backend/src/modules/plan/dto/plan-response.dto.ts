@@ -13,8 +13,8 @@ export class PlanResponseDto {
   included: string[];
   stripeProductId: string;
   maxModels: number;
-  maxBrands: number;
-  maxMarkets: number;
+  maxProjects: number;
+  maxUrls: number;
   maxSpontaneousPrompts: number;
   isActive: boolean;
   isRecommended: boolean;

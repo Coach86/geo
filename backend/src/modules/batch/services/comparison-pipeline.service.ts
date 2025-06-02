@@ -6,7 +6,7 @@ import { RawResponseService } from './raw-response.service';
 import {
   BrandBattleAnalysis,
   BrandBattlePipelineResult,
-  CompanyBatchContext,
+  ProjectBatchContext,
   ComparisonResults,
   WebSearchSummary,
 } from '../interfaces/batch.interfaces';
@@ -47,9 +47,9 @@ export class ComparisonPipelineService extends BasePipelineService {
    * @param context Company batch context
    * @returns Comparison results with brand battle data
    */
-  async run(context: CompanyBatchContext): Promise<ComparisonResults> {
+  async run(context: ProjectBatchContext): Promise<ComparisonResults> {
     this.logger.log(
-      `Running brand battle pipeline for ${context.companyId} (${context.brandName})`,
+      `Running brand battle pipeline for ${context.projectId} (${context.brandName})`,
     );
 
     try {
@@ -65,7 +65,7 @@ export class ComparisonPipelineService extends BasePipelineService {
 
       if (competitors.length === 0) {
         this.logger.error(
-          `No competitors specified for ${context.companyId}. Brand battle requires competitors.`,
+          `No competitors specified for ${context.projectId}. Brand battle requires competitors.`,
         );
         throw new Error('Brand battle requires competitors to be specified');
       }
@@ -73,13 +73,13 @@ export class ComparisonPipelineService extends BasePipelineService {
       const comparisonResults = await this.runComparison(context, comparisonPrompts, competitors);
 
       this.logger.log(
-        `Completed comparison pipeline for ${context.companyId} with ${comparisonResults.results.length} results`,
+        `Completed comparison pipeline for ${context.projectId} with ${comparisonResults.results.length} results`,
       );
 
       return comparisonResults;
     } catch (error) {
       this.logger.error(
-        `Failed to run brand battle pipeline for ${context.companyId}: ${error.message}`,
+        `Failed to run brand battle pipeline for ${context.projectId}: ${error.message}`,
         error.stack,
       );
       throw error;
@@ -170,12 +170,12 @@ export class ComparisonPipelineService extends BasePipelineService {
    * @returns Comparison results with brand battle data
    */
   private async runComparison(
-    context: CompanyBatchContext,
+    context: ProjectBatchContext,
     prompts: string[],
     competitors: string[],
   ): Promise<ComparisonResults> {
     this.logger.log(
-      `Running comparison for ${context.companyId} against ${competitors.length} competitors`,
+      `Running comparison for ${context.projectId} against ${competitors.length} competitors`,
     );
 
     // Get the enabled LLM models

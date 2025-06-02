@@ -56,8 +56,8 @@ export class WeeklyBrandReport {
   @ApiProperty({ description: 'Unique identifier for the report' })
   id: string;
 
-  @ApiProperty({ description: 'Company ID this report is associated with' })
-  companyId: string;
+  @ApiProperty({ description: 'Project ID this report is associated with' })
+  projectId: string;
 
   @ApiProperty({ description: 'When the report was generated' })
   generatedAt: Date;

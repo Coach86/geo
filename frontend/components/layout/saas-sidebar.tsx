@@ -14,10 +14,10 @@ import {
   Plus,
   Lightbulb,
 } from "lucide-react";
-import { 
-  IdentityCardResponse, 
-  getUserProfile, 
-  createCompanyFromUrl 
+import {
+  ProjectResponse,
+  getUserProfile,
+  createProjectFromUrl,
 } from "@/lib/auth-api";
 import {
   Select,
@@ -26,7 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import AddCompanyModal from "@/components/AddCompanyModal";
+import AddProjectModal from "@/components/AddProjectModal";
 import { useAuth } from "@/providers/auth-provider";
 import { toast } from "sonner";
 
@@ -37,7 +37,7 @@ interface SidebarItem {
   badge?: string;
 }
 
-const companyMenuItems: SidebarItem[] = [
+const projectMenuItems: SidebarItem[] = [
   { label: "Profile", icon: User, href: "/" },
 ];
 
@@ -54,20 +54,20 @@ const optimizationMenuItems: SidebarItem[] = [
 ];
 
 interface SaasSidebarProps {
-  identityCards: IdentityCardResponse[];
-  selectedCompany: IdentityCardResponse | null;
-  onCompanySelect: (company: IdentityCardResponse) => void;
+  identityCards: ProjectResponse[];
+  selectedProject: ProjectResponse | null;
+  onProjectSelect: (project: ProjectResponse) => void;
 }
 
 export default function SaasSidebar({
   identityCards,
-  selectedCompany,
-  onCompanySelect,
+  selectedProject,
+  onProjectSelect,
 }: SaasSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { token } = useAuth();
-  const [isAddCompanyModalOpen, setIsAddCompanyModalOpen] = useState(false);
+  const [isAddProjectModalOpen, setIsAddProjectModalOpen] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
 
   // Fetch user profile to check plan limits
@@ -84,36 +84,36 @@ export default function SaasSidebar({
     fetchProfile();
   }, [token]);
 
-  const handleAddCompanyClick = () => {
+  const handleAddProjectClick = () => {
     if (!userProfile) {
-      setIsAddCompanyModalOpen(true);
+      setIsAddProjectModalOpen(true);
       return;
     }
 
-    const currentBrandCount = identityCards.length;
-    const maxBrands = userProfile.planSettings?.maxBrands || 1;
+    const currentProjectCount = identityCards.length;
+    const maxProjects = userProfile.planSettings?.maxProjects || 1;
 
-    if (currentBrandCount >= maxBrands) {
+    if (currentProjectCount >= maxProjects) {
       // Redirect to update plan page
       router.push("/update-plan");
     } else {
-      setIsAddCompanyModalOpen(true);
+      setIsAddProjectModalOpen(true);
     }
   };
 
-  const handleCreateCompany = async (data: {
+  const handleCreateProject = async (data: {
     url: string;
     market: string;
     language: string;
   }) => {
     if (!token) throw new Error("Not authenticated");
-    
-    const result = await createCompanyFromUrl(data, token);
+
+    const result = await createProjectFromUrl(data, token);
     return result;
   };
 
-  const handleCompanyCreated = (companyId: string) => {
-    // Reload the page to refresh the company list
+  const handleProjectCreated = (projectId: string) => {
+    // Reload the page to refresh the project list
     window.location.reload();
   };
 
@@ -124,23 +124,23 @@ export default function SaasSidebar({
         <img src={"/logo-small.png"} className="w-24" />
       </div>
 
-      {/* Company Selector */}
+      {/* Project Selector */}
       <div className="px-4 py-4 border-b">
         <label className="text-xs font-semibold text-dark-500 uppercase tracking-widest mb-2 block">
-          Select Company
+          Select Project
         </label>
         <Select
-          value={selectedCompany?.id || ""}
+          value={selectedProject?.id || ""}
           onValueChange={(value) => {
-            const company = identityCards.find((card) => card.id === value);
-            if (company) onCompanySelect(company);
+            const project = identityCards.find((card) => card.id === value);
+            if (project) onProjectSelect(project);
           }}
         >
           <SelectTrigger className="w-full">
             <div className="flex items-center gap-2">
               <Building2 className="w-4 h-4 text-dark-500" />
-              <SelectValue placeholder="Select a company">
-                {selectedCompany?.brandName || "Select a company"}
+              <SelectValue placeholder="Select a project">
+                {selectedProject?.brandName || "Select a project"}
               </SelectValue>
             </div>
           </SelectTrigger>
@@ -159,13 +159,13 @@ export default function SaasSidebar({
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4 px-2">
-        {/* Company Section */}
+        {/* Project Section */}
         <div className="mb-6">
           <div className="px-3 mb-2 text-xs font-semibold text-dark-500 tracking-widest uppercase">
-            Company
+            Project
           </div>
           <ul className="space-y-1">
-            {companyMenuItems.map((item) => {
+            {projectMenuItems.map((item) => {
               const isActive = pathname === item.href;
               return (
                 <li key={item.label}>
@@ -279,14 +279,14 @@ export default function SaasSidebar({
 
       {/* Bottom Actions - Fixed at bottom */}
       <div className="border-t">
-        {/* Add Company Button */}
+        {/* Add Project Button */}
         <div className="p-4 pb-2">
           <button
-            onClick={handleAddCompanyClick}
+            onClick={handleAddProjectClick}
             className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors bg-primary-50 text-primary-700 hover:bg-primary-100 w-full"
           >
             <Plus className="w-5 h-5 text-primary-600" />
-            <span className="flex-1">Add Company</span>
+            <span className="flex-1">Add Project</span>
           </button>
         </div>
 
@@ -312,13 +312,13 @@ export default function SaasSidebar({
           </Link>
         </div>
       </div>
-      
-      {/* Add Company Modal */}
-      <AddCompanyModal
-        isOpen={isAddCompanyModalOpen}
-        onClose={() => setIsAddCompanyModalOpen(false)}
-        onSuccess={handleCompanyCreated}
-        onCreateCompany={handleCreateCompany}
+
+      {/* Add Project Modal */}
+      <AddProjectModal
+        isOpen={isAddProjectModalOpen}
+        onClose={() => setIsAddProjectModalOpen(false)}
+        onSuccess={handleProjectCreated}
+        onCreateProject={handleCreateProject}
       />
     </aside>
   );

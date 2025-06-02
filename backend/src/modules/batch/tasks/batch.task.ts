@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { BatchService } from '../services/batch.service';
-import { CompanyBatchOrchestratorService } from '../services/company-batch-orchestrator.service';
+import { ProjectBatchOrchestratorService } from '../services/project-batch-orchestrator.service';
 import { BatchExecutionService } from '../services/batch-execution.service';
 
 @Injectable()
@@ -13,7 +13,7 @@ export class BatchTask {
   constructor(
     private readonly configService: ConfigService,
     private readonly batchService: BatchService,
-    private readonly batchOrchestratorService: CompanyBatchOrchestratorService,
+    private readonly batchOrchestratorService: ProjectBatchOrchestratorService,
     private readonly batchExecutionService: BatchExecutionService,
   ) {
     this.batchEnabled = this.configService.get<boolean>('BATCH_ENABLED', true);
@@ -31,8 +31,8 @@ export class BatchTask {
     this.logger.log('Starting weekly batch task using orchestrator');
     
     try {
-      // Use the orchestrator to process all companies and create reports with email notifications
-      await this.batchOrchestratorService.orchestrateAllCompanyBatches();
+      // Use the orchestrator to process all projects and create reports with email notifications
+      await this.batchOrchestratorService.orchestrateAllProjectBatches();
       this.logger.log('Weekly batch task completed successfully');
     } catch (error) {
       this.logger.error(`Weekly batch task failed: ${error.message}`, error.stack);
@@ -44,12 +44,12 @@ export class BatchTask {
     this.logger.log('Manually triggering batch task using orchestrator');
     
     try {
-      // Use the orchestrator to process all companies
-      const result = await this.batchOrchestratorService.orchestrateAllCompanyBatches();
+      // Use the orchestrator to process all projects
+      const result = await this.batchOrchestratorService.orchestrateAllProjectBatches();
       this.logger.log('Manual batch task completed successfully');
       return { 
         success: true, 
-        message: `Batch task completed successfully. Processed ${result.successful} companies successfully. Failed: ${result.failed}`,
+        message: `Batch task completed successfully. Processed ${result.successful} projects successfully. Failed: ${result.failed}`,
         details: result
       };
     } catch (error) {
@@ -58,22 +58,22 @@ export class BatchTask {
     }
   }
   
-  // Trigger batch for a specific company
-  async triggerCompanyBatch(companyId: string) {
-    this.logger.log(`Manually triggering batch for company ${companyId}`);
+  // Trigger batch for a specific project
+  async triggerProjectBatch(projectId: string) {
+    this.logger.log(`Manually triggering batch for project ${projectId}`);
     
     try {
-      // Use the orchestrator to process the company
-      const result = await this.batchOrchestratorService.orchestrateCompanyBatches(companyId);
-      this.logger.log(`Company batch completed successfully for ${companyId}`);
+      // Use the orchestrator to process the project
+      const result = await this.batchOrchestratorService.orchestrateProjectBatches(projectId);
+      this.logger.log(`Project batch completed successfully for ${projectId}`);
       return { 
         success: true, 
-        message: `Company batch completed successfully`,
+        message: `Project batch completed successfully`,
         details: result
       };
     } catch (error) {
-      this.logger.error(`Company batch failed: ${error.message}`, error.stack);
-      return { success: false, message: `Company batch failed: ${error.message}` };
+      this.logger.error(`Project batch failed: ${error.message}`, error.stack);
+      return { success: false, message: `Project batch failed: ${error.message}` };
     }
   }
   
@@ -99,7 +99,7 @@ export class BatchTask {
       
       // Mark each stalled batch as failed
       for (const batch of stalledBatches) {
-        this.logger.warn(`Marking stalled batch ${batch.id} for company ${batch.companyId} as failed. Created at: ${batch.createdAt}`);
+        this.logger.warn(`Marking stalled batch ${batch.id} for project ${batch.projectId} as failed. Created at: ${batch.createdAt}`);
         
         try {
           await this.batchExecutionService.updateBatchExecutionStatus(

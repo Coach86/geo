@@ -32,10 +32,10 @@ import SearchIcon from '@mui/icons-material/Search';
 import LinkIcon from '@mui/icons-material/Link';
 import FactCheckIcon from '@mui/icons-material/FactCheck';
 import { getBatchExecution, getBatchExecutionRawResponses } from '../utils/api-batch';
-import SpontaneousTab from '../components/company-detail/tabs/SpontaneousTab';
-import SentimentTab from '../components/company-detail/tabs/SentimentTab';
-import AccuracyTab from '../components/company-detail/tabs/AccuracyTab';
-import ComparisonTab from '../components/company-detail/tabs/ComparisonTab';
+import SpontaneousTab from '../components/project-detail/tabs/SpontaneousTab';
+import SentimentTab from '../components/project-detail/tabs/SentimentTab';
+import AccuracyTab from '../components/project-detail/tabs/AccuracyTab';
+import ComparisonTab from '../components/project-detail/tabs/ComparisonTab';
 import {
   BatchExecution,
   BatchResult,
@@ -152,9 +152,9 @@ const BatchResults: React.FC = () => {
     setCurrentTab(newValue);
   };
 
-  const navigateToCompany = () => {
-    if (batchExecution?.identityCard?.id) {
-      navigate(`/companies/${batchExecution.identityCard.id}`);
+  const navigateToProject = () => {
+    if (batchExecution?.project?.id) {
+      navigate(`/projects/${batchExecution.project.id}`);
     }
   };
 
@@ -225,9 +225,9 @@ const BatchResults: React.FC = () => {
         <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
           <Chip
             icon={<ShoppingBasketIcon />}
-            label={batchExecution.identityCard?.brandName || 'Unknown Company'}
+            label={batchExecution.project?.brandName || 'Unknown Project'}
             color="primary"
-            onClick={navigateToCompany}
+            onClick={navigateToProject}
             clickable
           />
           <Chip
@@ -303,8 +303,8 @@ const BatchResults: React.FC = () => {
                   </Typography>
                   <Typography variant="body1" paragraph>
                     This batch analysis for{' '}
-                    <strong>{batchExecution.identityCard?.brandName || 'Unknown Company'}</strong>{' '}
-                    was executed on {formatDate(batchExecution.executedAt)}. The analysis status is{' '}
+                    <strong>{batchExecution.project?.brandName || 'Unknown Company'}</strong> was
+                    executed on {formatDate(batchExecution.executedAt)}. The analysis status is{' '}
                     <strong>{batchExecution.status}</strong>.
                   </Typography>
 
@@ -396,11 +396,9 @@ const BatchResults: React.FC = () => {
             <AccuracyTab results={accuracyResults} />
           )}
 
-          {currentTab === TabValue.COMPARISON &&
-            comparisonResults &&
-            batchExecution?.identityCard && (
-              <ComparisonTab results={comparisonResults} company={batchExecution.identityCard} />
-            )}
+          {currentTab === TabValue.COMPARISON && comparisonResults && batchExecution?.project && (
+            <ComparisonTab results={comparisonResults} project={batchExecution.project} />
+          )}
 
           {currentTab === TabValue.RAW_RESPONSES && (
             <Grid container spacing={3}>

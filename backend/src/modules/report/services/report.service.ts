@@ -21,7 +21,7 @@ import { ReportPersistenceService } from './report-persistence.service';
 import { ReportRetrievalService } from './report-retrieval.service';
 import { ReportConverterService } from './report-converter.service';
 import { UserService } from '../../user/services/user.service';
-import { CompanyIdentityCard } from '@/modules/identity-card/entities/company-identity-card.entity';
+import { Project } from '@/modules/project/entities/project.entity';
 import { OnEvent } from '@nestjs/event-emitter';
 import { SentimentResults, SpontaneousResults } from '@/modules/batch/interfaces/batch.interfaces';
 import { PipelineType } from '@/modules/batch/interfaces/llm.interfaces';
@@ -73,13 +73,13 @@ export class ReportService implements OnModuleInit {
    */
   public transformToEntityFormat = async (
     document: Record<string, any>,
-    identityCard: CompanyIdentityCard,
+    project: Project,
   ): Promise<WeeklyBrandReportEntity> => {
-    this.logger.debug(`Transforming report ${document.id} for company ${document.companyId}`);
+    this.logger.debug(`Transforming report ${document.id} for project ${document.projectId}`);
     try {
       // Delegate to the converter service and adapt the type
       return this.adaptReportType(
-        this.converterService.convertDocumentToEntity(document, identityCard),
+        this.converterService.convertDocumentToEntity(document, project),
       );
     } catch (error) {
       this.logger.error(`Error transforming report ${document.id}: ${error.message}`, error.stack);
@@ -122,14 +122,16 @@ export class ReportService implements OnModuleInit {
     return this.adaptReportType(report);
   }
 
-  async getLatestReport(companyId: string): Promise<WeeklyBrandReportEntity> {
-    const report = await this.retrievalService.getLatestReport(companyId);
+  async getLatestReport(projectId: string): Promise<WeeklyBrandReportEntity> {
+    const report = await this.retrievalService.getLatestReport(projectId);
     return this.adaptReportType(report);
   }
 
-  async getAllCompanyReports(companyId: string) {
-    return this.retrievalService.getAllCompanyReports(companyId);
+
+  async getAllProjectReports(projectId: string) {
+    return this.retrievalService.getAllProjectReports(projectId);
   }
+
 
   // Report persistence methods
 
@@ -160,21 +162,21 @@ export class ReportService implements OnModuleInit {
    * @returns The saved report entity
    */
   async saveReportFromBatch(batchInput: BatchReportInput): Promise<WeeklyBrandReportEntity> {
-    this.logger.log(`Saving report from batch data for company ${batchInput.companyId}`);
+    this.logger.log(`Saving report from batch data for project ${batchInput.projectId}`);
 
     try {
-      // Get identity card for additional company info
-      const identityCard = await this.integrationService.getCompanyIdentityCard(
-        batchInput.companyId,
+      // Get project for additional company info
+      const project = await this.integrationService.getCompanyProject(
+        batchInput.projectId,
       );
-      if (!identityCard) {
-        throw new NotFoundException(`Identity card not found for company ${batchInput.companyId}`);
+      if (!project) {
+        throw new NotFoundException(`Project not found with ID ${batchInput.projectId}`);
       }
 
       // Convert batch input to report entity
       const reportEntity = this.converterService.convertBatchInputToReportEntity(
         batchInput,
-        identityCard,
+        project,
       );
 
       // Save using the standard method with type adaptation
@@ -237,12 +239,12 @@ export class ReportService implements OnModuleInit {
         throw new NotFoundException(`Batch execution not found with ID ${batchExecutionId}`);
       }
 
-      const companyId = batchExecution.companyId;
+      const projectId = batchExecution.projectId;
 
-      // Get identity card for additional company info
-      const identityCard = await this.integrationService.getCompanyIdentityCard(companyId);
-      if (!identityCard) {
-        throw new NotFoundException(`Identity card not found for company ${companyId}`);
+      // Get project for additional company info
+      const project = await this.integrationService.getCompanyProject(projectId);
+      if (!project) {
+        throw new NotFoundException(`Project not found with ID ${projectId}`);
       }
 
       const date = new Date();
@@ -258,7 +260,7 @@ export class ReportService implements OnModuleInit {
 
       // Create the batch report input with only the available data
       const batchReportInput: BatchReportInput = {
-        companyId,
+        projectId: projectId,
         date,
         llmVersions,
         generatedAt: new Date(),
@@ -284,7 +286,7 @@ export class ReportService implements OnModuleInit {
       // Convert batch input to report entity
       const reportEntity = this.converterService.convertBatchInputToReportEntity(
         batchReportInput,
-        identityCard,
+        project,
       );
 
       // Save without sending email notification with type adaptation
@@ -299,7 +301,7 @@ export class ReportService implements OnModuleInit {
   }
 
   // Email notification methods
-  async sendReportAccessEmail(reportId: string, companyId: string, token: string): Promise<void> {
+  async sendReportAccessEmail(reportId: string, projectId: string, token: string): Promise<void> {
     try {
       // Get the report to extract date and other information
       const report = await this.weeklyReportRepository.findByIdLean(reportId);
@@ -307,15 +309,15 @@ export class ReportService implements OnModuleInit {
         throw new NotFoundException(`Report not found with ID ${reportId}`);
       }
 
-      // Get identity card for company name
-      const identityCard = await this.integrationService.getCompanyIdentityCard(companyId);
-      if (!identityCard) {
-        throw new NotFoundException(`Identity card not found for company ${companyId}`);
+      // Get project for company name
+      const project = await this.integrationService.getCompanyProject(projectId);
+      if (!project) {
+        throw new NotFoundException(`Project not found with ID ${projectId}`);
       }
-      const companyName = identityCard?.brandName || companyId;
-      const user = await this.userService.findOne(identityCard.userId);
+      const companyName = project?.brandName || projectId;
+      const user = await this.userService.findOne(project.userId);
       if (!user) {
-        throw new NotFoundException(`User not found for company ${companyId}`);
+        throw new NotFoundException(`User not found for project ${projectId}`);
       }
       // Delegate to access service
       return this.accessService.sendReportAccessEmail(
@@ -333,31 +335,31 @@ export class ReportService implements OnModuleInit {
 
   async sendReportEmailToAddress(
     reportId: string,
-    companyId: string,
+    projectId: string,
     emailAddress: string,
     customSubject?: string,
   ): Promise<boolean> {
     try {
-      // Validate that the report exists and belongs to the company
+      // Validate that the report exists and belongs to the project
       const report = await this.weeklyReportRepository.findByIdLean(reportId);
       if (!report) {
         throw new NotFoundException(`Report not found with ID ${reportId}`);
       }
 
-      if (report.companyId !== companyId) {
-        throw new BadRequestException('Report does not belong to the specified company');
+      if (report.projectId !== projectId) {
+        throw new BadRequestException('Report does not belong to the specified project');
       }
 
-      // Get identity card for company name
-      const identityCard = await this.integrationService.getCompanyIdentityCard(companyId);
-      if (!identityCard) {
-        throw new NotFoundException(`Identity card not found for company ${companyId}`);
+      // Get project for company name
+      const project = await this.integrationService.getCompanyProject(projectId);
+      if (!project) {
+        throw new NotFoundException(`Project not found with ID ${projectId}`);
       }
-      const companyName = identityCard?.brandName || companyId;
+      const companyName = project?.brandName || projectId;
 
       // Delegate to access service
       return this.accessService.sendReportEmailToAddress(
-        identityCard.userId,
+        project.userId,
         reportId,
         emailAddress,
         customSubject,
@@ -371,18 +373,20 @@ export class ReportService implements OnModuleInit {
   }
 
   // Integration methods
-  async getCompanyIdentityCard(companyId: string) {
-    return this.integrationService.getCompanyIdentityCard(companyId);
+  async getProject(projectId: string) {
+    return this.integrationService.getCompanyProject(projectId);
   }
+
 
   async getConfig() {
     return this.integrationService.getConfig();
   }
 
-  @OnEvent('company.deleted')
-  async handleCompanyDeleted(event: { companyId: string }) {
-    const { companyId } = event;
-    await this.weeklyReportRepository.deleteByCompanyId(companyId);
-    this.logger.log(`Cleaned up weekly reports for deleted company ${companyId}`);
+  @OnEvent('project.deleted')
+  async handleProjectDeleted(event: { projectId: string }) {
+    const { projectId } = event;
+    await this.weeklyReportRepository.deleteByProjectId(projectId);
+    this.logger.log(`Cleaned up weekly reports for deleted project ${projectId}`);
   }
+
 }

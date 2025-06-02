@@ -40,20 +40,23 @@ export class User {
 
   @Prop({
     type: {
-      maxBrands: { type: Number, default: 1 },
+      maxProjects: { type: Number, default: 1 },
       maxAIModels: { type: Number, default: 3 },
       maxSpontaneousPrompts: { type: Number, default: 12 },
+      maxUrls: { type: Number, default: 1 },
     },
     default: {
-      maxBrands: 1,
+      maxProjects: 1,
       maxAIModels: 3,
       maxSpontaneousPrompts: 12,
+      maxUrls: 1,
     },
   })
   planSettings: {
-    maxBrands: number;
+    maxProjects: number;
     maxAIModels: number;
     maxSpontaneousPrompts: number;
+    maxUrls: number;
   };
 
   @Prop({

@@ -8,12 +8,12 @@ export class ReportEmailDto {
   reportId: string;
 
   @ApiProperty({
-    description: 'The ID of the company the report belongs to',
+    description: 'The ID of the project the report belongs to',
     example: '60d21b4667d0d8992e610c80',
   })
   @IsString()
   @IsNotEmpty()
-  companyId: string;
+  projectId: string;
 
   @ApiProperty({
     description: 'The email address to send the report to',
@@ -34,7 +34,7 @@ export class ReportEmailDto {
 }
 
 export class CompanyReportsResponseDto {
-  @ApiProperty({ description: 'Array of reports for the company' })
+  @ApiProperty({ description: 'Array of reports for the project' })
   reports: {
     id: string;
     generatedAt: Date;

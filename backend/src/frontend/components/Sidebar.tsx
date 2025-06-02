@@ -23,11 +23,11 @@ import logo from '../assets/logo-small.png';
 
 const DRAWER_WIDTH = 280;
 
-// Simplified navigation configuration with only companies and users
+// Simplified navigation configuration with only projects and users
 const navConfig = [
   {
-    title: 'Companies',
-    path: '/companies',
+    title: 'Projects',
+    path: '/projects',
     icon: <AppIcon />,
   },
 ];

@@ -40,7 +40,7 @@ export class UserProfileController {
   async getProfile(@Req() request: any): Promise<UserResponseDto> {
     try {
       this.logger.log(`Token-based user profile request`);
-      
+
       // Validate user authentication
       if (!request.userId) {
         if (request.token) {
@@ -57,20 +57,20 @@ export class UserProfileController {
 
       this.logger.log(`Fetching profile for user: ${request.userId}`);
       const user = await this.userService.findOne(request.userId);
-      
+
       if (!user) {
         throw new BadRequestException('User not found');
       }
 
-      // Get company IDs separately to avoid circular reference
-      const companyIds = await this.userService.getUserCompanyIds(request.userId);
-      const userWithCompanyIds = {
+      // Get project IDs separately to avoid circular reference
+      const projectIds = await this.userService.getUserProjectIds(request.userId);
+      const userWithProjectIds = {
         ...user,
-        companyIds,
+        projectIds,
       };
-      
+
       this.logger.log(`Profile retrieved successfully for user: ${request.userId}`);
-      return userWithCompanyIds;
+      return userWithProjectIds;
     } catch (error) {
       if (error instanceof BadRequestException || error instanceof UnauthorizedException) {
         throw error;
@@ -87,10 +87,10 @@ export class UserProfileController {
     schema: {
       type: 'object',
       properties: {
-        phoneNumber: { 
-          type: 'string', 
+        phoneNumber: {
+          type: 'string',
           example: '+1234567890',
-          pattern: '^\\+?[1-9]\\d{1,14}$'
+          pattern: '^\\+?[1-9]\\d{1,14}$',
         },
       },
       required: ['phoneNumber'],
@@ -109,7 +109,7 @@ export class UserProfileController {
   ): Promise<UserResponseDto> {
     try {
       this.logger.log(`Token-based phone number update request`);
-      
+
       // Validate user authentication
       if (!request.userId) {
         if (request.token) {
@@ -126,7 +126,7 @@ export class UserProfileController {
 
       this.logger.log(`Updating phone number for user: ${request.userId}`);
       const updatedUser = await this.userService.updatePhone(request.userId, updatePhoneDto);
-      
+
       this.logger.log(`Phone number updated successfully for user: ${request.userId}`);
       return updatedUser;
     } catch (error) {
@@ -145,10 +145,10 @@ export class UserProfileController {
     schema: {
       type: 'object',
       properties: {
-        email: { 
-          type: 'string', 
+        email: {
+          type: 'string',
           example: 'newemail@example.com',
-          format: 'email'
+          format: 'email',
         },
       },
       required: ['email'],
@@ -167,7 +167,7 @@ export class UserProfileController {
   ): Promise<UserResponseDto> {
     try {
       this.logger.log(`Token-based email update request`);
-      
+
       // Validate user authentication
       if (!request.userId) {
         if (request.token) {
@@ -184,7 +184,7 @@ export class UserProfileController {
 
       this.logger.log(`Updating email for user: ${request.userId}`);
       const updatedUser = await this.userService.updateEmail(request.userId, updateEmailDto);
-      
+
       this.logger.log(`Email updated successfully for user: ${request.userId}`);
       return updatedUser;
     } catch (error) {
@@ -216,19 +216,19 @@ export class UserProfileController {
               id: { type: 'string', example: 'openai-gpt4o' },
               name: { type: 'string', example: 'GPT-4o' },
               provider: { type: 'string', example: 'OpenAI' },
-              enabled: { type: 'boolean', example: true }
-            }
-          }
+              enabled: { type: 'boolean', example: true },
+            },
+          },
         },
-        maxSelectable: { type: 'number', example: 3 }
-      }
-    }
+        maxSelectable: { type: 'number', example: 3 },
+      },
+    },
   })
   @ApiResponse({ status: 401, description: 'Unauthorized - Token required' })
   async getAvailableModels(@Req() request: any) {
     try {
       this.logger.log(`Token-based available models request`);
-      
+
       // Validate user authentication
       if (!request.userId) {
         if (request.token) {
@@ -247,10 +247,10 @@ export class UserProfileController {
       const configPath = path.resolve(process.cwd(), 'config.json');
       const configContent = fs.readFileSync(configPath, 'utf8');
       const config = JSON.parse(configContent);
-      
+
       return {
         models: config.llmModels.filter((model: any) => model.enabled),
-        maxSelectable: user.planSettings.maxAIModels
+        maxSelectable: user.planSettings.maxAIModels,
       };
     } catch (error) {
       if (error instanceof BadRequestException || error instanceof UnauthorizedException) {
@@ -271,8 +271,8 @@ export class UserProfileController {
         selectedModels: {
           type: 'array',
           items: { type: 'string' },
-          example: ['openai-gpt4o', 'anthropic-claude3.7sonnet']
-        }
+          example: ['openai-gpt4o', 'anthropic-claude3.7sonnet'],
+        },
       },
       required: ['selectedModels'],
     },
@@ -293,7 +293,7 @@ export class UserProfileController {
   ): Promise<UserResponseDto> {
     try {
       this.logger.log(`Token-based selected models update request`);
-      
+
       // Validate user authentication
       if (!request.userId) {
         if (request.token) {
@@ -309,11 +309,11 @@ export class UserProfileController {
       }
 
       const user = await this.userService.findOne(request.userId);
-      
+
       // Validate that the number of selected models doesn't exceed the plan limit
       if (body.selectedModels.length > user.planSettings.maxAIModels) {
         throw new BadRequestException(
-          `Cannot select more than ${user.planSettings.maxAIModels} models for your current plan`
+          `Cannot select more than ${user.planSettings.maxAIModels} models for your current plan`,
         );
       }
 
@@ -326,18 +326,18 @@ export class UserProfileController {
         .map((model: any) => model.id);
 
       const invalidModels = body.selectedModels.filter(
-        modelId => !availableModelIds.includes(modelId)
+        (modelId) => !availableModelIds.includes(modelId),
       );
 
       if (invalidModels.length > 0) {
-        throw new BadRequestException(
-          `Invalid model IDs: ${invalidModels.join(', ')}`
-        );
+        throw new BadRequestException(`Invalid model IDs: ${invalidModels.join(', ')}`);
       }
 
       this.logger.log(`Updating selected models for user: ${request.userId}`);
-      const updatedUser = await this.userService.update(request.userId, { selectedModels: body.selectedModels });
-      
+      const updatedUser = await this.userService.update(request.userId, {
+        selectedModels: body.selectedModels,
+      });
+
       this.logger.log(`Selected models updated successfully for user: ${request.userId}`);
       return updatedUser;
     } catch (error) {

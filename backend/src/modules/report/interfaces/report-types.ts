@@ -20,8 +20,8 @@ import {
  * Raw input from batch processing results
  */
 export interface BatchReportInput {
-  /** Company identifier */
-  companyId: string;
+  /** Project identifier */
+  projectId: string;
 
   /** Start of the week (Monday 00:00:00 UTC) */
   date: Date;
@@ -134,8 +134,8 @@ export interface WeeklyBrandReportEntity {
   /** Unique identifier for the report */
   id: string;
 
-  /** Company ID this report is associated with */
-  companyId: string;
+  /** Project ID this report is associated with */
+  projectId: string;
 
   /** When the report was generated */
   generatedAt: Date;
@@ -249,8 +249,8 @@ export interface WeeklyBrandReportDocument {
   /** Unique identifier for the report */
   id: string;
 
-  /** Company ID this report is associated with */
-  companyId: string;
+  /** Project ID this report is associated with */
+  projectId: string;
 
   /** When the report was generated */
   generatedAt: Date;
@@ -342,7 +342,7 @@ export interface WeeklyBrandReportDocument {
  * Legacy weekly report response (for backward compatibility)
  */
 export interface WeeklyReportResponseDto {
-  companyId: string;
+  projectId: string;
   date: Date;
   spontaneous: SpontaneousResults;
   sentiment: SentimentResults;
@@ -357,7 +357,7 @@ export interface WeeklyReportResponseDto {
  */
 export interface ReportContentResponseDto {
   id: string;
-  companyId: string;
+  projectId: string;
   generatedAt: Date;
   batchExecutionId?: string;
   brand: string;

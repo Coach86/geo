@@ -56,7 +56,7 @@ export interface BrandBattleData {
 export interface ReportResponse {
   // Basic report information
   id: string;
-  companyId: string;
+  projectId: string;
   generatedAt: string;
   batchExecutionId?: string;
 
@@ -81,12 +81,12 @@ export interface ReportResponse {
     };
     tone: {
       value: string;
-      status: 'green' | 'yellow' | 'red' | string;
+      status: "green" | "yellow" | "red" | string;
       description: string;
     };
     accord: {
       value: string;
-      status: 'green' | 'yellow' | 'red' | string;
+      status: "green" | "yellow" | "red" | string;
       description: string;
     };
     arena: {
@@ -112,7 +112,7 @@ export interface ReportResponse {
     attributes: AttributeItem[];
     score: {
       value: string;
-      status: 'green' | 'yellow' | 'red' | string;
+      status: "green" | "yellow" | "red" | string;
     };
   };
 
@@ -144,7 +144,7 @@ export interface ReportResponse {
 // Processed report interfaces for different pages
 export interface BaseProcessedReport {
   id: string;
-  companyId: string;
+  projectId: string;
   reportDate: string;
   createdAt: string;
   brandName: string;
@@ -173,12 +173,15 @@ export interface VisibilityProcessedReport extends BaseProcessedReport {
 export interface SentimentProcessedReport extends BaseProcessedReport {
   sentimentData: {
     overall: number;
-    byModel: Record<string, {
-      score: number;
-      positive: number;
-      negative: number;
-      neutral: number;
-    }>;
+    byModel: Record<
+      string,
+      {
+        score: number;
+        positive: number;
+        negative: number;
+        neutral: number;
+      }
+    >;
     questions: Question[];
   };
 }

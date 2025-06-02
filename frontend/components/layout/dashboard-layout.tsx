@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/providers/auth-provider";
 import SaasSidebar from "./saas-sidebar";
-import { getUserIdentityCards, IdentityCardResponse } from "@/lib/auth-api";
+import { getUserProjects, ProjectResponse } from "@/lib/auth-api";
 import { Loader2 } from "lucide-react";
 
 interface DashboardLayoutProps {
@@ -19,11 +19,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     token,
     checkAuth,
   } = useAuth();
-  const [identityCards, setIdentityCards] = useState<IdentityCardResponse[]>(
-    []
-  );
-  const [selectedCompany, setSelectedCompany] =
-    useState<IdentityCardResponse | null>(null);
+  const [identityCards, setIdentityCards] = useState<ProjectResponse[]>([]);
+  const [selectedProject, setSelectedProject] =
+    useState<ProjectResponse | null>(null);
   const [isLoadingCards, setIsLoadingCards] = useState(false);
 
   useEffect(() => {
@@ -40,7 +38,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         if (token) {
           setIsLoadingCards(true);
           try {
-            const cards = await getUserIdentityCards(token);
+            const cards = await getUserProjects(token);
             if (
               !cards ||
               (Array.isArray(cards) && (cards as unknown[]).length === 0)
@@ -50,17 +48,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             }
             setIdentityCards(cards);
 
-            // Check if there's a previously selected company in localStorage
-            const savedCompanyId = localStorage.getItem("selectedCompanyId");
-            const savedCompany = cards.find(
-              (card) => card.id === savedCompanyId
+            // Check if there's a previously selected project in localStorage
+            const savedProjectId = localStorage.getItem("selectedProjectId");
+            const savedProject = cards.find(
+              (card) => card.id === savedProjectId
             );
 
-            if (savedCompany) {
-              setSelectedCompany(savedCompany);
-            } else if (cards.length > 0 && !selectedCompany) {
-              setSelectedCompany(cards[0]);
-              localStorage.setItem("selectedCompanyId", cards[0].id);
+            if (savedProject) {
+              setSelectedProject(savedProject);
+            } else if (cards.length > 0 && !selectedProject) {
+              setSelectedProject(cards[0]);
+              localStorage.setItem("selectedProjectId", cards[0].id);
             }
           } catch (error) {
             console.error("Failed to load identity cards:", error);
@@ -74,12 +72,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     verifyAndLoadData();
   }, [authLoading, isAuthenticated, token, router, checkAuth]);
 
-  const handleCompanySelect = (company: IdentityCardResponse) => {
-    setSelectedCompany(company);
-    localStorage.setItem("selectedCompanyId", company.id);
-
-    // Dispatch custom event for same-tab updates
-    window.dispatchEvent(new Event("companySelectionChanged"));
+  const handleProjectSelect = (project: ProjectResponse) => {
+    setSelectedProject(project);
+    localStorage.setItem("selectedProjectId", project.id);
+    window.dispatchEvent(new Event("projectSelectionChanged"));
   };
 
   if (authLoading || isLoadingCards) {
@@ -98,8 +94,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     <div className="flex h-screen bg-gray-50">
       <SaasSidebar
         identityCards={identityCards}
-        selectedCompany={selectedCompany}
-        onCompanySelect={handleCompanySelect}
+        selectedProject={selectedProject}
+        onProjectSelect={handleProjectSelect}
       />
       <main className="flex-1 overflow-y-auto ml-60">
         <div className="p-8">{children}</div>

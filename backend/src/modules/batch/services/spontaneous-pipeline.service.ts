@@ -5,7 +5,7 @@ import { LlmService } from '../../llm/services/llm.service';
 import { RawResponseService } from './raw-response.service';
 import {
   BrandVisibilitySummary,
-  CompanyBatchContext,
+  ProjectBatchContext,
   ModelBreakdown,
   SpontaneousPipelineResult,
   SpontaneousResults,
@@ -44,8 +44,8 @@ export class SpontaneousPipelineService extends BasePipelineService {
    * @param context Company batch context
    * @returns Pipeline results
    */
-  async run(context: CompanyBatchContext): Promise<SpontaneousResults> {
-    this.logger.log(`Running spontaneous pipeline for ${context.companyId} (${context.brandName})`);
+  async run(context: ProjectBatchContext): Promise<SpontaneousResults> {
+    this.logger.log(`Running spontaneous pipeline for ${context.projectId} (${context.brandName})`);
 
     try {
       // Get the prompts for this pipeline
@@ -140,7 +140,7 @@ export class SpontaneousPipelineService extends BasePipelineService {
       const brandVisibility = this.generateBrandVisibilitySummary(results);
 
       this.logger.log(
-        `Completed spontaneous pipeline for ${context.companyId} with ${results.length} results`,
+        `Completed spontaneous pipeline for ${context.projectId} with ${results.length} results`,
       );
 
       if (webSearchSummary.usedWebSearch) {
@@ -161,7 +161,7 @@ export class SpontaneousPipelineService extends BasePipelineService {
       };
     } catch (error) {
       this.logger.error(
-        `Failed to run spontaneous pipeline for ${context.companyId}: ${error.message}`,
+        `Failed to run spontaneous pipeline for ${context.projectId}: ${error.message}`,
         error.stack,
       );
       throw error;

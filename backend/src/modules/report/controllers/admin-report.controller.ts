@@ -19,7 +19,7 @@ import { WeeklyReportResponseDto } from '../dto/weekly-report-response.dto';
 import { ConfigService } from '@nestjs/config';
 import { TokenService } from '../../auth/services/token.service';
 import { UserService } from '../../user/services/user.service';
-import { IdentityCardService } from '../../identity-card/services/identity-card.service';
+import { ProjectService } from '../../project/services/project.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import {
   ValidateTokenResponseDto,
@@ -41,21 +41,22 @@ export class AdminReportController {
     private readonly reportService: ReportService,
     @Inject(UserService) private readonly userService: UserService,
     @Inject(TokenService) private readonly tokenService: TokenService,
-    @Inject(IdentityCardService) private readonly identityCardService: IdentityCardService,
+    @Inject(ProjectService) private readonly projectService: ProjectService,
     private readonly configService: ConfigService,
   ) {}
 
-  @Get(':companyId/all')
-  @ApiOperation({ summary: 'Get all reports for a company' })
-  @ApiParam({ name: 'companyId', description: 'The ID of the company' })
+  @Get(':projectId/all')
+  @ApiOperation({ summary: 'Get all reports for a project' })
+  @ApiParam({ name: 'projectId', description: 'The ID of the project' })
   @ApiResponse({
     status: 200,
-    description: 'All reports for the company have been successfully retrieved.',
+    description: 'All reports for the project have been successfully retrieved.',
     type: CompanyReportsResponseDto,
   })
-  async getAllCompanyReports(@Param('companyId') companyId: string) {
-    return this.reportService.getAllCompanyReports(companyId);
+  async getAllProjectReports(@Param('projectId') projectId: string) {
+    return this.reportService.getAllProjectReports(projectId);
   }
+
 
   @Post('send-email')
   @ApiOperation({ summary: 'Send a report access email to a specific address' })
@@ -76,14 +77,14 @@ export class AdminReportController {
   async sendReportEmail(@Body() emailDto: ReportEmailDto) {
     try {
       // Validate DTO fields
-      if (!emailDto.reportId || !emailDto.companyId || !emailDto.email) {
-        throw new BadRequestException('Report ID, company ID, and email are required');
+      if (!emailDto.reportId || !emailDto.projectId || !emailDto.email) {
+        throw new BadRequestException('Report ID, project ID, and email are required');
       }
 
       // Send the email
       const result = await this.reportService.sendReportEmailToAddress(
         emailDto.reportId,
-        emailDto.companyId,
+        emailDto.projectId,
         emailDto.email,
         emailDto.subject,
       );
@@ -123,7 +124,7 @@ export class AdminReportController {
 
       return {
         id: report.id,
-        companyId: report.companyId,
+        projectId: report.projectId,
         generatedAt: report.generatedAt,
         date: report.date,
         message: `Report generated successfully from batch execution ${batchExecutionId}`,
@@ -159,17 +160,17 @@ export class AdminReportController {
         throw new NotFoundException(`Report not found with ID ${reportId}`);
       }
 
-      const companyId = report.companyId;
-      this.logger.log(`Report ${reportId} belongs to company ${companyId}`);
+      const projectId = report.projectId;
+      this.logger.log(`Report ${reportId} belongs to project ${projectId}`);
 
-      // 2. Find the identity card to get the owner's user ID
-      const identityCard = await this.identityCardService.findById(companyId);
-      if (!identityCard || !identityCard.userId) {
-        throw new BadRequestException(`No user associated with company ${companyId}`);
+      // 2. Find the project to get the owner's user ID
+      const project = await this.projectService.findById(projectId);
+      if (!project || !project.userId) {
+        throw new BadRequestException(`No user associated with project ${projectId}`);
       }
 
-      const userId = identityCard.userId;
-      this.logger.log(`Company ${companyId} is owned by user ${userId}`);
+      const userId = project.userId;
+      this.logger.log(`Project ${projectId} is owned by user ${userId}`);
 
       // 3. Generate token for this user
       const token = await this.tokenService.generateAccessToken(userId);

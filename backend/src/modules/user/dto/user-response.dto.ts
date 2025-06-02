@@ -49,12 +49,13 @@ export class UserResponseDto {
 
   @ApiProperty({
     description: 'Plan settings including limits',
-    example: { maxBrands: 1, maxAIModels: 3, maxSpontaneousPrompts: 12 },
+    example: { maxProjects: 1, maxAIModels: 3, maxSpontaneousPrompts: 12, maxUrls: 1 },
   })
   planSettings: {
-    maxBrands: number;
+    maxProjects: number;
     maxAIModels: number;
     maxSpontaneousPrompts?: number;
+    maxUrls: number;
   };
 
   @ApiProperty({
@@ -70,11 +71,11 @@ export class UserResponseDto {
   updatedAt: string;
 
   @ApiProperty({
-    description: 'Array of company IDs associated with this user',
+    description: 'Array of project IDs associated with this user',
     example: ['123e4567-e89b-12d3-a456-426614174000'],
     type: [String],
   })
-  companyIds?: string[];
+  projectIds?: string[];
 
   @ApiProperty({
     description: 'Array of selected AI model IDs',

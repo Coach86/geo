@@ -4,11 +4,11 @@ import { Type } from 'class-transformer';
 
 class PlanSettingsDto {
   @ApiProperty({
-    description: 'Maximum number of brands allowed',
+    description: 'Maximum number of projects allowed',
     example: 1,
   })
   @IsNumber()
-  maxBrands: number;
+  maxProjects: number;
 
   @ApiProperty({
     description: 'Maximum number of AI models allowed',
@@ -25,6 +25,13 @@ class PlanSettingsDto {
   @IsNumber()
   @IsOptional()
   maxSpontaneousPrompts?: number;
+
+  @ApiProperty({
+    description: 'Maximum number of unique URLs allowed',
+    example: 1,
+  })
+  @IsNumber()
+  maxUrls: number;
 }
 
 export class UpdateUserDto {

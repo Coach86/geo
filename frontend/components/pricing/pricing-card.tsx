@@ -68,7 +68,7 @@ export function PricingCard({
           : "border-gray-200 bg-white"
       } shadow-md hover:shadow-lg transition-all duration-300 ${
         isRecommended ? "transform hover:-translate-y-1" : ""
-      }`}
+      } h-full`}
     >
       {/* Badges */}
       {isMostPopular && !isRecommended && (
@@ -87,8 +87,8 @@ export function PricingCard({
       )}
 
       <div className="p-6 flex flex-col h-full">
-        {/* Section 1: Plan Header - Fixed height */}
-        <div className="mb-4 h-[120px] flex flex-col">
+        {/* Section 1: Plan Header - Dynamic height with min-height */}
+        <div className="mb-4 min-h-[100px] flex flex-col">
           <div className="flex items-center mb-1">
             <h3 className="text-xl font-bold text-mono-900">{name}</h3>
           </div>
@@ -102,8 +102,8 @@ export function PricingCard({
           <p className="text-sm font-medium text-mono-700 mt-2">{subtitle}</p>
         </div>
 
-        {/* Section 2: Price - Fixed height */}
-        <div className="pb-4 border-b border-mono-100 mb-4 h-[80px] flex items-center">
+        {/* Section 2: Price - Dynamic height */}
+        <div className="pb-4 border-b border-mono-100 mb-4 min-h-[60px]">
           <div>
             <div className="flex items-baseline">
               <span
@@ -133,8 +133,8 @@ export function PricingCard({
           </div>
         </div>
 
-        {/* Section 3: Features - Fixed height */}
-        <div className="mb-4 h-[240px]">
+        {/* Section 3: Features - Dynamic height, grows with content */}
+        <div className="mb-4 flex-grow">
           <h4 className="text-sm font-medium mb-4">
             {showPlusIcon && previousPlanName && (
               <span
@@ -169,8 +169,8 @@ export function PricingCard({
           </ul>
         </div>
 
-        {/* Section 4: What's included - Fixed height */}
-        <div className="mb-4 h-[120px] py-4">
+        {/* Section 4: What's included - Dynamic height */}
+        <div className="mb-4 py-4">
           <h4 className="text-sm font-medium text-mono-700 mb-3">
             What's included
           </h4>
@@ -186,8 +186,8 @@ export function PricingCard({
           </ul>
         </div>
 
-        {/* Section 5: CTA Button - Fixed height */}
-        <div className="mt-auto pt-8 h-[100px]">
+        {/* Section 5: CTA Button - Dynamic height */}
+        <div className="mt-auto pt-8">
           <Button
             className={`w-full ${
               isRecommended

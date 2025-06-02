@@ -20,9 +20,9 @@ const api = axios.create({
 });
 
 // Batch Pipeline API with polling
-export const runSpontaneousPipeline = async (companyId: string): Promise<SpontaneousResults> => {
+export const runSpontaneousPipeline = async (projectId: string): Promise<SpontaneousResults> => {
   // Start the pipeline and get batch execution ID
-  const response = await authApi.post(`/batch/pipeline/spontaneous/${companyId}`);
+  const response = await authApi.post(`/batch/pipeline/spontaneous/${projectId}`);
 
   if (!response.data.success) {
     throw new Error(response.data.error || 'Failed to start spontaneous pipeline');
@@ -45,9 +45,9 @@ export const runSpontaneousPipeline = async (companyId: string): Promise<Spontan
   return JSON.parse(spontaneousResult.result);
 };
 
-export const runSentimentPipeline = async (companyId: string): Promise<SentimentResults> => {
+export const runSentimentPipeline = async (projectId: string): Promise<SentimentResults> => {
   // Start the pipeline and get batch execution ID
-  const response = await authApi.post(`/batch/pipeline/sentiment/${companyId}`);
+  const response = await authApi.post(`/batch/pipeline/sentiment/${projectId}`);
 
   if (!response.data.success) {
     throw new Error(response.data.error || 'Failed to start sentiment pipeline');
@@ -70,9 +70,9 @@ export const runSentimentPipeline = async (companyId: string): Promise<Sentiment
   return JSON.parse(sentimentResult.result);
 };
 
-export const runComparisonPipeline = async (companyId: string): Promise<ComparisonResults> => {
+export const runComparisonPipeline = async (projectId: string): Promise<ComparisonResults> => {
   // Start the pipeline and get batch execution ID
-  const response = await authApi.post(`/batch/pipeline/comparison/${companyId}`);
+  const response = await authApi.post(`/batch/pipeline/comparison/${projectId}`);
 
   if (!response.data.success) {
     throw new Error(response.data.error || 'Failed to start comparison pipeline');
@@ -95,9 +95,9 @@ export const runComparisonPipeline = async (companyId: string): Promise<Comparis
   return JSON.parse(comparisonResult.result);
 };
 
-export const runAccuracyPipeline = async (companyId: string): Promise<AccuracyResults> => {
+export const runAccuracyPipeline = async (projectId: string): Promise<AccuracyResults> => {
   // Start the pipeline and get batch execution ID
-  const response = await authApi.post(`/batch/pipeline/accuracy/${companyId}`);
+  const response = await authApi.post(`/batch/pipeline/accuracy/${projectId}`);
 
   if (!response.data.success) {
     throw new Error(response.data.error || 'Failed to start accuracy pipeline');
@@ -122,7 +122,7 @@ export const runAccuracyPipeline = async (companyId: string): Promise<AccuracyRe
 
 // Full Batch Processing API with polling mechanism
 export const runFullBatchAnalysis = async (
-  companyId: string,
+  projectId: string,
 ): Promise<{
   batchExecutionId: string;
   alreadyRunning?: boolean;
@@ -130,7 +130,7 @@ export const runFullBatchAnalysis = async (
   // Start the batch analysis process - check if a batch is already in progress first
   try {
     // This just starts the batch and gets the ID - doesn't wait for completion
-    const response = await authApi.post(`/batch/process/${companyId}`);
+    const response = await authApi.post(`/batch/process/${projectId}`);
 
     if (!response.data.success) {
       throw new Error(response.data.error || 'Failed to run batch analysis');
@@ -190,8 +190,8 @@ export const getBatchExecutionRawResponses = async (
   return response.data;
 };
 
-export const getBatchExecutionsByCompany = async (companyId: string): Promise<BatchExecution[]> => {
+export const getBatchExecutionsByProject = async (projectId: string): Promise<BatchExecution[]> => {
   // authApi already includes the /api/admin prefix
-  const response = await authApi.get(`/batch-executions?companyId=${companyId}`);
+  const response = await authApi.get(`/batch-executions?projectId=${projectId}`);
   return response.data;
 };

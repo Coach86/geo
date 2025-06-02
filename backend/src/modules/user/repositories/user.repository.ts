@@ -4,9 +4,9 @@ import { Model } from 'mongoose';
 import { User, UserDocument } from '../schemas/user.schema';
 import { User as UserEntity } from '../entities/user.entity';
 import {
-  IdentityCard,
-  IdentityCardDocument,
-} from '../../identity-card/schemas/identity-card.schema';
+  Project,
+  ProjectDocument,
+} from '../../project/schemas/project-base.schema';
 
 @Injectable()
 export class UserRepository {
@@ -14,7 +14,7 @@ export class UserRepository {
 
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
-    @InjectModel(IdentityCard.name) private identityCardModel: Model<IdentityCardDocument>,
+    @InjectModel(Project.name) private projectModel: Model<ProjectDocument>,
   ) {}
 
   /**
@@ -83,10 +83,10 @@ export class UserRepository {
   }
 
   /**
-   * Get company identity cards for a user
+   * Get projects for a user
    */
-  async findCompaniesForUser(userId: string): Promise<IdentityCardDocument[]> {
-    return await this.identityCardModel.find({ userId }).sort({ updatedAt: -1 }).exec();
+  async findProjectsForUser(userId: string): Promise<ProjectDocument[]> {
+    return await this.projectModel.find({ userId }).sort({ updatedAt: -1 }).exec();
   }
 
   /**
@@ -101,7 +101,7 @@ export class UserRepository {
       stripeCustomerId: document.stripeCustomerId,
       stripePlanId: document.stripePlanId,
       planSettings: document.planSettings || {
-        maxBrands: 1,
+        maxProjects: 1,
         maxAIModels: 3,
       },
       selectedModels: document.selectedModels || [],
@@ -111,26 +111,26 @@ export class UserRepository {
   }
 
   /**
-   * Map database document to entity with company relationship
+   * Map database document to entity with project relationship
    */
-  async mapToEntityWithCompanies(document: UserDocument): Promise<UserEntity> {
+  async mapToEntityWithProjects(document: UserDocument): Promise<UserEntity> {
     const entity = this.mapToEntity(document);
-    const companies = await this.findCompaniesForUser(document.id);
+    const projects = await this.findProjectsForUser(document.id);
 
-    if (companies && companies.length > 0) {
-      entity.companies = companies.map((company) => ({
-        companyId: company.id,
-        brandName: company.brandName,
-        website: company.website,
-        industry: company.industry,
-        market: company.market,
-        shortDescription: company.shortDescription,
-        fullDescription: company.fullDescription,
-        keyBrandAttributes: company.keyBrandAttributes,
-        competitors: company.competitors,
-        updatedAt: company.updatedAt instanceof Date ? company.updatedAt : new Date(),
-        userId: company.userId,
-        language: company.language,
+    if (projects && projects.length > 0) {
+      entity.projects = projects.map((project) => ({
+        projectId: project.id,
+        brandName: project.brandName,
+        website: project.website,
+        industry: project.industry,
+        market: project.market,
+        shortDescription: project.shortDescription,
+        fullDescription: project.fullDescription,
+        keyBrandAttributes: project.keyBrandAttributes,
+        competitors: project.competitors,
+        updatedAt: project.updatedAt instanceof Date ? project.updatedAt : new Date(),
+        userId: project.userId,
+        language: project.language,
       }));
     }
 

@@ -10,8 +10,8 @@ import { Server, Socket } from 'socket.io';
 
 export interface BatchEvent {
   batchExecutionId: string;
-  companyId: string;
-  companyName: string;
+  projectId: string;
+  projectName: string;
   eventType:
     | 'batch_started'
     | 'pipeline_started'
@@ -66,17 +66,17 @@ export class BatchEventsGateway implements OnGatewayInit, OnGatewayConnection, O
    */
   emitBatchStarted(
     batchExecutionId: string,
-    companyId: string,
-    companyName: string,
+    projectId: string,
+    projectName: string,
     pipelineType: string,
   ) {
     const event: BatchEvent = {
       batchExecutionId,
-      companyId,
-      companyName,
+      projectId,
+      projectName,
       eventType: 'batch_started',
       pipelineType: pipelineType as any,
-      message: `Started ${pipelineType} analysis for ${companyName}`,
+      message: `Started ${pipelineType} analysis for ${projectName}`,
       timestamp: new Date(),
       progress: 0,
     };
@@ -88,17 +88,17 @@ export class BatchEventsGateway implements OnGatewayInit, OnGatewayConnection, O
    */
   emitPipelineStarted(
     batchExecutionId: string,
-    companyId: string,
-    companyName: string,
+    projectId: string,
+    projectName: string,
     pipelineType: string,
   ) {
     const event: BatchEvent = {
       batchExecutionId,
-      companyId,
-      companyName,
+      projectId,
+      projectName,
       eventType: 'pipeline_started',
       pipelineType: pipelineType as any,
-      message: `Processing ${pipelineType} pipeline for ${companyName}`,
+      message: `Processing ${pipelineType} pipeline for ${projectName}`,
       timestamp: new Date(),
       progress: 25,
     };
@@ -110,17 +110,17 @@ export class BatchEventsGateway implements OnGatewayInit, OnGatewayConnection, O
    */
   emitPipelineCompleted(
     batchExecutionId: string,
-    companyId: string,
-    companyName: string,
+    projectId: string,
+    projectName: string,
     pipelineType: string,
   ) {
     const event: BatchEvent = {
       batchExecutionId,
-      companyId,
-      companyName,
+      projectId,
+      projectName,
       eventType: 'pipeline_completed',
       pipelineType: pipelineType as any,
-      message: `Completed ${pipelineType} pipeline for ${companyName}`,
+      message: `Completed ${pipelineType} pipeline for ${projectName}`,
       timestamp: new Date(),
       progress: 75,
     };
@@ -132,18 +132,18 @@ export class BatchEventsGateway implements OnGatewayInit, OnGatewayConnection, O
    */
   emitPipelineFailed(
     batchExecutionId: string,
-    companyId: string,
-    companyName: string,
+    projectId: string,
+    projectName: string,
     pipelineType: string,
     error: string,
   ) {
     const event: BatchEvent = {
       batchExecutionId,
-      companyId,
-      companyName,
+      projectId,
+      projectName,
       eventType: 'pipeline_failed',
       pipelineType: pipelineType as any,
-      message: `Failed ${pipelineType} pipeline for ${companyName}`,
+      message: `Failed ${pipelineType} pipeline for ${projectName}`,
       timestamp: new Date(),
       error,
     };
@@ -155,17 +155,17 @@ export class BatchEventsGateway implements OnGatewayInit, OnGatewayConnection, O
    */
   emitBatchCompleted(
     batchExecutionId: string,
-    companyId: string,
-    companyName: string,
+    projectId: string,
+    projectName: string,
     pipelineType: string,
   ) {
     const event: BatchEvent = {
       batchExecutionId,
-      companyId,
-      companyName,
+      projectId,
+      projectName,
       eventType: 'batch_completed',
       pipelineType: pipelineType as any,
-      message: `Successfully completed ${pipelineType} analysis for ${companyName}`,
+      message: `Successfully completed ${pipelineType} analysis for ${projectName}`,
       timestamp: new Date(),
       progress: 100,
     };
@@ -177,18 +177,18 @@ export class BatchEventsGateway implements OnGatewayInit, OnGatewayConnection, O
    */
   emitBatchFailed(
     batchExecutionId: string,
-    companyId: string,
-    companyName: string,
+    projectId: string,
+    projectName: string,
     pipelineType: string,
     error: string,
   ) {
     const event: BatchEvent = {
       batchExecutionId,
-      companyId,
-      companyName,
+      projectId,
+      projectName,
       eventType: 'batch_failed',
       pipelineType: pipelineType as any,
-      message: `Failed ${pipelineType} analysis for ${companyName}`,
+      message: `Failed ${pipelineType} analysis for ${projectName}`,
       timestamp: new Date(),
       error,
     };

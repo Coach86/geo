@@ -201,7 +201,7 @@ const BatchNotificationDot: React.FC = () => {
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                     {getStatusIcon(batch.status)}
                     <Typography variant="subtitle2" sx={{ ml: 1, flexGrow: 1 }}>
-                      {batch.companyName} - {batch.pipelineType}
+                      {batch.projectName} - {batch.pipelineType}
                     </Typography>
                     <Chip
                       label={batch.status}

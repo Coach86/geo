@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import {
-  getCompanyReports,
+  getProjectReports,
   getReportSpontaneous,
   SpontaneousData,
 } from "@/lib/auth-api";
@@ -24,8 +24,12 @@ import { VisibilityAnalysis } from "@/components/visibility/VisibilityAnalysis";
 import { TopMentions } from "@/components/visibility/TopMentions";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { ProjectHeader } from "@/components/project-profile/ProjectHeader";
+import { ProjectMetadata } from "@/components/project-profile/ProjectMetadata";
 
 interface ProcessedReport extends ReportResponse {
+  createdAt: string;
+  reportDate: string;
   mentionRate: number;
   modeMetrics: {
     model: string;
@@ -48,7 +52,7 @@ interface ProcessedReport extends ReportResponse {
 
 export default function VisibilityPage() {
   const { token } = useAuth();
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     null
   );
   const [reports, setReports] = useState<ProcessedReport[]>([]);
@@ -62,83 +66,70 @@ export default function VisibilityPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedCompetitors, setSelectedCompetitors] = useState<string[]>([]);
 
-  // Get selected company from localStorage and listen for changes
+  // Get selected project from localStorage and listen for changes
   useEffect(() => {
     const fetchReports = async () => {
-      const companyId = localStorage.getItem("selectedCompanyId");
+      const projectId = localStorage.getItem("selectedProjectId");
 
-      if (!companyId || !token) {
-        setSelectedCompanyId(null);
+      if (!projectId || !token) {
+        setSelectedProjectId(null);
         setReports([]);
         setSelectedReport(null);
         setLoading(false);
         return;
       }
 
-      setSelectedCompanyId(companyId);
+      setSelectedProjectId(projectId);
       setLoading(true);
       setError(null);
 
       try {
         // Fetch reports from API
-        const apiReports = await getCompanyReports(companyId, token);
+        const apiReports = await getProjectReports(projectId, token);
 
         // Process API response to match our interface
         const processedReports: ProcessedReport[] = apiReports.map(
-          (report: any) => {
-            // Extract model metrics from pulse.modelVisibility
-            const modeMetrics =
+          (report: any) => ({
+            ...report,
+            projectId: report.projectId,
+            reportDate: report.metadata?.date || report.generatedAt,
+            createdAt: report.generatedAt,
+            mentionRate: parseInt(
+              report.kpi?.pulse?.value || report.pulse?.value || "0"
+            ),
+            modeMetrics:
               report.pulse?.modelVisibility?.map((mv: any) => ({
                 model: mv.model,
                 mentionRate: mv.value || 0,
-              })) || [];
-
-            // Store the complete arena data for the table view
-            const arenaData = report.arena?.competitors || [];
-
-            // Extract brand name
-            const brandName =
-              report.brand || report.metadata?.brand || "Your Brand";
-
-            // For the simplified arenaMetrics (used in the original design),
-            // we'll just store the brand's performance if it exists
-            const arenaMetrics: any[] = [];
-            const brandInArena = arenaData.find(
-              (comp: any) => comp.name.toLowerCase() === brandName.toLowerCase()
-            );
-
-            if (brandInArena?.modelsMentionsRate) {
-              brandInArena.modelsMentionsRate.forEach(
-                (mmr: any, index: number) => {
-                  arenaMetrics.push({
-                    model: mmr.model,
-                    mentions: mmr.mentionsRate,
-                    score: mmr.mentionsRate / 10,
-                    rank: index + 1,
-                  });
-                }
+              })) || [],
+            arenaMetrics: (() => {
+              const arenaData = report.arena?.competitors || [];
+              const brandName =
+                report.brand || report.metadata?.brand || "Your Brand";
+              const metrics: any[] = [];
+              const brandInArena = arenaData.find(
+                (comp: any) =>
+                  comp.name.toLowerCase() === brandName.toLowerCase()
               );
-            }
-
-            // We'll fetch spontaneous data separately, so just set empty array for now
-            const topMentions: { mention: string; count: number }[] = [];
-
-            return {
-              id: report.id,
-              companyId: report.companyId,
-              reportDate: report.metadata?.date || report.generatedAt,
-              createdAt: report.generatedAt,
-              mentionRate: parseInt(
-                report.kpi?.pulse?.value || report.pulse?.value || "0"
-              ),
-              modeMetrics,
-              arenaMetrics,
-              arenaData, // Full arena data for table
-              brandName,
-              topMentions,
-              spontaneousData: report.spontaneous,
-            };
-          }
+              if (brandInArena?.modelsMentionsRate) {
+                brandInArena.modelsMentionsRate.forEach(
+                  (mmr: any, index: number) => {
+                    metrics.push({
+                      model: mmr.model,
+                      mentions: mmr.mentionsRate,
+                      score: mmr.mentionsRate / 10,
+                      rank: index + 1,
+                    });
+                  }
+                );
+              }
+              return metrics;
+            })(),
+            arenaData: report.arena?.competitors || [],
+            brandName: report.brand || report.metadata?.brand || "Your Brand",
+            topMentions: [],
+            spontaneousData: report.spontaneous,
+          })
         );
 
         // Sort reports by date (most recent first)
@@ -161,17 +152,17 @@ export default function VisibilityPage() {
 
     fetchReports();
 
-    // Listen for company selection changes (same-tab updates)
-    const handleCompanyChange = () => {
+    // Listen for project selection changes (same-tab updates)
+    const handleProjectChange = () => {
       fetchReports();
     };
 
-    window.addEventListener("companySelectionChanged", handleCompanyChange);
+    window.addEventListener("projectSelectionChanged", handleProjectChange);
 
     return () => {
       window.removeEventListener(
-        "companySelectionChanged",
-        handleCompanyChange
+        "projectSelectionChanged",
+        handleProjectChange
       );
     };
   }, [token]);
@@ -210,7 +201,7 @@ export default function VisibilityPage() {
     });
   };
 
-  if (!selectedCompanyId) {
+  if (!selectedProjectId) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-[50vh]">
@@ -219,7 +210,7 @@ export default function VisibilityPage() {
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Please select a company from the sidebar to view visibility
+                  Please select a project from the sidebar to view visibility
                   metrics.
                 </AlertDescription>
               </Alert>
@@ -313,59 +304,60 @@ export default function VisibilityPage() {
         {!loading && selectedReport && (
           <div className="space-y-6 fade-in-section is-visible">
             {/* Competitor Selection */}
-            {selectedReport.arenaData && selectedReport.arenaData.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg font-semibold text-dark-700">
-                    Select Competitors to Compare
-                  </CardTitle>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Choose which competitors to display in the analysis
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-4">
-                    {selectedReport.arenaData
-                      .filter(
-                        (comp) =>
-                          comp.name.toLowerCase() !==
-                          selectedReport.brandName.toLowerCase()
-                      )
-                      .map((competitor) => (
-                        <div
-                          key={competitor.name}
-                          className="flex items-center space-x-2"
-                        >
-                          <Checkbox
-                            id={competitor.name}
-                            checked={selectedCompetitors.includes(
-                              competitor.name
-                            )}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setSelectedCompetitors((prev) => [
-                                  ...prev,
-                                  competitor.name,
-                                ]);
-                              } else {
-                                setSelectedCompetitors((prev) =>
-                                  prev.filter((c) => c !== competitor.name)
-                                );
-                              }
-                            }}
-                          />
-                          <Label
-                            htmlFor={competitor.name}
-                            className="text-sm font-medium cursor-pointer"
+            {selectedReport.arenaData &&
+              selectedReport.arenaData.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg font-semibold text-dark-700">
+                      Select Competitors to Compare
+                    </CardTitle>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Choose which competitors to display in the analysis
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-4">
+                      {selectedReport.arenaData
+                        .filter(
+                          (comp) =>
+                            comp.name.toLowerCase() !==
+                            selectedReport.brandName.toLowerCase()
+                        )
+                        .map((competitor) => (
+                          <div
+                            key={competitor.name}
+                            className="flex items-center space-x-2"
                           >
-                            {competitor.name}
-                          </Label>
-                        </div>
-                      ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+                            <Checkbox
+                              id={competitor.name}
+                              checked={selectedCompetitors.includes(
+                                competitor.name
+                              )}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedCompetitors((prev) => [
+                                    ...prev,
+                                    competitor.name,
+                                  ]);
+                                } else {
+                                  setSelectedCompetitors((prev) =>
+                                    prev.filter((c) => c !== competitor.name)
+                                  );
+                                }
+                              }}
+                            />
+                            <Label
+                              htmlFor={competitor.name}
+                              className="text-sm font-medium cursor-pointer"
+                            >
+                              {competitor.name}
+                            </Label>
+                          </div>
+                        ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
             <VisibilityAnalysis
               mentionRate={selectedReport.mentionRate}

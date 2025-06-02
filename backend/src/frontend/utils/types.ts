@@ -1,5 +1,5 @@
-// Company Identity Card interfaces
-export interface CompanyIdentityCard {
+// Project interfaces
+export interface Project {
   id: string;
   brandName: string;
   industry: string;
@@ -27,14 +27,15 @@ export interface User {
   stripeCustomerId?: string;
   stripePlanId?: string;
   planSettings: {
-    maxBrands: number;
+    maxProjects: number;
     maxAIModels: number;
     maxSpontaneousPrompts?: number;
+    maxUrls: number;
   };
   selectedModels: string[];
   createdAt: string;
   updatedAt: string;
-  companyIds?: string[];
+  projectIds?: string[];
 }
 
 // AI Model interface for admin
@@ -61,8 +62,8 @@ export interface PlanResponseDto {
   included: string[];
   stripeProductId: string;
   maxModels: number;
-  maxBrands: number;
-  maxMarkets: number;
+  maxProjects: number;
+  maxUrls: number;
   maxSpontaneousPrompts: number;
   isActive: boolean;
   isRecommended: boolean;
@@ -77,7 +78,7 @@ export interface PlanResponseDto {
 // Prompt Set interfaces
 export interface PromptSet {
   id: string;
-  companyId: string;
+  projectId: string;
   direct: string[] | string; // Either direct string[] or for backward compatibility string JSON
   comparison: string[] | string; // Either direct string[] or for backward compatibility string JSON
   spontaneous: string[] | string; // Either direct string[] or for backward compatibility string JSON
@@ -104,11 +105,11 @@ export interface PromptTemplates {
 // Batch Execution interfaces
 export interface BatchExecution {
   id: string;
-  companyId: string;
+  projectId: string;
   executedAt: string;
   status: 'running' | 'completed' | 'failed';
   finalResults: BatchResult[];
-  identityCard?: CompanyIdentityCard;
+  project?: Project;
 }
 
 // Batch type enum

@@ -5,7 +5,7 @@ import {
   SpontaneousResults,
 } from '@/modules/batch/interfaces/batch.interfaces';
 import { Injectable, Logger } from '@nestjs/common';
-import { CompanyIdentityCard } from '@/modules/identity-card/entities/company-identity-card.entity';
+import { Project } from '@/modules/project/entities/project.entity';
 import { WeeklyBrandReportEntity } from '../interfaces/report-types';
 /**
  * Service responsible for transforming raw data into typed, display-ready formats
@@ -220,7 +220,7 @@ export class ReportTransformationService {
    */
   formatAccordData(
     accuracyData: AccuracyResults,
-    identityCard: CompanyIdentityCard,
+    project: Project,
   ): {
     attributes: Array<{ name: string; rate: string; alignment: string }>;
     score: {
@@ -229,7 +229,7 @@ export class ReportTransformationService {
     };
   } {
     // Generate attributes from identity card or default values
-    const attributes = this.generateAttributesList(identityCard, accuracyData);
+    const attributes = this.generateAttributesList(project, accuracyData);
 
     // Calculate overall accuracy score by averaging all attribute scores
     const allScores = Object.values(accuracyData?.summary?.averageAttributeScores || {});
@@ -282,12 +282,12 @@ export class ReportTransformationService {
    * Helper to generate attributes list for accord section
    */
   generateAttributesList(
-    identityCard: CompanyIdentityCard,
+    project: Project,
     data?: AccuracyResults,
   ): Array<{ name: string; rate: string; alignment: '✅' | '⚠️' | '❌' }> {
-    // If we have brand attributes from identity card, use those
-    if (identityCard?.keyBrandAttributes && identityCard.keyBrandAttributes.length > 0) {
-      return identityCard.keyBrandAttributes.map((feature: string) => {
+    // If we have brand attributes from project, use those
+    if (project?.keyBrandAttributes && project.keyBrandAttributes.length > 0) {
+      return project.keyBrandAttributes.map((feature: string) => {
         // If we have accuracy data with attribute scores
         if (data && 'summary' in data && data.summary && data.summary.averageAttributeScores) {
           const attributeScores = data.summary.averageAttributeScores;

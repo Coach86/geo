@@ -16,7 +16,7 @@ import BrandReport from "@/components/reports/brand-report";
 // Interface for report data with required fields for the brand report
 interface ReportData {
   id: string;
-  companyId: string;
+  projectId: string;
   date: string;
   generatedAt: string;
   // Report content sections
@@ -212,8 +212,6 @@ function Report() {
         // For the new token structure, we get reportId from the query params
         const reportId =
           searchParams.get("reportId") || validationResult.reportId;
-        // We don't need companyId for the new token-based access
-        const companyId = validationResult.companyId;
 
         if (!reportId) {
           throw new Error("Missing report ID");

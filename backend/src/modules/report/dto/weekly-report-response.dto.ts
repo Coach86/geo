@@ -2,8 +2,8 @@ import { ApiProperty } from '@nestjs/swagger';
 
 // We're no longer implementing the full WeeklyBrandReport interface
 export class WeeklyReportResponseDto {
-  @ApiProperty({ description: 'Company ID this report is associated with' })
-  companyId: string;
+  @ApiProperty({ description: 'Project ID this report is associated with' })
+  projectId: string;
 
   @ApiProperty({ description: 'Start of the week (Monday 00:00:00 UTC)' })
   date: Date;

@@ -18,11 +18,11 @@ import { PromptService } from '../services/prompt.service';
 import { UpdatePromptSetDto } from '../dto/update-prompt-set.dto';
 import { TokenRoute } from '../../auth/decorators/token-route.decorator';
 import { TokenService } from '../../auth/services/token.service';
-import { CompanyIdentityCard } from '../../identity-card/entities/company-identity-card.entity';
+import { Project } from '../../project/entities/project.entity';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { PromptSet, PromptSetDocument } from '../schemas/prompt-set.schema';
-import { IdentityCard, IdentityCardDocument } from '../../identity-card/schemas/identity-card.schema';
+import { Project as ProjectSchema, ProjectDocument } from '../../project/schemas/project-base.schema';
 
 export interface GeneratePromptsRequest {
   brandName: string;
@@ -52,14 +52,14 @@ export class PublicPromptController {
 
   constructor(
     @InjectModel(PromptSet.name) private promptSetModel: Model<PromptSetDocument>,
-    @InjectModel(IdentityCard.name) private identityCardModel: Model<IdentityCardDocument>,
+    @InjectModel(ProjectSchema.name) private projectModel: Model<ProjectDocument>,
     private readonly promptService: PromptService,
     private readonly tokenService: TokenService,
   ) {}
 
-  @Get(':companyId')
+  @Get(':projectId')
   @TokenRoute() // Mark this route as token-authenticated
-  @ApiOperation({ summary: 'Get prompt set for a company' })
+  @ApiOperation({ summary: 'Get prompt set for a project' })
   @ApiResponse({
     status: 200,
     description: 'Returns the prompt set',
@@ -67,7 +67,7 @@ export class PublicPromptController {
       type: 'object',
       properties: {
         id: { type: 'string' },
-        companyId: { type: 'string' },
+        projectId: { type: 'string' },
         spontaneous: { type: 'array', items: { type: 'string' } },
         direct: { type: 'array', items: { type: 'string' } },
         comparison: { type: 'array', items: { type: 'string' } },
@@ -82,10 +82,10 @@ export class PublicPromptController {
   @ApiResponse({ status: 404, description: 'Prompt set not found' })
   async getPromptSet(
     @Req() request: any,
-    @Param('companyId') companyId: string,
+    @Param('projectId') projectId: string,
   ) {
     try {
-      this.logger.log(`Fetching prompt set for company: ${companyId}`);
+      this.logger.log(`Fetching prompt set for project: ${projectId}`);
 
       // Validate user authentication
       if (!request.userId) {
@@ -102,20 +102,20 @@ export class PublicPromptController {
       }
 
       // Get the prompt set directly from the model
-      const promptSet = await this.promptSetModel.findOne({ companyId }).lean().exec();
+      const promptSet = await this.promptSetModel.findOne({ projectId }).lean().exec();
       
       if (!promptSet) {
         throw new NotFoundException('Prompt set not found');
       }
 
-      // TODO: Verify user owns this company
+      // TODO: Verify user owns this project
       // For now, we'll skip this check but it should be added for security
 
-      this.logger.log(`Prompt set retrieved successfully for company: ${companyId}`);
+      this.logger.log(`Prompt set retrieved successfully for project: ${projectId}`);
 
       return {
         id: promptSet._id?.toString() || promptSet.id,
-        companyId: promptSet.companyId,
+        projectId: promptSet.projectId,
         spontaneous: promptSet.spontaneous,
         direct: promptSet.direct,
         comparison: promptSet.comparison,
@@ -211,10 +211,10 @@ export class PublicPromptController {
         throw new BadRequestException('Competitors must be provided as an array');
       }
 
-      // Create a CompanyIdentityCard object for the prompt service
-      // Note: We don't need companyId and userId for prompt generation, but the interface requires them
-      const companyData: CompanyIdentityCard = {
-        companyId: 'temp-id', // Temporary ID since we're not saving
+      // Create a Project object for the prompt service
+      // Note: We don't need projectId and userId for prompt generation, but the interface requires them
+      const projectData: Project = {
+        projectId: 'temp-id', // Temporary ID since we're not saving
         brandName: body.brandName,
         website: body.website,
         industry: body.industry,
@@ -231,7 +231,7 @@ export class PublicPromptController {
       this.logger.log(`Generating prompts for brand: ${body.brandName} in market: ${body.market}`);
 
       // Generate prompts using the public method (no database saving)
-      const promptSet = await this.promptService.generatePromptSet(companyData);
+      const promptSet = await this.promptService.generatePromptSet(projectData);
 
       this.logger.log(`Prompts generated successfully for brand: ${body.brandName}`);
 
@@ -251,23 +251,23 @@ export class PublicPromptController {
     }
   }
 
-  @Patch(':companyId')
+  @Patch(':projectId')
   @TokenRoute()
-  @ApiOperation({ summary: 'Update prompt set for a company' })
+  @ApiOperation({ summary: 'Update prompt set for a project' })
   @ApiBody({ type: UpdatePromptSetDto })
   @ApiResponse({
     status: 200,
     description: 'Prompt set updated successfully',
   })
   @ApiResponse({ status: 401, description: 'Unauthorized - Token required' })
-  @ApiResponse({ status: 404, description: 'Company not found' })
+  @ApiResponse({ status: 404, description: 'Project not found' })
   async updatePromptSet(
     @Req() request: any,
-    @Param('companyId') companyId: string,
+    @Param('projectId') projectId: string,
     @Body() updatePromptSetDto: UpdatePromptSetDto,
   ): Promise<any> {
     try {
-      this.logger.log(`Updating prompt set for company ${companyId}`);
+      this.logger.log(`Updating prompt set for project ${projectId}`);
       
       // Validate user authentication
       if (!request.userId) {
@@ -283,23 +283,23 @@ export class PublicPromptController {
         }
       }
 
-      // Check if the user owns this company
-      const identityCard = await this.identityCardModel.findOne({ id: companyId }).exec();
-      if (!identityCard) {
-        throw new NotFoundException(`Company ${companyId} not found`);
+      // Check if the user owns this project
+      const project = await this.projectModel.findOne({ id: projectId }).exec();
+      if (!project) {
+        throw new NotFoundException(`Project ${projectId} not found`);
       }
       
-      if (identityCard.userId !== request.userId) {
-        this.logger.warn(`User ${request.userId} tried to update prompts for company ${companyId} owned by user ${identityCard.userId}`);
-        throw new UnauthorizedException('You do not have permission to update prompts for this company');
+      if (project.userId !== request.userId) {
+        this.logger.warn(`User ${request.userId} tried to update prompts for project ${projectId} owned by user ${project.userId}`);
+        throw new UnauthorizedException('You do not have permission to update prompts for this project');
       }
 
-      this.logger.log(`Updating prompt set for company ${companyId} for user: ${request.userId}`);
+      this.logger.log(`Updating prompt set for project ${projectId} for user: ${request.userId}`);
       
       // Update the prompt set
-      const updatedPromptSet = await this.promptService.updatePromptSet(companyId, updatePromptSetDto);
+      const updatedPromptSet = await this.promptService.updatePromptSet(projectId, updatePromptSetDto);
       
-      this.logger.log(`Prompt set updated successfully for company ${companyId}`);
+      this.logger.log(`Prompt set updated successfully for project ${projectId}`);
       
       return updatedPromptSet;
     } catch (error) {

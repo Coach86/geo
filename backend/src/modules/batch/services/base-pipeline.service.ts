@@ -6,7 +6,7 @@ import pLimit from 'p-limit';
 import { z } from 'zod';
 import { LlmService } from '../../llm/services/llm.service';
 import { RawResponseService } from './raw-response.service';
-import { CompanyBatchContext } from '../interfaces/batch.interfaces';
+import { ProjectBatchContext } from '../interfaces/batch.interfaces';
 import { LlmModelConfig, PipelineConfig, AnalyzerConfig, PipelineType, PromptType } from '../interfaces/llm.interfaces';
 
 // Default concurrency limits for different pipeline types
@@ -121,7 +121,7 @@ export abstract class BasePipelineService implements OnModuleInit {
    * Abstract method to run the pipeline
    * @param context Company batch context
    */
-  abstract run(context: CompanyBatchContext): Promise<any>;
+  abstract run(context: ProjectBatchContext): Promise<any>;
 
   /**
    * Get the appropriate analyzer configuration based on pipeline type

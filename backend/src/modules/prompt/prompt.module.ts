@@ -5,21 +5,21 @@ import { PromptSetController } from './controllers/prompt-set.controller';
 import { PublicPromptController } from './controllers/public-prompt.controller';
 import { PromptSetRepository } from './repositories/prompt-set.repository';
 import { LlmModule } from '../llm/llm.module';
-import { IdentityCardModule } from '../identity-card/identity-card.module';
+import { ProjectModule } from '../project/project.module';
 import { PromptSet, PromptSetSchema } from './schemas/prompt-set.schema';
 import { TokenService } from '../auth/services/token.service';
 import { AccessTokenRepository } from '../auth/repositories/access-token.repository';
 import { AccessToken, AccessTokenSchema } from '../auth/schemas/access-token.schema';
-import { IdentityCard, IdentityCardSchema } from '../identity-card/schemas/identity-card.schema';
+import { Project, ProjectSchema } from '../project/schemas/project-base.schema';
 
 @Module({
   imports: [
     LlmModule,
-    IdentityCardModule,
+    ProjectModule,
     MongooseModule.forFeature([
       { name: PromptSet.name, schema: PromptSetSchema },
       { name: AccessToken.name, schema: AccessTokenSchema },
-      { name: IdentityCard.name, schema: IdentityCardSchema },
+      { name: Project.name, schema: ProjectSchema },
     ]),
   ],
   providers: [PromptService, PromptSetRepository, TokenService, AccessTokenRepository],
