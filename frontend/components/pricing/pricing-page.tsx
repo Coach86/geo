@@ -209,7 +209,10 @@ export default function PricingPage({
     return { amount: savings, percentage };
   };
 
-  const handleStartTrial = async (planId: string | undefined, planName: string) => {
+  const handleStartTrial = async (
+    planId: string | undefined,
+    planName: string
+  ) => {
     setSelectedPlan(planName.toLowerCase() as any);
     setIsSubmitting(true);
 
@@ -221,14 +224,14 @@ export default function PricingPage({
     }
 
     if (!planId) {
-      console.error('Plan ID is required for subscription plans');
+      console.error("Plan ID is required for subscription plans");
       setIsSubmitting(false);
       return;
     }
 
     // Get userId - if not authenticated, redirect to login
     if (!user?.id) {
-      router.push('/auth/login');
+      router.push("/auth/login");
       return;
     }
 
@@ -239,13 +242,13 @@ export default function PricingPage({
         userId: user.id,
         billingPeriod: billingPeriod,
       });
-      
+
       if (!success) {
-        console.error('Failed to create checkout session for plan:', planName);
+        console.error("Failed to create checkout session for plan:", planName);
         setIsSubmitting(false);
       }
     } catch (error) {
-      console.error('Error creating checkout:', error);
+      console.error("Error creating checkout:", error);
       setIsSubmitting(false);
     }
   };
@@ -455,9 +458,11 @@ export default function PricingPage({
   const dynamicPlans = plans.slice(0, 2).map((plan, index) => {
     const monthlyPrice = plan.prices?.monthly || 0;
     const yearlyPrice = plan.prices?.yearly || 0;
-    const currentPrice = billingPeriod === "monthly" ? monthlyPrice : yearlyPrice;
-    const savingsAmount = billingPeriod === "yearly" ? calculateSavings(monthlyPrice).amount : null;
-    
+    const currentPrice =
+      billingPeriod === "monthly" ? monthlyPrice : yearlyPrice;
+    const savingsAmount =
+      billingPeriod === "yearly" ? calculateSavings(monthlyPrice).amount : null;
+
     return {
       name: plan.name,
       badge: plan.isMostPopular ? "Most Popular" : null,
@@ -474,7 +479,10 @@ export default function PricingPage({
       included: plan.included,
       ctaText: "Get Started",
       ctaAction: () => handleStartTrial(plan.id, plan.name),
-      ctaColor: index === 0 ? "bg-gray-800 hover:bg-gray-900" : "bg-accent-500 hover:bg-accent-600",
+      ctaColor:
+        index === 0
+          ? "bg-gray-800 hover:bg-gray-900"
+          : "bg-accent-500 hover:bg-accent-600",
       checkColor: index === 0 ? "text-green-500" : "text-accent-500",
       plusColor: index === 0 ? "" : "text-accent-500",
       isPopular: plan.isMostPopular,
@@ -558,7 +566,9 @@ export default function PricingPage({
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <p className="text-red-500">Failed to load pricing plans. Please try again later.</p>
+        <p className="text-red-500">
+          Failed to load pricing plans. Please try again later.
+        </p>
       </div>
     );
   }
@@ -628,36 +638,38 @@ export default function PricingPage({
                 </p>
               </div>
             </div>
-            <Button
-              className={`${
-                recommendedPlan === "starter"
-                  ? "bg-gray-800 hover:bg-gray-900"
-                  : recommendedPlan === "growth"
-                  ? "bg-accent-500 hover:bg-accent-600"
-                  : recommendedPlan === "enterprise"
-                  ? "bg-purple-600 hover:bg-purple-700"
-                  : "bg-teal-600 hover:bg-teal-700"
-              } text-white px-6`}
-              onClick={() => {
-                if (
-                  recommendedPlan === "starter" ||
-                  recommendedPlan === "growth"
-                ) {
-                  handleStartTrial(recommendedPlan);
-                } else {
-                  window.open(
-                    `mailto:contact@getmint.ai?subject=${
-                      recommendedPlan.charAt(0).toUpperCase() +
-                      recommendedPlan.slice(1)
-                    } Plan Inquiry`
-                  );
-                }
-              }}
-            >
-              {recommendedPlan === "starter" || recommendedPlan === "growth"
-                ? "Get Started"
-                : "Contact Sales"}
-            </Button>
+            {recommendedPlan === "starter" || recommendedPlan === "growth" ? (
+              <Button
+                className={`${
+                  recommendedPlan === "starter"
+                    ? "bg-gray-800 hover:bg-gray-900"
+                    : "bg-accent-500 hover:bg-accent-600"
+                } text-white px-6`}
+                onClick={() => handleStartTrial(recommendedPlan)}
+              >
+                Get Started
+              </Button>
+            ) : (
+              <a
+                href={`mailto:contact@getmint.ai?subject=${
+                  recommendedPlan.charAt(0).toUpperCase() +
+                  recommendedPlan.slice(1)
+                } Plan Inquiry`}
+                style={{ textDecoration: "none" }}
+                className={`inline-block w-full`}
+              >
+                <Button
+                  className={`${
+                    recommendedPlan === "starter"
+                      ? "bg-gray-800 hover:bg-gray-900"
+                      : "bg-accent-500 hover:bg-accent-600"
+                  } text-white px-6`}
+                  asChild
+                >
+                  Contact Sales
+                </Button>
+              </a>
+            )}
           </div>
         </div>
       </section>
@@ -948,7 +960,9 @@ export default function PricingPage({
                 plusColor={plan.plusColor}
                 isSubmitting={isSubmitting}
                 selectedPlan={selectedPlan}
-                previousPlanName={index > 0 ? pricingPlans[index - 1].name : undefined}
+                previousPlanName={
+                  index > 0 ? pricingPlans[index - 1].name : undefined
+                }
                 tagBgColor={plan.tagBgColor}
                 tagTextColor={plan.tagTextColor}
               />

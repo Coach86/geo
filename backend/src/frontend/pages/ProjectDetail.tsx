@@ -192,7 +192,9 @@ const ProjectDetail: React.FC = () => {
       // Show start notifications
       if (project) {
         showBatchStartNotification(project.brandName, 'full batch with email');
-        showSnackbarNotification(`Starting full batch analysis with email for ${project.brandName}...`);
+        showSnackbarNotification(
+          `Starting full batch analysis with email for ${project.brandName}...`,
+        );
       }
 
       const result = await runBatchWithEmailNotification(id);

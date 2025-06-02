@@ -56,7 +56,6 @@ export const deleteProject = async (id: string): Promise<void> => {
   await authApi.delete(`/project/${id}`);
 };
 
-
 // User API
 export const getUsers = async (): Promise<User[]> => {
   const response = await authApi.get('/users');
@@ -96,14 +95,22 @@ export const deleteUser = async (id: string): Promise<User> => {
 
 export const updateUserPlanSettings = async (
   id: string,
-  planSettings: { maxProjects: number; maxAIModels: number; maxSpontaneousPrompts?: number; maxUrls: number },
+  planSettings: {
+    maxProjects: number;
+    maxAIModels: number;
+    maxSpontaneousPrompts?: number;
+    maxUrls: number;
+    maxCompetitors: number;
+  },
 ): Promise<User> => {
   const response = await authApi.patch(`/users/${id}/plan-settings`, planSettings);
   return response.data;
 };
 
 // AI Models API for admin
-export const getAvailableModels = async (userId: string): Promise<{ models: AIModel[]; maxSelectable: number }> => {
+export const getAvailableModels = async (
+  userId: string,
+): Promise<{ models: AIModel[]; maxSelectable: number }> => {
   const response = await authApi.get(`/users/${userId}/available-models`);
   return response.data;
 };
@@ -284,7 +291,6 @@ export const getAllProjectReports = async (
   const response = await authApi.get(`/reports/${projectId}/all`);
   return response.data;
 };
-
 
 // Send a report access email to a specific address
 export const sendReportEmail = async (

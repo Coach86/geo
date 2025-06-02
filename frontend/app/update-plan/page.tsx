@@ -15,11 +15,16 @@ export default function UpdatePlanPage() {
   const router = useRouter();
   const { plans, loading, error } = usePlans();
   const { user } = useAuth();
-  const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("yearly");
+  const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">(
+    "yearly"
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
 
-  const handleSelectPlan = async (planId: string | undefined, planName: string) => {
+  const handleSelectPlan = async (
+    planId: string | undefined,
+    planName: string
+  ) => {
     setSelectedPlan(planName.toLowerCase());
     setIsSubmitting(true);
 
@@ -31,15 +36,15 @@ export default function UpdatePlanPage() {
     }
 
     if (!planId) {
-      console.error('Plan ID is required for subscription plans');
-      toast.error('Plan configuration error.');
+      console.error("Plan ID is required for subscription plans");
+      toast.error("Plan configuration error.");
       setIsSubmitting(false);
       return;
     }
 
     // Get userId - if not authenticated, redirect to login
     if (!user?.id) {
-      router.push('/auth/login');
+      router.push("/auth/login");
       return;
     }
 
@@ -50,15 +55,15 @@ export default function UpdatePlanPage() {
         userId: user.id,
         billingPeriod: billingPeriod,
       });
-      
+
       if (!success) {
-        console.error('Failed to create checkout session for plan:', planName);
-        toast.error('Failed to create payment session.');
+        console.error("Failed to create checkout session for plan:", planName);
+        toast.error("Failed to create payment session.");
         setIsSubmitting(false);
       }
     } catch (error) {
-      console.error('Error creating checkout:', error);
-      toast.error('Failed to create payment session.');
+      console.error("Error creating checkout:", error);
+      toast.error("Failed to create payment session.");
       setIsSubmitting(false);
     }
   };
@@ -71,16 +76,21 @@ export default function UpdatePlanPage() {
     const monthlyCost = monthlyPrice * 12;
     const yearlyCost = getYearlyPrice(monthlyPrice) * 12;
     const savings = monthlyCost - yearlyCost;
-    return { amount: savings, percentage: Math.round((savings / monthlyCost) * 100) };
+    return {
+      amount: savings,
+      percentage: Math.round((savings / monthlyCost) * 100),
+    };
   };
 
   // Dynamic pricing plans from API
   const dynamicPlans = plans.slice(0, 2).map((plan, index) => {
     const monthlyPrice = plan.prices?.monthly || 0;
     const yearlyPrice = plan.prices?.yearly || 0;
-    const currentPrice = billingPeriod === "monthly" ? monthlyPrice : yearlyPrice;
-    const savingsAmount = billingPeriod === "yearly" ? calculateSavings(monthlyPrice).amount : null;
-    
+    const currentPrice =
+      billingPeriod === "monthly" ? monthlyPrice : yearlyPrice;
+    const savingsAmount =
+      billingPeriod === "yearly" ? calculateSavings(monthlyPrice).amount : null;
+
     return {
       name: plan.name,
       tag: plan.tag,
@@ -94,7 +104,10 @@ export default function UpdatePlanPage() {
       isMostPopular: plan.isMostPopular,
       ctaText: "Upgrade to " + plan.name,
       ctaAction: () => handleSelectPlan(plan.id, plan.name),
-      ctaColor: index === 0 ? "bg-gray-800 hover:bg-gray-900" : "bg-accent-500 hover:bg-accent-600",
+      ctaColor:
+        index === 0
+          ? "bg-gray-800 hover:bg-gray-900"
+          : "bg-accent-500 hover:bg-accent-600",
       checkColor: index === 0 ? "text-green-500" : "text-accent-500",
       plusColor: index === 0 ? "" : "text-accent-500",
       tagBgColor: index === 0 ? "bg-gray-100" : "bg-accent-100",
@@ -179,7 +192,9 @@ export default function UpdatePlanPage() {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-screen">
-          <p className="text-red-500">Failed to load pricing plans. Please try again later.</p>
+          <p className="text-red-500">
+            Failed to load pricing plans. Please try again later.
+          </p>
         </div>
       </DashboardLayout>
     );
@@ -191,7 +206,8 @@ export default function UpdatePlanPage() {
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4">Upgrade Your Plan</h1>
           <p className="text-lg text-muted-foreground">
-            You've reached your current plan's brand limit. Choose a plan that fits your needs.
+            You've reached your current plan's brand limit. Choose a plan that
+            fits your needs.
           </p>
         </div>
 
@@ -246,7 +262,9 @@ export default function UpdatePlanPage() {
               plusColor={plan.plusColor}
               isSubmitting={isSubmitting}
               selectedPlan={selectedPlan}
-              previousPlanName={index > 0 ? allPlans[index - 1].name : undefined}
+              previousPlanName={
+                index > 0 ? allPlans[index - 1].name : undefined
+              }
               tagBgColor={plan.tagBgColor}
               tagTextColor={plan.tagTextColor}
             />
@@ -255,7 +273,13 @@ export default function UpdatePlanPage() {
 
         <div className="mt-12 text-center">
           <p className="text-muted-foreground mb-4">
-            Need help choosing the right plan?
+            Need help choosing the right plan?{" "}
+            <a
+              href="mailto:contact@getmint.ai?subject=Plan Inquiry"
+              className="text-accent-500"
+            >
+              Contact us
+            </a>
           </p>
           <Button variant="link" onClick={() => router.back()}>
             <Zap className="mr-2 h-4 w-4" />

@@ -42,9 +42,10 @@ export const EditPlanSettingsDialog: React.FC<EditPlanSettingsDialogProps> = ({
   const [maxAIModels, setMaxAIModels] = useState(3);
   const [maxSpontaneousPrompts, setMaxSpontaneousPrompts] = useState(12);
   const [maxUrls, setMaxUrls] = useState(1);
+  const [maxCompetitors, setMaxCompetitors] = useState(5);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // AI Models state
   const [availableModels, setAvailableModels] = useState<AIModel[]>([]);
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
@@ -56,6 +57,7 @@ export const EditPlanSettingsDialog: React.FC<EditPlanSettingsDialogProps> = ({
       setMaxAIModels(user.planSettings?.maxAIModels || 3);
       setMaxSpontaneousPrompts(user.planSettings?.maxSpontaneousPrompts || 12);
       setMaxUrls(user.planSettings?.maxUrls || 1);
+      setMaxCompetitors(user.planSettings?.maxCompetitors || 5);
       setSelectedModels(user.selectedModels || []);
 
       // Fetch available models
@@ -76,10 +78,10 @@ export const EditPlanSettingsDialog: React.FC<EditPlanSettingsDialogProps> = ({
   }, [user]);
 
   const handleModelToggle = (modelId: string) => {
-    setSelectedModels(prev => {
+    setSelectedModels((prev) => {
       const isSelected = prev.includes(modelId);
       if (isSelected) {
-        return prev.filter(id => id !== modelId);
+        return prev.filter((id) => id !== modelId);
       } else {
         return [...prev, modelId];
       }
@@ -99,11 +101,12 @@ export const EditPlanSettingsDialog: React.FC<EditPlanSettingsDialogProps> = ({
         maxAIModels,
         maxSpontaneousPrompts,
         maxUrls,
+        maxCompetitors,
       });
 
       // Update selected models
       const finalUpdatedUser = await updateUserSelectedModels(user.id, selectedModels);
-      
+
       onUpdate(finalUpdatedUser);
       onClose();
     } catch (err) {
@@ -123,6 +126,7 @@ export const EditPlanSettingsDialog: React.FC<EditPlanSettingsDialogProps> = ({
         setMaxAIModels(user.planSettings?.maxAIModels || 3);
         setMaxSpontaneousPrompts(user.planSettings?.maxSpontaneousPrompts || 12);
         setMaxUrls(user.planSettings?.maxUrls || 1);
+        setMaxCompetitors(user.planSettings?.maxCompetitors || 5);
         setSelectedModels(user.selectedModels || []);
       }
     }
@@ -145,11 +149,20 @@ export const EditPlanSettingsDialog: React.FC<EditPlanSettingsDialogProps> = ({
           {user.email}
         </Typography>
       </DialogTitle>
-      
+
       <DialogContent>
         <Box sx={{ mb: 3 }}>
           {/* Current Plan Info */}
-          <Box sx={{ mb: 3, p: 2, bgcolor: 'background.default', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+          <Box
+            sx={{
+              mb: 3,
+              p: 2,
+              bgcolor: 'background.default',
+              borderRadius: 1,
+              border: '1px solid',
+              borderColor: 'divider',
+            }}
+          >
             <Box sx={{ display: 'flex', gap: 3 }}>
               <Box sx={{ flex: 1 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -158,7 +171,9 @@ export const EditPlanSettingsDialog: React.FC<EditPlanSettingsDialogProps> = ({
                     Current Plan
                   </Typography>
                 </Box>
-                <Typography variant="h6" color="textPrimary">{getPlanName()}</Typography>
+                <Typography variant="h6" color="textPrimary">
+                  {getPlanName()}
+                </Typography>
                 {user.stripePlanId && (
                   <Typography variant="caption" color="textSecondary">
                     {user.stripePlanId}
@@ -210,6 +225,20 @@ export const EditPlanSettingsDialog: React.FC<EditPlanSettingsDialogProps> = ({
             <Box sx={{ flex: 1, minWidth: 200 }}>
               <TextField
                 fullWidth
+                label="Max Competitors"
+                type="number"
+                value={maxCompetitors}
+                onChange={(e) => setMaxCompetitors(Math.max(1, parseInt(e.target.value) || 1))}
+                InputProps={{
+                  inputProps: { min: 1 },
+                }}
+                helperText="Number of competitors allowed per project"
+              />
+            </Box>
+
+            <Box sx={{ flex: 1, minWidth: 200 }}>
+              <TextField
+                fullWidth
                 label="Max AI Models"
                 type="number"
                 value={maxAIModels}
@@ -228,7 +257,9 @@ export const EditPlanSettingsDialog: React.FC<EditPlanSettingsDialogProps> = ({
                 label="Max Spontaneous Prompts"
                 type="number"
                 value={maxSpontaneousPrompts}
-                onChange={(e) => setMaxSpontaneousPrompts(Math.max(1, parseInt(e.target.value) || 1))}
+                onChange={(e) =>
+                  setMaxSpontaneousPrompts(Math.max(1, parseInt(e.target.value) || 1))
+                }
                 InputProps={{
                   inputProps: { min: 1 },
                 }}
@@ -261,9 +292,10 @@ export const EditPlanSettingsDialog: React.FC<EditPlanSettingsDialogProps> = ({
               </Typography>
             </Box>
             <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-              Select which AI models this user can use for batch processing (admin can select without restrictions)
+              Select which AI models this user can use for batch processing (admin can select
+              without restrictions)
             </Typography>
-            
+
             {modelsLoading ? (
               <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
                 {[...Array(4)].map((_, i) => (
@@ -277,7 +309,9 @@ export const EditPlanSettingsDialog: React.FC<EditPlanSettingsDialogProps> = ({
                     {selectedModels.length} of {availableModels.length} models selected
                   </Typography>
                 </FormLabel>
-                <FormGroup sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+                <FormGroup
+                  sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 1, mt: 1 }}
+                >
                   {availableModels.map((model) => (
                     <FormControlLabel
                       key={model.id}
@@ -293,25 +327,29 @@ export const EditPlanSettingsDialog: React.FC<EditPlanSettingsDialogProps> = ({
                           <Typography variant="body2" sx={{ fontWeight: 500 }}>
                             {model.name}
                           </Typography>
-                          <Chip 
-                            label={model.provider} 
-                            size="small" 
-                            variant="outlined" 
+                          <Chip
+                            label={model.provider}
+                            size="small"
+                            variant="outlined"
                             sx={{ fontSize: 10, height: 20 }}
                           />
                         </Box>
                       }
-                      sx={{ 
+                      sx={{
                         border: '1px solid',
                         borderColor: selectedModels.includes(model.id) ? 'primary.main' : 'divider',
                         borderRadius: 1,
                         p: 1,
                         m: 0,
                         minWidth: 200,
-                        bgcolor: selectedModels.includes(model.id) ? 'primary.light' : 'transparent',
+                        bgcolor: selectedModels.includes(model.id)
+                          ? 'primary.light'
+                          : 'transparent',
                         '&:hover': {
-                          bgcolor: selectedModels.includes(model.id) ? 'primary.light' : 'action.hover',
-                        }
+                          bgcolor: selectedModels.includes(model.id)
+                            ? 'primary.light'
+                            : 'action.hover',
+                        },
                       }}
                     />
                   ))}
@@ -327,7 +365,16 @@ export const EditPlanSettingsDialog: React.FC<EditPlanSettingsDialogProps> = ({
 
           {/* Stripe Customer Info */}
           {user.stripeCustomerId && (
-            <Box sx={{ mt: 3, p: 2, bgcolor: 'background.default', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+            <Box
+              sx={{
+                mt: 3,
+                p: 2,
+                bgcolor: 'background.default',
+                borderRadius: 1,
+                border: '1px solid',
+                borderColor: 'divider',
+              }}
+            >
               <Typography variant="caption" color="textSecondary">
                 Stripe Customer ID
               </Typography>
@@ -349,11 +396,7 @@ export const EditPlanSettingsDialog: React.FC<EditPlanSettingsDialogProps> = ({
         <Button onClick={handleClose} disabled={saving}>
           Cancel
         </Button>
-        <Button
-          onClick={handleSave}
-          variant="contained"
-          disabled={saving}
-        >
+        <Button onClick={handleSave} variant="contained" disabled={saving}>
           {saving ? 'Saving...' : 'Save Changes'}
         </Button>
       </DialogActions>
