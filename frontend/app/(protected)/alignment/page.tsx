@@ -26,106 +26,81 @@ import type { ReportResponse } from "@/types/reports";
 import BreadcrumbNav from "@/components/layout/breadcrumb-nav";
 import { useNavigation } from "@/providers/navigation-provider";
 
-interface ProcessedReport extends ReportResponse {
-  reportDate: string;
-  createdAt: string;
-  alignmentData: AlignmentResults;
-  brandName: string;
-}
 
 export default function AlignmentPage() {
   const { token } = useAuth();
   const { filteredProjects, selectedProject, setSelectedProject } = useNavigation();
+  const [alignmentData, setAlignmentData] = useState<AlignmentResults | null>(null);
+  const [isLoadingAlignment, setIsLoadingAlignment] = useState(false);
+  const [alignmentError, setAlignmentError] = useState<string | null>(null);
+  
   const {
     selectedProjectId,
     projectDetails,
-    selectedReport: baseSelectedReport,
-    setSelectedReport: setBaseSelectedReport,
-    loading: baseLoading,
-    error: baseError
-  } = useReportData<ReportResponse>();
+    selectedReport,
+    setSelectedReport,
+    loading,
+    error
+  } = useReportData();
 
-  const [selectedReport, setSelectedReport] = useState<ProcessedReport | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Process selected report when it changes
+  // Fetch alignment data when report changes
   useEffect(() => {
-    const processReport = async () => {
-      if (!baseSelectedReport || !token) {
-        setSelectedReport(null);
+    const fetchAlignmentData = async () => {
+      if (!selectedReport || !token) {
+        setAlignmentData(null);
         return;
       }
 
-      setIsLoading(true);
-      setError(null);
+      setIsLoadingAlignment(true);
+      setAlignmentError(null);
 
       try {
-        console.log("[Alignment] Processing report:", baseSelectedReport.id);
-        // Always fetch batch results for compliance/accord data
-        let complianceData = null;
-        try {
-          const batchResults = await getBatchResults(baseSelectedReport.id, token);
-          console.log(
-            "[Alignment] batchResults for report",
-            baseSelectedReport.id,
-            ":",
-            batchResults
-          );
-          // Find the accuracy pipeline results (support both resultType and pipelineType for compatibility)
-          const accuracyResult = batchResults.find(
-            (result: any) =>
-              result.resultType === "accuracy" ||
-              result.pipelineType === "accuracy"
-          );
-          console.log(accuracyResult);
-          if (accuracyResult && accuracyResult.result) {
-            // If results is a string, parse it
-            const accuracyData =
-              typeof accuracyResult.result === "string"
-                ? JSON.parse(accuracyResult.result)
-                : accuracyResult.result;
+        console.log("[Alignment] Processing report:", selectedReport.id);
+        const batchResults = await getBatchResults(selectedReport.id, token);
+        console.log("[Alignment] batchResults for report", selectedReport.id, ":", batchResults);
+        
+        // Find the accuracy pipeline results
+        const accuracyResult = batchResults.find(
+          (result: any) =>
+            result.resultType === "accuracy" ||
+            result.pipelineType === "accuracy"
+        );
+        
+        if (accuracyResult && accuracyResult.result) {
+          const accuracyData =
+            typeof accuracyResult.result === "string"
+              ? JSON.parse(accuracyResult.result)
+              : accuracyResult.result;
 
-            alignmentData = transformAccordToAlignment(accuracyData);
-          } else {
-            console.warn(
-              "[Alignment] No accuracy batch result for report:",
-              baseSelectedReport.id
-            );
-          }
-        } catch (err) {
-          console.error(
-            "Failed to fetch batch results for report:",
-            baseSelectedReport.id,
-            err
-          );
-        }
-
-        if (alignmentData) {
-          const processedReport: ProcessedReport = {
-            ...baseSelectedReport,
-            reportDate: baseSelectedReport.generatedAt,
-            createdAt: baseSelectedReport.generatedAt,
-            alignmentData,
-            brandName: (baseSelectedReport as any).brand || projectDetails?.brandName || "Your Brand",
-          };
-          setSelectedReport(processedReport);
+          const transformedData = transformAccordToAlignment(accuracyData);
+          setAlignmentData(transformedData);
         } else {
-          setError("No alignment data available for this report");
+          console.warn("[Alignment] No accuracy batch result for report:", selectedReport.id);
+          setAlignmentError("No alignment data available for this report");
         }
       } catch (err) {
-        console.error("Failed to process alignment data:", err);
-        setError("Failed to load alignment data");
+        console.error("Failed to fetch batch results for report:", selectedReport.id, err);
+        setAlignmentError("Failed to load alignment data");
       } finally {
-        setIsLoading(false);
+        setIsLoadingAlignment(false);
       }
     };
 
-    processReport();
-  }, [baseSelectedReport, token, projectDetails]);
+    fetchAlignmentData();
+  }, [selectedReport?.id, token]); // Only depend on report ID and token
 
-  const finalLoading = baseLoading || isLoading;
-  const finalError = baseError || error;
+  const finalLoading = loading || isLoadingAlignment;
+  const finalError = error || alignmentError;
+
+  console.log("[Alignment] States:", {
+    loading,
+    isLoadingAlignment,
+    finalLoading,
+    selectedReport: !!selectedReport,
+    alignmentData: !!alignmentData,
+    error,
+    alignmentError
+  });
 
   if (finalLoading) return <AlignmentLoading />;
 
@@ -134,7 +109,7 @@ export default function AlignmentPage() {
   if (!selectedProjectId || !token) return <AlignmentNoProject />;
 
 
-  if (!selectedReport) return <AlignmentNoData />;
+  if (!selectedReport || !alignmentData) return <AlignmentNoData />;
 
   return (
     <div className="space-y-6">
@@ -147,7 +122,6 @@ export default function AlignmentPage() {
             currentPage="Alignment"
             showReportSelector={true}
             token={token}
-            onReportSelect={setBaseSelectedReport}
           />
         )}
 
@@ -166,7 +140,7 @@ export default function AlignmentPage() {
             </div>
             <span className="text-2xl sm:text-3xl font-bold text-primary-500">
               {(
-                selectedReport.alignmentData.summary.overallAlignmentScore *
+                alignmentData.summary.overallAlignmentScore *
                 100
               ).toFixed(0)}
               %
@@ -188,7 +162,7 @@ export default function AlignmentPage() {
               <CardContent className="p-0">
                 <div className="p-4 sm:p-6">
                   <AttributeScoresByModelTable
-                    results={selectedReport.alignmentData}
+                    results={alignmentData}
                   />
                 </div>
                 <div className="px-6 py-3 bg-gray-50/80 border-t border-gray-200">

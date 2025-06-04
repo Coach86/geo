@@ -157,23 +157,6 @@ export default function VisibilityPage() {
             currentPage="Visibility"
             showReportSelector={true}
             token={token}
-                          model: mmr.model,
-                          mentions: mmr.mentionsRate,
-                          score: mmr.mentionsRate / 10,
-                          rank: index + 1,
-                        });
-                      }
-                    );
-                  }
-                  return metrics;
-                })(),
-                arenaData: reportData.arena?.competitors || [],
-                brandName: reportData.brand || (report.metadata as any)?.brand || projectDetails.brandName,
-                topMentions: [],
-                spontaneousData: reportData.spontaneous,
-              };
-              setSelectedReport(processedReport);
-            }}
           />
         )}
 

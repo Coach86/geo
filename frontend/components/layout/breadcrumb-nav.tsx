@@ -68,7 +68,7 @@ export default function BreadcrumbNav({
       </div>
 
       {/* Report Selector (if applicable) */}
-      {showReportSelector && token && selectedProject && onReportSelect && (
+      {showReportSelector && token && selectedProject && (
         <>
           <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
           <div className="flex-shrink-0">
