@@ -71,9 +71,9 @@ export default function SentimentPage() {
     const toneData = reportData.tone || {};
     const questions = toneData.questions || [];
 
-    // Calculate sentiment counts
+    // Calculate sentiment counts with error handling
     const allResults = questions.flatMap((q: any) => q.results || []);
-    const sentimentCounts = {
+    const sentimentCounts = allResults.length > 0 ? {
       positive: allResults.filter((r: any) => r.status === "green")
         .length,
       neutral: allResults.filter((r: any) => r.status === "yellow")
@@ -81,6 +81,11 @@ export default function SentimentPage() {
       negative: allResults.filter((r: any) => r.status === "red")
         .length,
       total: allResults.length,
+    } : {
+      positive: 0,
+      neutral: 0,
+      negative: 0,
+      total: 0,
     };
 
     // Extract sentiment score from KPI
@@ -263,20 +268,24 @@ export default function SentimentPage() {
           <div className="space-y-6 fade-in-section is-visible">
             {/* Overall Sentiment Score */}
             <SentimentOverview
-              sentimentScore={selectedReport.sentimentScore}
-              totalResponses={selectedReport.sentimentCounts.total}
+              sentimentScore={selectedReport.sentimentScore || 0}
+              totalResponses={selectedReport.sentimentCounts?.total || 0}
             />
 
             {/* Sentiment Distribution */}
-            <SentimentDistribution
-              sentimentCounts={selectedReport.sentimentCounts}
-            />
+            {selectedReport.sentimentCounts && (
+              <SentimentDistribution
+                sentimentCounts={selectedReport.sentimentCounts}
+              />
+            )}
 
             {/* Sentiment Heatmap */}
-            <SentimentHeatmap
-              sentimentHeatmap={selectedReport.sentimentHeatmap}
-              onCellClick={handleCellClick}
-            />
+            {selectedReport.sentimentHeatmap && (
+              <SentimentHeatmap
+                sentimentHeatmap={selectedReport.sentimentHeatmap}
+                onCellClick={handleCellClick}
+              />
+            )}
           </div>
         )}
 
