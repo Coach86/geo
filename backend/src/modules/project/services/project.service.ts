@@ -65,6 +65,22 @@ export class ProjectService {
     private readonly llmService: LlmService,
   ) {}
 
+  /**
+   * Strips protocol (http://, https://, etc.) from a URL
+   * @param url - The URL to process
+   * @returns The URL without protocol
+   */
+  private stripUrlProtocol(url: string): string {
+    if (!url) return '';
+    
+    // Remove common protocols
+    return url
+      .replace(/^https?:\/\//i, '')  // Remove http:// or https://
+      .replace(/^ftp:\/\//i, '')      // Remove ftp://
+      .replace(/^\/\//i, '')          // Remove protocol-relative //
+      .trim();
+  }
+
   async create(createProjectDto: CreateProjectDto): Promise<Project> {
     try {
       let project: Project;
@@ -119,7 +135,7 @@ export class ProjectService {
           projectId: uuidv4(),
           name: createProjectDto.data.name,
           brandName: createProjectDto.data.brandName || 'Unknown',
-          website: createProjectDto.data.website || '',
+          website: this.stripUrlProtocol(createProjectDto.data.website || ''),
           industry: createProjectDto.data.industry || 'Unknown',
           market: createProjectDto.data.market,
           shortDescription: createProjectDto.data.shortDescription || '',
@@ -303,7 +319,7 @@ export class ProjectService {
       return {
         projectId: uuidv4(),
         brandName: mainProject.brandName,
-        website: url,
+        website: this.stripUrlProtocol(url),
         industry: mainProject.industry,
         market: market,
         shortDescription: mainProject.shortDescription,

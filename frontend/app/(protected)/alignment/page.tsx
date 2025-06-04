@@ -128,50 +128,49 @@ export default function AlignmentPage() {
 
         {/* Main Content */}
         <div className="space-y-8">
-          {/* Overall Alignment Snapshot Header (keep this) */}
-          <div className="w-full bg-white rounded-lg shadow-md border border-gray-200 px-6 py-6 flex items-center justify-between">
-            <div className="text-left">
-              <h2 className="text-lg font-semibold text-gray-700">
-                Overall Alignment Snapshot
-              </h2>
-              <p className="text-xs text-gray-500 mt-1">
-                Average alignment across all models.
-              </p>
-            </div>
-            <span className="text-2xl sm:text-3xl font-bold text-primary-500">
-              {(
-                alignmentData.summary.overallAlignmentScore *
-                100
-              ).toFixed(0)}
-              %
-            </span>
-          </div>
+          {/* Overall Alignment Snapshot Header */}
+          <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
+            <CardContent className="px-6 py-6">
+              <div className="flex items-center justify-between">
+                <div className="text-left">
+                  <h2 className="text-lg font-semibold text-mono-700">
+                    Overall Alignment Snapshot
+                  </h2>
+                  <p className="text-sm text-mono-400 mt-1">
+                    Average alignment across all models
+                  </p>
+                </div>
+                <div className="text-right">
+                  <div className="text-3xl font-bold text-primary-600">
+                    {(
+                      alignmentData.summary.overallAlignmentScore *
+                      100
+                    ).toFixed(0)}%
+                  </div>
+                  <p className="text-sm text-mono-400 mt-1">
+                    Alignment Score
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           <div>
-            <Card className="w-full bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
-              <CardHeader className="px-6 py-5 border-b border-gray-200 bg-gray-50/80">
-                <CardTitle className="text-lg font-semibold text-gray-700">
+            <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg font-semibold text-mono-700">
                   Attribute Scores by Model
                 </CardTitle>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-sm text-mono-400 mt-1">
                   Detailed breakdown of alignment scores for each attribute
                   across different LLMs. Click on a score cell for an in-depth
                   view.
                 </p>
               </CardHeader>
-              <CardContent className="p-0">
-                <div className="p-4 sm:p-6">
-                  <AttributeScoresByModelTable
-                    results={alignmentData}
-                  />
-                </div>
-                <div className="px-6 py-3 bg-gray-50/80 border-t border-gray-200">
-                  <p className="text-xs text-gray-500">
-                    Data sourced from the latest brand intelligence report.
-                    Alignment scores are calculated based on attribute
-                    alignment and accuracy metrics.
-                  </p>
-                </div>
+              <CardContent>
+                <AttributeScoresByModelTable
+                  results={alignmentData}
+                />
               </CardContent>
             </Card>
           </div>

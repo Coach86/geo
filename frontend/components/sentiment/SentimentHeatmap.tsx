@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ModelIcon } from "@/components/ui/model-icon";
+import { ModelDisplay } from "@/components/shared/ModelDisplay";
 
 interface SentimentHeatmapProps {
   sentimentHeatmap: {
@@ -12,7 +12,7 @@ interface SentimentHeatmapProps {
       status: string;
     }[];
   }[];
-  onCellClick?: (model: string) => void;
+  onCellClick?: (model: string, sentiment: string, status: string) => void;
 }
 
 export function SentimentHeatmap({ sentimentHeatmap, onCellClick }: SentimentHeatmapProps) {
@@ -22,27 +22,27 @@ export function SentimentHeatmap({ sentimentHeatmap, onCellClick }: SentimentHea
     switch (status) {
       case "green":
         return {
-          bg: "#E3F2FD",
-          text: "#0D47A1",
-          border: "#90CAF9",
+          bg: "rgb(4 191 145 / 0.05)",
+          text: "rgb(4 191 145)",
+          border: "rgb(4 191 145 / 0.2)",
         };
       case "yellow":
         return {
-          bg: "#EDE7F6",
-          text: "#4527A0",
-          border: "#B39DDB",
+          bg: "rgb(190 81 3 / 0.05)",
+          text: "rgb(190 81 3)",
+          border: "rgb(190 81 3 / 0.2)",
         };
       case "red":
         return {
-          bg: "#FCE4EC",
-          text: "#AD1457",
-          border: "#F48FB1",
+          bg: "rgb(220 38 38 / 0.05)",
+          text: "rgb(220 38 38)",
+          border: "rgb(220 38 38 / 0.2)",
         };
       default:
         return {
-          bg: "#F5F5F5",
-          text: "#616161",
-          border: "#E0E0E0",
+          bg: "rgb(245 245 247)",
+          text: "rgb(72 72 74)",
+          border: "rgb(238 238 238)",
         };
     }
   };
@@ -66,10 +66,10 @@ export function SentimentHeatmap({ sentimentHeatmap, onCellClick }: SentimentHea
       <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
         <CardHeader className="pb-4">
           <div>
-            <CardTitle className="text-lg font-semibold text-dark-700">
+            <CardTitle className="text-lg font-semibold text-mono-700">
               Sentiment Heatmap
             </CardTitle>
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-sm text-mono-400 mt-1">
               Model sentiment analysis across different prompts
             </p>
           </div>
@@ -80,19 +80,16 @@ export function SentimentHeatmap({ sentimentHeatmap, onCellClick }: SentimentHea
             <table className="w-full min-w-[600px] border-collapse">
               <thead>
                 <tr>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 border-b-2 border-gray-200 w-1/3">
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-mono-700 border-b-2 border-mono-200 w-1/3">
                     Prompts
                   </th>
                   {/* Get unique models from the first question */}
                   {sentimentHeatmap[0]?.results.map((result, index) => (
                     <th
                       key={index}
-                      className="px-4 py-3 text-center text-sm font-semibold text-gray-700 border-b-2 border-gray-200"
+                      className="px-4 py-3 text-center text-sm font-semibold text-mono-700 border-b-2 border-mono-200"
                     >
-                      <div className="flex items-center justify-center gap-1">
-                        <ModelIcon model={result.model} size="xs" />
-                        {result.model}
-                      </div>
+                      <ModelDisplay model={result.model} size="xs" className="justify-center" />
                     </th>
                   ))}
                 </tr>
@@ -100,7 +97,7 @@ export function SentimentHeatmap({ sentimentHeatmap, onCellClick }: SentimentHea
               <tbody>
                 {sentimentHeatmap.map((q, qIndex) => (
                   <tr key={qIndex}>
-                    <td className="px-4 py-3 border-b border-gray-200 font-medium">
+                    <td className="px-4 py-3 border-b border-mono-200 font-medium text-mono-700">
                       {q.question.split("\n").map((line, i) => (
                         <div key={i}>{line}</div>
                       ))}
@@ -112,7 +109,7 @@ export function SentimentHeatmap({ sentimentHeatmap, onCellClick }: SentimentHea
                       return (
                         <td
                           key={mIndex}
-                          className={`px-4 py-3 border-b border-gray-200 text-center ${
+                          className={`px-4 py-3 border-b border-mono-200 text-center ${
                             onCellClick ? "cursor-pointer hover:opacity-80 transition-opacity" : ""
                           }`}
                           style={{
@@ -121,7 +118,7 @@ export function SentimentHeatmap({ sentimentHeatmap, onCellClick }: SentimentHea
                             borderLeft: `1px solid ${colors.border}`,
                             borderRight: `1px solid ${colors.border}`,
                           }}
-                          onClick={() => onCellClick?.(result.model)}
+                          onClick={() => onCellClick?.(result.model, result.sentiment, result.status)}
                           title={onCellClick ? `Click to view ${result.model} analysis` : undefined}
                         >
                           <div className="font-medium">{sentimentLabel}</div>
@@ -134,7 +131,7 @@ export function SentimentHeatmap({ sentimentHeatmap, onCellClick }: SentimentHea
             </table>
           </div>
         ) : (
-          <p className="text-sm text-gray-400 italic">No sentiment heatmap data available.</p>
+          <p className="text-sm text-mono-400 italic">No sentiment heatmap data available.</p>
         )}
       </CardContent>
     </Card>

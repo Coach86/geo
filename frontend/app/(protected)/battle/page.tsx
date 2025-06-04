@@ -1,12 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useAuth } from "@/providers/auth-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { ModelDisplay } from "@/components/shared/ModelDisplay";
 import { ReportSelector } from "@/components/shared/ReportSelector";
 import { useReportData } from "@/hooks/use-report-data";
 import type { ReportResponse } from "@/types/reports";
@@ -52,31 +50,15 @@ export default function BattlePage() {
     };
   });
 
-  const [selectedCompetitors, setSelectedCompetitors] = useState<string[]>(
-    projectDetails?.competitors || []
-  );
+  // All competitors are always selected
+  const selectedCompetitors = projectDetails?.competitors || [];
 
-  // Update selected competitors when project changes
-  useEffect(() => {
-    if (projectDetails?.competitors) {
-      setSelectedCompetitors(projectDetails.competitors);
-    }
-  }, [projectDetails]);
-
-  // Filter brand battle data based on selected competitors
-  const getFilteredBattleData = (): BrandBattleData | null => {
-    if (!selectedReport?.brandBattle || selectedCompetitors.length === 0)
+  // Get brand battle data (all competitors are included)
+  const getBattleData = (): BrandBattleData | null => {
+    if (!selectedReport?.brandBattle || !projectDetails?.competitors || projectDetails.competitors.length === 0)
       return null;
 
-    // Ensure competitorAnalyses exists
-    const analyses = selectedReport.brandBattle.competitorAnalyses || [];
-    
-    return {
-      ...selectedReport.brandBattle,
-      competitorAnalyses: analyses.filter(
-        (analysis) => selectedCompetitors.includes(analysis.competitor)
-      ),
-    };
+    return selectedReport.brandBattle;
   };
 
   if (!selectedProjectId) {
@@ -105,7 +87,7 @@ export default function BattlePage() {
           projects={filteredProjects}
           selectedProject={selectedProject}
           onProjectSelect={setSelectedProject}
-          currentPage="Arena"
+          currentPage="Competition"
           showReportSelector={true}
           token={token}
           onReportSelect={(report) => {
@@ -159,61 +141,13 @@ export default function BattlePage() {
       {/* Report Content */}
       {!loading && selectedReport && (
         <div className="space-y-6">
-          {/* Competitor Selection */}
-          {projectDetails?.competitors && projectDetails.competitors.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold text-dark-700">
-                  Select Competitors to Analyze
-                </CardTitle>
-                <p className="text-sm text-gray-600 mt-1">
-                  Choose which competitors to include in the brand battle
-                  analysis
-                </p>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-4">
-                  {projectDetails.competitors.map((competitor) => (
-                    <div
-                      key={competitor}
-                      className="flex items-center space-x-2"
-                    >
-                      <Checkbox
-                        id={competitor}
-                        checked={selectedCompetitors.includes(competitor)}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setSelectedCompetitors((prev) => [
-                              ...prev,
-                              competitor,
-                            ]);
-                          } else {
-                            setSelectedCompetitors((prev) =>
-                              prev.filter((c) => c !== competitor)
-                            );
-                          }
-                        }}
-                      />
-                      <Label
-                        htmlFor={competitor}
-                        className="text-sm font-medium cursor-pointer"
-                      >
-                        {competitor}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
           {/* Brand Battle Table */}
-          {getFilteredBattleData() &&
-          getFilteredBattleData()!.competitorAnalyses &&
-          getFilteredBattleData()!.competitorAnalyses.length > 0 ? (
+          {getBattleData() &&
+          getBattleData()!.competitorAnalyses &&
+          getBattleData()!.competitorAnalyses.length > 0 ? (
             <BrandBattleTable
               brand={selectedReport.brandName}
-              data={getFilteredBattleData()!}
+              data={getBattleData()!}
             />
           ) : (
             <Card>
@@ -221,9 +155,7 @@ export default function BattlePage() {
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    {selectedCompetitors.length === 0
-                      ? "Please select at least one competitor to view the analysis."
-                      : "No brand battle data available for this report."}
+                    No brand battle data available for this report.
                   </AlertDescription>
                 </Alert>
               </CardContent>
@@ -239,7 +171,7 @@ export default function BattlePage() {
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                No battle reports available yet. Reports are generated weekly.
+                No competition reports available yet. Reports are generated weekly.
               </AlertDescription>
             </Alert>
           </CardContent>
@@ -267,28 +199,28 @@ function BrandBattleTable({
   );
 
   return (
-    <div className="mb-16 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-      <div className="px-6 py-5 border-b border-gray-100 bg-gray-50">
-        <h2 className="text-2xl font-bold text-gray-900">
+    <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-lg font-semibold text-mono-700">
           Brand Battle vs Pre‑selected Competitors
-        </h2>
-        <p className="text-sm text-gray-600 mt-1">
+        </CardTitle>
+        <p className="text-sm text-mono-400 mt-1">
           "Can you tell me the strengths and weaknesses of {brand} vs.
           competitor?"
         </p>
-      </div>
+      </CardHeader>
 
-      <div className="p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <CardContent>
+        <div className="space-y-6">
           {data.competitorAnalyses.map((competitor, index) => (
             <div
               key={competitor.competitor}
-              className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden"
+              className="border border-mono-200 rounded-lg overflow-hidden"
             >
-              <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-                <h3 className="text-base font-bold text-gray-800">
+              <div className="bg-mono-100 px-4 py-3 border-b border-mono-200">
+                <h3 className="text-base font-bold text-mono-900">
                   {brand} vs{" "}
-                  <span className="text-[#805AD5]">
+                  <span className="text-primary-600">
                     {competitor.competitor}
                   </span>
                 </h3>
@@ -298,14 +230,14 @@ function BrandBattleTable({
                   <table className="w-full border-collapse table-fixed">
                     <thead>
                       <tr>
-                        <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500 border-b-2 border-gray-200 w-[40px]"></th>
+                        <th className="px-2 py-2 text-left text-sm font-semibold text-mono-500 border-b-2 border-mono-200 w-[60px]"></th>
                         {models.map((model, mIndex) => {
                           return (
                             <th
                               key={mIndex}
-                              className="px-2 py-2 text-center text-xs font-bold text-gray-700 border-b-2 border-gray-200"
+                              className="px-3 py-2 text-left text-sm font-semibold text-mono-700 border-b-2 border-mono-200"
                             >
-                              {model}
+                              <ModelDisplay model={model} size="xs" />
                             </th>
                           );
                         })}
@@ -313,8 +245,8 @@ function BrandBattleTable({
                     </thead>
                     <tbody>
                       {/* Strengths row */}
-                      <tr className="bg-[#E3F2FD]">
-                        <td className="px-2 py-2 border-b border-gray-200 font-bold text-[#0D47A1] text-sm text-center">
+                      <tr className="bg-accent-50">
+                        <td className="px-2 py-3 border-b border-mono-200 font-bold text-accent-700 text-sm text-center align-middle">
                           <div
                             className="flex items-center justify-center"
                             title="Strengths"
@@ -340,28 +272,30 @@ function BrandBattleTable({
                           return (
                             <td
                               key={mIndex}
-                              className="px-2 py-2 border-b border-gray-200 text-xs"
+                              className="px-3 py-3 border-b border-mono-200 align-top"
                             >
-                              {analysis?.strengths.map((strength, sIndex) => (
-                                <div
-                                  key={sIndex}
-                                  className="mb-1 flex items-start"
-                                >
-                                  <span className="text-[#2196F3] mr-1 mt-0.5 flex-shrink-0">
-                                    •
-                                  </span>
-                                  <span className="text-gray-800">
-                                    {strength}
-                                  </span>
-                                </div>
-                              ))}
+                              <div className="space-y-1">
+                                {analysis?.strengths.map((strength, sIndex) => (
+                                  <div
+                                    key={sIndex}
+                                    className="flex items-start text-sm"
+                                  >
+                                    <span className="text-accent-600 mr-1 flex-shrink-0">
+                                      •
+                                    </span>
+                                    <span className="text-mono-700">
+                                      {strength}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
                             </td>
                           );
                         })}
                       </tr>
                       {/* Weaknesses row */}
-                      <tr className="bg-[#FCE4EC]">
-                        <td className="px-2 py-2 font-bold text-[#AD1457] text-sm text-center">
+                      <tr className="bg-destructive-50">
+                        <td className="px-2 py-3 font-bold text-destructive-700 text-sm text-center align-middle">
                           <div
                             className="flex items-center justify-center"
                             title="Weaknesses"
@@ -385,20 +319,22 @@ function BrandBattleTable({
                             (a) => a.model === model
                           );
                           return (
-                            <td key={mIndex} className="px-2 py-2 text-xs">
-                              {analysis?.weaknesses.map((weakness, wIndex) => (
-                                <div
-                                  key={wIndex}
-                                  className="mb-1 flex items-start"
-                                >
-                                  <span className="text-[#C2185B] mr-1 mt-0.5 flex-shrink-0">
-                                    •
-                                  </span>
-                                  <span className="text-gray-800">
-                                    {weakness}
-                                  </span>
-                                </div>
-                              ))}
+                            <td key={mIndex} className="px-3 py-3 align-top">
+                              <div className="space-y-1">
+                                {analysis?.weaknesses.map((weakness, wIndex) => (
+                                  <div
+                                    key={wIndex}
+                                    className="flex items-start text-sm"
+                                  >
+                                    <span className="text-destructive-600 mr-1 flex-shrink-0">
+                                      •
+                                    </span>
+                                    <span className="text-mono-700">
+                                      {weakness}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
                             </td>
                           );
                         })}
@@ -414,42 +350,42 @@ function BrandBattleTable({
         {/* Common strengths and weaknesses section */}
         {((data.commonStrengths && data.commonStrengths.length > 0) ||
           (data.commonWeaknesses && data.commonWeaknesses.length > 0)) && (
-          <div className="mt-8 bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-            <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-              <h3 className="text-base font-bold text-gray-800">
+          <div className="mt-8 border border-mono-200 rounded-lg overflow-hidden">
+            <div className="bg-mono-100 px-4 py-3 border-b border-mono-200">
+              <h3 className="text-base font-bold text-mono-900">
                 Common Patterns Across Competitors
               </h3>
             </div>
             <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
               {data.commonStrengths && data.commonStrengths.length > 0 && (
-                <div className="bg-[#E3F2FD] p-3 rounded-lg">
-                  <h4 className="font-semibold text-[#0D47A1] mb-2">
+                <div className="bg-accent-50 p-3 rounded-lg border border-accent-200">
+                  <h4 className="font-semibold text-accent-700 mb-2">
                     Common Strengths
                   </h4>
                   <ul className="space-y-1">
                     {data.commonStrengths.map((strength, index) => (
                       <li key={index} className="flex items-start text-sm">
-                        <span className="text-[#2196F3] mr-1 mt-0.5 flex-shrink-0">
+                        <span className="text-accent-600 mr-1 mt-0.5 flex-shrink-0">
                           •
                         </span>
-                        <span className="text-gray-800">{strength}</span>
+                        <span className="text-mono-700">{strength}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
               )}
               {data.commonWeaknesses && data.commonWeaknesses.length > 0 && (
-                <div className="bg-[#FCE4EC] p-3 rounded-lg">
-                  <h4 className="font-semibold text-[#AD1457] mb-2">
+                <div className="bg-destructive-50 p-3 rounded-lg border border-destructive-200">
+                  <h4 className="font-semibold text-destructive-700 mb-2">
                     Common Weaknesses
                   </h4>
                   <ul className="space-y-1">
                     {data.commonWeaknesses.map((weakness, index) => (
                       <li key={index} className="flex items-start text-sm">
-                        <span className="text-[#C2185B] mr-1 mt-0.5 flex-shrink-0">
+                        <span className="text-destructive-600 mr-1 mt-0.5 flex-shrink-0">
                           •
                         </span>
-                        <span className="text-gray-800">{weakness}</span>
+                        <span className="text-mono-700">{weakness}</span>
                       </li>
                     ))}
                   </ul>
@@ -458,7 +394,7 @@ function BrandBattleTable({
             </div>
           </div>
         )}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

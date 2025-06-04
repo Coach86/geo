@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { ModelIcon } from "@/components/ui/model-icon";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { Eye } from "lucide-react";
 
 interface ModeMetric {
@@ -25,6 +27,7 @@ interface VisibilityAnalysisProps {
   arenaData: ArenaData[];
   brandName: string;
   selectedCompetitors?: string[];
+  onCompetitorToggle?: (competitorName: string, checked: boolean) => void;
 }
 
 export function VisibilityAnalysis({
@@ -33,6 +36,7 @@ export function VisibilityAnalysis({
   arenaData,
   brandName,
   selectedCompetitors = [],
+  onCompetitorToggle,
 }: VisibilityAnalysisProps) {
 
   // Get model badge color
@@ -71,6 +75,42 @@ export function VisibilityAnalysis({
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
+            {/* Competitor Selection */}
+            {arenaData && arenaData.length > 0 && onCompetitorToggle && (
+              <div className="pb-4 border-b border-gray-200">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                  Select Competitors to Compare
+                </h4>
+                <div className="flex flex-wrap gap-4">
+                  {arenaData
+                    .filter(
+                      (comp) =>
+                        comp.name.toLowerCase() !== brandName.toLowerCase()
+                    )
+                    .map((competitor) => (
+                      <div
+                        key={competitor.name}
+                        className="flex items-center space-x-2"
+                      >
+                        <Checkbox
+                          id={competitor.name}
+                          checked={selectedCompetitors.includes(competitor.name)}
+                          onCheckedChange={(checked) => {
+                            onCompetitorToggle(competitor.name, checked as boolean);
+                          }}
+                        />
+                        <Label
+                          htmlFor={competitor.name}
+                          className="text-sm font-medium cursor-pointer"
+                        >
+                          {competitor.name}
+                        </Label>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
             {/* Overall Mention Rate */}
             <div className="pb-4 border-b border-gray-200">
               <h4 className="text-sm font-semibold text-gray-700 mb-4">

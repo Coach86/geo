@@ -118,10 +118,16 @@ const config = {
           600: "#A44703",
         },
         destructive: {
-          50: "#FFEBEA",
-          100: "#FFD6D4",
+          50: "#FEE2E2",
+          100: "#FECACA",
+          200: "#FCA5A5",
+          300: "#F87171",
+          400: "#EF4444",
           500: "#DC2626", // Keeping a true red for errors
           600: "#B91C1C",
+          700: "#991B1B",
+          800: "#7F1D1D",
+          900: "#450A0A",
           foreground: "#FFFFFF",
         },
 

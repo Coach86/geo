@@ -110,6 +110,7 @@ export default function SentimentPage() {
     };
   });
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
 
@@ -124,8 +125,9 @@ export default function SentimentPage() {
   };
 
   // Handle cell click from heatmap
-  const handleCellClick = (model: string) => {
+  const handleCellClick = (model: string, sentiment: string, status: string) => {
     setSelectedModel(model);
+    setSelectedStatus(status);
     setIsDrawerOpen(true);
   };
 
@@ -137,45 +139,45 @@ export default function SentimentPage() {
     );
   };
 
-  // Helper functions from tone-section
-  const getSentimentValue = (sentiment: string) => {
-    return Number.parseFloat(sentiment);
-  };
-
-  const getSentimentPosition = (sentiment: string) => {
-    const value = getSentimentValue(sentiment);
-    return ((value + 1) / 2) * 100 - 1;
-  };
-
-  const getSentimentPercentage = (sentiment: string) => {
-    return Math.round(getSentimentValue(sentiment) * 100);
+  // Helper function to get position based on status
+  const getSentimentPositionByStatus = (status: string) => {
+    switch (status) {
+      case "red":
+        return 0; // Negative position (far left)
+      case "yellow":
+        return 49; // Neutral position (center)
+      case "green":
+        return 98; // Positive position (far right)
+      default:
+        return 49; // Default to neutral
+    }
   };
 
   const getCellColor = (status: string) => {
     switch (status) {
       case "green":
         return {
-          bg: "#E3F2FD",
-          text: "#0D47A1",
-          border: "#90CAF9",
+          bg: "rgb(4 191 145 / 0.05)",
+          text: "rgb(4 191 145)",
+          border: "rgb(4 191 145 / 0.2)",
         };
       case "yellow":
         return {
-          bg: "#EDE7F6",
-          text: "#4527A0",
-          border: "#B39DDB",
+          bg: "rgb(190 81 3 / 0.05)",
+          text: "rgb(190 81 3)",
+          border: "rgb(190 81 3 / 0.2)",
         };
       case "red":
         return {
-          bg: "#FCE4EC",
-          text: "#AD1457",
-          border: "#F48FB1",
+          bg: "rgb(220 38 38 / 0.05)",
+          text: "rgb(220 38 38)",
+          border: "rgb(220 38 38 / 0.2)",
         };
       default:
         return {
-          bg: "#F5F5F5",
-          text: "#616161",
-          border: "#E0E0E0",
+          bg: "rgb(245 245 247)",
+          text: "rgb(72 72 74)",
+          border: "rgb(238 238 238)",
         };
     }
   };
@@ -326,8 +328,8 @@ export default function SentimentPage() {
           }`}
         >
           {/* Drawer Header */}
-          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-800">
+          <div className="px-6 py-4 border-b border-mono-200 flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-mono-900">
               {selectedModel} Analysis
             </h3>
             <Button
@@ -343,22 +345,20 @@ export default function SentimentPage() {
           <div className="p-6 overflow-y-auto h-[calc(100%-73px)]">
             {(() => {
               const modelData = getModelData();
-              if (!modelData) return <div>No data available</div>;
+              if (!modelData || !selectedStatus) return <div>No data available</div>;
 
-              const sentimentPosition = getSentimentPosition(
-                modelData.sentiment
-              );
-              const sentimentPercentage = getSentimentPercentage(
-                modelData.sentiment
-              );
-              const colors = getCellColor(modelData.status);
+              const sentimentPosition = getSentimentPositionByStatus(selectedStatus);
+              const colors = getCellColor(selectedStatus);
+              const sentimentLabel = selectedStatus === "green" ? "Positive" : 
+                                    selectedStatus === "yellow" ? "Neutral" : 
+                                    selectedStatus === "red" ? "Negative" : "Unknown";
 
               return (
                 <div className="space-y-6">
                   {/* Model Overview */}
                   <div>
                     <div className="flex items-center justify-between mb-4">
-                      <h4 className="font-semibold text-gray-800">
+                      <h4 className="font-semibold text-mono-900">
                         {selectedModel}
                       </h4>
                       <div
@@ -368,20 +368,20 @@ export default function SentimentPage() {
                           color: colors.text,
                         }}
                       >
-                        {sentimentPercentage}%
+                        {sentimentLabel}
                       </div>
                     </div>
 
                     {/* Sentiment gauge */}
                     <div className="mb-6">
-                      <div className="relative h-3 bg-gray-200 rounded-full overflow-hidden mb-2">
-                        <div className="absolute top-0 bottom-0 left-0 right-0 bg-gradient-to-r from-[#C2185B] via-[#673AB7] to-[#2196F3]"></div>
+                      <div className="relative h-3 bg-mono-200 rounded-full overflow-hidden mb-2">
+                        <div className="absolute top-0 bottom-0 left-0 right-0 bg-gradient-to-r from-destructive-500 via-primary-500 to-accent-500"></div>
                         <div
-                          className="absolute top-1/2 transform -translate-y-1/2 w-4 h-4 rounded-full bg-black border-2 border-white shadow-sm"
+                          className="absolute top-1/2 transform -translate-y-1/2 w-4 h-4 rounded-full bg-mono-900 border-2 border-white shadow-sm transition-all duration-300"
                           style={{ left: `${sentimentPosition}%` }}
                         ></div>
                       </div>
-                      <div className="flex justify-between text-xs text-gray-500">
+                      <div className="flex justify-between text-xs text-mono-400">
                         <span>Negative</span>
                         <span>Neutral</span>
                         <span>Positive</span>
@@ -391,21 +391,21 @@ export default function SentimentPage() {
 
                   {/* Positive Keywords */}
                   <div>
-                    <div className="text-sm font-medium text-[#0D47A1] mb-2">
+                    <div className="text-sm font-medium text-accent-700 mb-2">
                       Main positive keywords:
                     </div>
-                    <div className="bg-[#E3F2FD] p-4 rounded-lg border border-[#90CAF9]">
+                    <div className="bg-accent-50 p-4 rounded-lg border border-accent-200">
                       {modelData.positiveKeywords &&
                       modelData.positiveKeywords.length > 0 ? (
                         <ul className="list-disc pl-5 text-sm space-y-1">
                           {modelData.positiveKeywords.map((item, i) => (
-                            <li key={i} className="text-[#0D47A1]">
+                            <li key={i} className="text-accent-700">
                               {item.trim()}
                             </li>
                           ))}
                         </ul>
                       ) : (
-                        <p className="text-sm italic text-[#0D47A1]">
+                        <p className="text-sm italic text-accent-600">
                           No positive keywords found
                         </p>
                       )}
@@ -414,21 +414,21 @@ export default function SentimentPage() {
 
                   {/* Negative Keywords */}
                   <div>
-                    <div className="text-sm font-medium text-[#AD1457] mb-2">
+                    <div className="text-sm font-medium text-destructive-700 mb-2">
                       Main negative keywords:
                     </div>
-                    <div className="bg-[#FCE4EC] p-4 rounded-lg border border-[#F48FB1]">
+                    <div className="bg-destructive-50 p-4 rounded-lg border border-destructive-200">
                       {modelData.negativeKeywords &&
                       modelData.negativeKeywords.length > 0 ? (
                         <ul className="list-disc pl-5 text-sm space-y-1">
                           {modelData.negativeKeywords.map((item, i) => (
-                            <li key={i} className="text-[#AD1457]">
+                            <li key={i} className="text-destructive-700">
                               {item.trim()}
                             </li>
                           ))}
                         </ul>
                       ) : (
-                        <p className="text-sm italic text-[#AD1457]">
+                        <p className="text-sm italic text-destructive-600">
                           No negative keywords found
                         </p>
                       )}

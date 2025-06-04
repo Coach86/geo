@@ -6,8 +6,6 @@ import { useOnboarding } from "@/providers/onboarding-provider";
 import { Button } from "@/components/ui/button";
 import {
   ArrowRight,
-  Check,
-  Phone,
   CheckCircle2,
 } from "lucide-react";
 import { FeatureExampleDialog } from "@/components/shared/dialogs/feature-example-dialog";
@@ -16,20 +14,11 @@ import { usePlans } from "@/hooks/use-plans";
 import { redirectToStripeCheckout } from "@/lib/stripe-utils";
 import { useAuth } from "@/providers/auth-provider";
 import { FaqSection } from "./faq-section";
+import { calculateSavings } from "./pricing-utils";
 import { 
-  RequirementsCalculator, 
-  calculateUserRequirements, 
-  getRecommendedPlan 
-} from "./requirements-calculator";
-import { calculateSavings, getYearlyPrice } from "./pricing-utils";
-import { 
-  coreFeatures, 
-  whyItMatters, 
   trustSafetyItems
 } from "./pricing-constants";
 import { staticPlans } from "./static-plans";
-import { RecommendationBanner } from "./recommendation-banner";
-import { ComparisonTable } from "./comparison-table";
 
 interface PricingPageProps {
   forcedRecommendedPlan?: string;
@@ -68,14 +57,10 @@ export default function PricingPage({
     });
   }, [formData]);
 
-  // Calculate user requirements based on onboarding data
-  const userRequirements = calculateUserRequirements(formData);
-  const recommendedPlan = getRecommendedPlan(userRequirements, forcedRecommendedPlan);
-
-  // Set the selected plan to the recommended plan by default
+  // Set the selected plan to growth by default
   const [selectedPlan, setSelectedPlan] = useState<
     "starter" | "growth" | "enterprise" | "agencies"
-  >(recommendedPlan as any);
+  >("growth");
 
   const handleStartTrial = async (
     planId: string | undefined,
@@ -199,53 +184,8 @@ export default function PricingPage({
         <p className="text-xl text-mono-600 mb-8 max-w-3xl mx-auto">
           Get actionable insights from ChatGPT, Claude, Gemini and more.
         </p>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10">
-          <div className="bg-mono-50 rounded-xl p-6 max-w-xl w-full">
-            <ul className="space-y-3 text-left">
-              {[
-                "Discover what AIs say about you (and competitors)",
-                "Fix misalignment and optimize messaging",
-                "Track visibility and perception across models",
-              ].map((item, index) => (
-                <li key={index} className="flex items-start">
-                  <Check className="h-5 w-5 text-accent-500 mr-3 mt-0.5 flex-shrink-0" />
-                  <span className="text-mono-700">{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Button
-            size="lg"
-            className="bg-accent-500 hover:bg-accent-600 text-white px-8"
-          >
-            Get Started
-          </Button>
-          <Button
-            size="lg"
-            variant="outline"
-            className="border-accent-200 text-accent-700"
-          >
-            <Phone className="h-4 w-4 mr-2" /> Contact Sales
-          </Button>
-        </div>
       </section>
 
-      {/* Recommendation Banner - Always show */}
-      <RecommendationBanner
-        recommendedPlan={recommendedPlan}
-        plans={plans}
-        onStartTrial={handleStartTrial}
-      />
-
-      {/* Requirements Summary - Always show */}
-      <RequirementsCalculator
-        formData={formData}
-        recommendedPlan={recommendedPlan}
-        onBackToOnboarding={() => router.push("/onboarding")}
-        isDataLoaded={isDataLoaded}
-      />
 
       {/* Pricing Toggle */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 mb-8">
@@ -294,7 +234,7 @@ export default function PricingPage({
                 pricePeriod={plan.pricePeriod}
                 billedAnnually={plan.billedAnnually}
                 savings={plan.savings}
-                isRecommended={plan.name.toLowerCase() === recommendedPlan}
+                isRecommended={false}
                 isMostPopular={plan.isPopular}
                 ctaText={plan.ctaText}
                 ctaAction={plan.ctaAction}
@@ -325,7 +265,7 @@ export default function PricingPage({
                 pricePeriod={pricingPlans[3].pricePeriod}
                 billedAnnually={pricingPlans[3].billedAnnually}
                 savings={pricingPlans[3].savings}
-                isRecommended={recommendedPlan === "agencies"}
+                isRecommended={false}
                 isMostPopular={pricingPlans[3].isPopular}
                 ctaText={pricingPlans[3].ctaText}
                 ctaAction={pricingPlans[3].ctaAction}
@@ -343,8 +283,6 @@ export default function PricingPage({
         </div>
       </section>
 
-      {/* Feature Comparison Table */}
-      <ComparisonTable recommendedPlan={recommendedPlan} />
 
       {/* Trust & Safety Section */}
       <section className="max-w-4xl mx-auto px-4 sm:px-6 mb-16">
@@ -368,23 +306,6 @@ export default function PricingPage({
       {/* FAQ Accordion */}
       <FaqSection />
 
-      {/* Final CTA Section */}
-      <section className="max-w-4xl mx-auto px-4 sm:px-6 mb-16">
-        <div className="bg-accent-50 border border-accent-200 rounded-2xl p-10 text-center">
-          <h2 className="text-2xl md:text-3xl font-bold mb-4 text-mono-900">
-            See how your brand performs in AI
-          </h2>
-          <p className="text-lg text-mono-600 mb-8 max-w-2xl mx-auto">
-            Subscribe today and unlock valuable insights
-          </p>
-          <Button
-            size="lg"
-            className="bg-accent-500 hover:bg-accent-600 text-white px-8"
-          >
-            Get Started <ArrowRight className="ml-2 h-5 w-5" />
-          </Button>
-        </div>
-      </section>
 
       {/* Feature Example Dialog */}
       <FeatureExampleDialog
