@@ -8,6 +8,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   AlertCircle,
   Globe,
   Search,
@@ -95,7 +101,7 @@ export default function CitationsPage() {
     if (!citationsData || citationsData.citations.length === 0) return;
 
     // Prepare CSV headers
-    const headers = ["Website", "Search Queries", "Link"];
+    const headers = ["Source", "Search Queries", "Link"];
 
     // Prepare CSV rows
     const rows = citationsData.citations.map((citation) => {
@@ -265,16 +271,6 @@ export default function CitationsPage() {
                         </Badge>
                       </div>
                     </div>
-                    <div className="pt-2 border-t">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">
-                          Total Citations
-                        </span>
-                        <span className="text-lg font-semibold text-gray-900">
-                          {citationsData.citations.length}
-                        </span>
-                      </div>
-                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -282,9 +278,14 @@ export default function CitationsPage() {
               {/* Top Sources */}
               <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
                 <CardHeader className="pb-4">
-                  <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-green-600" />
-                    Top 5 Sources
+                  <CardTitle className="text-lg font-semibold text-gray-900 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-green-600" />
+                      Top 5 Sources
+                    </div>
+                    <span className="text-sm font-normal text-gray-600">
+                      Total Citations: {citationsData.citations.length}
+                    </span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -348,11 +349,16 @@ export default function CitationsPage() {
               <CardContent>
                 {citationsData.citations.length > 0 ? (
                   <div className="overflow-x-auto bg-white rounded-lg border border-gray-200">
-                    <table className="w-full min-w-[600px] border-collapse">
+                    <table className="w-full min-w-[600px] border-collapse table-fixed">
+                      <colgroup>
+                        <col className="w-[45%]" />
+                        <col className="w-[35%]" />
+                        <col className="w-[20%]" />
+                      </colgroup>
                       <thead>
                         <tr className="bg-gray-50">
                           <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 border-b-2 border-gray-200">
-                            Website
+                            Source
                           </th>
                           <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 border-b-2 border-gray-200">
                             Search Queries
@@ -366,11 +372,20 @@ export default function CitationsPage() {
                         {citationsData.citations.map((citation, index) => (
                           <tr key={index} className="hover:bg-gray-50">
                             <td className="px-4 py-3 border-b border-gray-200">
-                              <div className="flex items-center gap-2">
-                                <LinkIcon className="h-4 w-4 text-gray-400" />
-                                <span className="font-medium text-gray-900">
-                                  {citation.website}
-                                </span>
+                              <div className="flex items-center gap-2 min-w-0">
+                                <LinkIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="font-medium text-gray-900 truncate cursor-default">
+                                        {citation.website}
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p className="max-w-xs break-all">{citation.website}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
                               </div>
                             </td>
                             <td className="px-4 py-3 border-b border-gray-200">

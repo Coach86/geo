@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { Info, Check, MessageSquare, LineChart, TrendingUp, Users, AlertCircle, ArrowRight } from "lucide-react"
+import { Info, MessageSquare, LineChart, TrendingUp, AlertCircle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
@@ -18,7 +18,7 @@ export default function PromptSelection() {
   const { token, isAuthenticated, isLoading: authLoading } = useAuth()
   const router = useRouter()
   const [editingPromptIndex, setEditingPromptIndex] = useState<number | null>(null)
-  const [editingPromptType, setEditingPromptType] = useState<"visibility" | "perception" | "comparison" | null>(null)
+  const [editingPromptType, setEditingPromptType] = useState<"visibility" | "perception" | null>(null)
   const [editingPromptValue, setEditingPromptValue] = useState("")
   const [isLoading, setIsLoading] = useState(true)
   const [showPricingDialog, setShowPricingDialog] = useState(false)
@@ -95,7 +95,7 @@ export default function PromptSelection() {
   }
 
   // Start editing a prompt
-  const startEditingPrompt = (type: "visibility" | "perception" | "comparison", index: number) => {
+  const startEditingPrompt = (type: "visibility" | "perception", index: number) => {
     setEditingPromptType(type)
     setEditingPromptIndex(index)
 
@@ -130,11 +130,6 @@ export default function PromptSelection() {
     setEditingPromptValue("")
   }
 
-  // Generate comparison prompts based on selected competitors
-  const selectedCompetitors = formData.competitors.filter((comp) => comp.selected)
-  const comparisonPrompts = selectedCompetitors.map(
-    (comp) => `${formData.brandName || "Your brand"} vs ${comp.name} — which is better?`,
-  )
 
   // Add new visibility prompt
   const addVisibilityPrompt = () => {
@@ -413,46 +408,6 @@ export default function PromptSelection() {
           </AccordionContent>
         </AccordionItem>
 
-        {/* Competitor Comparison Prompts */}
-        <AccordionItem value="comparison" className="border border-gray-200 rounded-md overflow-hidden shadow-sm">
-          <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-gray-50 group">
-            <div className="flex flex-col items-start">
-              <div className="flex items-center">
-                <Users className="h-5 w-5 text-accent-600 mr-2" />
-                <h2 className="text-lg font-semibold group-hover:text-accent-700 transition-colors">
-                  Competitor Comparison Prompts
-                </h2>
-                <Badge className="ml-2 bg-accent-100 text-accent-700">{selectedCompetitors.length} competitors</Badge>
-              </div>
-              <p className="text-sm text-gray-500 text-left">Auto-generated from your selected competitors</p>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent className="px-6 py-4 bg-gray-50">
-            <div className="space-y-3">
-              {comparisonPrompts.length > 0 ? (
-                comparisonPrompts.map((prompt, index) => (
-                  <Card key={index} className="border border-accent-200 bg-white shadow-sm">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm">{prompt}</p>
-                        <div className="flex items-center justify-center w-6 h-6 bg-accent-500 rounded-md">
-                          <Check className="h-3 w-3 text-white" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              ) : (
-                <div className="text-center py-6 bg-white rounded-md border border-gray-200">
-                  <Users className="h-10 w-10 text-gray-300 mx-auto mb-2" />
-                  <p className="text-sm text-gray-500 italic">
-                    No competitors selected. Please go back and select competitors to generate comparison prompts.
-                  </p>
-                </div>
-              )}
-            </div>
-          </AccordionContent>
-        </AccordionItem>
       </Accordion>
     </div>
   )

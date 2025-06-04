@@ -122,7 +122,11 @@ export class PlanService {
 
     const frontendUrl = this.configService.get('FRONTEND_URL') || 'http://localhost:3000';
 
-    const session = await this.stripe.checkout.sessions.create({
+    const isDevelopment = this.configService.get('NODE_ENV') !== 'production';
+    console.log('NODE_ENV:', this.configService.get('NODE_ENV'));
+    console.log('isDevelopment:', isDevelopment);
+    
+    const sessionConfig: Stripe.Checkout.SessionCreateParams = {
       mode: 'subscription',
       line_items: [
         {
@@ -137,7 +141,24 @@ export class PlanService {
       },
       success_url: `${frontendUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${frontendUrl}/cancel`,
-    });
+    };
+
+    // In development, apply a specific promotion code; in production, allow promotion codes
+    if (isDevelopment) {
+      // If you have a promotion code ID (starts with "promo_"), use this:
+      sessionConfig.discounts = [{
+        promotion_code: 'promo_1RWIjKJtPXTW2Dxj4A3gzjvR',
+      }];
+      
+      // OR if you have a coupon code (like "ARTFI2CZ"), use this instead:
+      // sessionConfig.discounts = [{
+      //   coupon: 'ARTFI2CZ',
+      // }];
+    } else {
+      sessionConfig.allow_promotion_codes = true;
+    }
+
+    const session = await this.stripe.checkout.sessions.create(sessionConfig);
 
     if (!session.url) {
       throw new BadRequestException('Failed to create checkout session');

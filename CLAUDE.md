@@ -182,4 +182,103 @@ When running tests, we use specific ports to avoid conflicts:
 
 ## CODE GUIDELINES
 - **Files should not have more than 300 lines, consider breaking it into multiple files**
-- YOU NEVER NEVER USE any for typing. 
+- YOU NEVER NEVER USE any for typing.
+
+## REACT FRONTEND BEST PRACTICES
+
+### File Architecture
+```
+frontend/
+├── app/                      # Next.js 13+ app directory
+│   ├── (protected)/         # Route groups for authenticated routes
+│   ├── auth/                # Authentication pages
+│   └── layout.tsx           # Root layout
+├── components/              
+│   ├── ui/                  # Shadcn/ui components (Button, Card, etc.)
+│   ├── layout/              # Layout components (Sidebar, Header, etc.)
+│   ├── shared/              # Shared components across features
+│   └── [feature]/           # Feature-specific components
+├── hooks/                   # Custom React hooks
+├── lib/                     # Utility functions and API clients
+├── providers/               # React Context providers
+├── types/                   # TypeScript type definitions
+└── utils/                   # Helper functions
+```
+
+### Component Structure Best Practices
+1. **Single Responsibility**: Each component should have one clear purpose
+2. **Composition over Inheritance**: Use component composition to build complex UIs
+3. **Generic Components**: Create reusable components for common patterns (e.g., EditableList)
+4. **Props Interface**: Always define TypeScript interfaces for component props
+5. **File Naming**: Use PascalCase for components (e.g., `ProjectCard.tsx`)
+
+### Custom Hooks Guidelines
+1. **Naming Convention**: Always prefix with `use` (e.g., `useAuth`, `useProjects`)
+2. **Single Purpose**: Each hook should handle one specific piece of logic
+3. **Return Consistent API**: Return objects with clear property names
+4. **Error Handling**: Include error states in hook returns
+5. **Loading States**: Include loading states when dealing with async operations
+
+Example:
+```typescript
+interface UseProjectsReturn {
+  projects: Project[];
+  loading: boolean;
+  error: Error | null;
+  refetch: () => void;
+}
+
+export function useProjects(): UseProjectsReturn {
+  // Implementation
+}
+```
+
+### State Management
+1. **Local State First**: Use `useState` for component-specific state
+2. **Context for Cross-Cutting Concerns**: Use React Context for auth, theme, navigation
+3. **Avoid Prop Drilling**: Use Context or component composition instead
+4. **Server State**: Use React Query or SWR for server state management
+
+### Component Patterns
+1. **Container/Presentational**: Separate data fetching from UI rendering
+2. **Compound Components**: For related components (e.g., Card, CardHeader, CardContent)
+3. **Render Props**: When you need to share logic between components
+4. **Higher-Order Components**: Sparingly, prefer hooks instead
+
+### Performance Optimization
+1. **Memoization**: Use `React.memo` for expensive components
+2. **useMemo/useCallback**: For expensive computations and stable references
+3. **Code Splitting**: Use dynamic imports for large components
+4. **Virtualization**: For long lists (react-window or react-virtualized)
+
+### TypeScript Best Practices
+1. **No `any` Types**: Always define proper types
+2. **Interface over Type**: Prefer interfaces for object shapes
+3. **Const Assertions**: Use `as const` for literal types
+4. **Generic Components**: Use generics for reusable components
+5. **Discriminated Unions**: For components with multiple states
+
+### Styling Guidelines
+1. **Tailwind CSS**: Use utility classes for styling
+2. **Component Variants**: Use cva (class-variance-authority) for variants
+3. **Consistent Spacing**: Use Tailwind's spacing scale
+4. **Dark Mode**: Support both light and dark themes
+5. **Responsive Design**: Mobile-first approach
+
+### Testing Strategy
+1. **Unit Tests**: For utility functions and hooks
+2. **Component Tests**: Using React Testing Library
+3. **Integration Tests**: For user workflows
+4. **E2E Tests**: For critical paths (using Playwright/Cypress)
+
+### API Integration
+1. **Centralized API Clients**: Keep all API calls in `lib/` directory
+2. **Error Handling**: Consistent error handling across all API calls
+3. **Type Safety**: Define types for all API responses
+4. **Authentication**: Handle auth tokens consistently
+
+### Form Handling
+1. **React Hook Form**: For complex forms
+2. **Validation**: Use Zod for schema validation
+3. **Error Messages**: Clear, user-friendly error messages
+4. **Loading States**: Show loading indicators during submission 
