@@ -27,36 +27,17 @@ export class UserResponseDto {
   phoneNumber?: string;
 
   @ApiProperty({
-    description: 'Stripe customer ID',
-    example: 'cus_123456789',
-    required: false,
+    description: 'Organization ID this user belongs to',
+    example: '123e4567-e89b-12d3-a456-426614174000',
   })
-  stripeCustomerId?: string;
+  organizationId: string;
 
   @ApiProperty({
-    description: 'Stripe plan ID',
-    example: 'plan_123456789',
+    description: 'Timestamp when the user last connected',
+    example: '2023-01-01T00:00:00.000Z',
     required: false,
   })
-  stripePlanId?: string;
-
-  @ApiProperty({
-    description: 'Plan ID reference',
-    example: '507f1f77bcf86cd799439011',
-    required: false,
-  })
-  planId?: string;
-
-  @ApiProperty({
-    description: 'Plan settings including limits',
-    example: { maxProjects: 1, maxAIModels: 3, maxSpontaneousPrompts: 12, maxUrls: 1 },
-  })
-  planSettings: {
-    maxProjects: number;
-    maxAIModels: number;
-    maxSpontaneousPrompts?: number;
-    maxUrls: number;
-  };
+  lastConnectionAt?: string;
 
   @ApiProperty({
     description: 'Timestamp when the user was created',
@@ -76,11 +57,4 @@ export class UserResponseDto {
     type: [String],
   })
   projectIds?: string[];
-
-  @ApiProperty({
-    description: 'Array of selected AI model IDs',
-    example: ['openai-gpt4o', 'anthropic-claude3.7sonnet'],
-    type: [String],
-  })
-  selectedModels: string[];
 }

@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuthService } from './services/auth.service';
 import { TokenService } from './services/token.service';
+import { JwtTokenService } from './services/jwt-token.service';
 import { LocalStrategy } from './strategies/local.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { AuthController } from './controllers/auth.controller';
@@ -34,10 +35,10 @@ import { AccessTokenRepository } from './repositories/access-token.repository';
       { name: AccessToken.name, schema: AccessTokenSchema },
     ]),
     forwardRef(() => ReportModule),
-    UserModule,
+    forwardRef(() => UserModule),
   ],
-  providers: [AuthService, TokenService, LocalStrategy, JwtStrategy, TokenAuthGuard, AdminRepository, AccessTokenRepository],
+  providers: [AuthService, TokenService, JwtTokenService, LocalStrategy, JwtStrategy, TokenAuthGuard, AdminRepository, AccessTokenRepository],
   controllers: [AuthController, PublicAuthController, TokenController],
-  exports: [AuthService, TokenService, TokenAuthGuard, AdminRepository, AccessTokenRepository],
+  exports: [AuthService, TokenService, JwtTokenService, TokenAuthGuard, AdminRepository, AccessTokenRepository],
 })
 export class AuthModule {}

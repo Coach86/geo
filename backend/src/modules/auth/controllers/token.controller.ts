@@ -194,7 +194,7 @@ export class TokenController {
       const token = await this.tokenService.generateAccessToken(userId);
 
       // Construct the access URL
-      const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+      const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
       const accessUrl = `${baseUrl}/report-access?token=${token}`;
 
       return {

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { PromptService } from './services/prompt.service';
 import { PromptSetController } from './controllers/prompt-set.controller';
@@ -11,11 +11,13 @@ import { TokenService } from '../auth/services/token.service';
 import { AccessTokenRepository } from '../auth/repositories/access-token.repository';
 import { AccessToken, AccessTokenSchema } from '../auth/schemas/access-token.schema';
 import { Project, ProjectSchema } from '../project/schemas/project-base.schema';
+import { UserModule } from '../user/user.module';
 
 @Module({
   imports: [
     LlmModule,
-    ProjectModule,
+    forwardRef(() => ProjectModule),
+    forwardRef(() => UserModule),
     MongooseModule.forFeature([
       { name: PromptSet.name, schema: PromptSetSchema },
       { name: AccessToken.name, schema: AccessTokenSchema },

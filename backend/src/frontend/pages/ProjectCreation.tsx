@@ -159,7 +159,13 @@ const ProjectCreation: React.FC = () => {
       setActiveStep(1);
 
       // Step 1: Create the project card
-      const newProject = await createProjectFromUrl(url, selectedUserId, market, language);
+      // Get the organizationId from the selected user
+      const selectedUser = users.find(u => u.id === selectedUserId);
+      if (!selectedUser || !selectedUser.organizationId) {
+        throw new Error('Selected user does not have an organization');
+      }
+      const organizationId = selectedUser.organizationId;
+      const newProject = await createProjectFromUrl(url, organizationId, market, language);
       setProject(newProject);
       setActiveStep(2);
 
@@ -226,7 +232,7 @@ const ProjectCreation: React.FC = () => {
                 ) : (
                   users.map((user) => (
                     <MenuItem key={user.id} value={user.id}>
-                      {user.email} ({user.language})
+                      {user.email} ({user.language}) - Org: {user.organizationId || 'None'}
                     </MenuItem>
                   ))
                 )}

@@ -27,6 +27,8 @@ import { BatchExecutionRepository } from './repositories/batch-execution.reposit
 import { BatchResultRepository } from './repositories/batch-result.repository';
 import { RawResponseRepository } from './repositories/raw-response.repository';
 import { BatchEventsGateway } from './gateways/batch-events.gateway';
+import { OrganizationModule } from '../organization/organization.module';
+import { ConfigModule } from '../config/config.module';
 
 @Module({
   imports: [
@@ -35,12 +37,14 @@ import { BatchEventsGateway } from './gateways/batch-events.gateway';
       { name: BatchResult.name, schema: BatchResultSchema },
       { name: RawResponse.name, schema: RawResponseSchema },
     ]),
-    ProjectModule,
+    forwardRef(() => ProjectModule),
     PromptModule,
     LlmModule,
-    UserModule,
+    forwardRef(() => UserModule),
     forwardRef(() => ReportModule),
     forwardRef(() => AuthModule),
+    forwardRef(() => OrganizationModule),
+    ConfigModule,
   ],
   controllers: [
     BatchController,

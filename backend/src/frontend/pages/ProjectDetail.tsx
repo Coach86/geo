@@ -522,7 +522,7 @@ const ProjectDetail: React.FC = () => {
           )}
 
           {currentTab === TabValue.REPORTS && id && (
-            <ReportsTab projectId={id} userEmail={project?.userEmail} />
+            <ReportsTab projectId={id} />
           )}
 
           {currentTab === TabValue.SPONTANEOUS &&

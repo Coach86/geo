@@ -3,14 +3,9 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useOnboarding } from "@/providers/onboarding-provider";
-import ProjectInfo from "@/components/onboarding/project-info";
-import BrandIdentity from "@/components/onboarding/brand-identity";
-import PromptSelection from "@/components/onboarding/prompt-selection";
-import Confirmation from "@/components/onboarding/confirmation";
-// Importer le nouveau composant PhoneVerification
-import PhoneVerification from "@/components/onboarding/phone-verification";
 import { useAuth } from "@/providers/auth-provider";
 import { getUserProjects } from "@/lib/auth-api";
+import { getStepComponent, StepId } from "./steps.config";
 
 export default function OnboardingPage() {
   const searchParams = useSearchParams();
@@ -37,9 +32,9 @@ export default function OnboardingPage() {
     return () => clearTimeout(timer);
   }, [currentStep]);
 
-  // Redirect to pricing page when reaching step 6
+  // Redirect to pricing page when reaching pricing step
   useEffect(() => {
-    if (currentStep === 7) {
+    if (currentStep === StepId.PRICING) {
       router.push("/pricing");
     }
   }, [currentStep, router]);
@@ -70,20 +65,8 @@ export default function OnboardingPage() {
       );
     }
 
-    switch (currentStep) {
-      case 1:
-        return <ProjectInfo />;
-      case 2:
-        return <BrandIdentity />;
-      case 3:
-        return <PromptSelection />;
-      case 4:
-        return <Confirmation />;
-      case 5:
-        return <PhoneVerification />;
-      default:
-        return <ProjectInfo />;
-    }
+    const StepComponent = getStepComponent(currentStep);
+    return StepComponent ? <StepComponent /> : null;
   };
 
   return <div className="w-full animate-fade-in">{renderStep()}</div>;

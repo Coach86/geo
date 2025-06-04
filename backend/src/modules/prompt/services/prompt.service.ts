@@ -102,7 +102,7 @@ export class PromptService implements OnModuleInit {
         keyBrandAttributes: projectRaw.keyBrandAttributes,
         competitors: projectRaw.competitors,
         updatedAt: projectRaw.updatedAt instanceof Date ? projectRaw.updatedAt : new Date(),
-        userId: projectRaw.userId,
+        organizationId: projectRaw.organizationId,
         market: projectRaw.market,
         language: projectRaw.language,
       };
@@ -485,7 +485,7 @@ export class PromptService implements OnModuleInit {
         keyBrandAttributes: projectRaw.keyBrandAttributes,
         competitors: projectRaw.competitors,
         updatedAt: projectRaw.updatedAt instanceof Date ? projectRaw.updatedAt : new Date(),
-        userId: projectRaw.userId,
+        organizationId: projectRaw.organizationId,
         market: projectRaw.market,
         language: projectRaw.language,
       };

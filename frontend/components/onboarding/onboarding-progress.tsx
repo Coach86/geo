@@ -1,44 +1,25 @@
 "use client";
 
 import { useOnboarding } from "@/providers/onboarding-provider";
-import {
-  Building,
-  Users,
-  MessageSquare,
-  CheckCircle,
-  Bot,
-  CreditCard,
-  Phone,
-} from "lucide-react";
 import { useRouter } from "next/navigation";
+import { ONBOARDING_STEPS, PRICING_STEP, StepId } from "@/app/onboarding/steps.config";
 
 export default function OnboardingProgress() {
   const { currentStep, setCurrentStep } = useOnboarding();
   const router = useRouter();
 
-  const steps = [
-    { id: 1, name: "Project", icon: Building },
-    { id: 2, name: "Brand", icon: Users },
-    { id: 3, name: "Prompts", icon: MessageSquare },
-    { id: 4, name: "Models", icon: Bot },
-    { id: 5, name: "Review", icon: CheckCircle },
-    { id: 6, name: "Contact", icon: Phone },
-    { id: 7, name: "Plan", icon: CreditCard },
-  ];
+  // Combine onboarding steps with pricing step for display
+  const allSteps = [...ONBOARDING_STEPS, PRICING_STEP];
 
   // Fonction pour naviguer vers une étape spécifique
-  const navigateToStep = (stepId: number) => {
+  const navigateToStep = (stepId: StepId) => {
     setCurrentStep(stepId);
 
-    // Rediriger vers la page appropriée en fonction de l'étape
-    if (stepId === 5) {
-      router.push("/onboarding"); // Page de récapitulatif
-    } else if (stepId === 7) {
-      router.push("/pricing"); // Page de tarification
-    } else if (stepId === 6) {
-      router.push("/onboarding"); // Page de contact
+    // Rediriger vers la page appropriée
+    if (stepId === StepId.PRICING) {
+      router.push(PRICING_STEP.path);
     } else {
-      router.push("/onboarding"); // Autres étapes d'onboarding
+      router.push("/onboarding");
     }
   };
 
@@ -49,13 +30,13 @@ export default function OnboardingProgress() {
         <div className="relative h-2 bg-mono-100 rounded-md overflow-hidden mb-6">
           <div
             className="absolute h-full bg-accent-500 transition-all duration-500 ease-in-out"
-            style={{ width: `${(currentStep / steps.length) * 100}%` }}
+            style={{ width: `${(currentStep / allSteps.length) * 100}%` }}
           ></div>
         </div>
 
         {/* Step indicators */}
         <div className="flex justify-between">
-          {steps.map((step) => {
+          {allSteps.map((step) => {
             const isActive = currentStep >= step.id;
             const Icon = step.icon;
 
@@ -72,7 +53,7 @@ export default function OnboardingProgress() {
                       : "bg-mono-100 text-mono-400"
                   } hover:opacity-80`}
                 >
-                  <Icon className="w-5 h-5" />
+                  {Icon && <Icon className="w-5 h-5" />}
                 </div>
                 <span
                   className={`text-xs font-medium ${

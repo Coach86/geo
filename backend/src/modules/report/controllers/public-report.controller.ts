@@ -20,6 +20,7 @@ import { TokenRoute } from '../../auth/decorators/token-route.decorator';
 import { ProjectService } from '../../project/services/project.service';
 import { TokenService } from '../../auth/services/token.service';
 import { BatchResultRepository } from '../../batch/repositories/batch-result.repository';
+import { UserService } from '../../user/services/user.service';
 
 @ApiTags('public-reports')
 @Controller('reports')
@@ -33,6 +34,7 @@ export class PublicReportController {
     @Inject(TokenService) private readonly tokenService: TokenService,
     private readonly reportConverterService: ReportConverterService,
     private readonly batchResultRepository: BatchResultRepository,
+    @Inject(UserService) private readonly userService: UserService,
   ) {}
 
   @Get('content/:reportId')
@@ -89,8 +91,14 @@ export class PublicReportController {
         `Report ${reportId} belongs to project ${projectId}, verifying user ownership`,
       );
 
-      // Get all projects that the user owns
-      const userProjects = await this.projectService.findAll(request.userId);
+      // Get user to find their organization
+      const user = await this.userService.findOne(request.userId);
+      if (!user) {
+        throw new BadRequestException('User not found');
+      }
+
+      // Get all projects for the user's organization
+      const userProjects = await this.projectService.findByOrganizationId(user.organizationId);
       const userProjectIds = userProjects.map((project) => project.projectId);
 
       // Check if the user owns the project that the report belongs to
@@ -147,8 +155,14 @@ export class PublicReportController {
         }
       }
 
-      // Verify user owns this project
-      const userProjects = await this.projectService.findAll(request.userId);
+      // Get user to find their organization
+      const user = await this.userService.findOne(request.userId);
+      if (!user) {
+        throw new BadRequestException('User not found');
+      }
+
+      // Verify user owns this project through their organization
+      const userProjects = await this.projectService.findByOrganizationId(user.organizationId);
       const userProjectIds = userProjects.map((project) => project.projectId);
 
       if (!userProjectIds.includes(projectId)) {
@@ -217,8 +231,14 @@ export class PublicReportController {
         throw new NotFoundException('No batch execution found for this report');
       }
 
-      // Verify user owns this project
-      const userProjects = await this.projectService.findAll(request.userId);
+      // Get user to find their organization
+      const user = await this.userService.findOne(request.userId);
+      if (!user) {
+        throw new BadRequestException('User not found');
+      }
+
+      // Verify user owns this project through their organization
+      const userProjects = await this.projectService.findByOrganizationId(user.organizationId);
       const userProjectIds = userProjects.map((project) => project.projectId);
 
       if (!userProjectIds.includes(projectId)) {
@@ -340,8 +360,14 @@ export class PublicReportController {
         throw new NotFoundException('No batch execution found for this report');
       }
 
-      // Verify user owns this project
-      const userProjects = await this.projectService.findAll(request.userId);
+      // Get user to find their organization
+      const user = await this.userService.findOne(request.userId);
+      if (!user) {
+        throw new BadRequestException('User not found');
+      }
+
+      // Verify user owns this project through their organization
+      const userProjects = await this.projectService.findByOrganizationId(user.organizationId);
       const userProjectIds = userProjects.map((project) => project.projectId);
 
       if (!userProjectIds.includes(projectId)) {

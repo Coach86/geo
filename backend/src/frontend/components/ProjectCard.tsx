@@ -181,7 +181,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onDelete }) => {
           sx: { borderRadius: 2 },
         }}
       >
-        <DialogTitle>Delete {project.brandName}?</DialogTitle>
+        <DialogTitle>Delete {project.name || project.brandName}?</DialogTitle>
         <DialogContent>
           <DialogContentText>
             Are you sure you want to delete {project.brandName}? This action cannot be undone and
@@ -222,7 +222,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onDelete }) => {
               fontWeight: 600,
             }}
           >
-            {project.brandName.charAt(0).toUpperCase()}
+            {(project.name || project.brandName).charAt(0).toUpperCase()}
           </Avatar>
           <Box>
             <Typography
@@ -239,7 +239,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onDelete }) => {
               }}
               onClick={handleCardClick}
             >
-              {project.brandName}
+              {project.name || project.brandName}
             </Typography>
 
             <Typography
@@ -251,7 +251,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onDelete }) => {
                 opacity: 0.8,
               }}
             >
-              {project.industry} • {getFormattedMarket(project.market)}
+              {project.name ? `${project.brandName} • ` : ''}{project.industry} • {getFormattedMarket(project.market)}
             </Typography>
           </Box>
         </Box>
@@ -335,8 +335,8 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onDelete }) => {
             Updated {formattedDate}
           </Typography>
 
-          {project.userEmail && (
-            <Tooltip title={project.userEmail}>
+          {project.language && (
+            <Tooltip title={`Language: ${project.language}`}>
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 <PersonIcon
                   sx={{
@@ -346,22 +346,20 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onDelete }) => {
                     opacity: 0.8,
                   }}
                 />
-                {project.userLanguage && (
-                  <Chip
-                    label={project.userLanguage}
-                    size="small"
-                    variant="outlined"
-                    sx={{
-                      height: 18,
-                      borderRadius: 0.75,
-                      '& .MuiChip-label': {
-                        px: 0.5,
-                        fontSize: '0.65rem',
-                        fontWeight: 500,
-                      },
-                    }}
-                  />
-                )}
+                <Chip
+                  label={project.language}
+                  size="small"
+                  variant="outlined"
+                  sx={{
+                    height: 18,
+                    borderRadius: 0.75,
+                    '& .MuiChip-label': {
+                      px: 0.5,
+                      fontSize: '0.65rem',
+                      fontWeight: 500,
+                    },
+                  }}
+                />
               </Box>
             </Tooltip>
           )}

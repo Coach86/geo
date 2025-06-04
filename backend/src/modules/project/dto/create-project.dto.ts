@@ -11,6 +11,13 @@ import {
 } from 'class-validator';
 
 export class ProjectDataDto {
+  @ApiPropertyOptional({ description: 'Optional project name' })
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(100)
+  name?: string;
+
   @ApiPropertyOptional({ description: 'Company brand name' })
   @IsOptional()
   @IsString()
@@ -90,7 +97,7 @@ export class CreateProjectDto {
   @Type(() => ProjectDataDto)
   data?: ProjectDataDto;
 
-  @ApiPropertyOptional({ description: 'User ID to associate this company with' })
+  @ApiProperty({ description: 'Organization ID to associate this project with' })
   @IsString()
-  userId: string;
+  organizationId: string;
 }

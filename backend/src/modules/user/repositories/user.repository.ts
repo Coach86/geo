@@ -53,6 +53,20 @@ export class UserRepository {
   }
 
   /**
+   * Find users by organization ID
+   */
+  async findByOrganizationId(organizationId: string): Promise<UserDocument[]> {
+    return await this.userModel.find({ organizationId }).sort({ updatedAt: -1 }).exec();
+  }
+
+  /**
+   * Count users by organization ID
+   */
+  async countByOrganizationId(organizationId: string): Promise<number> {
+    return await this.userModel.countDocuments({ organizationId }).exec();
+  }
+
+  /**
    * Update a user
    */
   async update(userId: string, updateData: Partial<UserEntity>): Promise<UserDocument> {
@@ -98,13 +112,7 @@ export class UserRepository {
       email: document.email,
       language: document.language,
       phoneNumber: document.phoneNumber,
-      stripeCustomerId: document.stripeCustomerId,
-      stripePlanId: document.stripePlanId,
-      planSettings: document.planSettings || {
-        maxProjects: 1,
-        maxAIModels: 3,
-      },
-      selectedModels: document.selectedModels || [],
+      organizationId: document.organizationId,
       createdAt: document.createdAt instanceof Date ? document.createdAt : new Date(),
       updatedAt: document.updatedAt instanceof Date ? document.updatedAt : new Date(),
     };
@@ -129,7 +137,7 @@ export class UserRepository {
         keyBrandAttributes: project.keyBrandAttributes,
         competitors: project.competitors,
         updatedAt: project.updatedAt instanceof Date ? project.updatedAt : new Date(),
-        userId: project.userId,
+        organizationId: project.organizationId,
         language: project.language,
       }));
     }

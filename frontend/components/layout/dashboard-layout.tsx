@@ -3,15 +3,16 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/providers/auth-provider";
-import SaasSidebar from "./saas-sidebar";
+import Sidebar from "./sidebar";
 import { getUserProjects, ProjectResponse } from "@/lib/auth-api";
 import { Loader2 } from "lucide-react";
+import { NavigationProvider, useNavigation } from "@/providers/navigation-provider";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
-export default function DashboardLayout({ children }: DashboardLayoutProps) {
+function DashboardLayoutContent({ children }: DashboardLayoutProps) {
   const router = useRouter();
   const {
     isAuthenticated,
@@ -19,10 +20,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     token,
     checkAuth,
   } = useAuth();
-  const [identityCards, setIdentityCards] = useState<ProjectResponse[]>([]);
-  const [selectedProject, setSelectedProject] =
-    useState<ProjectResponse | null>(null);
   const [isLoadingCards, setIsLoadingCards] = useState(false);
+  const {
+    allProjects,
+    setAllProjects,
+    selectedProject,
+    setSelectedProject,
+  } = useNavigation();
 
   useEffect(() => {
     const verifyAndLoadData = async () => {
@@ -46,7 +50,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               router.push("/onboarding");
               return null;
             }
-            setIdentityCards(cards);
+            setAllProjects(cards);
 
             // Check if there's a previously selected project in localStorage
             const savedProjectId = localStorage.getItem("selectedProjectId");
@@ -92,8 +96,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <SaasSidebar
-        identityCards={identityCards}
+      <Sidebar
+        identityCards={allProjects}
         selectedProject={selectedProject}
         onProjectSelect={handleProjectSelect}
       />
@@ -101,5 +105,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="p-8">{children}</div>
       </main>
     </div>
+  );
+}
+
+export default function DashboardLayout({ children }: DashboardLayoutProps) {
+  return (
+    <NavigationProvider>
+      <DashboardLayoutContent>{children}</DashboardLayoutContent>
+    </NavigationProvider>
   );
 }

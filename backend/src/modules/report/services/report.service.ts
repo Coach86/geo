@@ -315,18 +315,9 @@ export class ReportService implements OnModuleInit {
         throw new NotFoundException(`Project not found with ID ${projectId}`);
       }
       const companyName = project?.brandName || projectId;
-      const user = await this.userService.findOne(project.userId);
-      if (!user) {
-        throw new NotFoundException(`User not found for project ${projectId}`);
-      }
-      // Delegate to access service
-      return this.accessService.sendReportAccessEmail(
-        reportId,
-        token,
-        report.date,
-        user.email,
-        companyName,
-      );
+      // TODO: Need to determine how to handle email notifications for organization-based projects
+      // For now, we'll skip email functionality
+      throw new BadRequestException('Email functionality temporarily disabled during migration');
     } catch (error) {
       this.logger.error(`Failed to send report access email: ${error.message}`, error.stack);
       // Don't throw, just log the error to prevent report saving from failing
@@ -357,15 +348,9 @@ export class ReportService implements OnModuleInit {
       }
       const companyName = project?.brandName || projectId;
 
-      // Delegate to access service
-      return this.accessService.sendReportEmailToAddress(
-        project.userId,
-        reportId,
-        emailAddress,
-        customSubject,
-        report.date,
-        companyName,
-      );
+      // TODO: Need to determine how to handle email notifications for organization-based projects
+      // For now, we'll skip email functionality
+      throw new BadRequestException('Email functionality temporarily disabled during migration');
     } catch (error) {
       this.logger.error(`Failed to send report email: ${error.message}`, error.stack);
       throw error;

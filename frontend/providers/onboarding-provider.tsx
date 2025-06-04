@@ -9,6 +9,12 @@ import {
   useEffect,
   type ReactNode,
 } from "react";
+import { 
+  getStepById, 
+  StepId,
+  getNextStepId,
+  getPreviousStepId 
+} from "@/app/onboarding/steps.config";
 
 // Define the types for our form data
 export type FormData = {
@@ -69,15 +75,17 @@ export type FormData = {
 
 // Define the context type
 type OnboardingContextType = {
-  currentStep: number;
-  setCurrentStep: (step: number) => void;
+  currentStep: StepId;
+  setCurrentStep: (step: StepId) => void;
+  navigateNext: () => void;
+  navigatePrevious: () => void;
   formData: FormData;
   setFormData: React.Dispatch<React.SetStateAction<FormData>>;
   updateFormData: (data: Partial<FormData>) => void;
   savedConfigs: FormData[];
   addNewConfig: () => void;
   setEditingMode: (isEditing: boolean, configId?: string) => void;
-  canNavigateFromStep: (stepNumber: number) => boolean;
+  canNavigateFromStep: (stepNumber: StepId) => boolean;
 };
 
 // Default form data
@@ -287,8 +295,10 @@ const defaultFormData: FormData = {
 
 // Create the context with default values
 const OnboardingContext = createContext<OnboardingContextType>({
-  currentStep: 1,
+  currentStep: StepId.PROJECT,
   setCurrentStep: () => {},
+  navigateNext: () => {},
+  navigatePrevious: () => {},
   formData: defaultFormData,
   setFormData: () => {},
   updateFormData: () => {},
@@ -301,7 +311,7 @@ const OnboardingContext = createContext<OnboardingContextType>({
 // Create a provider component
 export function OnboardingProvider({ children }: { children: ReactNode }) {
   // Initialize state with data from localStorage if available
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(StepId.PROJECT);
   const [formData, setFormData] = useState<FormData>({
     ...defaultFormData,
     id: crypto.randomUUID?.() || `id-${Date.now()}`,
@@ -330,7 +340,11 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       const savedConfigsData = localStorage.getItem("savedConfigs");
 
       if (savedStep) {
-        setCurrentStep(Number.parseInt(savedStep, 10));
+        const stepNumber = Number.parseInt(savedStep, 10);
+        // Validate that it's a valid StepId
+        if (Object.values(StepId).includes(stepNumber)) {
+          setCurrentStep(stepNumber as StepId);
+        }
       }
 
       if (savedData) {
@@ -479,20 +493,29 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   };
 
   // Function to check if navigation from a step is allowed
-  const canNavigateFromStep = (stepNumber: number): boolean => {
-    switch (stepNumber) {
-      case 1:
-        // For step 1 (Company), user can only navigate if:
-        // 1. They have a website AND
-        // 2. The website has been analyzed (analyzedData exists) AND
-        // 3. At least one market is selected
-        return !!(
-          formData.website &&
-          formData.analyzedData &&
-          formData.markets.length > 0
-        );
-      default:
-        return true;
+  const canNavigateFromStep = (stepNumber: StepId): boolean => {
+    const step = getStepById(stepNumber);
+    if (!step || !step.canNavigate) {
+      return true; // Allow navigation if no validation function is defined
+    }
+    return step.canNavigate(formData);
+  };
+
+  // Navigation functions
+  const navigateNext = () => {
+    if (!canNavigateFromStep(currentStep)) {
+      return; // Don't navigate if current step validation fails
+    }
+    const nextStep = getNextStepId(currentStep);
+    if (nextStep) {
+      setCurrentStep(nextStep);
+    }
+  };
+
+  const navigatePrevious = () => {
+    const previousStep = getPreviousStepId(currentStep);
+    if (previousStep) {
+      setCurrentStep(previousStep);
     }
   };
 
@@ -501,6 +524,8 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       value={{
         currentStep,
         setCurrentStep,
+        navigateNext,
+        navigatePrevious,
         formData,
         setFormData,
         updateFormData,

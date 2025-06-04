@@ -48,14 +48,11 @@ export class ProjectController {
   })
   @ApiResponse({ status: 400, description: 'Bad request.' })
   async createFromUrl(
-    @Body() body: { url: string; userId?: string; market: string; language?: string },
+    @Body() body: { url: string; organizationId: string; market: string; language?: string },
   ): Promise<ProjectResponseDto> {
     const createDto = new CreateProjectDto();
     createDto.url = body.url;
-
-    if (body.userId) {
-      createDto.userId = body.userId;
-    }
+    createDto.organizationId = body.organizationId;
 
     // Market is required
     if (!body.market) {
@@ -76,15 +73,14 @@ export class ProjectController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all company projects or filter by user ID' })
-  @ApiQuery({ name: 'userId', required: false, description: 'Filter projects by user ID' })
+  @ApiOperation({ summary: 'Get all company projects' })
   @ApiResponse({
     status: 200,
     description: 'List of projects',
     type: [ProjectResponseDto],
   })
-  async findAll(@Query('userId') userId?: string): Promise<ProjectResponseDto[]> {
-    const projects = await this.projectService.findAll(userId);
+  async findAll(): Promise<ProjectResponseDto[]> {
+    const projects = await this.projectService.findAll();
     return projects.map((project) => this.mapToResponseDto(project));
   }
 
@@ -136,6 +132,7 @@ export class ProjectController {
   private mapToResponseDto(project: any): ProjectResponseDto {
     const response = new ProjectResponseDto();
     response.id = project.projectId || project.companyId; // Support both field names during transition
+    response.name = project.name;
     response.brandName = project.brandName;
     response.website = project.website;
     response.url = project.website; // Alias for frontend
@@ -147,11 +144,9 @@ export class ProjectController {
     response.longDescription = project.fullDescription; // Alias for frontend
     response.keyBrandAttributes = project.keyBrandAttributes;
     response.competitors = project.competitors;
+    response.organizationId = project.organizationId;
     response.createdAt = project.updatedAt; // Using updatedAt as createdAt for now
     response.updatedAt = project.updatedAt;
-    response.userId = project.userId;
-    response.userEmail = project.userEmail;
-    response.userLanguage = project.userLanguage;
     return response;
   }
 }

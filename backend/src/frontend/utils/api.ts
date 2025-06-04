@@ -33,11 +33,11 @@ export const getProjectById = async (id: string): Promise<Project> => {
 
 export const createProjectFromUrl = async (
   url: string,
-  userId?: string,
+  organizationId: string,
   market?: string,
   language?: string,
 ): Promise<Project> => {
-  const response = await authApi.post('/project/from-url', { url, userId, market, language });
+  const response = await authApi.post('/project/from-url', { url, organizationId, market, language });
   return response.data;
 };
 
@@ -82,6 +82,9 @@ export const updateUser = async (
   data: {
     email?: string;
     language?: string;
+    phoneNumber?: string;
+    organizationId?: string;
+    stripePlanId?: string;
   },
 ): Promise<User> => {
   const response = await authApi.patch(`/users/${id}`, data);
