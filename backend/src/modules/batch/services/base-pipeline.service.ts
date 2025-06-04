@@ -1,13 +1,12 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as fs from 'fs';
-import * as path from 'path';
 import pLimit from 'p-limit';
 import { z } from 'zod';
 import { LlmService } from '../../llm/services/llm.service';
 import { RawResponseService } from './raw-response.service';
 import { ProjectBatchContext } from '../interfaces/batch.interfaces';
 import { LlmModelConfig, PipelineConfig, AnalyzerConfig, PipelineType, PromptType } from '../interfaces/llm.interfaces';
+import { ConfigService as AppConfigService } from '../../config/services/config.service';
 
 // Default concurrency limits for different pipeline types
 const DEFAULT_CONCURRENCY = 100; // Very high concurrency for batch processing
@@ -55,64 +54,58 @@ export abstract class BasePipelineService implements OnModuleInit {
   }
 
   onModuleInit() {
-    // Load configuration from config.json
+    // Load configuration from our ConfigService
     try {
-      const configPath = path.resolve(process.cwd(), 'config.json');
-      this.logger.log(`Loading LLM configuration from ${configPath}`);
+      this.logger.log(`Loading LLM configuration from ConfigService`);
 
-      if (fs.existsSync(configPath)) {
-        const configFile = fs.readFileSync(configPath, 'utf8');
-        this.config = JSON.parse(configFile);
+      // Create a new instance of AppConfigService to get the cached config
+      const appConfigService = new AppConfigService();
+      this.config = appConfigService.getConfig();
 
-        // Update concurrency limiter with pipeline-specific limit if available
-        // This allows different pipelines to have different concurrency settings
-        // Default to the higher built-in defaults if not specified
-        const globalLimit = this.config.concurrencyLimit || DEFAULT_CONCURRENCY;
-        let pipelineLimit = globalLimit;
+      // Update concurrency limiter with pipeline-specific limit if available
+      // This allows different pipelines to have different concurrency settings
+      // Default to the higher built-in defaults if not specified
+      const globalLimit = this.config.concurrencyLimit || DEFAULT_CONCURRENCY;
+      let pipelineLimit = globalLimit;
 
-        if (
-          this.config.pipelineLimits &&
-          this.config.pipelineLimits[this.pipelineType] !== undefined
-        ) {
-          const specificLimit = this.config.pipelineLimits[this.pipelineType];
-          if (specificLimit !== undefined) {
-            pipelineLimit = specificLimit;
-            this.logger.log(
-              `Using pipeline-specific concurrency limit: ${pipelineLimit} for ${this.pipelineType}`,
-            );
-          }
-        } else {
-          // Use the pipeline type's default if no specific config
-          pipelineLimit = DEFAULT_PIPELINE_LIMITS[this.pipelineType] || globalLimit;
+      if (
+        this.config.pipelineLimits &&
+        this.config.pipelineLimits[this.pipelineType] !== undefined
+      ) {
+        const specificLimit = this.config.pipelineLimits[this.pipelineType];
+        if (specificLimit !== undefined) {
+          pipelineLimit = specificLimit;
           this.logger.log(
-            `Using default pipeline limit: ${pipelineLimit} for ${this.pipelineType}`,
+            `Using pipeline-specific concurrency limit: ${pipelineLimit} for ${this.pipelineType}`,
           );
         }
-
-        // Set the concurrency limit (minimum of 1)
-        this.limiter.concurrency = Math.max(1, pipelineLimit);
-
-        // Get analyzer config for this service
-        this.analyzerConfig = this.getAnalyzerConfig();
-
-        // Log the enabled models
-        const enabledModels = this.config.llmModels
-          .filter((model) => model.enabled)
-          .map((model) => model.id);
-
-        this.logger.log(
-          `Initialized service with ${enabledModels.length} enabled models: ${enabledModels.join(', ')}`,
-        );
-        this.logger.log(
-          `Using ${this.analyzerConfig.primary.provider}/${this.analyzerConfig.primary.model} as primary analyzer with ${this.analyzerConfig.fallback.provider}/${this.analyzerConfig.fallback.model} as fallback`,
-        );
       } else {
-        const errorMsg = `Config file not found at ${configPath}. Application cannot start without a valid configuration.`;
-        this.logger.error(errorMsg);
-        throw new Error(errorMsg);
+        // Use the pipeline type's default if no specific config
+        pipelineLimit = DEFAULT_PIPELINE_LIMITS[this.pipelineType] || globalLimit;
+        this.logger.log(
+          `Using default pipeline limit: ${pipelineLimit} for ${this.pipelineType}`,
+        );
       }
+
+      // Set the concurrency limit (minimum of 1)
+      this.limiter.concurrency = Math.max(1, pipelineLimit);
+
+      // Get analyzer config for this service
+      this.analyzerConfig = this.getAnalyzerConfig();
+
+      // Log the enabled models
+      const enabledModels = this.config.llmModels
+        .filter((model) => model.enabled)
+        .map((model) => model.id);
+
+      this.logger.log(
+        `Initialized service with ${enabledModels.length} enabled models: ${enabledModels.join(', ')}`,
+      );
+      this.logger.log(
+        `Using ${this.analyzerConfig.primary.provider}/${this.analyzerConfig.primary.model} as primary analyzer with ${this.analyzerConfig.fallback.provider}/${this.analyzerConfig.fallback.model} as fallback`,
+      );
     } catch (error) {
-      this.logger.error(`Failed to load config.json: ${error.message}`);
+      this.logger.error(`Failed to load config: ${error.message}`);
       throw error;
     }
   }
@@ -152,6 +145,7 @@ export abstract class BasePipelineService implements OnModuleInit {
       maxTokens: modelConfig.parameters.maxTokens,
       systemPrompt: modelConfig.parameters.systemPrompt,
       model: modelConfig.model, // Pass the specific model name
+      webAccess: modelConfig.webAccess, // Pass the web access flag for this model
     };
 
     // Call the LLM adapter using the LlmService

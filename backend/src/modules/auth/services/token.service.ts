@@ -1,9 +1,10 @@
-import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
 import { addDays } from 'date-fns';
 import { AccessToken, AccessTokenDocument } from '../schemas/access-token.schema';
 import { AccessTokenRepository } from '../repositories/access-token.repository';
+import { UserService } from '../../user/services/user.service';
 
 @Injectable()
 export class TokenService {
@@ -12,6 +13,8 @@ export class TokenService {
   constructor(
     private readonly accessTokenRepository: AccessTokenRepository,
     private readonly configService: ConfigService,
+    @Inject(forwardRef(() => UserService))
+    private readonly userService: UserService,
   ) {}
 
   /**
@@ -55,6 +58,11 @@ export class TokenService {
 
     // Mark token as used
     await this.accessTokenRepository.markAsUsed(token);
+
+    // Update user's last connection
+    if (accessToken.userId) {
+      await this.userService.updateLastConnection(accessToken.userId);
+    }
 
     this.logger.log(`Access token validated: ${token.substring(0, 8)}...`);
     return {

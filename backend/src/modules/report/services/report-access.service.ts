@@ -61,7 +61,7 @@ export class ReportAccessService {
       const formattedReportDate = format(reportDate, 'MMM dd, yyyy');
 
       // Construct the access URL based on environment
-      const baseUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001';
+      const baseUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
       const accessUrl = `${baseUrl}/report-access?token=${token}&reportId=${reportId}`;
 
       // Create and send the email
@@ -120,7 +120,7 @@ export class ReportAccessService {
         : format(new Date(), 'MMM dd, yyyy');
 
       // Construct the access URL
-      const baseUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001';
+      const baseUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
       // Only include reportId if it's provided
       const accessUrl = reportId
         ? `${baseUrl}/report-access?token=${token}&reportId=${reportId}`

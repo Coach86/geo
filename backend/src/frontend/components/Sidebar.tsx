@@ -18,6 +18,7 @@ import AppIcon from '@mui/icons-material/Apps';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import CardMembershipIcon from '@mui/icons-material/CardMembership';
+import CorporateFareIcon from '@mui/icons-material/CorporateFare';
 import { useThemeContext } from '../utils/ThemeContext';
 import logo from '../assets/logo-small.png';
 
@@ -33,6 +34,11 @@ const navConfig = [
 ];
 
 const managementItems = [
+  {
+    title: 'Organization',
+    path: '/organization',
+    icon: <CorporateFareIcon />,
+  },
   {
     title: 'Users',
     path: '/users',

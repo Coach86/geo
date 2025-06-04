@@ -11,7 +11,6 @@ import { Info, Check, MessageSquare, LineChart, TrendingUp, Users, AlertCircle, 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
-import { FeatureComparisonDialog } from "@/components/shared/dialogs/feature-comparison-dialog"
 import { generatePrompts, type GeneratePromptsRequest } from "@/lib/auth-api"
 
 export default function PromptSelection() {
@@ -21,7 +20,6 @@ export default function PromptSelection() {
   const [editingPromptIndex, setEditingPromptIndex] = useState<number | null>(null)
   const [editingPromptType, setEditingPromptType] = useState<"visibility" | "perception" | "comparison" | null>(null)
   const [editingPromptValue, setEditingPromptValue] = useState("")
-  const [customPrompt, setCustomPrompt] = useState("")
   const [isLoading, setIsLoading] = useState(true)
   const [showPricingDialog, setShowPricingDialog] = useState(false)
   const [newVisibilityPrompt, setNewVisibilityPrompt] = useState("")
@@ -30,21 +28,6 @@ export default function PromptSelection() {
   // Count selected items for plan impact
   const selectedVisibilityCount = formData.visibilityPrompts?.filter((p) => p.selected).length || 0
   const selectedPerceptionCount = formData.perceptionPrompts?.filter((p) => p.selected).length || 0
-  const selectedCompetitorsCount = formData.competitors?.filter((c) => c.selected).length || 0
-  const customPromptsCount = formData.customPrompts ? formData.customPrompts.filter((p) => p.selected).length : 0
-  const totalPromptsCount = selectedVisibilityCount + selectedPerceptionCount + customPromptsCount
-
-  // Determine plan impact based on selections
-  const getPromptPlanImpact = () => {
-    if (selectedVisibilityCount > 20 || totalPromptsCount > 100) {
-      return { plan: "Agencies", color: "bg-teal-100 text-teal-700" }
-    } else if (selectedVisibilityCount > 15 || totalPromptsCount > 50) {
-      return { plan: "Growth", color: "bg-accent-100 text-accent-700" }
-    }
-    return { plan: "Starter", color: "bg-gray-100 text-gray-700" }
-  }
-
-  const promptPlanImpact = getPromptPlanImpact()
 
   // Generate prompts when component loads
   useEffect(() => {
@@ -71,16 +54,16 @@ export default function PromptSelection() {
         }
 
         const response = await generatePrompts(request, token)
-        
+
         // Map backend response to frontend format
         const visibilityPrompts = [
           ...response.spontaneous.map(text => ({ text, selected: true })),
         ]
-        
+
         const perceptionPrompts = [
           ...response.direct.map(text => ({ text, selected: true })),
         ]
-        
+
         // Update form data with generated prompts
         updateFormData({
           visibilityPrompts,
@@ -147,48 +130,6 @@ export default function PromptSelection() {
     setEditingPromptValue("")
   }
 
-  // Add custom prompt
-  const addCustomPrompt = () => {
-    if (customPrompt.trim() === "") return
-
-    // Determine which type of prompt it is based on content
-    if (
-      customPrompt.toLowerCase().includes("vs") ||
-      customPrompt.toLowerCase().includes("versus") ||
-      customPrompt.toLowerCase().includes("compare") ||
-      customPrompt.toLowerCase().includes("comparison")
-    ) {
-      // It's likely a comparison prompt
-      const updatedPrompts = formData.customPrompts ? [...formData.customPrompts] : []
-      updatedPrompts.push({
-        text: customPrompt,
-        type: "comparison",
-        selected: true,
-      })
-      updateFormData({ customPrompts: updatedPrompts })
-    } else if (customPrompt.toLowerCase().includes(formData.brandName?.toLowerCase() || "")) {
-      // It contains the brand name, likely a perception prompt
-      const updatedPrompts = formData.customPrompts ? [...formData.customPrompts] : []
-      updatedPrompts.push({
-        text: customPrompt,
-        type: "perception",
-        selected: true,
-      })
-      updateFormData({ customPrompts: updatedPrompts })
-    } else {
-      // Default to visibility prompt
-      const updatedPrompts = formData.customPrompts ? [...formData.customPrompts] : []
-      updatedPrompts.push({
-        text: customPrompt,
-        type: "visibility",
-        selected: true,
-      })
-      updateFormData({ customPrompts: updatedPrompts })
-    }
-
-    setCustomPrompt("")
-  }
-
   // Generate comparison prompts based on selected competitors
   const selectedCompetitors = formData.competitors.filter((comp) => comp.selected)
   const comparisonPrompts = selectedCompetitors.map(
@@ -219,7 +160,7 @@ export default function PromptSelection() {
           {authLoading ? 'Checking authentication...' : 'Generating prompts...'}
         </h2>
         <p className="text-mono-600 text-center max-w-md">
-          {authLoading 
+          {authLoading
             ? 'Please wait while we verify your authentication.'
             : 'Our AI is analyzing your brand profile and generating relevant prompts to test your brand\'s visibility and perception.'
           }
@@ -247,8 +188,8 @@ export default function PromptSelection() {
         <p className="text-mono-600 text-center max-w-md mb-6">
           {error}
         </p>
-        <Button 
-          onClick={() => window.location.reload()} 
+        <Button
+          onClick={() => window.location.reload()}
           className="bg-accent-600 hover:bg-accent-700 text-white"
         >
           Try again
@@ -268,8 +209,8 @@ export default function PromptSelection() {
         <p className="text-mono-600 text-center max-w-md mb-6">
           We need your brand information and website to generate relevant prompts. Please complete the previous steps first.
         </p>
-        <Button 
-          onClick={() => router.push('/onboarding')} 
+        <Button
+          onClick={() => router.push('/onboarding')}
           className="bg-accent-600 hover:bg-accent-700 text-white"
         >
           Go back to setup
@@ -287,49 +228,7 @@ export default function PromptSelection() {
         <h1 className="text-3xl font-bold mb-2 text-mono-900">Validate your prompt portfolio</h1>
         <p className="text-gray-600 max-w-md mx-auto">Select the prompts that will be used to analyze your brand</p>
 
-        {/* Plan impact indicator */}
-        <div className="mt-4 flex flex-wrap justify-center gap-3">
-          <div className="inline-flex items-center px-3 py-1 rounded-md bg-accent-50 text-accent-700 text-sm">
-            <LineChart className="h-4 w-4 mr-1.5" />
-            <span className="font-medium">{totalPromptsCount} prompts selected</span>
-          </div>
-          <div className="inline-flex items-center px-3 py-1 rounded-md bg-secondary-50 text-secondary-700 text-sm">
-            <Users className="h-4 w-4 mr-1.5" />
-            <span className="font-medium">{selectedCompetitorsCount} competitors</span>
-          </div>
-          <div className={`inline-flex items-center px-3 py-1 rounded-md ${promptPlanImpact.color} text-sm`}>
-            <span className="font-medium">Plan impact: {promptPlanImpact.plan}</span>
-          </div>
-        </div>
       </div>
-
-      {/* Plan impact alert */}
-      {totalPromptsCount > 30 && (
-        <div className="mb-6 p-4 bg-accent-50 border border-accent-200 rounded-lg">
-          <div className="flex items-start">
-            <AlertCircle className="h-5 w-5 text-accent-500 mr-3 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-accent-700">
-                Your selection requires a {promptPlanImpact.plan} plan or higher
-              </p>
-              <p className="text-xs text-accent-600 mt-1">
-                {totalPromptsCount > 50 &&
-                  `Vous avez sélectionné ${totalPromptsCount} prompts (limite du plan Starter : 50). `}
-                Cela affectera votre plan tarifaire recommandé.
-              </p>
-              <Button
-                variant="link"
-                size="sm"
-                className="h-auto p-0 mt-2 text-xs text-accent-700 hover:text-accent-900"
-                onClick={() => setShowPricingDialog(true)}
-              >
-                View pricing details
-                <ArrowRight className="ml-1 h-3 w-3" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <Accordion type="single" collapsible defaultValue="visibility" className="space-y-6">
         {/* Spontaneous Visibility Prompts */}
@@ -555,12 +454,6 @@ export default function PromptSelection() {
           </AccordionContent>
         </AccordionItem>
       </Accordion>
-
-      <FeatureComparisonDialog
-        open={showPricingDialog}
-        onOpenChange={setShowPricingDialog}
-        recommendedPlan={promptPlanImpact.plan.toLowerCase() as any}
-      />
     </div>
   )
 }

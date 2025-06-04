@@ -26,8 +26,8 @@ import { ConfigModule } from '@nestjs/config';
     MongooseModule.forFeature([
       { name: WeeklyBrandReport.name, schema: WeeklyBrandReportSchema },
     ]),
-    ProjectModule, // Import the Project module to access its service
-    UserModule,
+    forwardRef(() => ProjectModule), // Import the Project module to access its service
+    forwardRef(() => UserModule),
     forwardRef(() => AuthModule),
     forwardRef(() => BatchModule), // Import the Batch module
     ConfigModule, // Add ConfigModule for ReportIntegrationService

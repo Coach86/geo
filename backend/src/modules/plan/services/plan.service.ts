@@ -120,7 +120,7 @@ export class PlanService {
       throw new NotFoundException(`No ${billingPeriod} price found for this plan`);
     }
 
-    const frontendUrl = this.configService.get('FRONTEND_URL') || 'http://localhost:3001';
+    const frontendUrl = this.configService.get('FRONTEND_URL') || 'http://localhost:3000';
 
     const session = await this.stripe.checkout.sessions.create({
       mode: 'subscription',

@@ -112,7 +112,7 @@ export class AuthService {
         return;
       }
 
-      const baseUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001';
+      const baseUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
       const accessUrl = `${baseUrl}/auth/login?token=${token}`;
 
       const resend = new Resend(resendApiKey);

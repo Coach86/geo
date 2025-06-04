@@ -15,13 +15,17 @@ import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { UserResponseDto } from '../dto/user-response.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
-import * as fs from 'fs';
-import * as path from 'path';
+import { OrganizationService } from '../../organization/services/organization.service';
+import { ConfigService } from '../../config/services/config.service';
 
 @ApiTags('users')
 @Controller('admin/users')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly organizationService: OrganizationService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a new user' })
@@ -35,20 +39,31 @@ export class UserController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all users or find by email' })
+  @ApiOperation({ summary: 'Get all users or find by email or organizationId' })
   @ApiQuery({
     name: 'email',
     required: false,
     description: 'Filter users by email',
+  })
+  @ApiQuery({
+    name: 'organizationId',
+    required: false,
+    description: 'Filter users by organization ID',
   })
   @ApiResponse({
     status: 200,
     description: 'List of users or single user if email provided',
     type: [UserResponseDto],
   })
-  async findAll(@Query('email') email?: string): Promise<UserResponseDto | UserResponseDto[]> {
+  async findAll(
+    @Query('email') email?: string,
+    @Query('organizationId') organizationId?: string,
+  ): Promise<UserResponseDto | UserResponseDto[]> {
     if (email) {
       return await this.userService.findByEmail(email);
+    }
+    if (organizationId) {
+      return await this.userService.findByOrganizationId(organizationId);
     }
     return await this.userService.findAll();
   }
@@ -141,13 +156,12 @@ export class UserController {
   })
   async getAvailableModels(@Param('id') id: string) {
     const user = await this.userService.findOne(id);
-    const configPath = path.resolve(process.cwd(), 'config.json');
-    const configContent = fs.readFileSync(configPath, 'utf8');
-    const config = JSON.parse(configContent);
+    const organization = await this.organizationService.findOne(user.organizationId);
+    const models = this.configService.getLlmModels();
     
     return {
-      models: config.llmModels.filter((model: any) => model.enabled),
-      maxSelectable: user.planSettings.maxAIModels
+      models: models.filter((model: any) => model.enabled),
+      maxSelectable: organization.planSettings.maxAIModels
     };
   }
 
@@ -169,10 +183,8 @@ export class UserController {
   ): Promise<UserResponseDto> {
     // Admin can select any models without plan restrictions
     // But we still validate that the models exist in config.json
-    const configPath = path.resolve(process.cwd(), 'config.json');
-    const configContent = fs.readFileSync(configPath, 'utf8');
-    const config = JSON.parse(configContent);
-    const availableModelIds = config.llmModels
+    const models = this.configService.getLlmModels();
+    const availableModelIds = models
       .filter((model: any) => model.enabled)
       .map((model: any) => model.id);
 

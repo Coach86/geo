@@ -1,5 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsOptional, IsString, Matches, IsObject, ValidateNested, IsNumber, IsArray, ArrayMaxSize } from 'class-validator';
+import {
+  IsEmail,
+  IsOptional,
+  IsString,
+  Matches,
+  IsObject,
+  ValidateNested,
+  IsNumber,
+  IsArray,
+  ArrayMaxSize,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 class PlanSettingsDto {
@@ -58,8 +68,8 @@ export class UpdateUserDto {
   })
   @IsString()
   @IsOptional()
-  @Matches(/^\+?[1-9]\d{1,14}$/, { 
-    message: 'Phone number must be a valid international format (e.g., +1234567890)' 
+  @Matches(/^\+?[1-9]\d{1,14}$/, {
+    message: 'Phone number must be a valid international format (e.g., +1234567890)',
   })
   phoneNumber?: string;
 
@@ -85,4 +95,22 @@ export class UpdateUserDto {
   @IsString({ each: true })
   @ArrayMaxSize(10, { message: 'Cannot select more than 10 models' })
   selectedModels?: string[];
+
+  @ApiProperty({
+    description: 'Stripe plan ID for the user',
+    example: 'manual',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  stripePlanId?: string;
+
+  @ApiProperty({
+    description: 'Organization ID for the user',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  organizationId?: string;
 }

@@ -50,16 +50,20 @@ export class ProjectRepository {
   }
 
   /**
-   * Find all projects, optionally filtered by user ID
+   * Find all projects
    */
-  async findAll(userId?: string): Promise<ProjectDocument[]> {
-    const query: any = {};
+  async findAll(): Promise<ProjectDocument[]> {
+    return await this.projectModel.find({}).sort({ updatedAt: -1 }).exec();
+  }
 
-    if (userId) {
-      query.userId = userId;
-    }
-
-    return await this.projectModel.find(query).sort({ updatedAt: -1 }).exec();
+  /**
+   * Find all projects by organization ID
+   */
+  async findByOrganizationId(organizationId: string): Promise<ProjectDocument[]> {
+    return await this.projectModel
+      .find({ organizationId })
+      .sort({ updatedAt: -1 })
+      .exec();
   }
 
   /**
@@ -94,6 +98,7 @@ export class ProjectRepository {
   mapToEntity(document: ProjectDocument): Project {
     return {
       projectId: document.id,
+      name: document.name,
       brandName: document.brandName,
       website: document.website,
       industry: document.industry,
@@ -103,7 +108,7 @@ export class ProjectRepository {
       keyBrandAttributes: document.keyBrandAttributes,
       competitors: document.competitors,
       updatedAt: document.updatedAt instanceof Date ? document.updatedAt : new Date(),
-      userId: document.userId,
+      organizationId: document.organizationId,
       language: document.language,
     };
   }

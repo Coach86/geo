@@ -20,6 +20,7 @@ import { UserModule } from './modules/user/user.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ConfigModule as AppConfigModule } from './modules/config/config.module';
 import { PlanModule } from './modules/plan/plan.module';
+import { OrganizationModule } from './modules/organization/organization.module';
 import { getWinstonConfig } from './utils/logger.config';
 
 @Module({
@@ -55,7 +56,7 @@ import { getWinstonConfig } from './utils/logger.config';
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'public'),
       serveRoot: '/',
-      exclude: ['/api*'],
+      exclude: ['/api/(.*)'],
       serveStaticOptions: {
         cacheControl: true,
         maxAge: 3600000,
@@ -64,6 +65,7 @@ import { getWinstonConfig } from './utils/logger.config';
     }),
     ScheduleModule.forRoot(),
     EventEmitterModule.forRoot(),
+    OrganizationModule,
     UserModule,
     ProjectModule,
     PromptModule,

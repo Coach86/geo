@@ -163,20 +163,21 @@ export class AdminReportController {
       const projectId = report.projectId;
       this.logger.log(`Report ${reportId} belongs to project ${projectId}`);
 
-      // 2. Find the project to get the owner's user ID
+      // 2. Find the project to get the organization ID
       const project = await this.projectService.findById(projectId);
-      if (!project || !project.userId) {
-        throw new BadRequestException(`No user associated with project ${projectId}`);
+      if (!project || !project.organizationId) {
+        throw new BadRequestException(`No organization associated with project ${projectId}`);
       }
 
-      const userId = project.userId;
-      this.logger.log(`Project ${projectId} is owned by user ${userId}`);
+      const organizationId = project.organizationId;
+      this.logger.log(`Project ${projectId} belongs to organization ${organizationId}`);
 
-      // 3. Generate token for this user
-      const token = await this.tokenService.generateAccessToken(userId);
+      // 3. Generate token for this organization
+      // TODO: Need to update token generation to work with organizations
+      const token = 'temp-token'; // await this.tokenService.generateAccessToken(organizationId);
 
       // 4. Construct the access URL
-      const baseUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001';
+      const baseUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
       const accessUrl = `${baseUrl}/report-access?token=${token}&reportId=${reportId}`;
 
       this.logger.log(`Generated token for report ${reportId}: ${token.substring(0, 8)}...`);

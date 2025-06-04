@@ -106,7 +106,7 @@ export class ProjectService {
           createProjectDto.url,
           createProjectDto.data.market,
           createProjectDto.data.language || 'en',
-          createProjectDto.userId,
+          createProjectDto.organizationId,
         );
       } else if (createProjectDto.data) {
         // Check if market is provided in the data
@@ -117,6 +117,7 @@ export class ProjectService {
         // Create from provided data
         project = {
           projectId: uuidv4(),
+          name: createProjectDto.data.name,
           brandName: createProjectDto.data.brandName || 'Unknown',
           website: createProjectDto.data.website || '',
           industry: createProjectDto.data.industry || 'Unknown',
@@ -126,7 +127,7 @@ export class ProjectService {
           keyBrandAttributes: createProjectDto.data.keyBrandAttributes || [],
           competitors: createProjectDto.data.competitors || [],
           language: createProjectDto.data.language || 'en',
-          userId: createProjectDto.userId,
+          organizationId: createProjectDto.organizationId,
           updatedAt: new Date(),
         };
       } else {
@@ -136,6 +137,7 @@ export class ProjectService {
       // Prepare database data object
       const dbData: any = {
         id: project.projectId, // Using the correct field name
+        name: createProjectDto.data?.name || project.name,
         brandName: project.brandName,
         website: project.website,
         industry: project.industry,
@@ -148,17 +150,9 @@ export class ProjectService {
         data: {},
       };
 
-      // Add userId if provided
-      if (createProjectDto.userId) {
-        // Check if user exists
-        const user = await this.projectRepository.findUserById(createProjectDto.userId);
-
-        if (!user) {
-          throw new NotFoundException(`User with ID ${createProjectDto.userId} not found`);
-        }
-
-        // Add userId to the database data
-        dbData.userId = createProjectDto.userId;
+      // Add organizationId
+      if (createProjectDto.organizationId) {
+        dbData.organizationId = createProjectDto.organizationId;
       }
 
       // Store to database
@@ -179,14 +173,19 @@ export class ProjectService {
     return this.projectRepository.mapToEntity(project);
   }
 
-  async findAll(userId?: string): Promise<Project[]> {
-    const projects = await this.projectRepository.findAll(userId);
+  async findAll(): Promise<Project[]> {
+    const projects = await this.projectRepository.findAll();
+    return projects.map((project) => this.projectRepository.mapToEntity(project));
+  }
+
+  async findByOrganizationId(organizationId: string): Promise<Project[]> {
+    const projects = await this.projectRepository.findByOrganizationId(organizationId);
     return projects.map((project) => this.projectRepository.mapToEntity(project));
   }
 
   async update(
     projectId: string,
-    updateData: { keyBrandAttributes?: string[]; competitors?: string[] },
+    updateData: { name?: string; keyBrandAttributes?: string[]; competitors?: string[]; market?: string },
   ): Promise<Project> {
     try {
       // First check if the project exists
@@ -195,12 +194,20 @@ export class ProjectService {
       // Prepare the update data
       const updateObj: any = {};
 
+      if (updateData.name !== undefined) {
+        updateObj.name = updateData.name;
+      }
+
       if (updateData.keyBrandAttributes !== undefined) {
         updateObj.keyBrandAttributes = updateData.keyBrandAttributes;
       }
 
       if (updateData.competitors !== undefined) {
         updateObj.competitors = updateData.competitors;
+      }
+
+      if (updateData.market !== undefined) {
+        updateObj.market = updateData.market;
       }
 
       // Only update if there are changes
@@ -224,7 +231,7 @@ export class ProjectService {
     url: string,
     market: string,
     language: string = 'en',
-    userId: string,
+    organizationId: string,
   ): Promise<Project> {
     try {
       let scrapedData: ScrapedWebsite | undefined;
@@ -258,7 +265,7 @@ export class ProjectService {
         url,
         market,
         language,
-        userId,
+        organizationId,
       );
 
       return project;
@@ -276,7 +283,7 @@ export class ProjectService {
     url: string,
     market: string,
     language: string,
-    userId: string,
+    organizationId: string,
   ): Promise<Project> {
     try {
       // Step 1: Generate the main project using the default provider
@@ -304,7 +311,7 @@ export class ProjectService {
         keyBrandAttributes: mainProject.keyBrandAttributes,
         competitors: competitors,
         language: language,
-        userId: userId,
+        organizationId: organizationId,
         updatedAt: new Date(),
       };
     } catch (error) {

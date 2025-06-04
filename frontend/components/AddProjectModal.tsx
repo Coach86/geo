@@ -39,6 +39,7 @@ interface AddProjectModalProps {
     url: string;
     market: string;
     language: string;
+    name: string;
   }) => Promise<{ id: string }>;
 }
 
@@ -50,6 +51,7 @@ export default function AddProjectModal({
 }: AddProjectModalProps) {
   const { token } = useAuth();
   const router = useRouter();
+  const [projectName, setProjectName] = useState("");
   const [selectedUrl, setSelectedUrl] = useState("");
   const [customUrl, setCustomUrl] = useState("");
   const [market, setMarket] = useState("");
@@ -74,6 +76,7 @@ export default function AddProjectModal({
   useEffect(() => {
     if (isOpen) {
       // Reset form when opening
+      setProjectName("");
       setSelectedUrl("");
       setCustomUrl("");
       setShowCustomUrlInput(false);
@@ -145,6 +148,11 @@ export default function AddProjectModal({
     const urlToUse = showCustomUrlInput ? customUrl : selectedUrl;
 
     // Validate inputs
+    if (!projectName.trim()) {
+      setError("Please enter a project name");
+      return;
+    }
+
     if (!urlToUse) {
       setError("Please select or enter a project URL");
       return;
@@ -175,12 +183,14 @@ export default function AddProjectModal({
         url: urlToUse,
         market,
         language: languageCode,
+        name: projectName.trim(),
       });
 
       toast.success("Project created successfully!");
       onSuccess(result.id);
 
       // Reset form
+      setProjectName("");
       setSelectedUrl("");
       setCustomUrl("");
       setShowCustomUrlInput(false);
@@ -198,12 +208,7 @@ export default function AddProjectModal({
       } else if (err.response?.data?.code === "URL_LIMIT_EXCEEDED") {
         const errorData = err.response.data;
         setError(
-          `You've reached your URL limit (${errorData.maxAllowed}). Please upgrade your plan to add more URLs.`
-        );
-      } else if (err.response?.data?.code === "URL_ALREADY_EXISTS") {
-        const errorData = err.response.data;
-        setError(
-          `You already have a project with this URL: ${errorData.url}`
+          `You've reached your unique URL limit (${errorData.maxAllowed}). Please upgrade your plan to add more unique URLs.`
         );
       } else {
         setError(err.message || "Failed to create project. Please try again.");
@@ -225,6 +230,22 @@ export default function AddProjectModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="projectName">Project Name</Label>
+            <Input
+              id="projectName"
+              type="text"
+              placeholder="e.g., Q1 2025 Campaign"
+              value={projectName}
+              onChange={(e) => setProjectName(e.target.value)}
+              disabled={isSubmitting}
+              required
+            />
+            <p className="text-sm text-gray-500">
+              Give your project a descriptive name to easily identify it
+            </p>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="url">Project Website URL</Label>
             {isLoadingUsage ? (

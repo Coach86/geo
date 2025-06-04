@@ -5,15 +5,8 @@ export class User {
   email: string;
   language: string;
   phoneNumber?: string;
-  stripeCustomerId?: string;
-  stripePlanId?: string;
-  planSettings: {
-    maxProjects: number;
-    maxAIModels: number;
-    maxSpontaneousPrompts?: number;
-    maxUrls: number;
-  };
-  selectedModels: string[];
+  organizationId: string;
+  lastConnectionAt?: Date;
   projects?: Project[];
   createdAt: Date;
   updatedAt: Date;
