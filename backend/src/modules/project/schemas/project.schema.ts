@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 export const ProjectZodSchema = z.object({
   companyId: z.string().uuid().optional(),
+  name: z.string().optional(),
   brandName: z.string(),
   website: z.string().url(),
   industry: z.string(),

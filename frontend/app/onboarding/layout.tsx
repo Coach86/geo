@@ -7,9 +7,11 @@ import OnboardingProgress from "@/components/onboarding/onboarding-progress"
 import { OnboardingProvider } from "@/providers/onboarding-provider"
 import { useOnboarding } from "@/providers/onboarding-provider"
 import { useRouter } from "next/navigation"
+import { getStepById, isLastStep, PRICING_STEP, StepId, getNextButtonText } from "./steps.config"
 import OnboardingHeader from "@/components/onboarding/onboarding-header"
 import { useAuth } from "@/providers/auth-provider"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
+import { createProject, type CreateFullProjectRequest } from "@/lib/auth-api"
 
 export default function OnboardingLayout({ children }: { children: ReactNode }) {
   return (
@@ -61,29 +63,88 @@ function ProtectedOnboarding({ children }: { children: ReactNode }) {
 }
 
 function NavigationButtons() {
-  const { currentStep, setCurrentStep, canNavigateFromStep } = useOnboarding()
+  const { currentStep, navigateNext, navigatePrevious, canNavigateFromStep, formData, savedConfigs } = useOnboarding()
   const router = useRouter()
+  const { token, isAuthenticated, isLoading: authLoading } = useAuth()
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [generationError, setGenerationError] = useState<string | null>(null)
 
   const handleBack = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1)
-    } else {
+    if (currentStep === StepId.PROJECT) {
       router.push("/")
-    }
-  }
-
-  const handleNext = () => {
-    if (currentStep < 7) {
-      setCurrentStep(currentStep + 1)
     } else {
-      // Rediriger vers la page de résultats ou de génération du rapport
-      router.push("/results")
+      navigatePrevious()
     }
   }
 
-  const isLastStep = currentStep === 7
-  const isPaywallStep = currentStep === 7
+  const handleNext = async () => {
+    if (currentStep === StepId.PRICING) {
+      router.push("/results")
+    } else if (currentStep === StepId.CONTACT) {
+      // From contact step, create the project before going to pricing
+      await handleGenerateReport()
+    } else {
+      navigateNext()
+    }
+  }
+
+  const handleGenerateReport = async () => {
+    if (!token || authLoading) {
+      setGenerationError("Authentication required. Please ensure you are logged in.")
+      return
+    }
+
+    const allConfigs = savedConfigs.length > 0 ? savedConfigs : [formData]
+    if (allConfigs.length === 0) {
+      setGenerationError("No configurations found. Please add at least one website.")
+      return
+    }
+
+    setIsGenerating(true)
+    setGenerationError(null)
+
+    try {
+      // Process each configuration
+      for (const config of allConfigs) {
+        console.log("Processing configuration:", config.website)
+
+        // Prepare the identity card request
+        const identityCardRequest: CreateFullProjectRequest = {
+          url: config.website,
+          brandName: config.brandName,
+          description: config.analyzedData?.fullDescription || config.description,
+          industry: config.industry,
+          market: config.markets?.[0]?.country || "United States",
+          language: config.markets?.[0]?.languages?.[0] || "English",
+          keyBrandAttributes: config.analyzedData?.keyBrandAttributes || config.attributes || [],
+          competitors: config.analyzedData?.competitors ||
+            config.competitors?.filter((c) => c.selected).map((c) => c.name) || [],
+        }
+
+        // Save the identity card
+        console.log("Saving identity card for:", config.brandName)
+        const identityCard = await createProject(identityCardRequest, token)
+        console.log("Identity card saved successfully:", identityCard.id)
+      }
+
+      console.log("All configurations processed successfully")
+      // Navigate to pricing page after project creation
+      router.push("/pricing")
+    } catch (error) {
+      console.error("Error generating report:", error)
+      setGenerationError(
+        error instanceof Error
+          ? error.message
+          : "Failed to generate report. Please try again."
+      )
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
+  const isPricingStep = currentStep === StepId.PRICING
   const canNavigate = canNavigateFromStep(currentStep)
+  const buttonText = getNextButtonText(currentStep, canNavigate)
 
   return (
     <div className="w-full flex justify-between">
@@ -92,32 +153,21 @@ function NavigationButtons() {
         <span>Back</span>
       </Button>
 
-      {!isPaywallStep && (
+      {!isPricingStep && (
         <Button
           className={`flex items-center gap-2 rounded-md ${
             canNavigate ? "bg-accent-500 hover:bg-accent-600" : "bg-gray-300"
           } text-white shadow-button transition-all duration-300`}
           onClick={handleNext}
-          disabled={!canNavigate}
+          disabled={!canNavigate || isGenerating}
         >
-          {currentStep === 6 ? (
+          {isGenerating ? (
             <>
-              <span>Continue to pricing</span>
-              <ArrowRight className="h-4 w-4" />
-            </>
-          ) : currentStep === 5 ? (
-            <>
-              <span>Get my report</span>
-              <ArrowRight className="h-4 w-4" />
-            </>
-          ) : currentStep === 1 && !canNavigate ? (
-            <>
-              <span>Analyze website first</span>
-              <ArrowRight className="h-4 w-4" />
+              <span>Generating report...</span>
             </>
           ) : (
             <>
-              <span>Next</span>
+              <span>{buttonText}</span>
               <ArrowRight className="h-4 w-4" />
             </>
           )}

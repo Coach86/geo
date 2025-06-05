@@ -29,6 +29,7 @@ export interface LlmModelConfig {
   model: string;
   enabled: boolean;
   name: string;
+  webAccess?: boolean; // Whether this model has web access enabled
   parameters: {
     temperature: number;
     maxTokens: number;

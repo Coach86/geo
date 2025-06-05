@@ -1,6 +1,7 @@
 // Project interfaces
 export interface Project {
   id: string;
+  name?: string;
   brandName: string;
   industry: string;
   market: string;
@@ -11,11 +12,9 @@ export interface Project {
   competitors: string[];
   url?: string;
   logo?: string;
+  organizationId?: string;
   createdAt: string;
   updatedAt: string;
-  userId?: string | null;
-  userEmail?: string | null;
-  userLanguage?: string | null;
 }
 
 // User interface
@@ -24,6 +23,7 @@ export interface User {
   email: string;
   language: string;
   phoneNumber?: string;
+  organizationId?: string;
   stripeCustomerId?: string;
   stripePlanId?: string;
   planSettings: {

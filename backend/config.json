@@ -1,11 +1,37 @@
 {
   "llmModels": [
     {
+      "id": "openai-gpt4-1",
+      "provider": "OpenAI",
+      "model": "gpt-4.1-2025-04-14",
+      "name": "GPT-4-1",
+      "enabled": false,
+      "webAccess": true,
+      "parameters": {
+        "temperature": 0.7,
+        "maxTokens": 500,
+        "systemPrompt": "You are a helpful assistant providing clear, factual information."
+      }
+    },
+    {
+      "id": "openai-gpt-o4-mini",
+      "provider": "OpenAI",
+      "model": "o4-mini-2025-04-16",
+      "name": "GPT-o4-mini",
+      "enabled": false,
+      "webAccess": false,
+      "parameters": {
+        "maxTokens": 500,
+        "systemPrompt": "You are a helpful assistant providing clear, factual information."
+      }
+    },
+    {
       "id": "openai-gpt4o",
       "provider": "OpenAI",
       "model": "gpt-4o",
       "name": "GPT-4o",
       "enabled": true,
+      "webAccess": true,
       "parameters": {
         "temperature": 0.7,
         "maxTokens": 500,
@@ -18,6 +44,7 @@
       "model": "grok-3-latest",
       "name": "Grok 3 Latest",
       "enabled": true,
+      "webAccess": true,
       "parameters": {
         "temperature": 0.7,
         "maxTokens": 500,
@@ -29,7 +56,34 @@
       "provider": "Anthropic",
       "model": "claude-3-7-sonnet-20250219",
       "name": "Claude 3.7 Sonnet",
+      "enabled": false,
+      "webAccess": true,
+      "parameters": {
+        "temperature": 0.7,
+        "maxTokens": 500,
+        "systemPrompt": "You are Claude, a helpful AI assistant created by Anthropic."
+      }
+    },
+    {
+      "id": "anthropic-claude-4-sonnet",
+      "provider": "Anthropic",
+      "model": "claude-sonnet-4-20250514",
+      "name": "Claude 4 Sonnet",
       "enabled": true,
+      "webAccess": true,
+      "parameters": {
+        "temperature": 0.7,
+        "maxTokens": 500,
+        "systemPrompt": "You are Claude, a helpful AI assistant created by Anthropic."
+      }
+    },
+    {
+      "id": "anthropic-claude-4-opus",
+      "provider": "Anthropic",
+      "model": "claude-opus-4-20250514",
+      "name": "Claude 4 Opus",
+      "enabled": false,
+      "webAccess": true,
       "parameters": {
         "temperature": 0.7,
         "maxTokens": 500,
@@ -42,6 +96,7 @@
       "model": "gemini-2.0-flash",
       "name": "Gemini 2.0 Flash",
       "enabled": true,
+      "webAccess": true,
       "parameters": {
         "temperature": 0.7,
         "maxTokens": 500,
@@ -53,6 +108,45 @@
       "provider": "Perplexity",
       "model": "sonar-pro",
       "name": "Perplexity Sonar Pro",
+      "enabled": true,
+      "webAccess": true,
+      "parameters": {
+        "temperature": 0.7,
+        "maxTokens": 500,
+        "systemPrompt": "You are a helpful assistant."
+      }
+    },
+    {
+      "id": "mistral-medium",
+      "provider": "Mistral",
+      "model": "mistral-medium-2505",
+      "name": "Mistral Medium 2025",
+      "enabled": true,
+      "webAccess": false,
+      "parameters": {
+        "temperature": 0.7,
+        "maxTokens": 500,
+        "systemPrompt": "You are a helpful assistant."
+      }
+    },
+    {
+      "id": "mistral-large",
+      "provider": "Mistral",
+      "model": "mistral-large-2411",
+      "name": "Mistral Large",
+      "enabled": false,
+      "webAccess": false,
+      "parameters": {
+        "temperature": 0.7,
+        "maxTokens": 500,
+        "systemPrompt": "You are a helpful assistant."
+      }
+    },
+    {
+      "id": "deepseek-chat",
+      "provider": "DeepSeek",
+      "model": "deepseek-chat",
+      "name": "DeepSeek Chat",
       "enabled": true,
       "parameters": {
         "temperature": 0.7,
@@ -106,5 +200,10 @@
     "maxDelayMs": 30000,
     "backoffFactor": 2.0,
     "description": "Retry configuration for LLM API calls when rate limited"
-  }
+  },
+  "defaultModels": [
+    "openai-gpt4o",
+    "anthropic-claude-4-sonnet",
+    "google-gemini2.0"
+  ]
 }

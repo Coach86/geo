@@ -14,8 +14,7 @@ export default function OnboardingHeader() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center">
-            <Sparkles className="h-6 w-6 mr-2 text-accent-500" />
-            <span className="text-xl font-semibold text-mono-900">Mint</span>
+           <img src={'/logo-small.png'} style={{height: 30}} alt="logo"/>
           </Link>
 
           <div className="flex items-center gap-3">

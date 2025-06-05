@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { BatchExecutionRepository } from '../repositories/batch-execution.repository';
 import { BatchResultRepository } from '../repositories/batch-result.repository';
@@ -21,6 +21,7 @@ import { BatchExecutionService } from './batch-execution.service';
 import { ProjectBatchContext } from '../interfaces/batch.interfaces';
 import { Project } from '../../project/entities/project.entity';
 import { OnEvent } from '@nestjs/event-emitter';
+import { OrganizationService } from '../../organization/services/organization.service';
 
 @Injectable()
 export class BatchService {
@@ -42,6 +43,8 @@ export class BatchService {
     private readonly accuracyPipelineService: AccuracyPipelineService,
     private readonly comparisonPipelineService: ComparisonPipelineService,
     private readonly userService: UserService,
+    @Inject(forwardRef(() => OrganizationService))
+    private readonly organizationService: OrganizationService,
   ) {
     // Initialize the concurrency limiter with high parallelism
     // Ensure concurrencyLimit is a number and at least 1
@@ -100,18 +103,18 @@ export class BatchService {
               return;
             }
 
-            // Get the user's selected models if userId is available
+            // Get the organization's selected models
             let selectedModels: string[] = [];
-            if (project.userId) {
+            if (project.organizationId) {
               try {
-                const user = await this.userService.findOne(project.userId);
-                selectedModels = user.selectedModels || [];
-                this.logger.log(`Found ${selectedModels.length} selected models for user ${project.userId}: ${selectedModels.join(', ')}`);
+                const organization = await this.organizationService.findOne(project.organizationId);
+                selectedModels = organization.selectedModels || [];
+                this.logger.log(`Found ${selectedModels.length} selected models for organization ${project.organizationId}: ${selectedModels.join(', ')}`);
               } catch (error) {
-                this.logger.warn(`Failed to get user selected models for user ${project.userId}: ${error.message}`);
+                this.logger.warn(`Failed to get organization selected models for organization ${project.organizationId}: ${error.message}`);
               }
             } else {
-              this.logger.warn(`Project ${project.id} has no associated user - will use all enabled models`);
+              this.logger.warn(`Project ${project.id} has no associated organization - will use all enabled models`);
             }
 
             const context: ProjectBatchContext = {
@@ -122,7 +125,7 @@ export class BatchService {
               promptSet,
               websiteUrl: project.website,
               market: project.market,
-              userId: project.userId,
+              organizationId: project.organizationId,
               selectedModels,
             };
 
@@ -454,18 +457,18 @@ export class BatchService {
       throw new Error(`Project ${projectId} has no prompt sets`);
     }
 
-    // Get the user's selected models if userId is available
+    // Get the organization's selected models
     let selectedModels: string[] = [];
-    if (project.userId) {
+    if (project.organizationId) {
       try {
-        const user = await this.userService.findOne(project.userId);
-        selectedModels = user.selectedModels || [];
-        this.logger.log(`Found ${selectedModels.length} selected models for user ${project.userId}: ${selectedModels.join(', ')}`);
+        const organization = await this.organizationService.findOne(project.organizationId);
+        selectedModels = organization.selectedModels || [];
+        this.logger.log(`Found ${selectedModels.length} selected models for organization ${project.organizationId}: ${selectedModels.join(', ')}`);
       } catch (error) {
-        this.logger.warn(`Failed to get user selected models for user ${project.userId}: ${error.message}`);
+        this.logger.warn(`Failed to get organization selected models for organization ${project.organizationId}: ${error.message}`);
       }
     } else {
-      this.logger.warn(`Project ${projectId} has no associated user - will use all enabled models`);
+      this.logger.warn(`Project ${projectId} has no associated organization - will use all enabled models`);
     }
 
     return {
@@ -476,7 +479,7 @@ export class BatchService {
       market: project.market,
       promptSet,
       websiteUrl: project.website,
-      userId: project.userId,
+      organizationId: project.organizationId,
       selectedModels,
     };
   }

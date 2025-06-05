@@ -64,8 +64,7 @@ export default function VerifyPage() {
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-blue-100 flex flex-col items-center justify-center p-4">
       {/* Logo */}
       <div className="mb-8 flex items-center">
-        <Sparkles className="h-10 w-10 text-accent-500 mr-2" />
-        <span className="text-3xl font-semibold text-mono-900">Mint</span>
+        <img src={'/logo-small.png'} style={{height: 30}} alt="logo"/>
       </div>
 
       {/* Verification Card */}

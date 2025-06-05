@@ -17,9 +17,16 @@ import {
   FormControlLabel,
   Checkbox,
   Skeleton,
+  MenuItem,
+  Select,
 } from '@mui/material';
 import { User, AIModel } from '../utils/types';
-import { updateUserPlanSettings, getAvailableModels, updateUserSelectedModels } from '../utils/api';
+import {
+  updateUserPlanSettings,
+  getAvailableModels,
+  updateUserSelectedModels,
+  updateUser,
+} from '../utils/api';
 import BusinessIcon from '@mui/icons-material/Business';
 import ModelTrainingIcon from '@mui/icons-material/ModelTraining';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
@@ -51,6 +58,8 @@ export const EditPlanSettingsDialog: React.FC<EditPlanSettingsDialogProps> = ({
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
   const [modelsLoading, setModelsLoading] = useState(false);
 
+  const [planId, setPlanId] = useState(user?.stripePlanId || '');
+
   useEffect(() => {
     if (user) {
       setMaxProjects(user.planSettings?.maxProjects || 1);
@@ -59,6 +68,7 @@ export const EditPlanSettingsDialog: React.FC<EditPlanSettingsDialogProps> = ({
       setMaxUrls(user.planSettings?.maxUrls || 1);
       setMaxCompetitors(user.planSettings?.maxCompetitors || 5);
       setSelectedModels(user.selectedModels || []);
+      setPlanId(user.stripePlanId || '');
 
       // Fetch available models
       const fetchModels = async () => {
@@ -90,11 +100,13 @@ export const EditPlanSettingsDialog: React.FC<EditPlanSettingsDialogProps> = ({
 
   const handleSave = async () => {
     if (!user) return;
-
     setError(null);
     setSaving(true);
-
     try {
+      // Update planId if changed
+      if (planId !== user.stripePlanId) {
+        await updateUser(user.id, { stripePlanId: planId });
+      }
       // Update plan settings
       const updatedUser = await updateUserPlanSettings(user.id, {
         maxProjects,
@@ -103,10 +115,8 @@ export const EditPlanSettingsDialog: React.FC<EditPlanSettingsDialogProps> = ({
         maxUrls,
         maxCompetitors,
       });
-
       // Update selected models
       const finalUpdatedUser = await updateUserSelectedModels(user.id, selectedModels);
-
       onUpdate(finalUpdatedUser);
       onClose();
     } catch (err) {
@@ -128,6 +138,7 @@ export const EditPlanSettingsDialog: React.FC<EditPlanSettingsDialogProps> = ({
         setMaxUrls(user.planSettings?.maxUrls || 1);
         setMaxCompetitors(user.planSettings?.maxCompetitors || 5);
         setSelectedModels(user.selectedModels || []);
+        setPlanId(user.stripePlanId || '');
       }
     }
   };
@@ -144,7 +155,7 @@ export const EditPlanSettingsDialog: React.FC<EditPlanSettingsDialogProps> = ({
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle>
-        Edit Plan Settings
+        Edit User
         <Typography variant="body2" color="textSecondary">
           {user.email}
         </Typography>
@@ -383,6 +394,17 @@ export const EditPlanSettingsDialog: React.FC<EditPlanSettingsDialogProps> = ({
               </Typography>
             </Box>
           )}
+
+          <Box sx={{ mb: 3 }}>
+            <FormControl fullWidth>
+              <FormLabel>Plan ID</FormLabel>
+              <Select value={planId} onChange={(e) => setPlanId(e.target.value)} size="small">
+                <MenuItem value="">(none)</MenuItem>
+                <MenuItem value="free">Free</MenuItem>
+                <MenuItem value="manual">Manual (test)</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
 
           {error && (
             <Alert severity="error" sx={{ mt: 2 }}>

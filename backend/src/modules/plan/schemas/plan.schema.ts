@@ -29,6 +29,9 @@ export class Plan {
   @Prop({ required: true, default: 1 })
   maxProjects: number;
 
+  @Prop({ required: true, default: 1 })
+  maxUsers: number;
+
   @Prop({ default: 1 })
   maxUrls: number;
 

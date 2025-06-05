@@ -18,4 +18,12 @@ export class CreateUserDto {
   @IsString()
   @IsOptional()
   language?: string;
+
+  @ApiProperty({
+    description: 'Organization ID (set automatically when created by organization)',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @IsString()
+  @IsOptional()
+  organizationId?: string;
 }

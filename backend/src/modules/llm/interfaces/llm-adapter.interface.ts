@@ -18,6 +18,7 @@ export interface LlmCallOptions {
   timeout?: number;
   systemPrompt?: string; // System prompt for chat models
   model?: string; // Specific model to use (e.g., gpt-4.5 from OpenAI provider)
+  webAccess?: boolean; // Whether this specific model has web access enabled
 }
 
 /**

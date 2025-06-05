@@ -15,8 +15,8 @@ import { UpdateEmailDto } from '../dto/update-email.dto';
 import { UserResponseDto } from '../dto/user-response.dto';
 import { TokenRoute } from '../../auth/decorators/token-route.decorator';
 import { TokenService } from '../../auth/services/token.service';
-import * as fs from 'fs';
-import * as path from 'path';
+import { OrganizationService } from '../../organization/services/organization.service';
+import { ConfigService } from '../../config/services/config.service';
 
 @ApiTags('user-profile')
 @Controller('user/profile')
@@ -26,6 +26,8 @@ export class UserProfileController {
   constructor(
     private readonly userService: UserService,
     private readonly tokenService: TokenService,
+    private readonly organizationService: OrganizationService,
+    private readonly configService: ConfigService,
   ) {}
 
   @Get()
@@ -244,13 +246,12 @@ export class UserProfileController {
       }
 
       const user = await this.userService.findOne(request.userId);
-      const configPath = path.resolve(process.cwd(), 'config.json');
-      const configContent = fs.readFileSync(configPath, 'utf8');
-      const config = JSON.parse(configContent);
+      const organization = await this.organizationService.findOne(user.organizationId);
+      const models = this.configService.getLlmModels();
 
       return {
-        models: config.llmModels.filter((model: any) => model.enabled),
-        maxSelectable: user.planSettings.maxAIModels,
+        models: models.filter((model: any) => model.enabled),
+        maxSelectable: organization.planSettings.maxAIModels,
       };
     } catch (error) {
       if (error instanceof BadRequestException || error instanceof UnauthorizedException) {
@@ -309,19 +310,18 @@ export class UserProfileController {
       }
 
       const user = await this.userService.findOne(request.userId);
+      const organization = await this.organizationService.findOne(user.organizationId);
 
       // Validate that the number of selected models doesn't exceed the plan limit
-      if (body.selectedModels.length > user.planSettings.maxAIModels) {
+      if (body.selectedModels.length > organization.planSettings.maxAIModels) {
         throw new BadRequestException(
-          `Cannot select more than ${user.planSettings.maxAIModels} models for your current plan`,
+          `Cannot select more than ${organization.planSettings.maxAIModels} models for your current plan`,
         );
       }
 
       // Validate that all selected models exist in config.json
-      const configPath = path.resolve(process.cwd(), 'config.json');
-      const configContent = fs.readFileSync(configPath, 'utf8');
-      const config = JSON.parse(configContent);
-      const availableModelIds = config.llmModels
+      const models = this.configService.getLlmModels();
+      const availableModelIds = models
         .filter((model: any) => model.enabled)
         .map((model: any) => model.id);
 

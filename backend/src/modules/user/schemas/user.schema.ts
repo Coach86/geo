@@ -29,52 +29,11 @@ export class User {
   @Prop({ type: String, required: false })
   phoneNumber?: string;
 
-  @Prop({ type: String, required: false })
-  stripeCustomerId?: string;
+  @Prop({ required: true, index: true })
+  organizationId: string;
 
-  @Prop({ type: String, required: false })
-  stripePlanId?: string;
-
-  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Plan', required: false })
-  planId?: string;
-
-  @Prop({
-    type: {
-      maxProjects: { type: Number, default: 1 },
-      maxAIModels: { type: Number, default: 3 },
-      maxSpontaneousPrompts: { type: Number, default: 12 },
-      maxUrls: { type: Number, default: 1 },
-      maxCompetitors: { type: Number, default: 5 },
-    },
-    default: {
-      maxProjects: 1,
-      maxAIModels: 3,
-      maxSpontaneousPrompts: 12,
-      maxUrls: 1,
-      maxCompetitors: 5,
-    },
-  })
-  planSettings: {
-    maxProjects: number;
-    maxAIModels: number;
-    maxSpontaneousPrompts: number;
-    maxUrls: number;
-    maxCompetitors: number;
-  };
-
-  @Prop({
-    type: [String],
-    default: [],
-    validate: {
-      validator: function (value: string[]) {
-        // Ensure the array doesn't exceed maxAIModels limit
-        const maxModels = this.planSettings?.maxAIModels || 3;
-        return value.length <= maxModels;
-      },
-      message: 'Selected models cannot exceed the plan limit',
-    },
-  })
-  selectedModels: string[];
+  @Prop({ type: Date })
+  lastConnectionAt?: Date;
 
   @Prop({ type: Date })
   createdAt: Date;

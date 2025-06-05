@@ -4,6 +4,9 @@ export class ProjectResponseDto {
   @ApiProperty({ description: 'Unique identifier for the company' })
   id: string;
 
+  @ApiProperty({ description: 'Optional custom name for the project', required: false })
+  name?: string;
+
   @ApiProperty({ description: 'Company brand name' })
   brandName: string;
 
@@ -47,21 +50,12 @@ export class ProjectResponseDto {
   @ApiProperty({ description: 'Logo URL', required: false })
   logo?: string;
 
+  @ApiProperty({ description: 'Organization ID this project belongs to' })
+  organizationId: string;
+
   @ApiProperty({ description: 'Creation timestamp' })
   createdAt: Date;
 
   @ApiProperty({ description: 'Last update timestamp' })
   updatedAt: Date;
-
-  @ApiPropertyOptional({ description: 'ID of the user who owns this company', nullable: true })
-  userId?: string | null;
-
-  @ApiPropertyOptional({ description: 'Email of the user who owns this company', nullable: true })
-  userEmail?: string | null;
-
-  @ApiPropertyOptional({
-    description: 'Language preference of the user who owns this company',
-    nullable: true,
-  })
-  userLanguage?: string | null;
 }
