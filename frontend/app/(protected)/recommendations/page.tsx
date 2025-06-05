@@ -41,7 +41,7 @@ const geoCategories = [
         researchBacking: "Essential prerequisite for AI visibility",
         implementationSteps: [
           "Update robots.txt to allow GPTBot, Google's AI crawler, xxx",
-          "Check crawler logs to verify successful access", 
+          "Check crawler logs to verify successful access",
           "Test with crawler simulation tools",
           "Monitor for new AI crawlers monthly"
         ],
@@ -389,70 +389,6 @@ export default function RecommendationsPage() {
               </p>
             </div>
           </div>
-
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              <strong>What is GEO?</strong> Generative Engine Optimization is
-              the practice of optimizing content to be cited and referenced by
-              AI-powered search engines. Unlike traditional SEO, GEO focuses on
-              being selected as a trusted source in AI-generated responses.
-            </AlertDescription>
-          </Alert>
-        </div>
-
-        {/* Key Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Users className="w-5 h-5 text-blue-600" />
-                <div>
-                  <div className="text-2xl font-bold text-blue-600">39%</div>
-                  <div className="text-sm text-gray-600">Use AI for Search</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-orange-600" />
-                <div>
-                  <div className="text-2xl font-bold text-orange-600">25%</div>
-                  <div className="text-sm text-gray-600">
-                    Search Volume at Risk
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Target className="w-5 h-5 text-green-600" />
-                <div>
-                  <div className="text-2xl font-bold text-green-600">75%</div>
-                  <div className="text-sm text-gray-600">
-                    Will Adopt GEO by 2025
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-purple-600" />
-                <div>
-                  <div className="text-2xl font-bold text-purple-600">15+</div>
-                  <div className="text-sm text-gray-600">
-                    Optimization Tactics
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* GEO Recommendations by Category */}
@@ -506,15 +442,6 @@ export default function RecommendationsPage() {
                             {rec.difficulty}
                           </Badge>
                         </div>
-                      </div>
-
-                      {/* Research Backing */}
-                      <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                        <h4 className="font-medium text-blue-900 mb-1 flex items-center gap-2">
-                          <Award className="w-4 h-4" />
-                          Research Backing
-                        </h4>
-                        <p className="text-sm text-blue-800">{rec.researchBacking}</p>
                       </div>
 
                       {/* Implementation Steps */}
