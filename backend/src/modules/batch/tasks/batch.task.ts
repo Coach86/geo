@@ -1,9 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { OnEvent } from '@nestjs/event-emitter';
 import { ConfigService } from '@nestjs/config';
 import { BatchService } from '../services/batch.service';
 import { ProjectBatchOrchestratorService } from '../services/project-batch-orchestrator.service';
 import { BatchExecutionService } from '../services/batch-execution.service';
+import { ProjectService } from '../../project/services/project.service';
 
 @Injectable()
 export class BatchTask {
@@ -15,6 +17,7 @@ export class BatchTask {
     private readonly batchService: BatchService,
     private readonly batchOrchestratorService: ProjectBatchOrchestratorService,
     private readonly batchExecutionService: BatchExecutionService,
+    private readonly projectService: ProjectService,
   ) {
     this.batchEnabled = this.configService.get<boolean>('BATCH_ENABLED', true);
     this.logger.log(`Batch task initialized. Batch processing ${this.batchEnabled ? 'enabled' : 'disabled'}`);
@@ -115,6 +118,56 @@ export class BatchTask {
       this.logger.log(`Processed ${stalledBatches.length} stalled batch executions`);
     } catch (error) {
       this.logger.error(`Failed to check for stalled batch executions: ${error.message}`, error.stack);
+    }
+  }
+
+  /**
+   * Handle plan upgrade event - trigger batch analysis for all projects in the organization
+   */
+  @OnEvent('plan.upgraded')
+  async handlePlanUpgraded(payload: {
+    organizationId: string;
+    planId: string;
+    planName: string;
+    userId: string;
+    timestamp: Date;
+  }) {
+    this.logger.log(`Handling plan upgrade event for organization ${payload.organizationId}`);
+
+    try {
+      // Get all projects for the organization
+      const projects = await this.projectService.findByOrganizationId(payload.organizationId);
+
+      if (!projects || projects.length === 0) {
+        this.logger.log(`No projects found for organization ${payload.organizationId}`);
+        return;
+      }
+
+      this.logger.log(`Found ${projects.length} projects to process for organization ${payload.organizationId}`);
+
+      // Process each project
+      for (const project of projects) {
+        try {
+          this.logger.log(`Starting batch analysis for project ${project.projectId} (${project.brandName}) after plan upgrade`);
+          
+          await this.batchOrchestratorService.orchestrateProjectBatches(project.projectId);
+          
+          this.logger.log(`Batch analysis triggered successfully for project ${project.projectId}`);
+        } catch (error) {
+          this.logger.error(
+            `Failed to trigger batch for project ${project.projectId}: ${error.message}`,
+            error.stack
+          );
+          // Continue with other projects even if one fails
+        }
+      }
+
+      this.logger.log(`Completed processing ${projects.length} projects after plan upgrade`);
+    } catch (error) {
+      this.logger.error(
+        `Failed to handle plan upgrade event: ${error.message}`,
+        error.stack
+      );
     }
   }
 }

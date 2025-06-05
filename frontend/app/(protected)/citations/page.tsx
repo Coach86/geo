@@ -32,6 +32,7 @@ import { ReportSelector } from "@/components/shared/ReportSelector";
 import { useReportData } from "@/hooks/use-report-data";
 import BreadcrumbNav from "@/components/layout/breadcrumb-nav";
 import { useNavigation } from "@/providers/navigation-provider";
+import { ProcessingLoader } from "@/components/shared/ProcessingLoader";
 
 interface ProcessedReport extends ReportResponse {
   createdAt: string;
@@ -449,16 +450,7 @@ export default function CitationsPage() {
 
         {/* No Reports State */}
         {!loading && !selectedReport && selectedProjectId && (
-          <Card>
-            <CardContent className="pt-6">
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  No reports available yet. Reports are generated weekly.
-                </AlertDescription>
-              </Alert>
-            </CardContent>
-          </Card>
+          <ProcessingLoader />
         )}
       </div>
   );

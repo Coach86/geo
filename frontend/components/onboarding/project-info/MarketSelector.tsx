@@ -110,43 +110,6 @@ export function MarketSelector({
             <label className="block text-sm font-medium text-gray-700">
               Markets & Languages
             </label>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="flex items-center text-xs">
-                    <span className="mr-1">Plan impact:</span>
-                    <Badge className={PLAN_COLORS[planImpact]}>
-                      {planImpact}
-                    </Badge>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent side="right" className="max-w-[300px]">
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium">
-                      Your selection impacts pricing:
-                    </p>
-                    <ul className="text-xs space-y-1 list-disc pl-4">
-                      <li>
-                        <span className="font-medium">Starter:</span> 1 market,
-                        1 language
-                      </li>
-                      <li>
-                        <span className="font-medium">Growth:</span> Up to 3
-                        markets, 5 languages
-                      </li>
-                      <li>
-                        <span className="font-medium">Pro:</span> Up to 5
-                        markets, 10 languages
-                      </li>
-                      <li>
-                        <span className="font-medium">Enterprise:</span>{" "}
-                        Unlimited
-                      </li>
-                    </ul>
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
           </div>
 
           {/* Affichage des marchés et langues sélectionnés */}

@@ -1,5 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Check, X, Info } from "lucide-react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
@@ -7,12 +9,14 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { comparisonData, featureTooltips } from "./pricing-constants";
+import { ContactSalesDialog } from "@/components/shared/ContactSalesDialog";
 
 interface ComparisonTableProps {
   recommendedPlan: string;
 }
 
 export function ComparisonTable({ recommendedPlan }: ComparisonTableProps) {
+  const [contactSalesOpen, setContactSalesOpen] = useState(false);
   return (
     <section className="max-w-6xl mx-auto px-4 sm:px-6 mb-16">
       <h2 className="text-2xl md:text-3xl font-bold text-center mb-8 text-mono-900">
@@ -185,14 +189,22 @@ export function ComparisonTable({ recommendedPlan }: ComparisonTableProps) {
       <div className="mt-4 text-center">
         <p className="text-sm text-mono-500">
           Need a custom plan?{" "}
-          <a
-            href="mailto:contact@getmint.ai"
-            className="text-accent-600 hover:underline"
+          <Button
+            variant="link"
+            className="text-accent-600 hover:underline p-0 h-auto"
+            onClick={() => setContactSalesOpen(true)}
           >
             Contact our sales team
-          </a>
+          </Button>
         </p>
       </div>
+
+      {/* Contact Sales Dialog */}
+      <ContactSalesDialog
+        open={contactSalesOpen}
+        onOpenChange={setContactSalesOpen}
+        planName="Custom"
+      />
     </section>
   );
 }

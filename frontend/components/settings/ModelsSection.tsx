@@ -98,53 +98,49 @@ export function ModelsSection({
             </div>
             
             <div className="space-y-2">
-              {availableModels.map((model) => (
-                <div
-                  key={model.id}
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50"
-                >
-                  <div className="flex items-center gap-3">
-                    <Checkbox
-                      id={model.id}
-                      checked={localSelectedModels.includes(model.id)}
-                      onCheckedChange={(checked) => 
-                        handleModelToggle(model.id, checked as boolean)
-                      }
-                      disabled={
-                        !localSelectedModels.includes(model.id) &&
-                        localSelectedModels.length >= organization.planSettings.maxAIModels
-                      }
-                    />
-                    <Label
-                      htmlFor={model.id}
-                      className="flex items-center gap-2 cursor-pointer"
-                    >
-                      <span className="font-medium">{model.name}</span>
-                      <Badge variant="outline" className="text-xs">
-                        {model.provider}
+              {availableModels
+                .filter((model) => model.enabled)
+                .map((model) => (
+                  <div
+                    key={model.id}
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Checkbox
+                        id={model.id}
+                        checked={localSelectedModels.includes(model.id)}
+                        onCheckedChange={(checked) => 
+                          handleModelToggle(model.id, checked as boolean)
+                        }
+                        disabled={
+                          !localSelectedModels.includes(model.id) &&
+                          localSelectedModels.length >= organization.planSettings.maxAIModels
+                        }
+                      />
+                      <Label
+                        htmlFor={model.id}
+                        className="flex items-center gap-2 cursor-pointer"
+                      >
+                        <span className="font-medium">{model.name}</span>
+                        <Badge variant="outline" className="text-xs">
+                          {model.provider}
+                        </Badge>
+                      </Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge 
+                        variant={model.webAccess ? "default" : "secondary"} 
+                        className="text-xs"
+                      >
+                        {model.webAccess ? "Web" : "No Web"}
                       </Badge>
-                    </Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge 
-                      variant={model.webAccess ? "default" : "secondary"} 
-                      className="text-xs"
-                    >
-                      {model.webAccess ? "Web" : "No Web"}
-                    </Badge>
-                    {model.enabled ? (
                       <Badge variant="default" className="text-xs">
                         <Check className="h-3 w-3 mr-1" />
                         Available
                       </Badge>
-                    ) : (
-                      <Badge variant="secondary" className="text-xs">
-                        Disabled
-                      </Badge>
-                    )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
             </div>
 
             <div className="flex justify-end pt-4">

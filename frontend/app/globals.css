@@ -373,4 +373,10 @@
   .hover\:bg-destructive\/90:hover {
     background-color: hsl(var(--destructive) / 0.9);
   }
+  .animation-delay-200 {
+    animation-delay: 200ms;
+  }
+  .animation-delay-400 {
+    animation-delay: 400ms;
+  }
 }

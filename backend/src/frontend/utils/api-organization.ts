@@ -114,3 +114,9 @@ export const updateOrganizationModels = async (organizationId: string, selectedM
   const response = await api.patch(`/organizations/${organizationId}/selected-models`, { selectedModels });
   return response.data;
 };
+
+export const deleteOrganization = async (organizationId: string) => {
+  const api = createAuthAxios();
+  const response = await api.delete(`/organizations/${organizationId}`);
+  return response.data;
+};

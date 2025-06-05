@@ -17,6 +17,7 @@ export default function ProjectInfo(props: ProjectInfoProps) {
   const [isScraped, setIsScraped] = useState(false);
   const [planImpact, setPlanImpact] = useState<PlanType>("Starter");
   const [showPricingDialog, setShowPricingDialog] = useState(false);
+  const [analysisError, setAnalysisError] = useState(false);
 
   // Calculate plan impact whenever markets change
   useEffect(() => {
@@ -54,6 +55,7 @@ export default function ProjectInfo(props: ProjectInfoProps) {
           isAuthenticated={isAuthenticated}
           authLoading={authLoading}
           onAnalysisComplete={handleAnalysisComplete}
+          onError={setAnalysisError}
         />
 
         {/* Market Selection */}
@@ -70,6 +72,7 @@ export default function ProjectInfo(props: ProjectInfoProps) {
           updateFormData={updateFormData}
           isLoading={isLoading}
           isScraped={isScraped}
+          hasError={analysisError}
         />
       </div>
     </div>

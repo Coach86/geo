@@ -15,6 +15,7 @@ interface WebsiteAnalyzerProps {
   isAuthenticated: boolean;
   authLoading: boolean;
   onAnalysisComplete: () => void;
+  onError?: (hasError: boolean) => void;
 }
 
 export function WebsiteAnalyzer({
@@ -24,6 +25,7 @@ export function WebsiteAnalyzer({
   isAuthenticated,
   authLoading,
   onAnalysisComplete,
+  onError,
 }: WebsiteAnalyzerProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,11 +70,16 @@ export function WebsiteAnalyzer({
 
       setHasAnalyzed(true);
       onAnalysisComplete();
+      onError?.(false);
     } catch (err) {
       console.error("Identity card creation failed:", err);
       setError(
         err instanceof Error ? err.message : "Failed to analyze website"
       );
+      // Still mark as analyzed and call onAnalysisComplete to show the form
+      setHasAnalyzed(true);
+      onAnalysisComplete();
+      onError?.(true);
     } finally {
       setIsLoading(false);
     }

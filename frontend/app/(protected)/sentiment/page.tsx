@@ -25,6 +25,7 @@ import { ProjectMetadata } from "@/components/project-profile/ProjectMetadata";
 import BreadcrumbNav from "@/components/layout/breadcrumb-nav";
 import { useNavigation } from "@/providers/navigation-provider";
 import { useReportData } from "@/hooks/use-report-data";
+import { ProcessingLoader } from "@/components/shared/ProcessingLoader";
 
 interface ProcessedReport extends ReportResponse {
   reportDate: string;
@@ -293,17 +294,7 @@ export default function SentimentPage() {
 
         {/* No Reports State */}
         {!loading && !selectedReport && selectedProjectId && (
-          <Card>
-            <CardContent className="pt-6">
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  No sentiment reports available yet. Reports are generated
-                  weekly.
-                </AlertDescription>
-              </Alert>
-            </CardContent>
-          </Card>
+          <ProcessingLoader />
         )}
       </div>
 

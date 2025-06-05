@@ -77,6 +77,16 @@ export class OrganizationRepository {
     }
   }
 
+  async deleteProjectsByOrganizationId(organizationId: string): Promise<number> {
+    try {
+      const result = await this.projectModel.deleteMany({ organizationId }).exec();
+      return result.deletedCount || 0;
+    } catch (error) {
+      this.logger.error(`Failed to delete projects for organization: ${organizationId}`, error);
+      throw error;
+    }
+  }
+
   async countUsersByOrganizationId(organizationId: string): Promise<number> {
     try {
       return await this.userModel.countDocuments({ organizationId }).exec();
