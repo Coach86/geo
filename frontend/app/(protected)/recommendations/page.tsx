@@ -10,6 +10,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
   Lightbulb,
   TrendingUp,
   Target,
@@ -337,8 +343,8 @@ const geoCategories = [
           "Create dashboards for citation performance"
         ],
         example: "Weekly citation tracking report showing brand mention frequency and compliance across key models: ChatGPT, Gemini, Perplexity, Anthropic and Google / Bing AI Overviews",
-        impact: "High",
-        difficulty: "Hard",
+        impact: undefined,
+        difficulty: undefined,
       },
       {
         title: "Shift Budget & Metrics",
@@ -351,8 +357,8 @@ const geoCategories = [
           "Train team on new metrics and optimization approaches"
         ],
         example: "New reporting dashboard featuring AI citation rate, mention share, and content extractability scores alongside traditional SEO metrics",
-        impact: "High",
-        difficulty: "Hard",
+        impact: undefined,
+        difficulty: undefined,
       },
     ],
   },
@@ -407,77 +413,98 @@ export default function RecommendationsPage() {
                 </div>
               </CardHeader>
               <CardContent className="p-6">
-                <div className="space-y-6">
+                <Accordion type="single" collapsible className="space-y-4">
                   {category.recommendations.map((rec, index) => (
-                    <div
+                    <AccordionItem
                       key={index}
-                      className="border rounded-lg p-4 hover:shadow-sm transition-shadow"
+                      value={`${category.id}-${index}`}
+                      className="border rounded-lg overflow-hidden"
                     >
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-lg text-gray-900 mb-2">
-                            {rec.title}
-                          </h3>
-                          <p className="text-gray-600 mb-3">
-                            {rec.description}
-                          </p>
+                      <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-gray-50 [&[data-state=open]>svg]:rotate-180">
+                        <div className="flex items-center justify-between w-full pr-4">
+                          <div className="flex-1 text-left pr-4">
+                            <div className="flex items-center justify-between gap-4">
+                              <h3 className="font-semibold text-lg text-gray-900">
+                                {rec.title}
+                              </h3>
+                              {rec.impact && rec.difficulty && (
+                                <div className="flex gap-2 flex-shrink-0">
+                                  <Badge
+                                    className={
+                                      impactColors[
+                                        rec.impact as keyof typeof impactColors
+                                      ]
+                                    }
+                                  >
+                                    {rec.impact} Impact
+                                  </Badge>
+                                  <Badge
+                                    className={
+                                      difficultyColors[
+                                        rec.difficulty as keyof typeof difficultyColors
+                                      ]
+                                    }
+                                  >
+                                    {rec.difficulty}
+                                  </Badge>
+                                </div>
+                              )}
+                            </div>
+                            <p className="text-gray-600 text-sm mt-1">
+                              {rec.description}
+                            </p>
+                          </div>
                         </div>
-                        <div className="flex gap-2 ml-4">
-                          <Badge
-                            className={
-                              impactColors[
-                                rec.impact as keyof typeof impactColors
-                              ]
-                            }
-                          >
-                            {rec.impact} Impact
-                          </Badge>
-                          <Badge
-                            className={
-                              difficultyColors[
-                                rec.difficulty as keyof typeof difficultyColors
-                              ]
-                            }
-                          >
-                            {rec.difficulty}
-                          </Badge>
-                        </div>
-                      </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-4 pb-4">
+                        <div className="space-y-4 pt-2">
+                          {/* Research Backing */}
+                          {rec.researchBacking && (
+                            <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                              <h4 className="font-medium text-blue-900 mb-1 flex items-center gap-2">
+                                <Brain className="w-4 h-4" />
+                                Research Backing
+                              </h4>
+                              <p className="text-sm text-blue-800">{rec.researchBacking}</p>
+                            </div>
+                          )}
 
-                      {/* Implementation Steps */}
-                      <div className="mb-4">
-                        <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
-                          <CheckCircle className="w-4 h-4 text-green-500" />
-                          Implementation Steps
-                        </h4>
-                        <ol className="space-y-1">
-                          {rec.implementationSteps.map((step, stepIndex) => (
-                            <li
-                              key={stepIndex}
-                              className="text-sm text-gray-600 flex items-start gap-2"
-                            >
-                              <span className="flex-shrink-0 w-5 h-5 bg-green-100 text-green-700 rounded-full text-xs flex items-center justify-center font-medium mt-0.5">
-                                {stepIndex + 1}
-                              </span>
-                              {step}
-                            </li>
-                          ))}
-                        </ol>
-                      </div>
+                          {/* Implementation Steps */}
+                          <div>
+                            <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-500" />
+                              Implementation Steps
+                            </h4>
+                            <ol className="space-y-1">
+                              {rec.implementationSteps.map((step, stepIndex) => (
+                                <li
+                                  key={stepIndex}
+                                  className="text-sm text-gray-600 flex items-start gap-2"
+                                >
+                                  <span className="flex-shrink-0 w-5 h-5 bg-green-100 text-green-700 rounded-full text-xs flex items-center justify-center font-medium mt-0.5">
+                                    {stepIndex + 1}
+                                  </span>
+                                  {step}
+                                </li>
+                              ))}
+                            </ol>
+                          </div>
 
-                      {/* Example Implementation */}
-                      {rec.example && (
-                        <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                          <h4 className="font-medium text-gray-900 mb-1 flex items-center gap-2">
-                            <Zap className="w-4 h-4 text-yellow-500" />
-                            Example Implementation
-                          </h4>
-                          <p className="text-sm text-gray-700 italic">{rec.example}</p>
+                          {/* Example Implementation */}
+                          {rec.example && (
+                            <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                              <h4 className="font-medium text-gray-900 mb-1 flex items-center gap-2">
+                                <Zap className="w-4 h-4 text-yellow-500" />
+                                Example Implementation
+                              </h4>
+                              <p className="text-sm text-gray-700 italic">{rec.example}</p>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
+                      </AccordionContent>
+                    </AccordionItem>
                   ))}
-                </div>
+                </Accordion>
               </CardContent>
             </Card>
           ))}
