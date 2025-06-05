@@ -276,7 +276,6 @@ export class PublicReportController {
         // Extract citations
         if (result.citations && Array.isArray(result.citations)) {
           result.citations.forEach((citation: any) => {
-            // Only include citations where mentioned = true
               allCitations.push({
                 website: citation.title || citation.url || 'Unknown',
                 webSearchQueries: result.webSearchQueries || [],
