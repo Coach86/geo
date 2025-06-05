@@ -138,6 +138,7 @@ export class ProjectBatchOrchestratorService {
         comparison: comparisonResults,
         llmVersions,
         generatedAt: new Date(),
+        batchExecutionId,
       };
 
       // Save the report using the correct type and method

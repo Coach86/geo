@@ -9,6 +9,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { FeatureExampleDialog } from "@/components/shared/dialogs/feature-example-dialog";
+import { ContactSalesDialog } from "@/components/shared/ContactSalesDialog";
 import { PricingCard } from "@/components/pricing/pricing-card";
 import { usePlans } from "@/hooks/use-plans";
 import { redirectToStripeCheckout } from "@/lib/stripe-utils";
@@ -38,6 +39,8 @@ export default function PricingPage({
   const [featureDialogOpen, setFeatureDialogOpen] = useState(false);
   const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
+  const [contactSalesOpen, setContactSalesOpen] = useState(false);
+  const [contactPlanName, setContactPlanName] = useState<string>("");
 
   // Ensure data is loaded from localStorage
   useEffect(() => {
@@ -71,7 +74,8 @@ export default function PricingPage({
 
     // Handle contact sales for Enterprise/Agencies
     if (planName === "Enterprise" || planName === "Agencies") {
-      window.location.href = `mailto:contact@getmint.ai?subject=${planName} Plan Inquiry`;
+      setContactPlanName(planName);
+      setContactSalesOpen(true);
       setIsSubmitting(false);
       return;
     }
@@ -312,6 +316,13 @@ export default function PricingPage({
         open={featureDialogOpen}
         feature={selectedFeature || ''}
         onOpenChange={setFeatureDialogOpen}
+      />
+
+      {/* Contact Sales Dialog */}
+      <ContactSalesDialog
+        open={contactSalesOpen}
+        onOpenChange={setContactSalesOpen}
+        planName={contactPlanName}
       />
     </div>
   );

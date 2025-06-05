@@ -2,12 +2,21 @@ import { config } from 'dotenv';
 import { connect, connection } from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
 import { ORGANIZATION_DEFAULTS } from '../src/modules/organization/constants/defaults';
+import * as fs from 'fs';
+import * as path from 'path';
 
 // Load environment variables
 config();
 
 async function migrateToOrganizations() {
   try {
+    // Load config.json to get default models
+    const configPath = path.resolve(process.cwd(), 'config.json');
+    const configContent = fs.readFileSync(configPath, 'utf8');
+    const config = JSON.parse(configContent);
+    const defaultModels = config.defaultModels || [];
+    console.log('Default models from config:', defaultModels);
+
     // Connect to MongoDB
     const mongoUri = process.env.NODE_ENV === 'production'
       ? `mongodb://${process.env.DB_USER}:${process.env.DB_USER_PWD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}?authMechanism=SCRAM-SHA-1`
@@ -53,7 +62,7 @@ async function migrateToOrganizations() {
           maxUrls: ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_URLS,
           maxUsers: ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_USERS,
         },
-        selectedModels: user.selectedModels || [],
+        selectedModels: user.selectedModels || defaultModels,
         createdAt: user.createdAt || new Date(),
         updatedAt: new Date(),
       };

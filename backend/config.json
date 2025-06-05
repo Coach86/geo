@@ -5,7 +5,7 @@
       "provider": "OpenAI",
       "model": "gpt-4.1-2025-04-14",
       "name": "GPT-4-1",
-      "enabled": true,
+      "enabled": false,
       "webAccess": true,
       "parameters": {
         "temperature": 0.7,
@@ -18,7 +18,7 @@
       "provider": "OpenAI",
       "model": "o4-mini-2025-04-16",
       "name": "GPT-o4-mini",
-      "enabled": true,
+      "enabled": false,
       "webAccess": false,
       "parameters": {
         "maxTokens": 500,
@@ -56,7 +56,7 @@
       "provider": "Anthropic",
       "model": "claude-3-7-sonnet-20250219",
       "name": "Claude 3.7 Sonnet",
-      "enabled": true,
+      "enabled": false,
       "webAccess": true,
       "parameters": {
         "temperature": 0.7,
@@ -82,7 +82,7 @@
       "provider": "Anthropic",
       "model": "claude-opus-4-20250514",
       "name": "Claude 4 Opus",
-      "enabled": true,
+      "enabled": false,
       "webAccess": true,
       "parameters": {
         "temperature": 0.7,
@@ -134,7 +134,7 @@
       "provider": "Mistral",
       "model": "mistral-large-2411",
       "name": "Mistral Large",
-      "enabled": true,
+      "enabled": false,
       "webAccess": false,
       "parameters": {
         "temperature": 0.7,
@@ -200,5 +200,10 @@
     "maxDelayMs": 30000,
     "backoffFactor": 2.0,
     "description": "Retry configuration for LLM API calls when rate limited"
-  }
+  },
+  "defaultModels": [
+    "openai-gpt4o",
+    "anthropic-claude-4-sonnet",
+    "google-gemini2.0"
+  ]
 }

@@ -47,14 +47,15 @@ import FolderIcon from '@mui/icons-material/Folder';
 import ModelTrainingIcon from '@mui/icons-material/ModelTraining';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import { useNavigate } from 'react-router-dom';
-import { 
+import {
   getAllOrganizations,
-  getOrganization, 
-  getOrganizationUsers, 
-  createOrganizationUser, 
-  deleteOrganizationUser, 
+  getOrganization,
+  getOrganizationUsers,
+  createOrganizationUser,
+  deleteOrganizationUser,
   updateOrganization,
   updateOrganizationPlanSettings,
+  deleteOrganization,
 } from '../utils/api-organization';
 import { EditOrganizationPlanDialog } from '../components/EditOrganizationPlanDialog';
 
@@ -111,7 +112,7 @@ const OrganizationSettings: React.FC = () => {
       setLoading(true);
       const orgsData = await getAllOrganizations();
       setOrganizations(orgsData);
-      
+
       // Select first organization by default if none selected
       if (orgsData.length > 0 && !selectedOrganization) {
         setSelectedOrganization(orgsData[0]);
@@ -180,7 +181,7 @@ const OrganizationSettings: React.FC = () => {
       setUsers([...users, createdUser]);
       setIsAddUserOpen(false);
       setNewUser({ email: '', language: 'en', phoneNumber: '' });
-      
+
       // Reload organization to update user count
       await loadOrganizations();
     } catch (err: any) {
@@ -196,7 +197,7 @@ const OrganizationSettings: React.FC = () => {
     try {
       await deleteOrganizationUser(userId);
       setUsers(users.filter(u => u.id !== userId));
-      
+
       // Reload organizations to update user count
       await loadOrganizations();
     } catch (err: any) {
@@ -204,10 +205,37 @@ const OrganizationSettings: React.FC = () => {
     }
   };
 
+  const handleDeleteOrganization = async (orgId: string) => {
+    if (!window.confirm('Are you sure you want to delete this organization? This action cannot be undone.')) {
+      return;
+    }
+
+    // Double confirmation for safety
+    if (!window.confirm('This will permanently delete the organization. Are you absolutely sure?')) {
+      return;
+    }
+
+    try {
+      await deleteOrganization(orgId);
+      
+      // Clear selected organization if it was the one deleted
+      if (selectedOrganization?.id === orgId) {
+        setSelectedOrganization(null);
+      }
+      
+      // Reload organizations
+      await loadOrganizations();
+      
+      alert('Organization deleted successfully');
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to delete organization');
+    }
+  };
+
 
   const canAddMoreUsers = () => {
     if (!selectedOrganization) return false;
-    return selectedOrganization.planSettings.maxUsers === -1 || 
+    return selectedOrganization.planSettings.maxUsers === -1 ||
            (selectedOrganization.currentUsers || 0) < selectedOrganization.planSettings.maxUsers;
   };
 
@@ -256,7 +284,7 @@ const OrganizationSettings: React.FC = () => {
                   </Button>
                 </Box>
                 <Divider sx={{ mb: 2 }} />
-                
+
                 <List sx={{ maxHeight: '600px', overflow: 'auto' }}>
                   {organizations.map((org) => (
                     <ListItem key={org.id} disablePadding sx={{ mb: 1 }}>
@@ -310,9 +338,19 @@ const OrganizationSettings: React.FC = () => {
                         <BusinessIcon sx={{ mr: 1, color: 'primary.main' }} />
                         <Typography variant="h6">Organization Details</Typography>
                       </Box>
+                      <Button
+                        startIcon={<DeleteIcon />}
+                        onClick={() => handleDeleteOrganization(selectedOrganization.id)}
+                        variant="outlined"
+                        color="error"
+                        size="small"
+                        disabled={users.length > 0}
+                      >
+                        Delete Organization
+                      </Button>
                     </Box>
                     <Divider sx={{ mb: 2 }} />
-                    
+
                     <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                       <Box>
                         <Typography variant="body2" color="text.secondary" gutterBottom>
@@ -331,6 +369,11 @@ const OrganizationSettings: React.FC = () => {
                         </Typography>
                       </Box>
                     </Box>
+                    {users.length > 0 && (
+                      <Alert severity="info" sx={{ mt: 2 }}>
+                        Organization cannot be deleted while it has active users. Please remove all users first.
+                      </Alert>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -340,10 +383,10 @@ const OrganizationSettings: React.FC = () => {
                     <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
                       <Box display="flex" alignItems="center">
                         <SettingsIcon sx={{ mr: 1, color: 'primary.main' }} />
-                        <Typography variant="h6">Plan Settings</Typography>
+                        <Typography variant="h6">Org Settings</Typography>
                       </Box>
-                      <Button 
-                        startIcon={<EditIcon />} 
+                      <Button
+                        startIcon={<EditIcon />}
                         onClick={() => setIsPlanSettingsOpen(true)}
                         variant="outlined"
                         size="small"
@@ -352,7 +395,7 @@ const OrganizationSettings: React.FC = () => {
                       </Button>
                     </Box>
                     <Divider sx={{ mb: 2 }} />
-                    
+
                     <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', justifyContent: 'space-around' }}>
                       <Box sx={{ textAlign: 'center', p: 2 }}>
                         <Box sx={{ position: 'relative', display: 'inline-block' }}>
@@ -427,7 +470,7 @@ const OrganizationSettings: React.FC = () => {
                       </Button>
                     </Box>
                     <Divider sx={{ mb: 2 }} />
-                    
+
                     {users.length === 0 ? (
                       <Typography color="text.secondary">No users in this organization yet.</Typography>
                     ) : (
@@ -458,8 +501,8 @@ const OrganizationSettings: React.FC = () => {
                                 <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
                                 <TableCell align="right">
                                   <Tooltip title="Delete User">
-                                    <IconButton 
-                                      size="small" 
+                                    <IconButton
+                                      size="small"
                                       onClick={() => handleDeleteUser(user.id)}
                                       color="error"
                                     >

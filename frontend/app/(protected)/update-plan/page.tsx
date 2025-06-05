@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Zap } from "lucide-react";
 import { PricingCard } from "@/components/pricing/pricing-card";
+import { ContactSalesDialog } from "@/components/shared/ContactSalesDialog";
 import { usePlans } from "@/hooks/use-plans";
 import { redirectToStripeCheckout } from "@/lib/stripe-utils";
 import { useAuth } from "@/providers/auth-provider";
@@ -19,6 +20,8 @@ export default function UpdatePlanPage() {
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const [contactSalesOpen, setContactSalesOpen] = useState(false);
+  const [contactPlanName, setContactPlanName] = useState<string>("");
 
   const handleSelectPlan = async (
     planId: string | undefined,
@@ -28,8 +31,9 @@ export default function UpdatePlanPage() {
     setIsSubmitting(true);
 
     if (planName === "Enterprise" || planName === "Agencies") {
-      // Redirect to contact page or open contact modal
-      window.location.href = `mailto:contact@getmint.ai?subject=${planName} Plan Inquiry`;
+      // Open contact sales dialog
+      setContactPlanName(planName);
+      setContactSalesOpen(true);
       setIsSubmitting(false);
       return;
     }
@@ -268,18 +272,29 @@ export default function UpdatePlanPage() {
         <div className="mt-12 text-center">
           <p className="text-muted-foreground mb-4">
             Need help choosing the right plan?{" "}
-            <a
-              href="mailto:contact@getmint.ai?subject=Plan Inquiry"
-              className="text-accent-500"
+            <Button
+              variant="link"
+              className="text-accent-500 p-0 h-auto"
+              onClick={() => {
+                setContactPlanName("Plan");
+                setContactSalesOpen(true);
+              }}
             >
               Contact us
-            </a>
+            </Button>
           </p>
           <Button variant="link" onClick={() => router.back()}>
             <Zap className="mr-2 h-4 w-4" />
             Return to Dashboard
           </Button>
         </div>
+
+      {/* Contact Sales Dialog */}
+      <ContactSalesDialog
+        open={contactSalesOpen}
+        onOpenChange={setContactSalesOpen}
+        planName={contactPlanName}
+      />
       </div>
   );
 }

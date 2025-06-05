@@ -12,6 +12,7 @@ interface ProjectInfoFieldsProps {
   updateFormData: (data: Partial<FormData>) => void;
   isLoading: boolean;
   isScraped: boolean;
+  hasError?: boolean;
 }
 
 export function ProjectInfoFields({
@@ -19,8 +20,9 @@ export function ProjectInfoFields({
   updateFormData,
   isLoading,
   isScraped,
+  hasError,
 }: ProjectInfoFieldsProps) {
-  if (!isLoading && !isScraped) return null;
+  if (!isLoading && !isScraped && !hasError) return null;
 
   return (
     <Card
@@ -48,7 +50,7 @@ export function ProjectInfoFields({
           </div>
         )}
 
-        {isScraped && !isLoading && (
+        {isScraped && !isLoading && !hasError && (
           <div className="mb-4">
             <Badge className="bg-accent-100 text-accent-500 hover:bg-accent-200">
               <LineChart className="h-3 w-3 mr-1" />

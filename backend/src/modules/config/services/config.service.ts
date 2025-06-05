@@ -54,4 +54,8 @@ export class ConfigService {
   getRetryConfig() {
     return this.config.retryConfig || {};
   }
+
+  getDefaultModels() {
+    return this.config.defaultModels || [];
+  }
 }

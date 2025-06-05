@@ -1,10 +1,11 @@
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Crown, Building, Users, Cpu } from "lucide-react";
 import type { Organization } from "@/lib/organization-api";
+import { useAuth } from "@/providers/auth-provider";
 
 interface PlanSectionProps {
   organization: Organization;
@@ -13,12 +14,40 @@ interface PlanSectionProps {
 
 export function PlanSection({ organization, selectedModelsCount }: PlanSectionProps) {
   const router = useRouter();
+  const { token } = useAuth();
+  const [planName, setPlanName] = useState<string>("Free");
 
-  const getPlanName = () => {
-    if (!organization?.stripePlanId) return "Free";
-    if (organization.stripePlanId === "manual") return "Manual";
-    return "Pro";
-  };
+  useEffect(() => {
+    const fetchPlanName = async () => {
+      if (!organization?.stripePlanId || organization.stripePlanId === "manual") {
+        setPlanName(organization.stripePlanId === "manual" ? "Manual" : "Free");
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'}/public/plans/${organization.stripePlanId}/name`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          setPlanName(data.name);
+        }
+      } catch (error) {
+        console.error('Error fetching plan name:', error);
+        // Fallback to stripePlanId if fetch fails
+        setPlanName(organization.stripePlanId);
+      }
+    };
+
+    fetchPlanName();
+  }, [organization?.stripePlanId, token]);
 
   return (
     <Card>
@@ -33,10 +62,7 @@ export function PlanSection({ organization, selectedModelsCount }: PlanSectionPr
           <div>
             <p className="text-sm text-muted-foreground">Current Plan</p>
             <div className="flex items-center gap-2 mt-1">
-              <p className="text-2xl font-bold">{getPlanName()}</p>
-              <Badge variant="secondary">
-                {organization.stripePlanId || "free"}
-              </Badge>
+              <p className="text-2xl font-bold">{planName}</p>
             </div>
           </div>
           <Button
@@ -126,14 +152,6 @@ export function PlanSection({ organization, selectedModelsCount }: PlanSectionPr
             </div>
           </div>
         </div>
-
-        {organization.stripeCustomerId && (
-          <div className="pt-4 border-t">
-            <p className="text-sm text-muted-foreground">
-              Stripe Customer ID: {organization.stripeCustomerId}
-            </p>
-          </div>
-        )}
       </CardContent>
     </Card>
   );

@@ -7,16 +7,24 @@ import { OrganizationRepository } from '../repositories/organization.repository'
 import { OrganizationDocument } from '../schemas/organization.schema';
 import { Organization as OrganizationEntity } from '../entities/organization.entity';
 import { ORGANIZATION_DEFAULTS, UNLIMITED_VALUE } from '../constants/defaults';
+import { ConfigService } from '../../config/services/config.service';
 
 @Injectable()
 export class OrganizationService {
   private readonly logger = new Logger(OrganizationService.name);
 
-  constructor(private organizationRepository: OrganizationRepository) {}
+  constructor(
+    private organizationRepository: OrganizationRepository,
+    private configService: ConfigService,
+  ) {}
 
   async create(createOrganizationDto: CreateOrganizationDto): Promise<OrganizationResponseDto> {
     try {
       this.logger.log(`Creating organization`);
+
+      // Get default models from config if selectedModels not provided
+      const defaultModels = this.configService.getDefaultModels();
+      const selectedModels = createOrganizationDto.selectedModels || defaultModels;
 
       const organizationData = {
         id: uuidv4(),
@@ -27,7 +35,7 @@ export class OrganizationService {
           maxUrls: createOrganizationDto.planSettings?.maxUrls || ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_URLS,
           maxUsers: createOrganizationDto.planSettings?.maxUsers || ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_USERS,
         },
-        selectedModels: createOrganizationDto.selectedModels || [],
+        selectedModels,
       };
 
       const savedOrganization = await this.organizationRepository.save(organizationData);
@@ -110,11 +118,12 @@ export class OrganizationService {
       maxSpontaneousPrompts: number;
       maxUrls: number;
       maxUsers: number;
+      maxCompetitors: number;
     }>,
   ): Promise<OrganizationResponseDto> {
     try {
       const organization = await this.findOne(id);
-      
+
       // Validate that current usage doesn't exceed new limits
       const currentUsers = await this.organizationRepository.countUsersByOrganizationId(id);
       const currentProjects = await this.organizationRepository.countProjectsByOrganizationId(id);
@@ -185,7 +194,16 @@ export class OrganizationService {
         );
       }
 
+      // Delete all projects linked to this organization
+      const deletedProjectsCount = await this.organizationRepository.deleteProjectsByOrganizationId(id);
+      if (deletedProjectsCount > 0) {
+        this.logger.log(`Deleted ${deletedProjectsCount} projects for organization ${id}`);
+      }
+
+      // Delete the organization
       await this.organizationRepository.remove(id);
+
+      this.logger.log(`Successfully deleted organization with ID ${id}`);
     } catch (error) {
       this.logger.error(`Failed to remove organization: ${error.message}`, error.stack);
       throw error;
@@ -203,7 +221,7 @@ export class OrganizationService {
 
   private async mapToResponseDto(organization: OrganizationDocument): Promise<OrganizationResponseDto> {
     const entity = this.organizationRepository.mapToEntity(organization);
-    
+
     // Get current usage counts
     const currentUsers = await this.organizationRepository.countUsersByOrganizationId(entity.id);
     const currentProjects = await this.organizationRepository.countProjectsByOrganizationId(entity.id);

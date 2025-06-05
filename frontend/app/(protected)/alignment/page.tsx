@@ -25,6 +25,7 @@ import { useReportData } from "@/hooks/use-report-data";
 import type { ReportResponse } from "@/types/reports";
 import BreadcrumbNav from "@/components/layout/breadcrumb-nav";
 import { useNavigation } from "@/providers/navigation-provider";
+import { ProcessingLoader } from "@/components/shared/ProcessingLoader";
 
 
 export default function AlignmentPage() {
@@ -109,7 +110,7 @@ export default function AlignmentPage() {
   if (!selectedProjectId || !token) return <AlignmentNoProject />;
 
 
-  if (!selectedReport || !alignmentData) return <AlignmentNoData />;
+  if (!selectedReport || !alignmentData) return <ProcessingLoader />;
 
   return (
     <div className="space-y-6">
