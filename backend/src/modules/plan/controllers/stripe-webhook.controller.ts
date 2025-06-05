@@ -1,7 +1,9 @@
-import { Controller, Get, Query, UseGuards, BadRequestException, Req } from '@nestjs/common';
+import { Controller, Get, Post, Query, Body, Headers, UseGuards, BadRequestException, Req, RawBodyRequest } from '@nestjs/common';
+import { Request } from 'express';
 import { TokenAuthGuard } from '../../auth/guards/token-auth.guard';
 import { StripeWebhookService } from '../services/stripe-webhook.service';
 import { TokenRoute } from '../../auth/decorators/token-route.decorator';
+import { PublicRoute } from '../../auth/decorators/public-route.decorator';
 
 @Controller('public/stripe')
 export class StripeWebhookController {
@@ -25,5 +27,28 @@ export class StripeWebhookController {
 
     const result = await this.stripeWebhookService.verifyCheckoutSession(sessionId, userId);
     return result;
+  }
+
+  @Post('webhook')
+  @PublicRoute()
+  async handleWebhook(
+    @Headers('stripe-signature') signature: string,
+    @Req() request: RawBodyRequest<Request>
+  ) {
+    if (!signature) {
+      throw new BadRequestException('Missing stripe-signature header');
+    }
+
+    const rawBody = request.rawBody;
+    if (!rawBody) {
+      throw new BadRequestException('Raw body is required for webhook verification');
+    }
+
+    try {
+      await this.stripeWebhookService.handleWebhook(rawBody, signature);
+      return { received: true };
+    } catch (error) {
+      throw new BadRequestException(`Webhook Error: ${error.message}`);
+    }
   }
 }

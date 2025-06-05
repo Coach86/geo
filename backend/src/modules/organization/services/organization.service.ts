@@ -34,6 +34,7 @@ export class OrganizationService {
           maxSpontaneousPrompts: createOrganizationDto.planSettings?.maxSpontaneousPrompts || ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_SPONTANEOUS_PROMPTS,
           maxUrls: createOrganizationDto.planSettings?.maxUrls || ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_URLS,
           maxUsers: createOrganizationDto.planSettings?.maxUsers || ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_USERS,
+          maxCompetitors: createOrganizationDto.planSettings?.maxCompetitors || ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_COMPETITORS,
         },
         selectedModels,
       };
@@ -230,6 +231,9 @@ export class OrganizationService {
       id: entity.id,
       stripeCustomerId: entity.stripeCustomerId,
       stripePlanId: entity.stripePlanId,
+      stripeSubscriptionId: entity.stripeSubscriptionId,
+      subscriptionStatus: entity.subscriptionStatus,
+      subscriptionCurrentPeriodEnd: entity.subscriptionCurrentPeriodEnd?.toISOString(),
       planSettings: entity.planSettings,
       selectedModels: entity.selectedModels,
       createdAt: entity.createdAt.toISOString(),

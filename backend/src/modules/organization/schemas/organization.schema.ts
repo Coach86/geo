@@ -15,6 +15,15 @@ export class Organization {
   @Prop({ type: String })
   stripePlanId?: string;
 
+  @Prop({ type: String })
+  stripeSubscriptionId?: string;
+
+  @Prop({ type: String })
+  subscriptionStatus?: string;
+
+  @Prop({ type: Date })
+  subscriptionCurrentPeriodEnd?: Date;
+
   @Prop({
     type: {
       maxProjects: { type: Number, default: ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_PROJECTS },
@@ -22,6 +31,7 @@ export class Organization {
       maxSpontaneousPrompts: { type: Number, default: ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_SPONTANEOUS_PROMPTS },
       maxUrls: { type: Number, default: ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_URLS },
       maxUsers: { type: Number, default: ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_USERS }, // -1 for unlimited
+      maxCompetitors: { type: Number, default: ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_COMPETITORS || 5 },
     },
     default: {
       maxProjects: ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_PROJECTS,
@@ -29,6 +39,7 @@ export class Organization {
       maxSpontaneousPrompts: ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_SPONTANEOUS_PROMPTS,
       maxUrls: ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_URLS,
       maxUsers: ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_USERS,
+      maxCompetitors: ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_COMPETITORS || 5,
     },
   })
   planSettings: {
@@ -37,6 +48,7 @@ export class Organization {
     maxSpontaneousPrompts: number;
     maxUrls: number;
     maxUsers: number;
+    maxCompetitors: number;
   };
 
   @Prop({ type: [String], default: [] })
