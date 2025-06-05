@@ -398,21 +398,25 @@ export default function RecommendationsPage() {
         </div>
 
         {/* GEO Recommendations by Category */}
-        <div className="space-y-8">
+        <Accordion type="single" collapsible className="space-y-4">
           {geoCategories.map((category) => (
-            <Card key={category.id} className="overflow-hidden">
-              <CardHeader className={`${category.color} border-b`}>
+            <AccordionItem
+              key={category.id}
+              value={category.id}
+              className="border rounded-lg overflow-hidden"
+            >
+              <AccordionTrigger className={`px-6 py-4 hover:no-underline ${category.color} [&[data-state=open]>svg]:rotate-180`}>
                 <div className="flex items-center gap-3">
                   <category.icon className="w-6 h-6" />
-                  <div>
-                    <CardTitle className="text-xl">{category.title}</CardTitle>
-                    <CardDescription className="text-current opacity-80">
+                  <div className="text-left">
+                    <h2 className="text-xl font-bold">{category.title}</h2>
+                    <p className="text-sm text-current opacity-80">
                       {category.recommendations.length} optimization techniques
-                    </CardDescription>
+                    </p>
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent className="p-6">
+              </AccordionTrigger>
+              <AccordionContent className="px-6 pb-6 pt-4">
                 <Accordion type="single" collapsible className="space-y-4">
                   {category.recommendations.map((rec, index) => (
                     <AccordionItem
@@ -458,17 +462,6 @@ export default function RecommendationsPage() {
                       </AccordionTrigger>
                       <AccordionContent className="px-4 pb-4">
                         <div className="space-y-4 pt-2">
-                          {/* Research Backing */}
-                          {rec.researchBacking && (
-                            <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                              <h4 className="font-medium text-blue-900 mb-1 flex items-center gap-2">
-                                <Brain className="w-4 h-4" />
-                                Research Backing
-                              </h4>
-                              <p className="text-sm text-blue-800">{rec.researchBacking}</p>
-                            </div>
-                          )}
-
                           {/* Implementation Steps */}
                           <div>
                             <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
@@ -505,10 +498,10 @@ export default function RecommendationsPage() {
                     </AccordionItem>
                   ))}
                 </Accordion>
-              </CardContent>
-            </Card>
+              </AccordionContent>
+            </AccordionItem>
           ))}
-        </div>
+        </Accordion>
       </div>
   );
 }
