@@ -252,6 +252,24 @@ export class PublicReportController {
         if (result.usedWebSearch) {
           responsesWithWebAccess++;
         }
+
+        // Extract citations
+        if (result.citations && Array.isArray(result.citations)) {
+          result.citations.forEach((citation: any) => {
+              allCitations.push({
+                website: citation.title || citation.url || 'Unknown',
+                webSearchQueries: result.webSearchQueries || [],
+                link: citation.url || '',
+                fullCitation: citation,
+              });
+
+              // Count source frequency for top sources
+              const domain = this.extractDomain(citation.url || '');
+              if (domain) {
+                sourceFrequency[domain] = (sourceFrequency[domain] || 0) + 1;
+              }
+          });
+        }
       });
 
       // Calculate percentage
