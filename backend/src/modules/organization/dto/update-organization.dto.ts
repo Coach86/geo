@@ -1,6 +1,6 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateOrganizationDto } from './create-organization.dto';
-import { IsOptional, IsString } from 'class-validator';
+import { IsOptional, IsString, IsDate } from 'class-validator';
 
 export class UpdateOrganizationDto extends PartialType(CreateOrganizationDto) {
   @IsOptional()
@@ -10,4 +10,16 @@ export class UpdateOrganizationDto extends PartialType(CreateOrganizationDto) {
   @IsOptional()
   @IsString()
   stripePlanId?: string;
+
+  @IsOptional()
+  @IsString()
+  stripeSubscriptionId?: string;
+
+  @IsOptional()
+  @IsString()
+  subscriptionStatus?: string;
+
+  @IsOptional()
+  @IsDate()
+  subscriptionCurrentPeriodEnd?: Date;
 }

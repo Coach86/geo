@@ -277,7 +277,6 @@ export class PublicReportController {
         if (result.citations && Array.isArray(result.citations)) {
           result.citations.forEach((citation: any) => {
             // Only include citations where mentioned = true
-            if (result.mentioned === true) {
               allCitations.push({
                 website: citation.title || citation.url || 'Unknown',
                 webSearchQueries: result.webSearchQueries || [],
@@ -290,7 +289,6 @@ export class PublicReportController {
               if (domain) {
                 sourceFrequency[domain] = (sourceFrequency[domain] || 0) + 1;
               }
-            }
           });
         }
       });

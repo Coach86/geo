@@ -9,6 +9,7 @@ export class CreateOrganizationDto {
     maxSpontaneousPrompts?: number;
     maxUrls?: number;
     maxUsers?: number;
+    maxCompetitors?: number;
   };
 
   @IsOptional()
