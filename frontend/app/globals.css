@@ -26,7 +26,7 @@
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive-foreground: 210 40% 98%;
 
     --border: 0 0% 90%;
     --input: 0 0% 90%;
@@ -360,5 +360,23 @@
 
   .no-print {
     display: none;
+  }
+}
+
+@layer utilities {
+  .bg-destructive {
+    background-color: hsl(var(--destructive));
+  }
+  .text-destructive-foreground {
+    color: hsl(var(--destructive-foreground));
+  }
+  .hover\:bg-destructive\/90:hover {
+    background-color: hsl(var(--destructive) / 0.9);
+  }
+  .animation-delay-200 {
+    animation-delay: 200ms;
+  }
+  .animation-delay-400 {
+    animation-delay: 400ms;
   }
 }

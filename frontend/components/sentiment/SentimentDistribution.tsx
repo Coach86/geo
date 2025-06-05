@@ -22,9 +22,9 @@ export function SentimentDistribution({ sentimentCounts }: SentimentDistribution
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       {/* Positive Sentiment */}
       <div>
-        <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300 bg-[#E3F2FD] border-[#90CAF9]">
-          <CardHeader className="pb-4 bg-[#90CAF9] bg-opacity-30">
-            <CardTitle className="text-lg font-semibold text-[#0D47A1] flex items-center gap-2">
+        <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300 bg-accent-50 border-accent-200">
+          <CardHeader className="pb-4 bg-accent-100">
+            <CardTitle className="text-lg font-semibold text-accent-700 flex items-center gap-2">
               <div>
                 <Heart className="h-5 w-5" />
               </div>
@@ -32,16 +32,16 @@ export function SentimentDistribution({ sentimentCounts }: SentimentDistribution
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
-            <div className="text-3xl font-bold text-[#0D47A1]">
+            <div className="text-3xl font-bold text-accent-700">
               {sentimentCounts.positive}{" "}
               <span className="text-sm font-normal">responses</span>
             </div>
-            <div className="text-sm text-[#1976D2] mt-1">
+            <div className="text-sm text-accent-600 mt-1">
               {calculatePercentage(sentimentCounts.positive)}% of total
             </div>
             <div className="mt-3 h-2 bg-white rounded-full overflow-hidden">
               <div
-                className="h-full bg-[#2196F3] rounded-full"
+                className="h-full bg-accent-500 rounded-full"
                 style={{
                   width: `${calculatePercentage(sentimentCounts.positive)}%`,
                 }}
@@ -53,9 +53,9 @@ export function SentimentDistribution({ sentimentCounts }: SentimentDistribution
 
       {/* Neutral Sentiment */}
       <div>
-        <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300 bg-[#EDE7F6] border-[#B39DDB]">
-          <CardHeader className="pb-4 bg-[#B39DDB] bg-opacity-30">
-            <CardTitle className="text-lg font-semibold text-[#4527A0] flex items-center gap-2">
+        <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300 bg-primary-50 border-primary-200">
+          <CardHeader className="pb-4 bg-primary-100">
+            <CardTitle className="text-lg font-semibold text-primary-700 flex items-center gap-2">
               <div>
                 <Meh className="h-5 w-5" />
               </div>
@@ -63,16 +63,16 @@ export function SentimentDistribution({ sentimentCounts }: SentimentDistribution
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
-            <div className="text-3xl font-bold text-[#4527A0]">
+            <div className="text-3xl font-bold text-primary-700">
               {sentimentCounts.neutral}{" "}
               <span className="text-sm font-normal">responses</span>
             </div>
-            <div className="text-sm text-[#673AB7] mt-1">
+            <div className="text-sm text-primary-600 mt-1">
               {calculatePercentage(sentimentCounts.neutral)}% of total
             </div>
             <div className="mt-3 h-2 bg-white rounded-full overflow-hidden">
               <div
-                className="h-full bg-[#673AB7] rounded-full"
+                className="h-full bg-primary-500 rounded-full"
                 style={{
                   width: `${calculatePercentage(sentimentCounts.neutral)}%`,
                 }}
@@ -84,9 +84,9 @@ export function SentimentDistribution({ sentimentCounts }: SentimentDistribution
 
       {/* Negative Sentiment */}
       <div>
-        <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300 bg-[#FCE4EC] border-[#F48FB1]">
-          <CardHeader className="pb-4 bg-[#F48FB1] bg-opacity-30">
-            <CardTitle className="text-lg font-semibold text-[#AD1457] flex items-center gap-2">
+        <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300 bg-destructive-50 border-destructive-200">
+          <CardHeader className="pb-4 bg-destructive-100">
+            <CardTitle className="text-lg font-semibold text-destructive-700 flex items-center gap-2">
               <div>
                 <Frown className="h-5 w-5" />
               </div>
@@ -94,16 +94,16 @@ export function SentimentDistribution({ sentimentCounts }: SentimentDistribution
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
-            <div className="text-3xl font-bold text-[#AD1457]">
+            <div className="text-3xl font-bold text-destructive-700">
               {sentimentCounts.negative}{" "}
               <span className="text-sm font-normal">responses</span>
             </div>
-            <div className="text-sm text-[#C2185B] mt-1">
+            <div className="text-sm text-destructive-600 mt-1">
               {calculatePercentage(sentimentCounts.negative)}% of total
             </div>
             <div className="mt-3 h-2 bg-white rounded-full overflow-hidden">
               <div
-                className="h-full bg-[#C2185B] rounded-full"
+                className="h-full bg-destructive-500 rounded-full"
                 style={{
                   width: `${calculatePercentage(sentimentCounts.negative)}%`,
                 }}

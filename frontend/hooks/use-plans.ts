@@ -24,6 +24,7 @@ export interface Plan {
   maxProjects: number;
   maxUrls: number;
   maxSpontaneousPrompts: number;
+  maxUsers: number;
   isActive: boolean;
   isRecommended: boolean;
   isMostPopular: boolean;

@@ -20,6 +20,14 @@ export class OpenAiAdapter implements LlmAdapter {
       this.openai = new OpenAI({
         apiKey: this.apiKey,
       });
+      
+      // Log adapter configuration
+      this.logger.log(`OpenAI adapter initialized with configuration:`);
+      this.logger.log(`- API Key: ${this.apiKey.substring(0, 8)}...${this.apiKey.substring(this.apiKey.length - 4)}`);
+      this.logger.log(`- Provider: ${this.name}`);
+      this.logger.log(`- Available: ${this.isAvailable()}`);
+    } else {
+      this.logger.warn(`OpenAI adapter not available - API key not configured`);
     }
   }
 
@@ -38,15 +46,48 @@ export class OpenAiAdapter implements LlmAdapter {
         throw new Error("Model not specified. Please specify a model using the 'model' option.")
       }
       const modelName = options?.model;
-      this.logger.log(`Calling OpenAI API with model: ${modelName}`);
-      // The OpenAI SDK expects a specific Tool type. For web_search_preview, only 'type' is required.
-      const response = await this.openai.responses.create({
+      const webAccess = options?.webAccess !== false; // Default to true if not specified
+      
+      this.logger.log(`Calling OpenAI API with configuration:`);
+      this.logger.log(`- Model: ${modelName}`);
+      this.logger.log(`- Web Access: ${webAccess}`);
+      this.logger.log(`- Temperature: ${options?.temperature !== undefined ? options.temperature : 'not set'}`);
+      this.logger.log(`- Max Tokens: ${options?.maxTokens !== undefined ? options.maxTokens : 'not set'}`);
+      this.logger.log(`- Top P: ${options?.topP !== undefined ? options.topP : 'not set'}`);
+      this.logger.log(`- System Prompt: ${options?.systemPrompt ? 'provided' : 'not set'}`);
+      
+      // Build the request parameters
+      const requestParams: any = {
         model: modelName,
         input: prompt,
-        tools: [{ type: 'web_search_preview' }],
-        temperature: options?.temperature ?? 0.7,
-        top_p: options?.topP,
-      });
+      };
+      
+      // Only add temperature if explicitly provided
+      if (options?.temperature !== undefined) {
+        requestParams.temperature = options.temperature;
+      }
+      
+      // Only add top_p if explicitly provided
+      if (options?.topP !== undefined) {
+        requestParams.top_p = options.topP;
+      }
+      
+      // Only add web search tool if webAccess is enabled
+      if (webAccess) {
+        requestParams.tools = [{ type: 'web_search_preview' }];
+      }
+      
+      // Log the final request parameters being sent
+      this.logger.log(`Final request parameters: ${JSON.stringify({
+        model: requestParams.model,
+        temperature: requestParams.temperature,
+        top_p: requestParams.top_p,
+        tools: requestParams.tools ? 'web_search_preview' : 'none',
+        input_length: requestParams.input?.length || 0
+      })}`);
+      
+      // The OpenAI SDK expects a specific Tool type. For web_search_preview, only 'type' is required.
+      const response = await this.openai.responses.create(requestParams);
       // The OpenAI responses.create returns an array of events/objects.
       // We need to extract URLs from url_citation annotations in output_text content.
       let text = '';
@@ -95,10 +136,7 @@ export class OpenAiAdapter implements LlmAdapter {
         modelVersion: modelName,
         tokenUsage: usage,
         annotations: annotations.length > 0 ? this.deduplicateCitations(annotations) : undefined,
-        usedWebSearch:
-          [{ type: 'web_search_preview' }].some(
-            (t: { type: string }) => t.type === 'web_search_preview',
-          ) || annotations.length > 0,
+        usedWebSearch: webAccess && annotations.length > 0,
       };
     } catch (error) {
       this.logger.error(`Error calling OpenAI API: ${error.message}`);

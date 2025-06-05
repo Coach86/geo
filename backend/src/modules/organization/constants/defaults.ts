@@ -1,0 +1,12 @@
+export const ORGANIZATION_DEFAULTS = {
+  PLAN_SETTINGS: {
+    MAX_PROJECTS: 1,
+    MAX_AI_MODELS: 3,
+    MAX_SPONTANEOUS_PROMPTS: 12,
+    MAX_URLS: 1,
+    MAX_USERS: 1,
+    MAX_COMPETITORS: 5,
+  },
+} as const;
+
+export const UNLIMITED_VALUE = -1;

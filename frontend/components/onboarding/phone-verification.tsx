@@ -224,23 +224,7 @@ export default function PhoneVerification() {
       </div>
 
       <Card className="border border-gray-200 shadow-sm max-w-md mx-auto">
-        <CardContent className="p-6 space-y-6">
-          {/* Email déjà fourni */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Email address
-            </label>
-            <div className="flex items-center bg-gray-50 p-3 rounded-md border border-gray-200">
-              <span className="text-gray-700">
-                {formData.email || "example@project.com"}
-              </span>
-              <Badge className="ml-auto bg-green-100 text-green-700 flex items-center">
-                <CheckCircle className="h-3 w-3 mr-1" />
-                Verified
-              </Badge>
-            </div>
-          </div>
-
+        <CardContent className="p-6">
           {/* Sélection du pays et saisie du numéro de téléphone */}
           <div>
             <label

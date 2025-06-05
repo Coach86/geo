@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Typography,
   Button,
@@ -27,6 +27,7 @@ import {
   SelectChangeEvent,
   CardHeader,
   CardContent,
+  Autocomplete,
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import AddIcon from '@mui/icons-material/Add';
@@ -44,6 +45,7 @@ import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import PersonIcon from '@mui/icons-material/Person';
 import { getProjects, getUsers } from '../utils/api';
+import { getAllOrganizations } from '../utils/api-organization';
 import { Project, User } from '../utils/types';
 import ProjectCard from '../components/ProjectCard';
 
@@ -54,25 +56,26 @@ const ProjectList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentView, setCurrentView] = useState<number>(0);
-  const [selectedUserId, setSelectedUserId] = useState<string>('');
-  const [users, setUsers] = useState<User[]>([]);
-  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [selectedOrganizationId, setSelectedOrganizationId] = useState<string>('');
+  const [organizations, setOrganizations] = useState<any[]>([]);
+  const [loadingOrganizations, setLoadingOrganizations] = useState(false);
   const navigate = useNavigate();
   const theme = useTheme();
+  const [searchParams] = useSearchParams();
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      setLoadingUsers(true);
+      setLoadingOrganizations(true);
 
       // Fetch projects
       const projectData = await getProjects();
       setProjects(projectData);
       setFilteredProjects(projectData);
 
-      // Fetch users
-      const userData = await getUsers();
-      setUsers(userData);
+      // Fetch organizations
+      const orgData = await getAllOrganizations();
+      setOrganizations(orgData);
 
       setError(null);
     } catch (err) {
@@ -80,7 +83,7 @@ const ProjectList: React.FC = () => {
       setError('Failed to load data. Please try again later.');
     } finally {
       setLoading(false);
-      setLoadingUsers(false);
+      setLoadingOrganizations(false);
     }
   };
 
@@ -88,22 +91,30 @@ const ProjectList: React.FC = () => {
     fetchData();
   }, []);
 
+  // Set organization filter from URL params on mount
+  useEffect(() => {
+    const orgId = searchParams.get('organizationId');
+    if (orgId) {
+      setSelectedOrganizationId(orgId);
+    }
+  }, [searchParams]);
+
   // Handle project deletion
   const handleProjectDeleted = () => {
     fetchData(); // Refresh data
   };
 
-  const handleUserFilterChange = (e: SelectChangeEvent<string>) => {
-    setSelectedUserId(e.target.value);
+  const handleOrganizationFilterChange = (e: SelectChangeEvent<string>) => {
+    setSelectedOrganizationId(e.target.value);
   };
 
   useEffect(() => {
     // Start with all projects
     let filtered = [...projects];
 
-    // Apply user filter if selected
-    if (selectedUserId) {
-      filtered = filtered.filter((project) => project.userId === selectedUserId);
+    // Apply organization filter if selected
+    if (selectedOrganizationId) {
+      filtered = filtered.filter((project) => project.organizationId === selectedOrganizationId);
     }
 
     // Apply search term filter
@@ -114,7 +125,6 @@ const ProjectList: React.FC = () => {
           project.brandName.toLowerCase().includes(searchTermLower) ||
           project.industry.toLowerCase().includes(searchTermLower) ||
           project.shortDescription.toLowerCase().includes(searchTermLower) ||
-          (project.userEmail && project.userEmail.toLowerCase().includes(searchTermLower)) ||
           project.keyBrandAttributes?.some((feature) =>
             feature.toLowerCase().includes(searchTermLower),
           ) ||
@@ -126,7 +136,7 @@ const ProjectList: React.FC = () => {
     }
 
     setFilteredProjects(filtered);
-  }, [searchTerm, projects, selectedUserId]);
+  }, [searchTerm, projects, selectedOrganizationId]);
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(event.target.value);
@@ -226,303 +236,6 @@ const ProjectList: React.FC = () => {
             </Button>
           </Box>
 
-          {/* Dashboard Stats */}
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: {
-                xs: '1fr',
-                sm: 'repeat(2, 1fr)',
-                md: 'repeat(4, 1fr)',
-              },
-              gap: 3,
-              mb: 3,
-            }}
-          >
-            <Card
-              sx={{
-                boxShadow: 'none',
-                border: `1px solid ${alpha(theme.palette.grey[500], 0.12)}`,
-                borderRadius: 1.5,
-                overflow: 'hidden',
-                position: 'relative',
-                '&::before': {
-                  content: '""',
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: '4px',
-                  backgroundColor: theme.palette.primary.main,
-                  opacity: 0.7,
-                },
-              }}
-            >
-              <CardContent sx={{ p: 3 }}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <Box>
-                    <Typography
-                      variant="subtitle2"
-                      sx={{
-                        color: 'text.secondary',
-                        fontSize: '0.75rem',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.5px',
-                        fontWeight: 600,
-                        opacity: 0.8,
-                      }}
-                    >
-                      Total Projects
-                    </Typography>
-                    <Typography
-                      variant="h3"
-                      sx={{
-                        mt: 1,
-                        fontWeight: 700,
-                        fontSize: { xs: '1.75rem', sm: '2.2rem' },
-                      }}
-                    >
-                      {projects.length}
-                    </Typography>
-                  </Box>
-                  <Box
-                    sx={{
-                      p: 0.8,
-                      borderRadius: 1.5,
-                      bgcolor: alpha(theme.palette.primary.main, 0.12),
-                      color: theme.palette.primary.main,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: 44,
-                      height: 44,
-                    }}
-                  >
-                    <CompaniesIcon sx={{ fontSize: '1.3rem' }} />
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
-
-            <Card
-              sx={{
-                boxShadow: 'none',
-                border: `1px solid ${alpha(theme.palette.grey[500], 0.12)}`,
-                borderRadius: 1.5,
-                overflow: 'hidden',
-                position: 'relative',
-                '&::before': {
-                  content: '""',
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: '4px',
-                  backgroundColor: theme.palette.info.main,
-                  opacity: 0.7,
-                },
-              }}
-            >
-              <CardContent sx={{ p: 3 }}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <Box>
-                    <Typography
-                      variant="subtitle2"
-                      sx={{
-                        color: 'text.secondary',
-                        fontSize: '0.75rem',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.5px',
-                        fontWeight: 600,
-                        opacity: 0.8,
-                      }}
-                    >
-                      Total Users
-                    </Typography>
-                    <Typography
-                      variant="h3"
-                      sx={{
-                        mt: 1,
-                        fontWeight: 700,
-                        fontSize: { xs: '1.75rem', sm: '2.2rem' },
-                      }}
-                    >
-                      {users.length}
-                    </Typography>
-                  </Box>
-                  <Box
-                    sx={{
-                      p: 0.8,
-                      borderRadius: 1.5,
-                      bgcolor: alpha(theme.palette.info.main, 0.12),
-                      color: theme.palette.info.main,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: 44,
-                      height: 44,
-                    }}
-                  >
-                    <PersonIcon sx={{ fontSize: '1.3rem' }} />
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
-
-            <Card
-              sx={{
-                boxShadow: 'none',
-                border: `1px solid ${alpha(theme.palette.grey[500], 0.12)}`,
-                borderRadius: 1.5,
-                overflow: 'hidden',
-                position: 'relative',
-                '&::before': {
-                  content: '""',
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: '4px',
-                  backgroundColor: theme.palette.success.main,
-                  opacity: 0.7,
-                },
-              }}
-            >
-              <CardContent sx={{ p: 3 }}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <Box>
-                    <Typography
-                      variant="subtitle2"
-                      sx={{
-                        color: 'text.secondary',
-                        fontSize: '0.75rem',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.5px',
-                        fontWeight: 600,
-                        opacity: 0.8,
-                      }}
-                    >
-                      Industries
-                    </Typography>
-                    <Typography
-                      variant="h3"
-                      sx={{
-                        mt: 1,
-                        fontWeight: 700,
-                        fontSize: { xs: '1.75rem', sm: '2.2rem' },
-                      }}
-                    >
-                      {Object.keys(industryStats).length}
-                    </Typography>
-                  </Box>
-                  <Box
-                    sx={{
-                      p: 0.8,
-                      borderRadius: 1.5,
-                      bgcolor: alpha(theme.palette.success.main, 0.12),
-                      color: theme.palette.success.main,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: 44,
-                      height: 44,
-                    }}
-                  >
-                    <TrendingUpIcon sx={{ fontSize: '1.3rem' }} />
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
-
-            <Card
-              sx={{
-                boxShadow: 'none',
-                border: `1px solid ${alpha(theme.palette.grey[500], 0.12)}`,
-                borderRadius: 1.5,
-                overflow: 'hidden',
-                position: 'relative',
-                '&::before': {
-                  content: '""',
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: '4px',
-                  backgroundColor: theme.palette.warning.main,
-                  opacity: 0.7,
-                },
-              }}
-            >
-              <CardContent sx={{ p: 3 }}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <Box>
-                    <Typography
-                      variant="subtitle2"
-                      sx={{
-                        color: 'text.secondary',
-                        fontSize: '0.75rem',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.5px',
-                        fontWeight: 600,
-                        opacity: 0.8,
-                      }}
-                    >
-                      Competitors
-                    </Typography>
-                    <Typography
-                      variant="h3"
-                      sx={{
-                        mt: 1,
-                        fontWeight: 700,
-                        fontSize: { xs: '1.75rem', sm: '2.2rem' },
-                      }}
-                    >
-                      {projects.reduce((acc, project) => acc + project.competitors.length, 0)}
-                    </Typography>
-                  </Box>
-                  <Box
-                    sx={{
-                      p: 0.8,
-                      borderRadius: 1.5,
-                      bgcolor: alpha(theme.palette.warning.main, 0.12),
-                      color: theme.palette.warning.main,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: 44,
-                      height: 44,
-                    }}
-                  >
-                    <PeopleAltIcon sx={{ fontSize: '1.3rem' }} />
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
-          </Box>
 
           <Card
             sx={{
@@ -620,46 +333,88 @@ const ProjectList: React.FC = () => {
                 }}
               />
 
-              <FormControl
+              <Autocomplete
                 size="small"
-                sx={{
-                  minWidth: 180,
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 1,
-                    backgroundColor: theme.palette.background.paper,
-                    borderColor: alpha(theme.palette.grey[500], 0.2),
-                    '&:hover': {
-                      borderColor: alpha(theme.palette.primary.main, 0.5),
-                    },
-                    '&.Mui-focused': {
-                      borderColor: theme.palette.primary.main,
-                      boxShadow: `0 0 0 2px ${alpha(theme.palette.primary.main, 0.1)}`,
-                    },
-                  },
-                  '& .MuiInputLabel-root': {
-                    fontSize: '0.875rem',
-                  },
+                freeSolo
+                options={organizations}
+                getOptionLabel={(option) => typeof option === 'string' ? option : option.id}
+                value={organizations.find(org => org.id === selectedOrganizationId) || selectedOrganizationId}
+                onChange={(event, newValue) => {
+                  if (typeof newValue === 'string') {
+                    setSelectedOrganizationId(newValue);
+                  } else if (newValue) {
+                    setSelectedOrganizationId(newValue.id);
+                  } else {
+                    setSelectedOrganizationId('');
+                  }
                 }}
-                disabled={loadingUsers}
-              >
-                <InputLabel id="user-filter-label">Filter by User</InputLabel>
-                <Select
-                  labelId="user-filter-label"
-                  value={selectedUserId}
-                  onChange={handleUserFilterChange}
-                  label="Filter by User"
-                  displayEmpty
-                >
-                  <MenuItem value="">
-                    <em>All Users</em>
-                  </MenuItem>
-                  {users.map((user) => (
-                    <MenuItem key={user.id} value={user.id}>
-                      {user.email} ({user.language})
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+                onInputChange={(event, newInputValue) => {
+                  if (event && event.type === 'change') {
+                    setSelectedOrganizationId(newInputValue);
+                  }
+                }}
+                renderOption={(props, option) => (
+                  <Box component="li" {...props}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                      <BusinessIcon sx={{ fontSize: 16 }} />
+                      <Typography variant="body2" noWrap sx={{ flex: 1 }}>
+                        {option.id}
+                      </Typography>
+                      <Chip 
+                        label={`${option.currentProjects || 0} projects`} 
+                        size="small" 
+                        sx={{ fontSize: '0.7rem', height: 20 }}
+                      />
+                    </Box>
+                  </Box>
+                )}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Filter by Organization"
+                    placeholder="Select or type organization ID"
+                    InputProps={{
+                      ...params.InputProps,
+                      endAdornment: (
+                        <>
+                          {selectedOrganizationId && (
+                            <InputAdornment position="end">
+                              <IconButton
+                                size="small"
+                                onClick={() => setSelectedOrganizationId('')}
+                                edge="end"
+                              >
+                                <ClearIcon sx={{ fontSize: '0.9rem' }} />
+                              </IconButton>
+                            </InputAdornment>
+                          )}
+                          {params.InputProps.endAdornment}
+                        </>
+                      ),
+                    }}
+                    sx={{
+                      minWidth: 300,
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 1,
+                        backgroundColor: theme.palette.background.paper,
+                        borderColor: alpha(theme.palette.grey[500], 0.2),
+                        '&:hover': {
+                          borderColor: alpha(theme.palette.primary.main, 0.5),
+                        },
+                        '&.Mui-focused': {
+                          borderColor: theme.palette.primary.main,
+                          boxShadow: `0 0 0 2px ${alpha(theme.palette.primary.main, 0.1)}`,
+                        },
+                      },
+                      '& .MuiInputLabel-root': {
+                        fontSize: '0.875rem',
+                      },
+                    }}
+                  />
+                )}
+                disabled={loadingOrganizations}
+                sx={{ flex: 'none' }}
+              />
 
               <Box
                 sx={{

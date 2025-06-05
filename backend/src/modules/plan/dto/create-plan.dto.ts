@@ -35,6 +35,10 @@ export class CreatePlanDto {
   @IsOptional()
   maxSpontaneousPrompts?: number;
 
+  @IsNumber()
+  @IsOptional()
+  maxCompetitors?: number;
+
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;

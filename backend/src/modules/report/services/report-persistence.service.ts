@@ -62,18 +62,18 @@ export class ReportPersistenceService {
 
       // Generate an access token and send email notification
       const reportDate = saved.date;
-      const user = await this.userService.findOne(project.userId);
-      const recipientEmail = user.email;
+      // TODO: Need to determine how to handle email notifications for organization-based projects
+      // For now, we'll skip email notifications
       const companyName = project.brandName || report.projectId;
 
-      const token = await this.tokenService.generateAccessToken(project.userId);
-      await this.reportAccessService.sendReportAccessEmail(
-        saved.id,
-        token,
-        reportDate,
-        recipientEmail,
-        companyName,
-      );
+      // const token = await this.tokenService.generateAccessToken(project.organizationId);
+      // await this.reportAccessService.sendReportAccessEmail(
+      //   saved.id,
+      //   token,
+      //   reportDate,
+      //   recipientEmail,
+      //   companyName,
+      // );
 
       // Return the formatted entity
       return this.converterService.convertDocumentToEntity(saved, project);

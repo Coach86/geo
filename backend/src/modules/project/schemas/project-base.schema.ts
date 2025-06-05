@@ -17,6 +17,9 @@ export class Project {
   })
   id: string;
 
+  @Prop({ required: false })
+  name: string;
+
   @Prop({ required: true })
   brandName: string;
 
@@ -58,8 +61,8 @@ export class Project {
   })
   data: Record<string, any>;
 
-  @Prop({ type: MongooseSchema.Types.String, ref: 'User' })
-  userId: string;
+  @Prop({ type: MongooseSchema.Types.String, ref: 'Organization', required: true })
+  organizationId: string;
 
   @Prop({ type: Date })
   createdAt: Date;

@@ -13,13 +13,13 @@ export function SentimentOverview({ sentimentScore, totalResponses }: SentimentO
     <div>
       <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
         <CardHeader className="pb-4">
-          <CardTitle className="text-lg font-semibold text-dark-700 flex items-center gap-2">
+          <CardTitle className="text-lg font-semibold text-mono-700 flex items-center gap-2">
             <div>
-              <Sparkles className="h-5 w-5 text-primary-600" />
+              <Sparkles className="h-5 w-5 text-primary-500" />
             </div>
             Overall Sentiment Score
           </CardTitle>
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-sm text-mono-400 mt-1">
             Percentage of positive sentiment across all AI model responses
           </p>
         </CardHeader>
@@ -28,22 +28,22 @@ export function SentimentOverview({ sentimentScore, totalResponses }: SentimentO
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center mb-1">
-                  <h3 className="text-3xl font-bold text-gray-900">
+                  <h3 className="text-3xl font-bold text-mono-900">
                     {sentimentScore}%
                   </h3>
-                  <span className="ml-2 px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                  <span className="ml-2 px-2 py-1 text-xs font-medium bg-secondary-50 text-secondary-700 rounded-full">
                     Global Average
                   </span>
                 </div>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-mono-400">
                   positive sentiment
                 </p>
               </div>
               <div className="text-right">
-                <div className="text-sm font-medium text-gray-900">
+                <div className="text-sm font-medium text-mono-700">
                   Total Responses
                 </div>
-                <div className="text-2xl font-bold text-gray-900">
+                <div className="text-2xl font-bold text-mono-900">
                   {totalResponses}
                 </div>
               </div>

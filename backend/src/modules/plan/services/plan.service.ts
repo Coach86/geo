@@ -120,9 +120,9 @@ export class PlanService {
       throw new NotFoundException(`No ${billingPeriod} price found for this plan`);
     }
 
-    const frontendUrl = this.configService.get('FRONTEND_URL') || 'http://localhost:3001';
+    const frontendUrl = this.configService.get('FRONTEND_URL') || 'http://localhost:3000';
 
-    const session = await this.stripe.checkout.sessions.create({
+    const sessionConfig: Stripe.Checkout.SessionCreateParams = {
       mode: 'subscription',
       line_items: [
         {
@@ -137,7 +137,12 @@ export class PlanService {
       },
       success_url: `${frontendUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${frontendUrl}/cancel`,
-    });
+    };
+
+    // Allow promotion codes for all environments
+    sessionConfig.allow_promotion_codes = true;
+
+    const session = await this.stripe.checkout.sessions.create(sessionConfig);
 
     if (!session.url) {
       throw new BadRequestException('Failed to create checkout session');
@@ -182,6 +187,7 @@ export class PlanService {
       maxModels: plan.maxModels,
       maxProjects: plan.maxProjects,
       maxUrls: plan.maxUrls,
+      maxUsers: plan.maxUsers,
       maxSpontaneousPrompts: plan.maxSpontaneousPrompts,
       maxCompetitors: plan.maxCompetitors,
       isActive: plan.isActive,
@@ -192,5 +198,21 @@ export class PlanService {
       createdAt: (plan as any).createdAt,
       updatedAt: (plan as any).updatedAt,
     };
+  }
+
+  async findFreeTrailPlan(): Promise<PlanResponseDto | null> {
+    // Find the free plan by name or tag
+    const plans = await this.planRepository.findAll();
+    const freePlan = plans.find(
+      plan => plan.name.toLowerCase().includes('free') || 
+              plan.tag?.toLowerCase() === 'free' ||
+              plan.metadata?.isFree === true
+    );
+    
+    if (!freePlan) {
+      return null;
+    }
+    
+    return this.mapPlanToResponse(freePlan);
   }
 }

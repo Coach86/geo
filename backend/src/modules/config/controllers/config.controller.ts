@@ -1,14 +1,28 @@
-import { Controller, Get } from '@nestjs/common';
-import * as fs from 'fs';
-import * as path from 'path';
+import { Controller, Get, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { TokenRoute } from '../../auth/decorators/token-route.decorator';
+import { ConfigService } from '../services/config.service';
 
 @Controller('admin/config')
 export class ConfigController {
+  constructor(private readonly configService: ConfigService) {}
+
   @Get()
   getConfig() {
-    const configPath = path.resolve(process.cwd(), 'config.json');
-    const configContent = fs.readFileSync(configPath, 'utf8');
-    const config = JSON.parse(configContent);
-    return config;
+    return this.configService.getConfig();
+  }
+}
+
+@Controller('config')
+@UseGuards(JwtAuthGuard)
+export class PublicConfigController {
+  constructor(private readonly configService: ConfigService) {}
+
+  @Get('models')
+  @TokenRoute()
+  getModels() {
+    return {
+      models: this.configService.getAvailableModels()
+    };
   }
 }

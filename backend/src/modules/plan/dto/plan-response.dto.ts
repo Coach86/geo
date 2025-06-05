@@ -15,6 +15,7 @@ export class PlanResponseDto {
   maxModels: number;
   maxProjects: number;
   maxUrls: number;
+  maxUsers: number;
   maxSpontaneousPrompts: number;
   maxCompetitors: number;
   isActive: boolean;

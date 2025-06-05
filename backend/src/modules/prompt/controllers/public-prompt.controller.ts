@@ -23,6 +23,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { PromptSet, PromptSetDocument } from '../schemas/prompt-set.schema';
 import { Project as ProjectSchema, ProjectDocument } from '../../project/schemas/project-base.schema';
+import { UserService } from '../../user/services/user.service';
 
 export interface GeneratePromptsRequest {
   brandName: string;
@@ -55,6 +56,7 @@ export class PublicPromptController {
     @InjectModel(ProjectSchema.name) private projectModel: Model<ProjectDocument>,
     private readonly promptService: PromptService,
     private readonly tokenService: TokenService,
+    private readonly userService: UserService,
   ) {}
 
   @Get(':projectId')
@@ -212,7 +214,7 @@ export class PublicPromptController {
       }
 
       // Create a Project object for the prompt service
-      // Note: We don't need projectId and userId for prompt generation, but the interface requires them
+      // Note: We don't need projectId for prompt generation, but the interface requires it
       const projectData: Project = {
         projectId: 'temp-id', // Temporary ID since we're not saving
         brandName: body.brandName,
@@ -224,7 +226,7 @@ export class PublicPromptController {
         competitors: body.competitors,
         shortDescription: body.shortDescription || '',
         fullDescription: body.fullDescription || body.shortDescription || '',
-        userId: request.userId,
+        organizationId: 'temp-org-id', // Temporary ID since we're not saving
         updatedAt: new Date(),
       };
 
@@ -289,8 +291,14 @@ export class PublicPromptController {
         throw new NotFoundException(`Project ${projectId} not found`);
       }
       
-      if (project.userId !== request.userId) {
-        this.logger.warn(`User ${request.userId} tried to update prompts for project ${projectId} owned by user ${project.userId}`);
+      // Get user to check organization
+      const user = await this.userService.findOne(request.userId);
+      if (!user) {
+        throw new BadRequestException('User not found');
+      }
+      
+      if (project.organizationId !== user.organizationId) {
+        this.logger.warn(`User ${request.userId} tried to update prompts for project ${projectId} from different organization`);
         throw new UnauthorizedException('You do not have permission to update prompts for this project');
       }
 

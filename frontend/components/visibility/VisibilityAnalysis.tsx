@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { ModelIcon } from "@/components/ui/model-icon";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { Eye } from "lucide-react";
 
 interface ModeMetric {
@@ -25,6 +27,7 @@ interface VisibilityAnalysisProps {
   arenaData: ArenaData[];
   brandName: string;
   selectedCompetitors?: string[];
+  onCompetitorToggle?: (competitorName: string, checked: boolean) => void;
 }
 
 export function VisibilityAnalysis({
@@ -33,6 +36,7 @@ export function VisibilityAnalysis({
   arenaData,
   brandName,
   selectedCompetitors = [],
+  onCompetitorToggle,
 }: VisibilityAnalysisProps) {
 
   // Get model badge color
@@ -48,6 +52,9 @@ export function VisibilityAnalysis({
       Google: "bg-primary-100 text-primary-800 border-primary-200",
       Perplexity: "bg-dark-100 text-dark-800 border-dark-200",
       Llama: "bg-secondary-200 text-secondary-700 border-secondary-300",
+      Mistral: "bg-orange-100 text-orange-800 border-orange-200",
+      "Mistral Large": "bg-orange-100 text-orange-800 border-orange-200",
+      Grok: "bg-purple-100 text-purple-800 border-purple-200",
     };
     return colors[model] || "bg-dark-50 text-dark-700 border-dark-100";
   };
@@ -68,6 +75,42 @@ export function VisibilityAnalysis({
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
+            {/* Competitor Selection */}
+            {arenaData && arenaData.length > 0 && onCompetitorToggle && (
+              <div className="pb-4 border-b border-gray-200">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                  Select Competitors to Compare
+                </h4>
+                <div className="flex flex-wrap gap-4">
+                  {arenaData
+                    .filter(
+                      (comp) =>
+                        comp.name.toLowerCase() !== brandName.toLowerCase()
+                    )
+                    .map((competitor) => (
+                      <div
+                        key={competitor.name}
+                        className="flex items-center space-x-2"
+                      >
+                        <Checkbox
+                          id={competitor.name}
+                          checked={selectedCompetitors.includes(competitor.name)}
+                          onCheckedChange={(checked) => {
+                            onCompetitorToggle(competitor.name, checked as boolean);
+                          }}
+                        />
+                        <Label
+                          htmlFor={competitor.name}
+                          className="text-sm font-medium cursor-pointer"
+                        >
+                          {competitor.name}
+                        </Label>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
             {/* Overall Mention Rate */}
             <div className="pb-4 border-b border-gray-200">
               <h4 className="text-sm font-semibold text-gray-700 mb-4">
@@ -169,24 +212,25 @@ export function VisibilityAnalysis({
                       if (exactMatch) {
                         brandRate = exactMatch.mentionRate;
                       } else {
-                        // Model mappings
+                        // Model mappings - handle variations in model names
                         const modelMappings: Record<string, string[]> = {
-                          ChatGPT: ["GPT-4", "GPT-3.5", "OpenAI"],
-                          Claude: ["Claude 3", "Claude 2", "Anthropic"],
-                          Gemini: ["Gemini 1.5 Pro", "Google"],
+                          ChatGPT: ["GPT-4", "GPT-3.5", "OpenAI", "ChatGPT"],
+                          Claude: ["Claude 3", "Claude 2", "Anthropic", "Claude"],
+                          Gemini: ["Gemini 1.5 Pro", "Google", "Gemini"],
                           Perplexity: ["Perplexity"],
                           Llama: ["Llama", "Meta"],
+                          Mistral: ["Mistral Large", "Mistral"],
+                          Grok: ["Grok", "X AI"],
                         };
 
-                        for (const [key, values] of Object.entries(
-                          modelMappings
-                        )) {
-                          if (values.includes(model) || model.includes(key)) {
-                            const mappedMetric = modeMetrics.find(
-                              (m: any) =>
-                                m.model === key ||
-                                values.some((v) => m.model.includes(v))
-                            );
+                        // Try to find the metric by checking if the current model matches any mapping
+                        for (const [key, values] of Object.entries(modelMappings)) {
+                          // Check if the current model name matches any of the mapped values
+                          if (model === key || values.includes(model)) {
+                            // Find the metric that matches this model group
+                            const mappedMetric = modeMetrics.find((m: any) => {
+                              return m.model === key || values.some(v => m.model === v || m.model.includes(v) || v.includes(m.model));
+                            });
                             if (mappedMetric) {
                               brandRate = mappedMetric.mentionRate;
                               break;

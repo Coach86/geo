@@ -14,6 +14,7 @@ import UserCreation from './pages/UserCreation';
 import EmailPreview from './pages/email-preview';
 import Config from './pages/Config';
 import PlanManagement from './pages/PlanManagement';
+import OrganizationSettings from './pages/OrganizationSettings';
 import { ThemeProvider } from './utils/ThemeContext';
 import { socketManager } from './utils/socket';
 import { requestNotificationPermission } from './utils/notifications';
@@ -92,6 +93,7 @@ const App: React.FC = () => {
             <Route path="email-preview" element={<EmailPreview />} />
             <Route path="config" element={<Config />} />
             <Route path="plans" element={<PlanManagement />} />
+            <Route path="organization" element={<OrganizationSettings />} />
             <Route path="*" element={<Navigate to="/projects" replace />} />
           </Route>
         </Routes>

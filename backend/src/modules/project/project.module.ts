@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule } from '@nestjs/config';
 import { ProjectController } from './controllers/project.controller';
@@ -11,6 +11,7 @@ import { LlmModule } from '../llm/llm.module';
 import { TokenService } from '../auth/services/token.service';
 import { AccessTokenRepository } from '../auth/repositories/access-token.repository';
 import { AccessToken, AccessTokenSchema } from '../auth/schemas/access-token.schema';
+import { OrganizationModule } from '../organization/organization.module';
 
 @Module({
   imports: [
@@ -18,9 +19,10 @@ import { AccessToken, AccessTokenSchema } from '../auth/schemas/access-token.sch
       { name: Project.name, schema: ProjectSchema },
       { name: AccessToken.name, schema: AccessTokenSchema },
     ]),
-    UserModule,
+    forwardRef(() => UserModule),
     LlmModule,
     ConfigModule,
+    forwardRef(() => OrganizationModule),
   ],
   controllers: [ProjectController, UserProjectController],
   providers: [

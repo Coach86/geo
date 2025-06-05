@@ -22,7 +22,8 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "test:brand-insight": "./run-test.sh",
     "setup": "npm run build",
-    "create:admin": "ts-node scripts/create-admin-user.ts"
+    "create:admin": "ts-node scripts/create-admin-user.ts",
+    "migrate:organizations": "ts-node scripts/migrate-to-organizations.ts"
   },
   "repository": {
     "type": "git",

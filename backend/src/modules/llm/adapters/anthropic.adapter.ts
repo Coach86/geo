@@ -40,33 +40,58 @@ export class AnthropicAdapter implements LlmAdapter {
         throw new Error("Model not specified. Please specify a model using the 'model' option.")
       }
       const modelName = options?.model;
+      const webAccess = options?.webAccess !== false; // Default to true if not specified
 
-      // Define the web search tool using the correct format for the SDK
-      const tools = [
-        {
-          type: TOOL_TYPES.ANTHROPIC_WEB_SEARCH, // Using the constant for type consistency
-          name: 'web_search',
-          max_uses: 3,
-        } as any, // Type assertion to bypass TypeScript error
-      ];
+      this.logger.log(`Calling Anthropic API with configuration:`);
+      this.logger.log(`- Model: ${modelName}`);
+      this.logger.log(`- Web Access: ${webAccess}`);
+      this.logger.log(`- Temperature: ${options?.temperature !== undefined ? options.temperature : 'not set'}`);
+      this.logger.log(`- Max Tokens: ${options?.maxTokens !== undefined ? options.maxTokens : 'not set'}`);
+      this.logger.log(`- Top P: ${options?.topP !== undefined ? options.topP : 'not set'}`);
+      this.logger.log(`- System Prompt: ${options?.systemPrompt ? 'provided' : 'not set'}`);
 
-      // Create messages array with system message if provided
-      const systemMessage =
-        options?.systemPrompt ||
-        "To answer the user's question, search the web when you need current information.";
-
-      this.logger.log(`Calling Anthropic API with model: ${modelName}`);
-
-      // Call the Anthropic API directly
-      const response = await this.anthropic.messages.create({
+      // Build the request parameters
+      const requestParams: any = {
         model: modelName,
         max_tokens: options?.maxTokens ?? 1000,
         temperature: options?.temperature ?? 0.7,
         top_p: options?.topP ?? 1,
-        system: systemMessage,
         messages: [{ role: 'user', content: prompt }],
-        tools: tools,
-      });
+      };
+
+      // Only add web search tool if webAccess is enabled
+      if (webAccess) {
+        requestParams.tools = [
+          {
+            type: TOOL_TYPES.ANTHROPIC_WEB_SEARCH, // Using the constant for type consistency
+            name: 'web_search',
+            max_uses: 3,
+          } as any, // Type assertion to bypass TypeScript error
+        ];
+      }
+
+      // Create messages array with system message if provided
+      const systemMessage =
+        options?.systemPrompt ||
+        (webAccess 
+          ? "To answer the user's question, search the web when you need current information."
+          : "Answer the user's question based on your training data.");
+      
+      requestParams.system = systemMessage;
+
+      // Log the final request parameters being sent
+      this.logger.log(`Final request parameters: ${JSON.stringify({
+        model: requestParams.model,
+        max_tokens: requestParams.max_tokens,
+        temperature: requestParams.temperature,
+        top_p: requestParams.top_p,
+        tools: requestParams.tools ? 'web_search enabled' : 'no tools',
+        system_prompt_length: requestParams.system?.length || 0,
+        message_count: requestParams.messages?.length || 0
+      })}`);
+
+      // Call the Anthropic API directly
+      const response = await this.anthropic.messages.create(requestParams);
 
       // Extract the full response content for detailed processing
       // We will keep track of components and build a coherent text response

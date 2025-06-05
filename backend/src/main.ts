@@ -8,7 +8,9 @@ import * as express from 'express';
 import * as fs from 'fs';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    rawBody: true, // Enable raw body parsing for webhooks
+  });
 
   // Configure CORS based on environment
   const isDev = process.env.NODE_ENV !== 'production';
@@ -34,6 +36,7 @@ async function bootstrap() {
   }
 
   app.setGlobalPrefix('api', { exclude: ['/'] });
+
 
   app.useGlobalPipes(
     new ValidationPipe({

@@ -318,7 +318,7 @@ export function PromptsPortfolio({
             </TabsTrigger>
             <TabsTrigger value="accuracy" className="text-xs">
               <CheckCircle className="h-3 w-3 mr-1" />
-              Accord ({promptSet.accuracy.length})
+              Alignment ({promptSet.accuracy.length})
             </TabsTrigger>
             <TabsTrigger value="battle" className="text-xs">
               <Swords className="h-3 w-3 mr-1" />

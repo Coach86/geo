@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, forwardRef, Inject } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
@@ -9,12 +9,17 @@ import { UserRepository } from '../repositories/user.repository';
 import { UserDocument } from '../schemas/user.schema';
 import { User as UserEntity } from '../entities/user.entity';
 import { Project } from '../../project/entities/project.entity';
+import { OrganizationService } from '../../organization/services/organization.service';
 
 @Injectable()
 export class UserService {
   private readonly logger = new Logger(UserService.name);
 
-  constructor(private userRepository: UserRepository) {}
+  constructor(
+    private userRepository: UserRepository,
+    @Inject(forwardRef(() => OrganizationService))
+    private organizationService: OrganizationService,
+  ) {}
 
   /**
    * Create a new user
@@ -25,10 +30,25 @@ export class UserService {
     try {
       this.logger.log(`Creating user with email: ${createUserDto.email}`);
 
+      let organizationId = createUserDto.organizationId;
+
+      // If no organizationId is provided, create a new organization with defaults
+      if (!organizationId) {
+        this.logger.log(`No organizationId provided, creating default organization for user: ${createUserDto.email}`);
+        
+        const newOrganization = await this.organizationService.create({
+          // Plan settings will use the defaults from ORGANIZATION_DEFAULTS
+        });
+        
+        organizationId = newOrganization.id;
+        this.logger.log(`Created organization ${organizationId} for user ${createUserDto.email}`);
+      }
+
       const userData = {
         id: uuidv4(),
         email: createUserDto.email,
         language: createUserDto.language || 'en',
+        organizationId: organizationId,
       };
 
       const savedUser = await this.userRepository.save(userData);
@@ -116,6 +136,12 @@ export class UserService {
         ...(updateUserDto.planSettings && { planSettings: updateUserDto.planSettings }),
         ...(updateUserDto.selectedModels !== undefined && {
           selectedModels: updateUserDto.selectedModels,
+        }),
+        ...(updateUserDto.stripePlanId !== undefined && {
+          stripePlanId: updateUserDto.stripePlanId,
+        }),
+        ...(updateUserDto.organizationId !== undefined && {
+          organizationId: updateUserDto.organizationId,
         }),
       };
 
@@ -222,18 +248,10 @@ export class UserService {
       email: entity.email,
       language: entity.language,
       phoneNumber: entity.phoneNumber,
-      stripeCustomerId: entity.stripeCustomerId,
-      stripePlanId: entity.stripePlanId,
-      planSettings: {
-        maxProjects: entity.planSettings?.maxProjects || 1,
-        maxAIModels: entity.planSettings?.maxAIModels || 3,
-        maxSpontaneousPrompts: entity.planSettings?.maxSpontaneousPrompts || 12,
-        maxUrls: entity.planSettings?.maxUrls || 1,
-      },
+      organizationId: entity.organizationId,
       createdAt: entity.createdAt.toISOString(),
       updatedAt: entity.updatedAt.toISOString(),
       projectIds,
-      selectedModels: entity.selectedModels || [],
     };
   }
 
@@ -259,6 +277,43 @@ export class UserService {
     } catch (error) {
       this.logger.error(`Failed to get user company IDs: ${error.message}`, error.stack);
       return [];
+    }
+  }
+
+  /**
+   * Find users by organization ID
+   * @param organizationId - Organization ID
+   * @returns List of users in the organization
+   */
+  async findByOrganizationId(organizationId: string): Promise<UserResponseDto[]> {
+    try {
+      const users = await this.userRepository.findByOrganizationId(organizationId);
+      const userDtos = [];
+      
+      for (const user of users) {
+        const userWithProjects = await this.userRepository.mapToEntityWithProjects(user);
+        userDtos.push(this.mapToEntityDto(userWithProjects));
+      }
+      
+      return userDtos;
+    } catch (error) {
+      this.logger.error(`Failed to find users by organization: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Update user's last connection timestamp
+   * @param userId - User ID
+   * @returns Updated user
+   */
+  async updateLastConnection(userId: string): Promise<void> {
+    try {
+      await this.userRepository.update(userId, { lastConnectionAt: new Date() });
+      this.logger.log(`Updated last connection for user: ${userId}`);
+    } catch (error) {
+      this.logger.error(`Failed to update last connection: ${error.message}`, error.stack);
+      // Don't throw error to avoid failing authentication flow
     }
   }
 }

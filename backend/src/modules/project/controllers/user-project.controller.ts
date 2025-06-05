@@ -23,6 +23,8 @@ import { TokenService } from '../../auth/services/token.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ProjectCreatedEvent } from '../events/project-created.event';
 import { v4 as uuidv4 } from 'uuid';
+import { UserService } from '../../user/services/user.service';
+import { OrganizationService } from '../../organization/services/organization.service';
 
 @ApiTags('user-projects')
 @Controller('user/project')
@@ -35,6 +37,8 @@ export class UserProjectController {
     private readonly projectRepository: ProjectRepository,
     private readonly tokenService: TokenService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly userService: UserService,
+    private readonly organizationService: OrganizationService,
   ) {}
 
   @Get('url-usage')
@@ -77,13 +81,14 @@ export class UserProjectController {
         }
       }
 
-      // Get user and existing projects
-      const user = await this.projectRepository.findUserById(request.userId);
+      // Get user and organization details
+      const user = await this.userService.findOne(request.userId);
       if (!user) {
         throw new BadRequestException('User not found');
       }
 
-      const existingProjects = await this.projectService.findAll(request.userId);
+      const organization = await this.organizationService.findOne(user.organizationId);
+      const existingProjects = await this.projectService.findByOrganizationId(user.organizationId);
       
       const normalizeUrl = (url: string): string => {
         try {
@@ -96,7 +101,7 @@ export class UserProjectController {
 
       const existingUrls = existingProjects.map(project => normalizeUrl(project.website));
       const uniqueUrls = Array.from(new Set(existingUrls));
-      const maxUrls = user.planSettings?.maxUrls || 1;
+      const maxUrls = organization.planSettings.maxUrls;
 
       return {
         currentUrls: uniqueUrls,
@@ -142,8 +147,14 @@ export class UserProjectController {
 
       this.logger.log(`Fetching projects for user: ${request.userId}`);
 
-      // Get all projects for the user
-      const projects = await this.projectService.findAll(request.userId);
+      // Get user's organization
+      const user = await this.userService.findOne(request.userId);
+      if (!user) {
+        throw new BadRequestException('User not found');
+      }
+
+      // Get all projects for the user's organization
+      const projects = await this.projectService.findByOrganizationId(user.organizationId);
 
       this.logger.log(`Found ${projects.length} projects for user ${request.userId}`);
 
@@ -191,13 +202,19 @@ export class UserProjectController {
 
       this.logger.log(`Fetching project ${projectId} for user: ${request.userId}`);
 
+      // Get user's organization
+      const user = await this.userService.findOne(request.userId);
+      if (!user) {
+        throw new BadRequestException('User not found');
+      }
+
       // Get the project
       const project = await this.projectService.findById(projectId);
 
-      // Check if the user owns this project
-      if (project.userId !== request.userId) {
+      // Check if the project belongs to the user's organization
+      if (project.organizationId !== user.organizationId) {
         this.logger.warn(
-          `User ${request.userId} tried to access project ${projectId} owned by user ${project.userId}`,
+          `User ${request.userId} tried to access project ${projectId} from different organization`,
         );
         throw new UnauthorizedException('You do not have permission to access this project');
       }
@@ -277,12 +294,15 @@ export class UserProjectController {
         throw new BadRequestException('Market is required');
       }
 
-      this.logger.log(`Analyzing website for user ${request.userId} with URL: ${body.url}`);
+      // Get user's organization
+      const user = await this.userService.findOne(request.userId);
+      
+      this.logger.log(`Analyzing website for user ${request.userId} in organization ${user.organizationId} with URL: ${body.url}`);
       const project = await this.projectService.analyzeFromUrl(
         body.url,
         body.market,
         body.language || 'en',
-        request.userId,
+        user.organizationId,
       );
 
       this.logger.log(`Website analysis completed successfully`);
@@ -306,8 +326,9 @@ export class UserProjectController {
         url: { type: 'string', format: 'uri', example: 'https://example.com' },
         market: { type: 'string', example: 'United States' },
         language: { type: 'string', example: 'en' },
+        name: { type: 'string', example: 'Q1 2025 Campaign' },
       },
-      required: ['url', 'market'],
+      required: ['url', 'market', 'name'],
     },
   })
   @ApiResponse({
@@ -320,7 +341,7 @@ export class UserProjectController {
   @ApiResponse({ status: 403, description: 'Plan limit exceeded' })
   async createFromUrl(
     @Req() request: any,
-    @Body() body: { url: string; market: string; language?: string },
+    @Body() body: { url: string; market: string; language?: string; name: string },
   ): Promise<ProjectResponseDto> {
     try {
       this.logger.log(`Token-based project creation from URL: ${body.url}`);
@@ -344,16 +365,19 @@ export class UserProjectController {
         throw new BadRequestException('Market is required');
       }
 
-      // Check user plan limits
-      const user = await this.projectRepository.findUserById(request.userId);
+      // Get user and organization info
+      const user = await this.userService.findOne(request.userId);
       if (!user) {
         throw new BadRequestException('User not found');
       }
 
-      // Get existing projects count
-      const existingProjects = await this.projectService.findAll(request.userId);
+      // Get organization for plan limits
+      const organization = await this.organizationService.findOne(user.organizationId);
+
+      // Get existing projects count for the organization
+      const existingProjects = await this.projectService.findByOrganizationId(user.organizationId);
       const currentProjectCount = existingProjects.length;
-      const maxProjects = user.planSettings?.maxProjects || 1;
+      const maxProjects = organization.planSettings.maxProjects;
 
       if (currentProjectCount >= maxProjects) {
         this.logger.warn(
@@ -380,28 +404,16 @@ export class UserProjectController {
       const existingUrls = existingProjects.map(project => normalizeUrl(project.website));
       const uniqueUrls = new Set(existingUrls);
       const newUrl = normalizeUrl(body.url);
-      const maxUrls = user.planSettings?.maxUrls || 1;
+      const maxUrls = organization.planSettings.maxUrls;
 
-      // Check if this URL already exists for this user
-      if (uniqueUrls.has(newUrl)) {
+      // Check if adding this URL would exceed the unique URL limit
+      // Only check if it's a new unique URL (not already in the set)
+      if (!uniqueUrls.has(newUrl) && uniqueUrls.size >= maxUrls) {
         this.logger.warn(
-          `User ${request.userId} tried to add duplicate URL: ${newUrl}`,
+          `User ${request.userId} has reached their unique URL limit: ${uniqueUrls.size}/${maxUrls}`,
         );
         throw new BadRequestException({
-          message: 'URL already exists in your projects',
-          code: 'URL_ALREADY_EXISTS',
-          url: newUrl,
-          existingUrls: Array.from(uniqueUrls),
-        });
-      }
-
-      // Check if adding this URL would exceed the limit
-      if (uniqueUrls.size >= maxUrls) {
-        this.logger.warn(
-          `User ${request.userId} has reached their URL limit: ${uniqueUrls.size}/${maxUrls}`,
-        );
-        throw new BadRequestException({
-          message: 'URL limit reached',
+          message: 'Unique URL limit reached',
           code: 'URL_LIMIT_EXCEEDED',
           currentCount: uniqueUrls.size,
           maxAllowed: maxUrls,
@@ -409,17 +421,25 @@ export class UserProjectController {
         });
       }
 
+      // Log if it's a duplicate URL (but allow it)
+      if (uniqueUrls.has(newUrl)) {
+        this.logger.log(
+          `User ${request.userId} is creating another project with existing URL: ${newUrl}`,
+        );
+      }
+
       this.logger.log(`Creating project for user ${request.userId} from URL: ${body.url}`);
 
       // Create DTO for project service
       const createDto = new CreateProjectDto();
       createDto.url = body.url;
-      createDto.userId = request.userId;
+      createDto.organizationId = user.organizationId;
 
       if (!createDto.data) {
         createDto.data = {};
       }
       createDto.data.market = body.market;
+      createDto.data.name = body.name;
 
       if (body.language) {
         createDto.data.language = body.language;
@@ -501,8 +521,8 @@ export class UserProjectController {
         throw new BadRequestException('Brand name, market, and URL are required');
       }
 
-      // Get user details
-      const user = await this.projectRepository.findUserById(request.userId);
+      // Get user and organization details
+      const user = await this.userService.findOne(request.userId);
       if (!user) {
         throw new BadRequestException('User not found');
       }
@@ -522,9 +542,7 @@ export class UserProjectController {
         language: body.language || 'en',
         keyBrandAttributes: body.keyBrandAttributes || [],
         competitors: body.competitors || [],
-        userId: request.userId,
-        userEmail: user.email,
-        userLanguage: user.language || 'en',
+        organizationId: user.organizationId,
         updatedAt: new Date(),
         createdAt: new Date(),
       };
@@ -551,9 +569,7 @@ export class UserProjectController {
         language: body.language || 'en',
         keyBrandAttributes: body.keyBrandAttributes || [],
         competitors: body.competitors || [],
-        userId: request.userId,
-        userEmail: user.email,
-        userLanguage: user.language || 'en',
+        organizationId: user.organizationId,
         updatedAt: new Date(),
       });
 
@@ -574,6 +590,7 @@ export class UserProjectController {
     schema: {
       type: 'object',
       properties: {
+        name: { type: 'string' },
         keyBrandAttributes: { type: 'array', items: { type: 'string' } },
         competitors: { type: 'array', items: { type: 'string' } },
       },
@@ -589,7 +606,7 @@ export class UserProjectController {
   async updateProject(
     @Req() request: any,
     @Param('projectId') projectId: string,
-    @Body() body: { keyBrandAttributes?: string[]; competitors?: string[] },
+    @Body() body: { name?: string; keyBrandAttributes?: string[]; competitors?: string[] },
   ): Promise<ProjectResponseDto> {
     try {
       this.logger.log(`Updating project ${projectId} for authenticated user`);
@@ -608,11 +625,17 @@ export class UserProjectController {
         }
       }
 
-      // Check if the user owns this project
+      // Get user's organization
+      const user = await this.userService.findOne(request.userId);
+      if (!user) {
+        throw new BadRequestException('User not found');
+      }
+
+      // Check if the project belongs to the user's organization
       const existingProject = await this.projectService.findById(projectId);
-      if (existingProject.userId !== request.userId) {
+      if (existingProject.organizationId !== user.organizationId) {
         this.logger.warn(
-          `User ${request.userId} tried to update project ${projectId} owned by user ${existingProject.userId}`,
+          `User ${request.userId} tried to update project ${projectId} from different organization`,
         );
         throw new UnauthorizedException('You do not have permission to update this project');
       }
@@ -621,6 +644,9 @@ export class UserProjectController {
 
       // Update the project
       const updateData: any = {};
+      if (body.name !== undefined) {
+        updateData.name = body.name;
+      }
       if (body.keyBrandAttributes !== undefined) {
         updateData.keyBrandAttributes = body.keyBrandAttributes;
       }
@@ -646,6 +672,7 @@ export class UserProjectController {
   private mapToResponseDto(project: any): ProjectResponseDto {
     const response = new ProjectResponseDto();
     response.id = project.projectId;
+    response.name = project.name;
     response.brandName = project.brandName;
     response.website = project.website;
     response.url = project.website;
@@ -657,11 +684,9 @@ export class UserProjectController {
     response.longDescription = project.fullDescription;
     response.keyBrandAttributes = project.keyBrandAttributes;
     response.competitors = project.competitors;
+    response.organizationId = project.organizationId;
     response.createdAt = project.updatedAt;
     response.updatedAt = project.updatedAt;
-    response.userId = project.userId;
-    response.userEmail = project.userEmail;
-    response.userLanguage = project.userLanguage;
     return response;
   }
 }

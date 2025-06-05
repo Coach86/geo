@@ -3,6 +3,15 @@ import { IsArray, IsOptional, IsString } from 'class-validator';
 
 export class UpdateProjectDto {
   @ApiProperty({
+    description: 'Optional custom name for the project',
+    example: 'Q1 2025 Campaign',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  name?: string;
+
+  @ApiProperty({
     description: 'Key features or strengths of the company',
     example: ['Feature 1', 'Feature 2', 'Feature 3'],
     required: false,

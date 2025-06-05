@@ -12,7 +12,19 @@ import {
   List,
   ListItem,
   ListItemText,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Collapse,
+  IconButton,
 } from '@mui/material';
+import {
+  KeyboardArrowDown,
+  KeyboardArrowUp,
+} from '@mui/icons-material';
 import { getConfig } from '../utils/api';
 
 interface LlmModel {
@@ -20,6 +32,7 @@ interface LlmModel {
   provider: string;
   model: string;
   enabled: boolean;
+  webAccess: boolean;
   parameters: {
     temperature: number;
     maxTokens: number;
@@ -73,6 +86,85 @@ interface ConfigData {
   concurrencyLimit: number;
   pipelineLimits: PipelineLimits;
 }
+
+// Component for each model row with expandable system prompt
+const ModelRow: React.FC<{ model: LlmModel }> = ({ model }) => {
+  const [open, setOpen] = React.useState(false);
+
+  return (
+    <>
+      <TableRow 
+        sx={{ 
+          '& > *': { borderBottom: 'unset' },
+          borderLeft: model.enabled ? '4px solid #4caf50' : '4px solid #9e9e9e',
+          bgcolor: model.enabled ? 'action.hover' : 'transparent'
+        }}
+      >
+        <TableCell>
+          <IconButton
+            aria-label="expand row"
+            size="small"
+            onClick={() => setOpen(!open)}
+          >
+            {open ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
+          </IconButton>
+        </TableCell>
+        <TableCell component="th" scope="row">
+          <Typography variant="body2" fontWeight="bold">
+            {model.provider}
+          </Typography>
+        </TableCell>
+        <TableCell>{model.model}</TableCell>
+        <TableCell>
+          <Typography variant="body2" color="text.secondary" sx={{ fontFamily: 'monospace', fontSize: '0.875rem' }}>
+            {model.id}
+          </Typography>
+        </TableCell>
+        <TableCell align="center">
+          <Chip 
+            label={model.enabled ? 'Enabled' : 'Disabled'} 
+            color={model.enabled ? 'success' : 'default'}
+            size="small"
+          />
+        </TableCell>
+        <TableCell align="center">
+          <Chip 
+            label={model.webAccess ? 'Web Access' : 'No Web'} 
+            color={model.webAccess ? 'primary' : 'warning'}
+            size="small"
+            variant="outlined"
+          />
+        </TableCell>
+        <TableCell align="center">{model.parameters.temperature}</TableCell>
+        <TableCell align="center">{model.parameters.maxTokens}</TableCell>
+      </TableRow>
+      <TableRow>
+        <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={8}>
+          <Collapse in={open} timeout="auto" unmountOnExit>
+            <Box sx={{ margin: 2 }}>
+              <Typography variant="subtitle2" gutterBottom component="div">
+                System Prompt
+              </Typography>
+              <Paper 
+                variant="outlined" 
+                sx={{ 
+                  p: 2, 
+                  bgcolor: 'background.paper',
+                  maxHeight: '200px',
+                  overflow: 'auto'
+                }}
+              >
+                <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                  {model.parameters.systemPrompt}
+                </Typography>
+              </Paper>
+            </Box>
+          </Collapse>
+        </TableCell>
+      </TableRow>
+    </>
+  );
+};
 
 const Config: React.FC = () => {
   const [configData, setConfigData] = useState<ConfigData | null>(null);
@@ -141,65 +233,49 @@ const Config: React.FC = () => {
       </Box>
 
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h5" gutterBottom>
-          LLM Models
-        </Typography>
-        <Stack direction="row" flexWrap="wrap" spacing={2}>
-          {configData.llmModels.map((model) => (
-            <Box sx={{ width: { xs: '100%', md: '31%' }, mb: 2 }} key={model.id}>
-              <Card 
-                elevation={3}
-                sx={{ 
-                  height: '100%', 
-                  borderLeft: model.enabled ? '4px solid green' : '4px solid gray'
-                }}
-              >
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    {model.provider}
-                  </Typography>
-                  <Typography variant="subtitle1">{model.model}</Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                    ID: {model.id}
-                  </Typography>
-                  <Chip 
-                    label={model.enabled ? 'Enabled' : 'Disabled'} 
-                    color={model.enabled ? 'success' : 'default'}
-                    size="small"
-                    sx={{ mb: 2 }}
-                  />
-                  <Divider sx={{ my: 1 }} />
-                  <Typography variant="subtitle2" gutterBottom>
-                    Parameters:
-                  </Typography>
-                  <Typography variant="body2">
-                    Temperature: {model.parameters.temperature}
-                  </Typography>
-                  <Typography variant="body2">
-                    Max Tokens: {model.parameters.maxTokens}
-                  </Typography>
-                  <Typography variant="body2" sx={{ mt: 1 }}>
-                    <strong>System Prompt:</strong>
-                  </Typography>
-                  <Paper 
-                    variant="outlined" 
-                    sx={{ 
-                      p: 1, 
-                      mt: 0.5, 
-                      bgcolor: 'background.default',
-                      maxHeight: '100px',
-                      overflow: 'auto'
-                    }}
-                  >
-                    <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
-                      {model.parameters.systemPrompt}
-                    </Typography>
-                  </Paper>
-                </CardContent>
-              </Card>
-            </Box>
-          ))}
-        </Stack>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+          <Typography variant="h5">
+            LLM Models
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Chip 
+              label={`Total: ${configData.llmModels.length}`} 
+              color="default"
+              variant="outlined"
+            />
+            <Chip 
+              label={`Enabled: ${configData.llmModels.filter(m => m.enabled).length}`} 
+              color="success"
+              variant="outlined"
+            />
+            <Chip 
+              label={`Web Access: ${configData.llmModels.filter(m => m.webAccess).length}`} 
+              color="primary"
+              variant="outlined"
+            />
+          </Box>
+        </Box>
+        <TableContainer component={Paper} elevation={2}>
+          <Table>
+            <TableHead>
+              <TableRow sx={{ bgcolor: 'background.default' }}>
+                <TableCell />
+                <TableCell>Provider</TableCell>
+                <TableCell>Model</TableCell>
+                <TableCell>ID</TableCell>
+                <TableCell align="center">Status</TableCell>
+                <TableCell align="center">Web Access</TableCell>
+                <TableCell align="center">Temperature</TableCell>
+                <TableCell align="center">Max Tokens</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {configData.llmModels.map((model) => (
+                <ModelRow key={model.id} model={model} />
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </Box>
 
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
