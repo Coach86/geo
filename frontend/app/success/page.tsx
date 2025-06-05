@@ -1,12 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { CheckCircle2, Loader2, XCircle } from "lucide-react"
 import { useAuth } from "@/providers/auth-provider"
 
-export default function SuccessPage() {
+function SuccessContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const { token, isLoading: authLoading } = useAuth()
@@ -140,5 +140,26 @@ export default function SuccessPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function SuccessPage() {
+  return (
+    <Suspense 
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+          <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
+            <div className="flex justify-center mb-6">
+              <Loader2 className="h-16 w-16 text-accent-500 animate-spin" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">
+              Loading...
+            </h1>
+          </div>
+        </div>
+      }
+    >
+      <SuccessContent />
+    </Suspense>
   )
 }
