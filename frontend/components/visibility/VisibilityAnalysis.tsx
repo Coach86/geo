@@ -33,7 +33,7 @@ interface VisibilityAnalysisProps {
 export function VisibilityAnalysis({
   mentionRate,
   modeMetrics,
-  arenaData,
+  arenaData = [],
   brandName,
   selectedCompetitors = [],
   onCompetitorToggle,
@@ -197,7 +197,7 @@ export function VisibilityAnalysis({
                 {(() => {
                   // Get unique models from arena data
                   const modelsToShow =
-                    arenaData.length > 0 && arenaData[0]?.modelsMentionsRate
+                    arenaData && arenaData.length > 0 && arenaData[0]?.modelsMentionsRate
                       ? arenaData[0].modelsMentionsRate.map((m: any) => m.model)
                       : modeMetrics?.map((m: any) => m.model) || [];
 
@@ -243,7 +243,7 @@ export function VisibilityAnalysis({
                     // Get selected competitors' rates for this model
                     const selectedCompetitorRates = selectedCompetitors
                       .map((competitorName) => {
-                        const competitor = arenaData.find(
+                        const competitor = arenaData && arenaData.find(
                           (comp) => comp.name === competitorName
                         );
                         const rate =

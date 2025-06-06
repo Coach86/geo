@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { Globe, ArrowRightLeft } from "lucide-react";
 import { ProjectResponse } from "@/lib/auth-api";
+import { extractHostname } from "@/utils/url-utils";
 
 interface DomainSelectorProps {
   projects: ProjectResponse[];
@@ -29,28 +30,22 @@ export default function DomainSelector({
     const uniqueDomains = Array.from(
       new Set(
         projects
-          .map((project) => {
-            if (project.url) {
-              try {
-                const url = new URL(project.url);
-                return url.hostname;
-              } catch {
-                return null;
-              }
-            }
-            return null;
-          })
+          .map((project) => extractHostname(project.url))
           .filter((domain): domain is string => domain !== null)
       )
     ).sort();
 
     setDomains(uniqueDomains);
 
-    // Auto-select first domain if none selected
+    // Auto-select first domain if none selected and no persisted domain
     if (!selectedDomain && uniqueDomains.length > 0) {
-      onDomainSelect(uniqueDomains[0]);
+      // The NavigationProvider handles persisted domain, so only select first if truly no selection
+      const hasPersistedDomain = uniqueDomains.includes(selectedDomain || '');
+      if (!hasPersistedDomain) {
+        onDomainSelect(uniqueDomains[0]);
+      }
     }
-  }, [projects, selectedDomain, onDomainSelect]);
+  }, [projects]); // Remove dependencies that cause re-selection
 
   if (domains.length === 0) {
     return null;

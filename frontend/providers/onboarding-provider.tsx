@@ -15,6 +15,7 @@ import {
   getNextStepId,
   getPreviousStepId 
 } from "@/app/onboarding/steps.config";
+import { NavigationConfirmationDialog } from "@/components/onboarding/navigation-confirmation-dialog";
 
 // Define the types for our form data
 export type FormData = {
@@ -311,12 +312,25 @@ const OnboardingContext = createContext<OnboardingContextType>({
 // Create a provider component
 export function OnboardingProvider({ children }: { children: ReactNode }) {
   // Initialize state with data from localStorage if available
-  const [currentStep, setCurrentStep] = useState(StepId.PROJECT);
+  const [currentStep, setCurrentStepState] = useState(StepId.PROJECT);
   const [formData, setFormData] = useState<FormData>({
     ...defaultFormData,
     id: crypto.randomUUID?.() || `id-${Date.now()}`,
   });
   const [savedConfigs, setSavedConfigs] = useState<FormData[]>([]);
+  
+  // Navigation confirmation dialog state
+  const [confirmationDialog, setConfirmationDialog] = useState<{
+    isOpen: boolean;
+    targetStep: StepId | null;
+    title: string;
+    description: string;
+  }>({
+    isOpen: false,
+    targetStep: null,
+    title: "",
+    description: "",
+  });
 
   // Load data from localStorage on initial render
   useEffect(() => {
@@ -417,6 +431,100 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     setFormData((prev) => {
       const updated = { ...prev, ...data };
       return updated;
+    });
+  };
+
+  // Helper to check if navigation needs confirmation
+  const needsNavigationConfirmation = (fromStep: StepId, toStep: StepId): { needed: boolean; title: string; description: string } => {
+    // Going back from PROMPTS to BRAND or PROJECT
+    if (fromStep === StepId.PROMPTS && (toStep === StepId.BRAND || toStep === StepId.PROJECT)) {
+      const hasPrompts = (formData.visibilityPrompts?.length > 0 || formData.perceptionPrompts?.length > 0);
+      if (hasPrompts) {
+        return {
+          needed: true,
+          title: "Discard generated prompts?",
+          description: "Going back will remove all generated prompts. You'll need to regenerate them when you return to this step.",
+        };
+      }
+    }
+    
+    // Going back from BRAND to PROJECT
+    if (fromStep === StepId.BRAND && toStep === StepId.PROJECT) {
+      const hasCustomData = (
+        (formData.analyzedData?.keyBrandAttributes?.length ?? 0) > 0 ||
+        (formData.analyzedData?.competitors?.length ?? 0) > 0
+      );
+      if (hasCustomData) {
+        return {
+          needed: true,
+          title: "Discard brand analysis?",
+          description: "Going back will remove your key brand attributes and competitors. You'll need to re-analyze your website when you return.",
+        };
+      }
+    }
+    
+    return { needed: false, title: "", description: "" };
+  };
+
+  // Wrapper for setCurrentStep to handle prompt cache clearing and confirmation
+  const setCurrentStep = (step: StepId, skipConfirmation = false) => {
+    // Check if we need confirmation
+    const confirmation = needsNavigationConfirmation(currentStep, step);
+    
+    if (confirmation.needed && !skipConfirmation) {
+      // Show confirmation dialog
+      setConfirmationDialog({
+        isOpen: true,
+        targetStep: step,
+        title: confirmation.title,
+        description: confirmation.description,
+      });
+      return;
+    }
+    
+    // Proceed with navigation
+    // If we're navigating to a step before prompts from prompts or later, clear caches
+    if (currentStep >= StepId.PROMPTS && (step === StepId.BRAND || step === StepId.PROJECT)) {
+      // Clear all prompt caches
+      const promptCacheKeys = Object.keys(localStorage).filter(key => key.startsWith('prompts-'));
+      promptCacheKeys.forEach(key => localStorage.removeItem(key));
+      
+      // Also clear prompts from form data
+      updateFormData({
+        visibilityPrompts: [],
+        perceptionPrompts: []
+      });
+    }
+    
+    // If going back from BRAND to PROJECT, clear analyzed data
+    if (currentStep === StepId.BRAND && step === StepId.PROJECT) {
+      updateFormData({
+        analyzedData: undefined
+      });
+    }
+    
+    setCurrentStepState(step);
+  };
+  
+  // Handlers for confirmation dialog
+  const handleConfirmNavigation = () => {
+    if (confirmationDialog.targetStep !== null) {
+      setCurrentStep(confirmationDialog.targetStep, true); // Skip confirmation on retry
+    }
+    setConfirmationDialog({
+      isOpen: false,
+      targetStep: null,
+      title: "",
+      description: "",
+    });
+  };
+  
+  const handleCancelNavigation = () => {
+    setConfirmationDialog({
+      isOpen: false,
+      targetStep: null,
+      title: "",
+      description: "",
     });
   };
 
@@ -536,6 +644,15 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       }}
     >
       {children}
+      <NavigationConfirmationDialog
+        isOpen={confirmationDialog.isOpen}
+        onConfirm={handleConfirmNavigation}
+        onCancel={handleCancelNavigation}
+        title={confirmationDialog.title}
+        description={confirmationDialog.description}
+        confirmText="Yes, go back"
+        cancelText="Stay here"
+      />
     </OnboardingContext.Provider>
   );
 }

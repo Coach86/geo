@@ -26,6 +26,7 @@ function DashboardLayoutContent({ children }: DashboardLayoutProps) {
     setAllProjects,
     selectedProject,
     setSelectedProject,
+    filteredProjects,
   } = useNavigation();
 
   useEffect(() => {
@@ -51,19 +52,7 @@ function DashboardLayoutContent({ children }: DashboardLayoutProps) {
               return null;
             }
             setAllProjects(cards);
-
-            // Check if there's a previously selected project in localStorage
-            const savedProjectId = localStorage.getItem("selectedProjectId");
-            const savedProject = cards.find(
-              (card) => card.id === savedProjectId
-            );
-
-            if (savedProject) {
-              setSelectedProject(savedProject);
-            } else if (cards.length > 0 && !selectedProject) {
-              setSelectedProject(cards[0]);
-              localStorage.setItem("selectedProjectId", cards[0].id);
-            }
+            // The NavigationProvider will handle loading persisted project
           } catch (error) {
             console.error("Failed to load identity cards:", error);
           } finally {
@@ -76,10 +65,10 @@ function DashboardLayoutContent({ children }: DashboardLayoutProps) {
     verifyAndLoadData();
   }, [authLoading, isAuthenticated, token, router, checkAuth]);
 
+  // The NavigationProvider handles project selection persistence
+
   const handleProjectSelect = (project: ProjectResponse) => {
     setSelectedProject(project);
-    localStorage.setItem("selectedProjectId", project.id);
-    window.dispatchEvent(new Event("projectSelectionChanged"));
   };
 
   if (authLoading || isLoadingCards) {

@@ -36,9 +36,42 @@ export default function PromptSelection() {
         return
       }
 
+      // Create a unique cache key based on brand data
+      const cacheKey = `prompts-${formData.brandName}-${formData.website}-${formData.industry}`;
+      
       try {
         setIsLoading(true)
         setError(null)
+
+        // Check if we already have prompts in formData (from navigation)
+        if (formData.visibilityPrompts?.length > 0 && formData.perceptionPrompts?.length > 0) {
+          setIsLoading(false)
+          return
+        }
+
+        // Check localStorage cache
+        const cachedData = localStorage.getItem(cacheKey)
+        if (cachedData) {
+          try {
+            const cached = JSON.parse(cachedData)
+            // Verify cache is recent (within 24 hours)
+            const cacheAge = Date.now() - cached.timestamp
+            const maxAge = 24 * 60 * 60 * 1000 // 24 hours
+            
+            if (cacheAge < maxAge) {
+              // Use cached prompts
+              updateFormData({
+                visibilityPrompts: cached.visibilityPrompts,
+                perceptionPrompts: cached.perceptionPrompts
+              })
+              setIsLoading(false)
+              return
+            }
+          } catch (e) {
+            // If cache is corrupted, continue to generate new prompts
+            localStorage.removeItem(cacheKey)
+          }
+        }
 
         // Build the request from analyzed data or form data
         const request: GeneratePromptsRequest = {
@@ -63,6 +96,14 @@ export default function PromptSelection() {
         const perceptionPrompts = [
           ...response.direct.map(text => ({ text, selected: true })),
         ]
+
+        // Cache the generated prompts
+        const cacheData = {
+          visibilityPrompts,
+          perceptionPrompts,
+          timestamp: Date.now()
+        }
+        localStorage.setItem(cacheKey, JSON.stringify(cacheData))
 
         // Update form data with generated prompts
         updateFormData({
