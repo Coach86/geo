@@ -66,18 +66,19 @@ export class ProjectService {
   ) {}
 
   /**
-   * Strips protocol (http://, https://, etc.) from a URL
+   * Strips protocol (http://, https://, etc.) from a URL and normalizes it
    * @param url - The URL to process
-   * @returns The URL without protocol
+   * @returns The URL without protocol and trailing slashes
    */
   private stripUrlProtocol(url: string): string {
     if (!url) return '';
     
-    // Remove common protocols
+    // Remove common protocols and normalize
     return url
       .replace(/^https?:\/\//i, '')  // Remove http:// or https://
       .replace(/^ftp:\/\//i, '')      // Remove ftp://
       .replace(/^\/\//i, '')          // Remove protocol-relative //
+      .replace(/\/+$/, '')            // Remove trailing slashes
       .trim();
   }
 
