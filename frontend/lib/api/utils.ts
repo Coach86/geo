@@ -26,7 +26,15 @@ export async function apiFetch<T>(
     defaultHeaders.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const url = `${API_BASE_URL}${endpoint}`;
+  console.log('API Request:', {
+    url,
+    method: restOptions.method || 'GET',
+    hasToken: !!token,
+    headers: defaultHeaders
+  });
+
+  const response = await fetch(url, {
     ...restOptions,
     headers: defaultHeaders,
   });

@@ -199,6 +199,20 @@ export class ProjectService {
     return projects.map((project) => this.projectRepository.mapToEntity(project));
   }
 
+  async findByIdAndUser(projectId: string, userId: string): Promise<Project | null> {
+    try {
+      const project = await this.projectRepository.findById(projectId);
+      if (!project) {
+        return null;
+      }
+      // TODO: Add user authorization check here
+      // For now, just return the project if it exists
+      return this.projectRepository.mapToEntity(project);
+    } catch (error) {
+      return null;
+    }
+  }
+
   async update(
     projectId: string,
     updateData: { name?: string; keyBrandAttributes?: string[]; competitors?: string[]; market?: string },
@@ -431,5 +445,14 @@ export class ProjectService {
       this.logger.error(`Failed to delete project: ${error.message}`, error.stack);
       throw error;
     }
+  }
+
+  async findActiveProjects(): Promise<Project[]> {
+    // Find all projects that belong to active organizations
+    // For now, we'll just return all projects with a website
+    const projects = await this.projectRepository.findAll();
+    return projects
+      .filter(p => p.website && p.website.trim() !== '')
+      .map(p => this.projectRepository.mapToEntity(p));
   }
 }

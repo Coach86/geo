@@ -12,6 +12,7 @@ import {
   Settings,
   Plus,
   Lightbulb,
+  Brain,
 } from "lucide-react";
 import {
   ProjectResponse,
@@ -38,6 +39,7 @@ const projectMenuItems: SidebarItem[] = [
 
 const insightsMenuItems: SidebarItem[] = [
   { label: "Visibility", icon: Eye, href: "/visibility" },
+  { label: "AI Visibility", icon: Brain, href: "/ai-visibility" },
   { label: "Citations", icon: Quote, href: "/citations" },
   { label: "Sentiment", icon: Heart, href: "/sentiment" },
   { label: "Alignment", icon: Shield, href: "/alignment" },

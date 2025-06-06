@@ -145,6 +145,27 @@ export class LlmService {
   }
 
   /**
+   * Generate a simple text response using the first available provider
+   */
+  async generateResponse(prompt: string, options?: LlmCallOptions): Promise<string> {
+    const adapters = this.getAvailableAdapters();
+    if (adapters.length === 0) {
+      throw new Error('No LLM providers available');
+    }
+
+    const adapter = adapters[0];
+    const response = await this.limiter(() => 
+      RetryUtil.withRetry(
+        () => adapter.call(prompt, options),
+        this.retryOptions,
+        `${adapter.name} generateResponse call`
+      )
+    );
+
+    return response.text;
+  }
+
+  /**
    * Helper method to get the appropriate adapter for structured output
    * This will automatically convert provider names to their LangChain counterparts
    */

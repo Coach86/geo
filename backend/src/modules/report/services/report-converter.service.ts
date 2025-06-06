@@ -10,6 +10,7 @@ import {
   ApiQuestionResult,
   DatabaseSentimentResult,
   DatabaseQuestionResult,
+  CitationsData,
 } from '../interfaces/report-types';
 import { WeeklyBrandReportDocument } from '../schemas/weekly-brand-report.schema';
 import { ReportContentResponseDto } from '../dto/report-content-response.dto';
@@ -128,6 +129,192 @@ export class ReportConverterService {
     return formattedArena;
   }
 
+  private extractDomain(url: string): string {
+    try {
+      const urlObj = new URL(url);
+      return urlObj.hostname.replace('www.', '');
+    } catch {
+      return '';
+    }
+  }
+
+  private extractKeywordsFromQuery(query: string): string[] {
+    // Remove common stop words and extract meaningful keywords
+    const stopWords = new Set([
+      'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from',
+      'has', 'he', 'in', 'is', 'it', 'its', 'of', 'on', 'that', 'the',
+      'to', 'was', 'will', 'with', 'what', 'when', 'where', 'who', 'why',
+      'how', 'which', 'or', 'but', 'if', 'then', 'so', 'than', 'this',
+      'these', 'those', 'there', 'their', 'them', 'they', 'we', 'you',
+      'your', 'our', 'us', 'me', 'my', 'i', 'vs', 'versus', 'compared'
+    ]);
+
+    // Split by spaces and common delimiters, convert to lowercase
+    const words = query.toLowerCase()
+      .replace(/[^\w\s-]/g, ' ') // Replace non-word chars (except hyphens) with spaces
+      .split(/\s+/)
+      .filter(word => word.length > 2) // Filter out very short words
+      .filter(word => !stopWords.has(word)) // Filter out stop words
+      .filter(word => !word.match(/^\d+$/)); // Filter out pure numbers
+
+    return words;
+  }
+
+  private getCitationsDataForReport(input: BatchReportInput): CitationsData {
+    const citationsByModel: CitationsData['citationsByModel'] = [];
+    const sourceFrequency = new Map<string, Set<string>>();
+    const queryToSources = new Map<string, Set<string>>();
+    const sourceCitationCount = new Map<string, number>();
+    const keywordFrequency = new Map<string, number>();
+    
+    let totalPrompts = 0;
+    let promptsWithWebAccess = 0;
+    let totalCitations = 0;
+
+    // Process all result types
+    const processResults = (results: any[] | undefined, promptType: string) => {
+      if (!results) return;
+      results.forEach((result, index) => {
+        totalPrompts++;
+        
+        if (result.usedWebSearch) {
+          promptsWithWebAccess++;
+          
+          const modelCitation: CitationsData['citationsByModel'][0] = {
+            modelId: result.llmModel,
+            modelProvider: result.llmProvider,
+            promptIndex: result.promptIndex,
+            promptType,
+            usedWebSearch: true,
+            webSearchQueries: [],
+            citations: []
+          };
+          
+          // Process web search queries
+          if (result.webSearchQueries || result.toolUsage) {
+            // Check multiple possible locations for queries
+            const queries = result.webSearchQueries || 
+                          result.toolUsage?.filter((tool: any) => tool.type === 'web_search').map((tool: any) => tool.query) || 
+                          [];
+            
+            if (index === 0 && promptType === 'spontaneous') {
+              this.logger.debug(`First result webSearchQueries: ${JSON.stringify(result.webSearchQueries?.slice(0, 2))}`);
+            }
+            
+            modelCitation.webSearchQueries = queries.map((query: any) => {
+              const queryText = typeof query === 'string' ? query : (query.query || query.parameters?.query || query);
+              
+              // Extract keywords from query
+              if (queryText && typeof queryText === 'string') {
+                const keywords = this.extractKeywordsFromQuery(queryText);
+                keywords.forEach(keyword => {
+                  keywordFrequency.set(keyword, (keywordFrequency.get(keyword) || 0) + 1);
+                });
+              }
+              
+              return {
+                query: queryText,
+                timestamp: typeof query === 'object' ? (query.timestamp || query.execution_details?.timestamp) : undefined
+              };
+            });
+          }
+          
+          // Process citations
+          if (result.citations && Array.isArray(result.citations)) {
+            result.citations.forEach((citation: any) => {
+              const domain = this.extractDomain(citation.url);
+              if (domain) {
+                totalCitations++;
+                
+                modelCitation.citations.push({
+                  source: domain,
+                  url: citation.url || '',
+                  title: citation.title || '',
+                  snippet: citation.snippet || '',
+                  relevanceScore: citation.relevanceScore
+                });
+                
+                // Track source statistics
+                if (!sourceFrequency.has(domain)) {
+                  sourceFrequency.set(domain, new Set());
+                }
+                sourceFrequency.get(domain)!.add(result.llmModel);
+                
+                // Track citation count per source
+                sourceCitationCount.set(domain, (sourceCitationCount.get(domain) || 0) + 1);
+                
+                // Track query associations
+                result.webSearchQueries?.forEach((query: any) => {
+                  const queryText = typeof query === 'string' ? query : query.query;
+                  if (!queryToSources.has(domain)) {
+                    queryToSources.set(domain, new Set());
+                  }
+                  queryToSources.get(domain)!.add(queryText);
+                });
+              }
+            });
+          }
+          
+          if (modelCitation.citations.length > 0 || modelCitation.webSearchQueries.length > 0) {
+            citationsByModel.push(modelCitation);
+          }
+        }
+      });
+    };
+
+    // Process all pipeline results
+    processResults(input.spontaneous?.results, 'spontaneous');
+    processResults(input.sentiment?.results, 'sentiment');
+    processResults(input.comparison?.results, 'comparison');
+    processResults(input.accord?.results, 'accuracy');
+
+    // Generate source statistics
+    const sourceStatistics: CitationsData['sourceStatistics'] = Array.from(sourceFrequency.entries()).map(([domain, models]) => ({
+      domain,
+      totalMentions: sourceCitationCount.get(domain) || 0,
+      citedByModels: Array.from(models),
+      associatedQueries: Array.from(queryToSources.get(domain) || [])
+    }));
+
+    // Generate top sources
+    const topSources: CitationsData['topSources'] = sourceStatistics
+      .sort((a, b) => b.totalMentions - a.totalMentions)
+      .slice(0, 10)
+      .map(source => ({
+        domain: source.domain,
+        count: source.totalMentions,
+        percentage: totalCitations > 0 ? Math.round((source.totalMentions / totalCitations) * 100) : 0
+      }));
+
+    // Generate top keywords
+    const totalKeywordOccurrences = Array.from(keywordFrequency.values()).reduce((sum, count) => sum + count, 0);
+    const topKeywords: CitationsData['topKeywords'] = Array.from(keywordFrequency.entries())
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 10)
+      .map(([keyword, count]) => ({
+        keyword,
+        count,
+        percentage: totalKeywordOccurrences > 0 ? Math.round((count / totalKeywordOccurrences) * 100) : 0
+      }));
+
+    this.logger.debug(`Extracted ${keywordFrequency.size} unique keywords from web searches`);
+    this.logger.debug(`Top 5 keywords: ${topKeywords.slice(0, 5).map(k => `${k.keyword}(${k.count})`).join(', ')}`);
+
+    return {
+      summary: {
+        totalPrompts,
+        promptsWithWebAccess,
+        webAccessPercentage: totalPrompts > 0 ? Math.round((promptsWithWebAccess / totalPrompts) * 100) : 0,
+        totalCitations,
+        uniqueSources: sourceFrequency.size
+      },
+      citationsByModel,
+      sourceStatistics,
+      topSources,
+      topKeywords
+    };
+  }
+
   /**
    * Converts batch report input data to a complete report entity
    * This is the main transformation function that explicitly shows how
@@ -209,6 +396,7 @@ export class ReportConverterService {
       arena: this.getArenaDataForReport(input, project),
       brandBattle: this.getBrandBattleDataForReport(input),
       trace: this.getTraceDataForReport(input),
+      citationsData: this.getCitationsDataForReport(input),
       llmVersions: input.llmVersions || {},
     };
   }
@@ -270,6 +458,7 @@ export class ReportConverterService {
         trace: document.trace || {
           consultedWebsites: [],
         },
+        citationsData: document.citationsData,
         llmVersions: document.llmVersions,
       };
 
@@ -313,6 +502,7 @@ export class ReportConverterService {
       arena: reportEntity.arena,
       brandBattle: reportEntity.brandBattle,
       trace: reportEntity.trace,
+      citationsData: reportEntity.citationsData,
       // Only include raw data in development mode
       ...(process.env.NODE_ENV === 'development' &&
         reportEntity.rawData && {

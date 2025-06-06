@@ -194,4 +194,157 @@ export class BatchEventsGateway implements OnGatewayInit, OnGatewayConnection, O
     };
     this.emitBatchEvent(event);
   }
+  
+  // AI Visibility Scanner Events
+  
+  /**
+   * Emit crawl progress event
+   */
+  emitCrawlProgress(
+    projectId: string,
+    data: {
+      processed: number;
+      failed: number;
+      total: number;
+      currentUrl?: string;
+      queueSize?: number;
+    },
+  ) {
+    this.logger.log(`Emitting crawl progress for project ${projectId}`);
+    this.server.emit('aiVisibility:crawl:progress', {
+      projectId,
+      ...data,
+      timestamp: new Date(),
+    });
+  }
+  
+  /**
+   * Emit crawl completed event
+   */
+  emitCrawlCompleted(projectId: string, result: any) {
+    this.logger.log(`Emitting crawl completed for project ${projectId}`);
+    this.server.emit('aiVisibility:crawl:completed', {
+      projectId,
+      result,
+      timestamp: new Date(),
+    });
+  }
+  
+  /**
+   * Emit index build progress event
+   */
+  emitIndexBuildProgress(
+    projectId: string,
+    data: {
+      indexType: 'bm25' | 'vector';
+      progress: number;
+      status: string;
+    },
+  ) {
+    this.logger.log(`Emitting index build progress for project ${projectId}`);
+    this.server.emit('aiVisibility:index:progress', {
+      projectId,
+      ...data,
+      timestamp: new Date(),
+    });
+  }
+  
+  /**
+   * Emit index build completed event
+   */
+  emitIndexBuildCompleted(
+    projectId: string,
+    data: {
+      indexType: 'bm25' | 'vector';
+      indexId: string;
+    },
+  ) {
+    this.logger.log(`Emitting index build completed for project ${projectId}`);
+    this.server.emit('aiVisibility:index:completed', {
+      projectId,
+      ...data,
+      timestamp: new Date(),
+    });
+  }
+  
+  /**
+   * Emit scan progress event
+   */
+  emitScanProgress(
+    projectId: string,
+    data: {
+      scanId: string;
+      progress: number;
+      currentQuery?: string;
+      totalQueries: number;
+    },
+  ) {
+    this.logger.log(`Emitting scan progress for project ${projectId}`);
+    this.server.emit('aiVisibility:scan:progress', {
+      projectId,
+      ...data,
+      timestamp: new Date(),
+    });
+  }
+  
+  /**
+   * Emit scan completed event
+   */
+  emitScanCompleted(projectId: string, scanId: string) {
+    this.logger.log(`Emitting scan completed for project ${projectId}`);
+    this.server.emit('aiVisibility:scan:completed', {
+      projectId,
+      scanId,
+      timestamp: new Date(),
+    });
+  }
+
+  /**
+   * Emit audit started event
+   */
+  emitAuditStarted(
+    projectId: string,
+    data: {
+      forceRecrawl?: boolean;
+      deepAnalysis?: boolean;
+    },
+  ) {
+    this.logger.log(`Emitting audit started for project ${projectId}`);
+    this.server.emit('aiVisibility:audit:started', {
+      projectId,
+      ...data,
+      timestamp: new Date(),
+    });
+  }
+
+  /**
+   * Emit audit completed event
+   */
+  emitAuditCompleted(
+    projectId: string,
+    data: {
+      scanId: string;
+      duration: number;
+      crawledPages: number;
+    },
+  ) {
+    this.logger.log(`Emitting audit completed for project ${projectId}`);
+    this.server.emit('aiVisibility:audit:completed', {
+      projectId,
+      ...data,
+      timestamp: new Date(),
+    });
+  }
+
+  /**
+   * Emit audit failed event
+   */
+  emitAuditFailed(projectId: string, error: string) {
+    this.logger.log(`Emitting audit failed for project ${projectId}`);
+    this.server.emit('aiVisibility:audit:failed', {
+      projectId,
+      error,
+      timestamp: new Date(),
+    });
+  }
 }
