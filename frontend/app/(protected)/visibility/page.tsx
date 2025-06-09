@@ -6,16 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-import {
-  getReportSpontaneous,
-  SpontaneousData,
-} from "@/lib/auth-api";
 import type { ReportResponse } from "@/types/reports";
 import { VisibilityAnalysis } from "@/components/visibility/VisibilityAnalysis";
-import { TopMentions } from "@/components/visibility/TopMentions";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { ReportSelector } from "@/components/shared/ReportSelector";
 import { useReportData } from "@/hooks/use-report-data";
 import BreadcrumbNav from "@/components/layout/breadcrumb-nav";
 import { useNavigation } from "@/providers/navigation-provider";
@@ -37,11 +29,6 @@ interface ProcessedReport extends ReportResponse {
   }[];
   arenaData: any[]; // Full arena data for table
   brandName: string;
-  topMentions: {
-    mention: string;
-    count: number;
-  }[];
-  spontaneousData?: SpontaneousData; // Store the full spontaneous data if available
 }
 
 export default function VisibilityPage() {
@@ -95,38 +82,10 @@ export default function VisibilityPage() {
       })(),
       arenaData: reportData.arena?.competitors || [],
       brandName: reportData.brand || (report.metadata as any)?.brand || project.brandName,
-      topMentions: [],
-      spontaneousData: reportData.spontaneous,
     };
   });
 
-  const [spontaneousData, setSpontaneousData] = useState<SpontaneousData | null>(null);
-  const [loadingSpontaneous, setLoadingSpontaneous] = useState(false);
   const [selectedCompetitors, setSelectedCompetitors] = useState<string[]>([]);
-
-  // Fetch spontaneous data when selected report changes
-  useEffect(() => {
-    const fetchSpontaneous = async () => {
-      if (!selectedReport || !token) {
-        setSpontaneousData(null);
-        return;
-      }
-
-      setLoadingSpontaneous(true);
-      try {
-        const data = await getReportSpontaneous(selectedReport.id, token);
-        setSpontaneousData(data);
-      } catch (err) {
-        console.error("Failed to fetch spontaneous data:", err);
-        // Don't show error for spontaneous data, just log it
-        setSpontaneousData(null);
-      } finally {
-        setLoadingSpontaneous(false);
-      }
-    };
-
-    fetchSpontaneous();
-  }, [selectedReport, token]);
 
 
   if (!selectedProjectId) {
@@ -158,6 +117,7 @@ export default function VisibilityPage() {
             currentPage="Visibility"
             showReportSelector={true}
             token={token}
+            onReportSelect={setSelectedReport}
           />
         )}
 
@@ -220,11 +180,6 @@ export default function VisibilityPage() {
                   );
                 }
               }}
-            />
-
-            <TopMentions
-              spontaneousData={spontaneousData}
-              loadingSpontaneous={loadingSpontaneous}
             />
           </div>
         )}

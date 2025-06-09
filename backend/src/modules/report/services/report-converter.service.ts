@@ -10,6 +10,7 @@ import {
   ApiQuestionResult,
   DatabaseSentimentResult,
   DatabaseQuestionResult,
+  CitationsData,
 } from '../interfaces/report-types';
 import { WeeklyBrandReportDocument } from '../schemas/weekly-brand-report.schema';
 import { ReportContentResponseDto } from '../dto/report-content-response.dto';
@@ -209,6 +210,7 @@ export class ReportConverterService {
       arena: this.getArenaDataForReport(input, project),
       brandBattle: this.getBrandBattleDataForReport(input),
       trace: this.getTraceDataForReport(input),
+      citationsData: this.getCitationsDataForReport(input),
       llmVersions: input.llmVersions || {},
     };
   }
@@ -270,6 +272,19 @@ export class ReportConverterService {
         trace: document.trace || {
           consultedWebsites: [],
         },
+        citationsData: document.citationsData || {
+          summary: {
+            totalPrompts: 0,
+            promptsWithWebAccess: 0,
+            webAccessPercentage: 0,
+            totalCitations: 0,
+            uniqueSources: 0,
+          },
+          citationsByModel: [],
+          sourceStatistics: [],
+          topSources: [],
+          topKeywords: [],
+        },
         llmVersions: document.llmVersions,
       };
 
@@ -313,6 +328,7 @@ export class ReportConverterService {
       arena: reportEntity.arena,
       brandBattle: reportEntity.brandBattle,
       trace: reportEntity.trace,
+      citationsData: reportEntity.citationsData,
       // Only include raw data in development mode
       ...(process.env.NODE_ENV === 'development' &&
         reportEntity.rawData && {
@@ -321,5 +337,296 @@ export class ReportConverterService {
     };
 
     return responseDto;
+  }
+
+  private getCitationsDataForReport(input: BatchReportInput): CitationsData {
+    const allCitations: Array<{
+      modelId: string;
+      modelProvider: string;
+      promptIndex: number;
+      promptType: string;
+      citations: any[];
+      webSearchQueries: any[];
+    }> = [];
+
+    // Collect citations from all pipeline results
+    const collectCitations = (results: any[] | undefined, promptType: string) => {
+      if (!results) {
+        this.logger.debug(`No results for ${promptType} pipeline`);
+        return;
+      }
+
+      this.logger.debug(`Processing ${results.length} results for ${promptType} pipeline`);
+
+      results.forEach((result, index) => {
+
+        // Extract web search queries - check multiple locations
+        let webSearchQueries: any[] = [];
+
+        // First check if webSearchQueries is already extracted by batch execution service
+        if (result.webSearchQueries && Array.isArray(result.webSearchQueries)) {
+          webSearchQueries = result.webSearchQueries;
+          this.logger.debug(`Found ${webSearchQueries.length} pre-extracted web search queries for ${result.llmModel}`);
+        }
+        // Fallback to extracting from toolUsage if not pre-extracted
+        else if (result.toolUsage && Array.isArray(result.toolUsage)) {
+          const extractedQueries: any[] = [];
+          result.toolUsage.forEach((tool: any) => {
+            if (tool.type === 'web_search' || tool.type === 'search' || tool.type?.includes('search')) {
+              const query = tool.input?.query || tool.parameters?.query || tool.parameters?.q || tool.query;
+              if (query) {
+                extractedQueries.push({
+                  query: query,
+                  timestamp: new Date().toISOString(),
+                });
+              }
+            }
+          });
+          webSearchQueries = extractedQueries;
+          if (extractedQueries.length > 0) {
+            this.logger.debug(`Extracted ${extractedQueries.length} web search queries from toolUsage for ${result.llmModel}`);
+          }
+        }
+
+        // Always add an entry if we have citations OR web search queries
+        // This ensures we capture ALL web search queries for keyword counting
+        if ((result.citations && result.citations.length > 0) || webSearchQueries.length > 0) {
+          this.logger.debug(`Adding entry for ${result.llmModel}: ${result.citations?.length || 0} citations, ${webSearchQueries.length} queries`);
+          
+          
+          allCitations.push({
+            modelId: result.llmModel,
+            modelProvider: result.llmProvider,
+            promptIndex: index,
+            promptType,
+            citations: result.citations || [],
+            webSearchQueries: webSearchQueries,
+          });
+        } else if (result.usedWebSearch) {
+          // Model used web search but we couldn't find queries or citations
+          this.logger.warn(`Model ${result.llmModel} used web search but has no citations or queries`);
+        }
+      });
+    };
+
+
+    // Collect from all pipelines
+    collectCitations(input.spontaneous?.results, 'spontaneous');
+    collectCitations(input.accord?.results, 'accuracy');
+    collectCitations(input.sentiment?.results, 'sentiment');
+    collectCitations(input.comparison?.results, 'comparison');
+
+    this.logger.debug(`Total citations collected: ${allCitations.length}`);
+
+    // Calculate summary statistics
+    const totalPrompts = [
+      input.spontaneous?.results?.length || 0,
+      input.accord?.results?.length || 0,
+      input.sentiment?.results?.length || 0,
+      input.comparison?.results?.length || 0,
+    ].reduce((sum, count) => sum + count, 0);
+
+    const promptsWithWebAccess = allCitations.length;
+    const webAccessPercentage = totalPrompts > 0 ? (promptsWithWebAccess / totalPrompts) * 100 : 0;
+
+    // Aggregate source statistics
+    const sourceMap = new Map<string, {
+      totalMentions: number;
+      citedByModels: Set<string>;
+      associatedQueries: Set<string>;
+    }>();
+
+    let totalCitations = 0;
+
+    allCitations.forEach(({ modelId, citations, webSearchQueries }) => {
+      // First, add all web search queries to the associated queries for each domain
+      const queriesForThisModel = webSearchQueries.map((q: any) =>
+        typeof q === 'string' ? q : (q.query || q)
+      );
+
+      citations.forEach((citation: any) => {
+        totalCitations++;
+        const domain = this.extractDomain(citation.url || citation.source || '');
+
+        if (domain) {
+          if (!sourceMap.has(domain)) {
+            sourceMap.set(domain, {
+              totalMentions: 0,
+              citedByModels: new Set(),
+              associatedQueries: new Set(),
+            });
+          }
+
+          const stats = sourceMap.get(domain)!;
+          stats.totalMentions++;
+          stats.citedByModels.add(modelId);
+
+          // Add all web search queries that led to this citation
+          queriesForThisModel.forEach((query: string) => {
+            if (query) {
+              stats.associatedQueries.add(query);
+            }
+          });
+
+          // Also add any query directly on the citation (legacy support)
+          if (citation.query) {
+            stats.associatedQueries.add(citation.query);
+          }
+        }
+      });
+    });
+
+    // Convert source statistics to array
+    const sourceStatistics = Array.from(sourceMap.entries()).map(([domain, stats]) => ({
+      domain,
+      totalMentions: stats.totalMentions,
+      citedByModels: Array.from(stats.citedByModels),
+      associatedQueries: Array.from(stats.associatedQueries),
+    }));
+
+    // Get top sources
+    const topSources = sourceStatistics
+      .sort((a, b) => b.totalMentions - a.totalMentions)
+      .slice(0, 10)
+      .map(source => ({
+        domain: source.domain,
+        count: source.totalMentions,
+        percentage: totalCitations > 0 ? (source.totalMentions / totalCitations) * 100 : 0,
+      }));
+
+    // Extract keywords ONLY from web search queries
+    const keywordMap = new Map<string, number>();
+    let totalQueriesProcessed = 0;
+    let totalCitationsWithQueries = 0;
+    let totalCitationsWithoutQueries = 0;
+
+    // First, let's understand the data structure
+    allCitations.forEach(({ webSearchQueries }) => {
+      if (webSearchQueries && webSearchQueries.length > 0) {
+        totalCitationsWithQueries++;
+      } else {
+        totalCitationsWithoutQueries++;
+      }
+    });
+
+    this.logger.log(`Citations analysis: ${totalCitationsWithQueries} with queries, ${totalCitationsWithoutQueries} without queries`);
+
+    allCitations.forEach(({ webSearchQueries, modelId, promptType }, citationIndex) => {
+      // Extract keywords from web search queries
+      webSearchQueries.forEach((queryObj: any) => {
+        const query = typeof queryObj === 'string' ? queryObj : (queryObj.query || queryObj);
+        if (query) {
+          totalQueriesProcessed++;
+          this.logger.debug(`Processing query from ${modelId} (${promptType}): "${query}"`);
+          
+          // Simple split by spaces and count occurrences (strict equality)
+          const words = query.toLowerCase().split(' ').filter((word: string) => word.trim() !== '');
+          this.logger.debug(`Words extracted: ${words.join(', ')}`);
+          
+          
+          words.forEach((word: string) => {
+              keywordMap.set(word, (keywordMap.get(word) || 0) + 1);
+          });
+        }
+      });
+    });
+
+    this.logger.log(`Total queries processed for keywords: ${totalQueriesProcessed}`);
+    this.logger.log(`Total unique keywords found: ${keywordMap.size}`);
+
+    // Count total web search queries for percentage calculation
+    const totalWebSearchQueries = allCitations.reduce(
+      (sum, item) => sum + item.webSearchQueries.length,
+      0
+    );
+
+    // Get top keywords
+    const totalKeywordOccurrences = Array.from(keywordMap.values()).reduce((sum, count) => sum + count, 0);
+    
+    const topKeywords = Array.from(keywordMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([keyword, count]) => ({
+        keyword,
+        count,
+        // Percentage should be based on total queries, not total keyword occurrences
+        percentage: totalWebSearchQueries > 0 ? (count / totalWebSearchQueries) * 100 : 0,
+      }));
+
+    // Format citations by model
+    const citationsByModel = allCitations.map(item => ({
+      modelId: item.modelId,
+      modelProvider: item.modelProvider,
+      promptIndex: item.promptIndex,
+      promptType: item.promptType,
+      usedWebSearch: item.citations.length > 0 || item.webSearchQueries.length > 0,
+      webSearchQueries: item.webSearchQueries.map((query: any) => {
+        // Handle different query formats
+        if (typeof query === 'string') {
+          return {
+            query: query,
+            timestamp: new Date().toISOString(),
+          };
+        } else if (query.query) {
+          // Already in the correct format from batch execution service
+          return {
+            query: query.query,
+            timestamp: query.timestamp || new Date().toISOString(),
+          };
+        } else {
+          // Fallback
+          return {
+            query: String(query),
+            timestamp: new Date().toISOString(),
+          };
+        }
+      }),
+      citations: item.citations.map((c: any) => ({
+        source: c.source || this.extractDomain(c.url || ''),
+        url: c.url || '',
+        title: c.title || '',
+        snippet: c.snippet || '',
+        relevanceScore: c.relevanceScore || c.score,
+      })),
+    }));
+
+    return {
+      summary: {
+        totalPrompts,
+        promptsWithWebAccess,
+        webAccessPercentage,
+        totalCitations,
+        uniqueSources: sourceMap.size,
+      },
+      citationsByModel,
+      sourceStatistics,
+      topSources,
+      topKeywords,
+    };
+  }
+
+  private extractDomain(url: string): string {
+    try {
+      if (!url) return '';
+      // Handle URLs that might not have protocol
+      const urlWithProtocol = url.startsWith('http') ? url : `https://${url}`;
+      const urlObj = new URL(urlWithProtocol);
+      return urlObj.hostname.replace('www.', '');
+    } catch {
+      return url; // Return as-is if not a valid URL
+    }
+  }
+
+  private isStopWord(word: string): boolean {
+    const stopWords = new Set([
+      'the', 'is', 'at', 'which', 'on', 'and', 'a', 'an', 'as', 'are',
+      'been', 'be', 'have', 'has', 'had', 'do', 'does', 'did', 'done',
+      'will', 'would', 'could', 'should', 'may', 'might', 'must', 'can',
+      'this', 'that', 'these', 'those', 'with', 'from', 'for', 'about',
+      'into', 'through', 'during', 'before', 'after', 'above', 'below',
+      'between', 'under', 'over', 'then', 'than', 'when', 'where', 'what',
+      'who', 'whom', 'whose', 'which', 'why', 'how'
+    ]);
+    return stopWords.has(word);
   }
 }

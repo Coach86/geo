@@ -222,14 +222,9 @@ export class PublicReportController {
         }
       }
 
-      // Get the report to find the batch execution ID and verify ownership
-      const report = await this.reportService.getReportById(reportId);
+      // Get the report to verify ownership
+      const report: any = await this.reportService.getReportById(reportId);
       const projectId = report.projectId;
-      const batchExecutionId = (report as unknown as Record<string, string>).batchExecutionId;
-
-      if (!batchExecutionId) {
-        throw new NotFoundException('No batch execution found for this report');
-      }
 
       // Get user to find their organization
       const user = await this.userService.findOne(request.userId);
@@ -244,6 +239,63 @@ export class PublicReportController {
       if (!userProjectIds.includes(projectId)) {
         this.logger.warn(`User ${request.userId} does not own project ${projectId}`);
         throw new UnauthorizedException('You do not have access to citations for this report');
+      }
+
+      // Check if report has the new citationsData field
+      if (report.citationsData) {
+        this.logger.log(`Using stored citations data for report ${reportId}`);
+        this.logger.log(`CitationsData summary: ${JSON.stringify(report.citationsData.summary)}`);
+        this.logger.log(`Number of topKeywords: ${report.citationsData.topKeywords?.length || 0}`);
+        this.logger.log(`First 3 keywords: ${JSON.stringify(report.citationsData.topKeywords?.slice(0, 3) || [])}`);
+        
+        // Transform stored data to match the existing API response format
+        const allCitations = report.citationsData.citationsByModel?.flatMap((modelData: any) => {
+          this.logger.debug(`Model ${modelData.modelId} has ${modelData.webSearchQueries?.length || 0} queries`);
+          
+          // If model has citations, distribute webSearchQueries across them
+          if (modelData.citations && modelData.citations.length > 0) {
+            return modelData.citations.map((citation: any) => ({
+              website: citation.title || citation.source,
+              webSearchQueries: modelData.webSearchQueries || [],
+              link: citation.url,
+              model: modelData.modelId,
+              promptIndex: modelData.promptIndex,
+              promptType: modelData.promptType
+            }));
+          } else {
+            // If no citations but has web search queries, create a placeholder entry
+            if (modelData.webSearchQueries && modelData.webSearchQueries.length > 0) {
+              return [{
+                website: 'No citation',
+                webSearchQueries: modelData.webSearchQueries,
+                link: '',
+                model: modelData.modelId,
+                promptIndex: modelData.promptIndex,
+                promptType: modelData.promptType
+              }];
+            }
+            return [];
+          }
+        }) || [];
+
+        return {
+          webAccess: {
+            totalResponses: report.citationsData.summary?.totalPrompts || 0,
+            responsesWithWebAccess: report.citationsData.summary?.promptsWithWebAccess || 0,
+            percentage: report.citationsData.summary?.webAccessPercentage || 0,
+          },
+          topSources: report.citationsData.topSources || [],
+          topKeywords: report.citationsData.topKeywords || [],
+          citations: allCitations,
+        };
+      }
+
+      // Fallback to legacy method for older reports
+      this.logger.log(`Falling back to batch results for report ${reportId}`);
+      const batchExecutionId = (report as unknown as Record<string, string>).batchExecutionId;
+
+      if (!batchExecutionId) {
+        throw new NotFoundException('No batch execution found for this report');
       }
 
       // Get the spontaneous batch results
@@ -265,7 +317,7 @@ export class PublicReportController {
       const sourceFrequency: Record<string, number> = {};
 
       // Process each result
-      results.forEach((result: any) => {
+      results.forEach((result: any, index: number) => {
         totalResponses++;
 
         // Check if web search was used
@@ -280,6 +332,9 @@ export class PublicReportController {
                 website: citation.title || citation.url || 'Unknown',
                 webSearchQueries: result.webSearchQueries || [],
                 link: citation.url || '',
+                model: result.llmModel || 'Unknown',
+                promptIndex: index,
+                promptType: 'spontaneous',
                 fullCitation: citation,
               });
 
@@ -309,6 +364,7 @@ export class PublicReportController {
           percentage: webAccessPercentage,
         },
         topSources,
+        topKeywords: [], // Empty for legacy reports
         citations: allCitations,
       };
     } catch (error) {

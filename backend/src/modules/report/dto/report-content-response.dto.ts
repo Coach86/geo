@@ -7,6 +7,7 @@ import {
   Competitor,
   CompetitorComparison,
   ModelComparison,
+  CitationsData,
 } from '../interfaces/report-types';
 
 /**
@@ -129,6 +130,14 @@ export class ReportContentResponseDto {
       count: number;
     }>;
   };
+
+  // Citations section - web access and citations data
+  @ApiProperty({
+    description: 'Citations data showing web access usage and sources',
+    type: 'object',
+    additionalProperties: true,
+  })
+  citationsData?: CitationsData;
 
   // Raw data for debugging (only visible in development)
   @ApiProperty({
