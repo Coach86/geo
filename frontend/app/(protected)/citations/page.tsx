@@ -70,6 +70,7 @@ export default function CitationsPage() {
   const [spontaneousData, setSpontaneousData] = useState<SpontaneousData | null>(null);
   const [loadingSpontaneous, setLoadingSpontaneous] = useState(false);
   const [promptSet, setPromptSet] = useState<PromptSet | null>(null);
+  const [expandedSources, setExpandedSources] = useState(false);
 
   // Fetch citations when selected report changes
   useEffect(() => {
@@ -501,30 +502,42 @@ export default function CitationsPage() {
                 <CardHeader className="pb-4">
                   <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                     <TrendingUp className="h-5 w-5 text-green-600" />
-                    Top 10 Sources
+                    Top {expandedSources ? '10' : '5'} Sources
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
                     {citationsData.topSources.length > 0 ? (
-                      citationsData.topSources.slice(0, 10).map((source, index) => (
-                        <div
-                          key={source.domain}
-                          className="flex items-center justify-between p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors duration-200"
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-gray-600">
-                              #{index + 1}
-                            </span>
-                            <span className="text-sm font-medium text-gray-900 truncate">
-                              {source.domain}
-                            </span>
+                      <>
+                        {citationsData.topSources.slice(0, expandedSources ? 10 : 5).map((source, index) => (
+                          <div
+                            key={source.domain}
+                            className="flex items-center justify-between p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors duration-200"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-gray-600">
+                                #{index + 1}
+                              </span>
+                              <span className="text-sm font-medium text-gray-900 truncate">
+                                {source.domain}
+                              </span>
+                            </div>
+                            <Badge variant="outline" className="text-xs">
+                              {source.count}
+                            </Badge>
                           </div>
-                          <Badge variant="outline" className="text-xs">
-                            {source.count}
-                          </Badge>
-                        </div>
-                      ))
+                        ))}
+                        {citationsData.topSources.length > 5 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setExpandedSources(!expandedSources)}
+                            className="w-full mt-2 text-gray-600 hover:text-gray-900"
+                          >
+                            {expandedSources ? 'Show less' : `Show ${Math.min(5, citationsData.topSources.length - 5)} more`}
+                          </Button>
+                        )}
+                      </>
                     ) : (
                       <p className="text-sm text-gray-400 italic">
                         No sources found

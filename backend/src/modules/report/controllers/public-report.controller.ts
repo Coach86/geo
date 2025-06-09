@@ -259,8 +259,8 @@ export class PublicReportController {
               webSearchQueries: modelData.webSearchQueries || [],
               link: citation.url,
               model: modelData.modelId,
-              promptIndex: modelData.promptIndex,
-              promptType: modelData.promptType
+              promptIndex: modelData.promptIndex ?? 0,
+              promptType: modelData.promptType || 'unknown'
             }));
           } else {
             // If no citations but has web search queries, create a placeholder entry
@@ -270,8 +270,8 @@ export class PublicReportController {
                 webSearchQueries: modelData.webSearchQueries,
                 link: '',
                 model: modelData.modelId,
-                promptIndex: modelData.promptIndex,
-                promptType: modelData.promptType
+                promptIndex: modelData.promptIndex ?? 0,
+                promptType: modelData.promptType || 'unknown'
               }];
             }
             return [];
@@ -333,7 +333,7 @@ export class PublicReportController {
                 webSearchQueries: result.webSearchQueries || [],
                 link: citation.url || '',
                 model: result.llmModel || 'Unknown',
-                promptIndex: index,
+                promptIndex: result.promptIndex ?? index,
                 promptType: 'spontaneous',
                 fullCitation: citation,
               });
