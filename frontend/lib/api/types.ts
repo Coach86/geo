@@ -219,8 +219,8 @@ export interface CitationsData {
     webSearchQueries: WebSearchQuery[];
     link: string;
     model?: string;
-    promptIndex?: number;
-    promptType?: string;
+    promptIndex: number;
+    promptType: string;
     fullCitation?: Record<string, unknown>;
   }>;
 }

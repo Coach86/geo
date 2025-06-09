@@ -395,9 +395,9 @@ export class ReportConverterService {
           
           
           allCitations.push({
-            modelId: result.llmModel,
-            modelProvider: result.llmProvider,
-            promptIndex: index,
+            modelId: result.llmModel || 'unknown',
+            modelProvider: result.llmProvider || 'unknown',
+            promptIndex: result.promptIndex ?? index,
             promptType,
             citations: result.citations || [],
             webSearchQueries: webSearchQueries,
