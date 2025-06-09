@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { validateToken } from '@/lib/auth-api';
+import { clearAllSelectedReportIds } from '@/lib/report-selection';
 
 interface AuthUser {
   id: string;
@@ -44,6 +45,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Store token in localStorage for persistence
         localStorage.setItem('authToken', token);
         localStorage.setItem('userId', validation.userId);
+        
+        // Clear all report selections on login to ensure fresh data
+        clearAllSelectedReportIds();
         
         return true;
       } else {

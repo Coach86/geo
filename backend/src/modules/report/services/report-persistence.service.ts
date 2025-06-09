@@ -45,6 +45,7 @@ export class ReportPersistenceService {
         brandBattle: report.brandBattle,
         llmVersions: report.llmVersions || {},
         trace: report.trace,
+        citationsData: report.citationsData,
         // Legacy raw data fields for backward compatibility
         spontaneous: report.rawData?.spontaneous,
         sentiment: report.rawData?.sentiment,

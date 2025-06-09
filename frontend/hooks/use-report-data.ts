@@ -43,6 +43,11 @@ export function useReportData<T extends ReportResponse = ReportResponse>(
         return;
       }
 
+      // Clear previous report immediately when project changes
+      if (projectId !== selectedProjectId) {
+        setSelectedReport(null);
+      }
+
       setSelectedProjectId(projectId);
       setLoading(true);
       setError(null);
@@ -76,7 +81,7 @@ export function useReportData<T extends ReportResponse = ReportResponse>(
     return () => {
       window.removeEventListener("projectSelectionChanged", handleProjectChange);
     };
-  }, [token]);
+  }, [token, fetchReports]);
 
   // Memoize the report update function
   const updateSelectedReport = useCallback(() => {

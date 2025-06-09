@@ -48,7 +48,7 @@ export function clearSelectedReportId(projectId: string): void {
 }
 
 /**
- * Clear all selected report IDs (useful when logging out)
+ * Clear all selected report IDs (useful when logging out or logging in)
  */
 export function clearAllSelectedReportIds(): void {
   const keys = Object.keys(localStorage);

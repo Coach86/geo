@@ -131,9 +131,9 @@ export class ReportContentResponseDto {
     }>;
   };
 
-  // Citations data - web search and citation information
+  // Citations section - web access and citations data
   @ApiProperty({
-    description: 'Citations data including web search information',
+    description: 'Citations data showing web access usage and sources',
     type: 'object',
     additionalProperties: true,
   })

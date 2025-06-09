@@ -52,6 +52,51 @@ export interface BrandBattleData {
   commonWeaknesses: string[];
 }
 
+// Citations data structure
+export interface CitationsData {
+  summary: {
+    totalPrompts: number;
+    promptsWithWebAccess: number;
+    webAccessPercentage: number;
+    totalCitations: number;
+    uniqueSources: number;
+  };
+  citationsByModel: Array<{
+    modelId: string;
+    modelProvider: string;
+    promptIndex: number;
+    promptType: string;
+    usedWebSearch: boolean;
+    webSearchQueries: Array<{
+      query: string;
+      timestamp?: string;
+    }>;
+    citations: Array<{
+      source: string;
+      url: string;
+      title: string;
+      snippet?: string;
+      relevanceScore?: number;
+    }>;
+  }>;
+  sourceStatistics: Array<{
+    domain: string;
+    totalMentions: number;
+    citedByModels: string[];
+    associatedQueries: string[];
+  }>;
+  topSources: Array<{
+    domain: string;
+    count: number;
+    percentage: number;
+  }>;
+  topKeywords: Array<{
+    keyword: string;
+    count: number;
+    percentage: number;
+  }>;
+}
+
 // Main report response that mirrors backend DTO exactly
 export interface ReportResponse {
   // Basic report information
@@ -131,6 +176,9 @@ export interface ReportResponse {
       count: number;
     }>;
   };
+
+  // Citations data
+  citationsData?: CitationsData;
 
   // Raw data for debugging
   rawData?: {
