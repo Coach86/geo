@@ -112,12 +112,28 @@ export class BatchExecutionService {
                 tool.type === 'search' ||
                 tool.type?.includes('search'),
             );
+            
+            // Log what we found for debugging
+            if (webSearchTools.length > 0) {
+              this.logger.debug(
+                `Found ${webSearchTools.length} web search tools for ${resultItem.llmProvider}: ${JSON.stringify(webSearchTools[0])}`,
+              );
+            }
 
             // Store the web search queries directly in the result item only
             resultItem.webSearchQueries = webSearchTools.map((tool: any) => ({
-              query: tool.parameters?.query || tool.parameters?.q || 'Unknown query',
-              status: tool.execution_details?.status || 'Unknown status',
-              timestamp: tool.execution_details?.timestamp || new Date().toISOString(),
+              // Check multiple locations for the query
+              query: tool.input?.query || // Google format
+                     tool.parameters?.query || // Other formats
+                     tool.parameters?.q || 
+                     tool.query || // Direct query field
+                     'Unknown query',
+              status: tool.execution?.status || 
+                      tool.execution_details?.status || 
+                      'completed',
+              timestamp: tool.execution?.timestamp || 
+                         tool.execution_details?.timestamp || 
+                         new Date().toISOString(),
               provider: resultItem.llmProvider || 'Unknown',
             }));
           }

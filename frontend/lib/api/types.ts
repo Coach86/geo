@@ -207,12 +207,21 @@ export interface CitationsData {
   topSources: Array<{
     domain: string;
     count: number;
+    percentage?: number;
+  }>;
+  topKeywords?: Array<{
+    keyword: string;
+    count: number;
+    percentage?: number;
   }>;
   citations: Array<{
     website: string;
     webSearchQueries: WebSearchQuery[];
     link: string;
-    fullCitation: Record<string, unknown>;
+    model?: string;
+    promptIndex?: number;
+    promptType?: string;
+    fullCitation?: Record<string, unknown>;
   }>;
 }
 

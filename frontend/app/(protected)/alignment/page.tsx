@@ -44,16 +44,26 @@ export default function AlignmentPage() {
     error
   } = useReportData();
 
+  // Clear alignment data when project changes
+  useEffect(() => {
+    console.log("[Alignment] Project changed, clearing data. New project:", selectedProjectId);
+    setAlignmentData(null);
+    setAlignmentError(null);
+    setIsLoadingAlignment(false);
+  }, [selectedProjectId]);
+
   // Fetch alignment data when report changes
   useEffect(() => {
+    // Clear data immediately when report changes
+    setAlignmentData(null);
+    setAlignmentError(null);
+    
     const fetchAlignmentData = async () => {
       if (!selectedReport || !token) {
-        setAlignmentData(null);
         return;
       }
 
       setIsLoadingAlignment(true);
-      setAlignmentError(null);
 
       try {
         console.log("[Alignment] Processing report:", selectedReport.id);
@@ -78,10 +88,12 @@ export default function AlignmentPage() {
         } else {
           console.warn("[Alignment] No accuracy batch result for report:", selectedReport.id);
           setAlignmentError("No alignment data available for this report");
+          setAlignmentData(null);
         }
       } catch (err) {
         console.error("Failed to fetch batch results for report:", selectedReport.id, err);
         setAlignmentError("Failed to load alignment data");
+        setAlignmentData(null);
       } finally {
         setIsLoadingAlignment(false);
       }
@@ -123,6 +135,9 @@ export default function AlignmentPage() {
             currentPage="Alignment"
             showReportSelector={true}
             token={token}
+            onReportSelect={(report) => {
+              setSelectedReport(report);
+            }}
           />
         )}
 
