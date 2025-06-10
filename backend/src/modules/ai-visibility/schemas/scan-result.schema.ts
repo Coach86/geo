@@ -46,7 +46,7 @@ export interface CoverageMetrics {
 }
 
 export interface VisibilityPattern {
-  type: 'high_bm25_low_vector' | 'high_vector_low_bm25' | 'both_low' | 'both_high';
+  type: 'high_bm25_low_vector' | 'high_vector_low_bm25' | 'both_low' | 'both_high' | 'perfect_mrr';
   affectedQueries: string[];
   percentage: number;
 }
@@ -116,6 +116,16 @@ export class ScanResult {
 
   @Prop({ type: Types.ObjectId, ref: 'SearchIndex' })
   vectorIndexId: Types.ObjectId;
+
+  @Prop({ type: Object })
+  methodology?: {
+    mrrExplanation: string;
+    coverageExplanation: string;
+    scoreThresholds: {
+      bm25: number;
+      vector: number;
+    };
+  };
 }
 
 export const ScanResultSchema = SchemaFactory.createForClass(ScanResult);

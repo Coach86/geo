@@ -82,6 +82,16 @@ export class ScanResultRepository {
       { recommendations }
     ).exec();
   }
+
+  async updateOverallStats(
+    scanId: string,
+    overallStats: any
+  ): Promise<void> {
+    await this.scanResultModel.findOneAndUpdate(
+      { scanId },
+      { overallStats }
+    ).exec();
+  }
   
   async updateQueries(
     scanId: string,
@@ -90,6 +100,16 @@ export class ScanResultRepository {
     await this.scanResultModel.findOneAndUpdate(
       { scanId },
       { queries }
+    ).exec();
+  }
+
+  async updateMethodology(
+    scanId: string,
+    methodology: any
+  ): Promise<void> {
+    await this.scanResultModel.findOneAndUpdate(
+      { scanId },
+      { methodology }
     ).exec();
   }
 

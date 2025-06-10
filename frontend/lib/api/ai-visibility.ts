@@ -166,3 +166,60 @@ export async function getRecommendations(
     token,
   });
 }
+
+export async function generateActionPlan(
+  projectId: string,
+  scanId: string,
+  token: string
+): Promise<any> {
+  return apiFetch(`/ai-visibility/action-plans/${projectId}/generate/${scanId}`, {
+    method: "POST",
+    token,
+  });
+}
+
+export async function previewActionPlan(
+  projectId: string,
+  scanId: string,
+  token: string
+): Promise<any> {
+  return apiFetch(`/ai-visibility/action-plans/${projectId}/preview/${scanId}`, {
+    method: "GET",
+    token,
+  });
+}
+
+export async function getActionPlan(
+  projectId: string,
+  scanId: string,
+  token: string
+): Promise<any> {
+  return apiFetch(`/ai-visibility/action-plans/${projectId}/scan/${scanId}`, {
+    method: "GET",
+    token,
+  });
+}
+
+export async function getLatestActionPlan(
+  projectId: string,
+  token: string
+): Promise<any> {
+  return apiFetch(`/ai-visibility/action-plans/${projectId}/latest`, {
+    method: "GET",
+    token,
+  });
+}
+
+export async function updateActionItem(
+  projectId: string,
+  scanId: string,
+  itemId: string,
+  completed: boolean,
+  token: string
+): Promise<any> {
+  return apiFetch(`/ai-visibility/action-plans/${projectId}/scan/${scanId}/item/${itemId}`, {
+    method: "PUT",
+    body: JSON.stringify({ completed }),
+    token,
+  });
+}

@@ -170,6 +170,13 @@ export class VectorIndexService {
       // Search for nearest neighbors
       const searchResults = hnswIndex.searchKnn(queryEmbedding, maxResults);
       
+      this.logger.log(`🔍 Vector search for "${query}": Found ${searchResults.neighbors.length} neighbors`);
+      if (searchResults.distances.length > 0) {
+        const topDistances = searchResults.distances.slice(0, 3).map(d => d.toFixed(3)).join(', ');
+        const topScores = searchResults.distances.slice(0, 3).map(d => (1 - d).toFixed(3)).join(', ');
+        this.logger.log(`📊 Top 3 distances: [${topDistances}] → scores: [${topScores}]`);
+      }
+      
       // Map results to chunks and format
       const results = searchResults.neighbors
         .map((idx, i) => {

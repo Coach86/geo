@@ -95,6 +95,21 @@ export class RecommendationService {
             });
           }
           break;
+
+        case 'both_high':
+          // Even with high coverage, there are optimization opportunities
+          if (pattern.percentage > 0.8) {
+            recommendations.push({
+              priority: 'low',
+              type: 'performance_optimization',
+              title: 'Optimize High-Performing Content',
+              description: 'Your content performs well in both search methods. Focus on maintaining quality and improving specific rankings.',
+              impact: 'Low - Already performing well',
+              effort: 'Low - Minor optimizations',
+              affectedPages: this.getTopPerformingPages(queryResults, pattern.affectedQueries),
+            });
+          }
+          break;
       }
     }
 
@@ -125,10 +140,105 @@ export class RecommendationService {
       });
     }
 
+    // Recommendations based on MRR scores
+    const avgMrrBm25 = queryResults.reduce((sum, r) => sum + r.mrr.bm25, 0) / queryResults.length;
+    const avgMrrVector = queryResults.reduce((sum, r) => sum + r.mrr.vector, 0) / queryResults.length;
+    
+    if (avgMrrBm25 < 0.5) {
+      recommendations.push({
+        priority: 'medium',
+        type: 'keyword_placement',
+        title: 'Improve Keyword Placement',
+        description: 'Keywords are found but not prominently placed. Move important keywords to titles, headers, and opening paragraphs.',
+        impact: 'Medium - Better ranking for keyword searches',
+        effort: 'Low - Reorganize existing content',
+        affectedPages: this.getLowMrrPages(queryResults, 'bm25'),
+      });
+    }
+
+    if (avgMrrVector < 0.5) {
+      recommendations.push({
+        priority: 'medium',
+        type: 'semantic_depth',
+        title: 'Enhance Semantic Depth',
+        description: 'Content lacks semantic richness. Add more context, examples, and related concepts to improve AI understanding.',
+        impact: 'Medium - Better semantic search performance',
+        effort: 'Medium - Expand existing content',
+        affectedPages: this.getLowMrrPages(queryResults, 'vector'),
+      });
+    }
+
+    // Overlap-based recommendations
+    const lowOverlapQueries = queryResults.filter(r => r.overlap < 0.2);
+    if (lowOverlapQueries.length > queryResults.length * 0.3) {
+      recommendations.push({
+        priority: 'high',
+        type: 'search_alignment',
+        title: 'Align Search Methods',
+        description: `${Math.round(lowOverlapQueries.length / queryResults.length * 100)}% of queries show low overlap between search methods. This indicates inconsistent content optimization.`,
+        impact: 'High - Unified search performance',
+        effort: 'Medium - Content audit and optimization',
+        affectedPages: this.getUniqueUrls(queryResults, lowOverlapQueries.map(q => q.query)),
+      });
+    }
+
+    // Perfect score analysis
+    const perfectScores = queryResults.filter(r => r.mrr.bm25 === 1 && r.mrr.vector === 1);
+    if (perfectScores.length === queryResults.length) {
+      recommendations.push({
+        priority: 'low',
+        type: 'competitive_analysis',
+        title: 'Consider Competitive Differentiation',
+        description: 'All queries return your content first. Consider analyzing competitor strategies and expanding content scope.',
+        impact: 'Low - Maintain current performance',
+        effort: 'Low - Strategic planning',
+        affectedPages: [],
+      });
+    }
+
     return recommendations.sort((a, b) => {
       const priorityOrder = { high: 0, medium: 1, low: 2 };
       return priorityOrder[a.priority] - priorityOrder[b.priority];
     });
+  }
+
+  private getTopPerformingPages(
+    queryResults: QueryResult[],
+    affectedQueries: string[]
+  ): string[] {
+    const urls = new Set<string>();
+    
+    for (const result of queryResults) {
+      if (affectedQueries.includes(result.query)) {
+        if (result.bm25Results.documents.length > 0) {
+          urls.add(result.bm25Results.documents[0].url);
+        }
+        if (result.vectorResults.documents.length > 0) {
+          urls.add(result.vectorResults.documents[0].url);
+        }
+      }
+    }
+    
+    return Array.from(urls).slice(0, 5);
+  }
+
+  private getLowMrrPages(
+    queryResults: QueryResult[],
+    searchType: 'bm25' | 'vector'
+  ): string[] {
+    const pages = new Set<string>();
+    
+    for (const result of queryResults) {
+      const mrr = searchType === 'bm25' ? result.mrr.bm25 : result.mrr.vector;
+      if (mrr < 0.5 && mrr > 0) {
+        const docs = searchType === 'bm25' ? result.bm25Results.documents : result.vectorResults.documents;
+        if (docs.length > 0) {
+          pages.add(docs[0].url);
+        }
+      }
+    }
+    
+    return Array.from(pages).slice(0, 5);
   }
 
   private getAffectedPages(

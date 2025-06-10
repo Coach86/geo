@@ -1,7 +1,12 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   Search, 
   Database, 
@@ -9,8 +14,13 @@ import {
   XCircle,
   AlertCircle,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  FileText,
+  Sparkles
 } from "lucide-react";
+import { testSearch } from "@/lib/api/ai-visibility";
+import { useAuth } from "@/providers/auth-provider";
+import { useNavigation } from "@/providers/navigation-provider";
 
 interface IndexStatusProps {
   bm25Status?: {
@@ -31,12 +41,46 @@ interface IndexStatusProps {
   canBuild: boolean;
 }
 
+interface SearchResult {
+  url: string;
+  title: string;
+  snippet: string;
+  score: number;
+  rank: number;
+}
+
+interface SearchTestResults {
+  bm25Results?: SearchResult[];
+  vectorResults?: SearchResult[];
+  hybridResults?: SearchResult[];
+}
+
 export default function IndexStatus({ 
   bm25Status, 
   vectorStatus, 
   onBuildIndexes,
   canBuild 
 }: IndexStatusProps) {
+  const { token } = useAuth();
+  const { selectedProject } = useNavigation();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<SearchTestResults | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const [activeSearchTab, setActiveSearchTab] = useState("bm25");
+
+  const handleTestSearch = async () => {
+    if (!searchQuery.trim() || !selectedProject || !token) return;
+    
+    setIsSearching(true);
+    try {
+      const results = await testSearch(selectedProject.id, searchQuery, 10, token);
+      setSearchResults(results);
+    } catch (error) {
+      console.error("Search test failed:", error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
   const renderStatusBadge = (status?: string) => {
     if (!status) return <Badge variant="outline">Not Built</Badge>;
     
@@ -185,6 +229,135 @@ export default function IndexStatus({
           )}
         </CardContent>
       </Card>
+
+      {/* Search Testing Interface */}
+      {bm25Status?.status === 'ready' && vectorStatus?.status === 'ready' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5" />
+              Test Search
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="search-query">Search Query</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="search-query"
+                  placeholder="Enter a test query..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleTestSearch()}
+                />
+                <Button 
+                  onClick={handleTestSearch}
+                  disabled={!searchQuery.trim() || isSearching}
+                >
+                  {isSearching ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Search className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            {searchResults && (
+              <div className="space-y-4 pt-4 border-t">
+                <Tabs value={activeSearchTab} onValueChange={setActiveSearchTab}>
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="bm25">BM25</TabsTrigger>
+                    <TabsTrigger value="vector">Vector</TabsTrigger>
+                    <TabsTrigger value="hybrid">Hybrid</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="bm25" className="mt-4">
+                    <SearchResultsList 
+                      results={searchResults.bm25Results} 
+                      type="BM25 (Keyword-based)"
+                    />
+                  </TabsContent>
+                  
+                  <TabsContent value="vector" className="mt-4">
+                    <SearchResultsList 
+                      results={searchResults.vectorResults} 
+                      type="Vector (Semantic)"
+                    />
+                  </TabsContent>
+                  
+                  <TabsContent value="hybrid" className="mt-4">
+                    <SearchResultsList 
+                      results={searchResults.hybridResults} 
+                      type="Hybrid (Combined)"
+                    />
+                  </TabsContent>
+                </Tabs>
+
+                {/* Comparison Summary */}
+                <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+                  <h4 className="text-sm font-medium mb-2">Search Performance</h4>
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">BM25 Results:</span>
+                      <p className="font-medium">{searchResults.bm25Results?.length || 0}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Vector Results:</span>
+                      <p className="font-medium">{searchResults.vectorResults?.length || 0}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Hybrid Results:</span>
+                      <p className="font-medium">{searchResults.hybridResults?.length || 0}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
+  );
+}
+
+function SearchResultsList({ results, type }: { results?: SearchResult[]; type: string }) {
+  if (!results || results.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
+        <p className="text-sm">No results found for {type} search</p>
+      </div>
+    );
+  }
+
+  return (
+    <ScrollArea className="h-[400px] w-full">
+      <div className="space-y-3">
+        {results.map((result, index) => (
+          <div key={index} className="p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+            <div className="flex items-start justify-between mb-1">
+              <h4 className="text-sm font-medium line-clamp-1">
+                {result.title || result.url}
+              </h4>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs">
+                  #{result.rank}
+                </Badge>
+                <Badge variant="secondary" className="text-xs">
+                  {result.score.toFixed(3)}
+                </Badge>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mb-2 line-clamp-1">
+              {result.url}
+            </p>
+            <p className="text-sm text-muted-foreground line-clamp-2">
+              {result.snippet}
+            </p>
+          </div>
+        ))}
+      </div>
+    </ScrollArea>
   );
 }

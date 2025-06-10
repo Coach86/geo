@@ -7,7 +7,8 @@ import {
   Req,
   HttpException,
   HttpStatus,
-  UnauthorizedException
+  UnauthorizedException,
+  Logger
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { TokenRoute } from '../../auth/decorators/token-route.decorator';
@@ -19,6 +20,8 @@ import { ExecuteScanDto } from '../dto/scan-config.dto';
 @ApiTags('AI Visibility - Scanner')
 @Controller('ai-visibility/scan')
 export class ScannerController {
+  private readonly logger = new Logger(ScannerController.name);
+
   constructor(
     private readonly visibilityScannerService: VisibilityScannerService,
     private readonly projectService: ProjectService,
@@ -34,21 +37,30 @@ export class ScannerController {
     @Body() dto: ExecuteScanDto,
     @Req() request: any
   ) {
+    this.logger.log(`🚀 SCAN REQUEST RECEIVED for project ${projectId}`);
+    this.logger.log(`Scan config: ${JSON.stringify(dto.config)}`);
+    
     // Validate user authentication
     if (!request.userId) {
+      this.logger.error(`❌ User not authenticated`);
       throw new UnauthorizedException('User not authenticated');
     }
+    this.logger.log(`✅ User authenticated: ${request.userId}`);
 
     // Validate project exists and user has access
     const project = await this.projectService.findByIdAndUser(projectId, request.userId);
     if (!project) {
+      this.logger.error(`❌ Project not found: ${projectId}`);
       throw new HttpException('Project not found', HttpStatus.NOT_FOUND);
     }
+    this.logger.log(`✅ Project found: ${project.brandName}`);
 
+    this.logger.log(`🔍 Calling visibilityScannerService.executeScan...`);
     const scanId = await this.visibilityScannerService.executeScan(
       projectId,
       dto.config
     );
+    this.logger.log(`✅ Scan started with ID: ${scanId}`);
 
     return {
       message: 'Scan started successfully',
@@ -87,6 +99,9 @@ export class ScannerController {
       throw new HttpException('Scan not found', HttpStatus.NOT_FOUND);
     }
 
+    // Calculate overlap analysis data for the frontend
+    const overlapAnalysis = this.calculateOverlapAnalysis(scanResult);
+
     return {
       scanId: scanResult.scanId,
       status: scanResult.status,
@@ -94,7 +109,10 @@ export class ScannerController {
       completedAt: scanResult.completedAt,
       configuration: scanResult.configuration,
       coverageMetrics: scanResult.coverageMetrics,
-      visibilityPatterns: scanResult.visibilityPatterns,
+      visibilityPatterns: {
+        ...scanResult.visibilityPatterns,
+        overlapAnalysis
+      },
       overallStats: scanResult.overallStats,
       queryResults: scanResult.queryResults?.slice(0, 10), // Return sample
       totalQueries: scanResult.queries?.length || 0,
@@ -172,6 +190,71 @@ export class ScannerController {
       scanId: scanResult.scanId,
       recommendations: scanResult.recommendations || [],
       coverageMetrics: scanResult.coverageMetrics,
+    };
+  }
+
+  private calculateOverlapAnalysis(scanResult: any): any {
+    if (!scanResult.queryResults || scanResult.queryResults.length === 0) {
+      return {
+        overlapDistribution: [],
+        overlapByQueryType: [],
+        topOverlappingQueries: [],
+      };
+    }
+
+    // Calculate overlap distribution (for pie chart)
+    const overlapRanges = {
+      '0-25%': 0,
+      '26-50%': 0,
+      '51-75%': 0,
+      '76-100%': 0,
+    };
+
+    scanResult.queryResults.forEach((result: any) => {
+      const overlap = result.overlap * 100;
+      if (overlap <= 25) overlapRanges['0-25%']++;
+      else if (overlap <= 50) overlapRanges['26-50%']++;
+      else if (overlap <= 75) overlapRanges['51-75%']++;
+      else overlapRanges['76-100%']++;
+    });
+
+    const overlapDistribution = Object.entries(overlapRanges).map(([range, count]) => ({
+      name: range,
+      value: count,
+    }));
+
+    // Calculate overlap by query type (for radar chart)
+    const queryTypeOverlap: { [key: string]: { total: number; count: number } } = {};
+    
+    scanResult.queryResults.forEach((result: any) => {
+      if (!queryTypeOverlap[result.intent]) {
+        queryTypeOverlap[result.intent] = { total: 0, count: 0 };
+      }
+      queryTypeOverlap[result.intent].total += result.overlap;
+      queryTypeOverlap[result.intent].count++;
+    });
+
+    const overlapByQueryType = Object.entries(queryTypeOverlap).map(([type, data]) => ({
+      type,
+      overlap: data.count > 0 ? data.total / data.count : 0,
+    }));
+
+    // Get top overlapping queries
+    const topOverlappingQueries = scanResult.queryResults
+      .filter((r: any) => r.overlap > 0)
+      .sort((a: any, b: any) => b.overlap - a.overlap)
+      .slice(0, 10)
+      .map((r: any) => ({
+        query: r.query,
+        overlap: r.overlap,
+        bm25Found: r.bm25Results.found,
+        vectorFound: r.vectorResults.found,
+      }));
+
+    return {
+      overlapDistribution,
+      overlapByQueryType,
+      topOverlappingQueries,
     };
   }
 }

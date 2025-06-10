@@ -1,6 +1,7 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { toast } from 'sonner';
+import { API_BASE_URL } from '@/lib/api/constants';
 
 interface AIVisibilityEvent {
   projectId: string;
@@ -30,15 +31,31 @@ interface ScanProgressEvent extends AIVisibilityEvent {
 
 export function useAIVisibilityEvents(
   projectId: string | undefined,
-  onUpdate?: () => void
+  onUpdate?: (event?: any) => void
 ) {
+  const onUpdateRef = useRef(onUpdate);
+  
+  useEffect(() => {
+    onUpdateRef.current = onUpdate;
+  }, [onUpdate]);
+  
   useEffect(() => {
     if (!projectId) return;
 
+    // Parse the API URL to get just the origin (protocol + host + port)
+    const url = new URL(API_BASE_URL);
+    const socketUrl = `${url.protocol}//${url.host}`;
+
+    console.log('Connecting to WebSocket at:', socketUrl, 'namespace: /batch-events');
+
     // Connect to the batch-events namespace
-    const socket: Socket = io('/batch-events', {
+    const socket: Socket = io(socketUrl + '/batch-events', {
       path: '/api/socket-io/',
       transports: ['websocket', 'polling'],
+      timeout: 10000,
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 5,
     });
 
     // Connection events
@@ -50,11 +67,15 @@ export function useAIVisibilityEvents(
       console.log('Disconnected from AI Visibility WebSocket');
     });
 
+    socket.on('connect_error', (error) => {
+      console.error('WebSocket connection error:', error);
+    });
+
     // AI Visibility events
     socket.on('aiVisibility:crawl:progress', (event: CrawlProgressEvent) => {
       if (event.projectId === projectId) {
         console.log('Crawl progress:', event);
-        onUpdate?.();
+        onUpdateRef.current?.();
       }
     });
 
@@ -62,14 +83,14 @@ export function useAIVisibilityEvents(
       if (event.projectId === projectId) {
         console.log('Crawl completed:', event);
         toast.success('Website crawl completed');
-        onUpdate?.();
+        onUpdateRef.current?.();
       }
     });
 
     socket.on('aiVisibility:index:progress', (event: IndexProgressEvent) => {
       if (event.projectId === projectId) {
         console.log('Index build progress:', event);
-        onUpdate?.();
+        onUpdateRef.current?.();
       }
     });
 
@@ -77,17 +98,21 @@ export function useAIVisibilityEvents(
       if (event.projectId === projectId) {
         console.log('Index build completed:', event);
         toast.success(`${event.indexType.toUpperCase()} index built successfully`);
-        onUpdate?.();
+        onUpdateRef.current?.();
       }
     });
 
     socket.on('aiVisibility:scan:progress', (event: ScanProgressEvent) => {
       if (event.projectId === projectId) {
         console.log('Scan progress:', event);
-        if (event.progress % 10 === 0) {
+        // Only show toast for major milestones
+        if (event.progress === 25 || event.progress === 50 || event.progress === 75) {
           toast.info(`Scan progress: ${event.progress}%`);
         }
-        onUpdate?.();
+        onUpdateRef.current?.({
+          type: 'scan:progress',
+          ...event
+        });
       }
     });
 
@@ -95,7 +120,10 @@ export function useAIVisibilityEvents(
       if (event.projectId === projectId) {
         console.log('Scan completed:', event);
         toast.success('AI visibility scan completed');
-        onUpdate?.();
+        onUpdateRef.current?.({
+          type: 'scan:completed',
+          ...event
+        });
       }
     });
 
@@ -104,7 +132,7 @@ export function useAIVisibilityEvents(
       if (event.projectId === projectId) {
         console.log('Audit started:', event);
         toast.info('AI visibility audit started');
-        onUpdate?.();
+        onUpdateRef.current?.();
       }
     });
 
@@ -112,7 +140,7 @@ export function useAIVisibilityEvents(
       if (event.projectId === projectId) {
         console.log('Audit completed:', event);
         toast.success(`AI visibility audit completed in ${Math.round(event.duration / 1000)}s`);
-        onUpdate?.();
+        onUpdateRef.current?.();
       }
     });
 
@@ -120,12 +148,12 @@ export function useAIVisibilityEvents(
       if (event.projectId === projectId) {
         console.log('Audit failed:', event);
         toast.error(`AI visibility audit failed: ${event.error}`);
-        onUpdate?.();
+        onUpdateRef.current?.();
       }
     });
 
     return () => {
       socket.disconnect();
     };
-  }, [projectId, onUpdate]);
+  }, [projectId]);
 }
