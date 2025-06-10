@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { Sparkles, Globe } from "lucide-react";
-import { useOnboarding } from "@/providers/onboarding-provider";
+import { getOnboardingData } from "@/lib/onboarding-storage";
 import { Badge } from "@/components/ui/badge";
 
 export default function OnboardingHeader() {
-  const { formData } = useOnboarding();
+  const formData = getOnboardingData();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-mono-50 border-b border-mono-200 shadow-sm">
@@ -18,7 +18,7 @@ export default function OnboardingHeader() {
           </Link>
 
           <div className="flex items-center gap-3">
-            {formData.website && (
+            {formData.project?.website && (
               <div className="flex items-center bg-secondary-50 px-3 py-1 rounded-full border border-secondary-200">
                 <Globe className="h-4 w-4 text-secondary-500 mr-1.5" />
                 <span className="text-sm font-medium text-secondary-700 mr-1">
@@ -28,7 +28,7 @@ export default function OnboardingHeader() {
                   variant="secondary"
                   className="bg-secondary-200 text-secondary-900 border border-secondary-300"
                 >
-                  {formData.website}
+                  {formData.project?.website}
                 </Badge>
               </div>
             )}

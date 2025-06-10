@@ -63,15 +63,41 @@ export default function Home() {
         setProjectDetails(projectData);
         setError(null);
 
-        // Fetch prompt set
+        // Fetch prompt set with retry logic
         setLoadingPrompts(true);
+        let retryCount = 0;
+        const maxRetries = 3;
+        const retryDelay = 2000; // 2 seconds
+
+        const fetchPromptsWithRetry = async () => {
+          while (retryCount < maxRetries) {
+            try {
+              console.log(`[Profile] Fetching prompt set for project: ${selectedProject.id} (attempt ${retryCount + 1}/${maxRetries})`);
+              const prompts = await getPromptSet(selectedProject.id, token);
+              console.log('[Profile] Received prompt set:', prompts);
+              setPromptSet(prompts);
+              return; // Success, exit the retry loop
+            } catch (promptErr: any) {
+              console.error(`[Profile] Failed to fetch prompt set (attempt ${retryCount + 1}):`, promptErr);
+              console.error("[Profile] Error details:", JSON.stringify(promptErr, null, 2));
+              
+              // Check if it's a 404 (prompt set not found yet)
+              if (promptErr?.response?.status === 404 && retryCount < maxRetries - 1) {
+                console.log(`[Profile] Prompt set not found yet, retrying in ${retryDelay}ms...`);
+                retryCount++;
+                await new Promise(resolve => setTimeout(resolve, retryDelay));
+              } else {
+                // Don't set error for prompt set, it's optional
+                console.log('[Profile] Giving up on fetching prompt set');
+                setPromptSet(null);
+                break;
+              }
+            }
+          }
+        };
+
         try {
-          const prompts = await getPromptSet(selectedProject.id, token);
-          setPromptSet(prompts);
-        } catch (promptErr) {
-          console.error("Failed to fetch prompt set:", promptErr);
-          // Don't set error for prompt set, it's optional
-          setPromptSet(null);
+          await fetchPromptsWithRetry();
         } finally {
           setLoadingPrompts(false);
         }

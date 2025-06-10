@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useOnboarding } from "@/providers/onboarding-provider"
 import { useAuth } from "@/providers/auth-provider"
+import { getOnboardingData, updateOnboardingData } from "@/lib/onboarding-storage"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
@@ -14,7 +14,6 @@ import { useRouter } from "next/navigation"
 import { generatePrompts, type GeneratePromptsRequest } from "@/lib/auth-api"
 
 export default function PromptSelection() {
-  const { formData, updateFormData } = useOnboarding()
   const { token, isAuthenticated, isLoading: authLoading } = useAuth()
   const router = useRouter()
   const [editingPromptIndex, setEditingPromptIndex] = useState<number | null>(null)
@@ -24,27 +23,67 @@ export default function PromptSelection() {
   const [showPricingDialog, setShowPricingDialog] = useState(false)
   const [newVisibilityPrompt, setNewVisibilityPrompt] = useState("")
   const [error, setError] = useState<string | null>(null)
+  
+  // Get form data from localStorage
+  const formData = getOnboardingData()
 
   // Count selected items for plan impact
-  const selectedVisibilityCount = formData.visibilityPrompts?.filter((p) => p.selected).length || 0
-  const selectedPerceptionCount = formData.perceptionPrompts?.filter((p) => p.selected).length || 0
+  const visibilityPrompts = formData.prompts?.visibilityPrompts || []
+  const perceptionPrompts = formData.prompts?.perceptionPrompts || []
+  const selectedVisibilityCount = visibilityPrompts.filter((p: any) => p.selected).length
+  const selectedPerceptionCount = perceptionPrompts.filter((p: any) => p.selected).length
 
   // Generate prompts when component loads
   useEffect(() => {
     const generatePromptsForBrand = async () => {
-      if (!token || authLoading || !formData.brandName || !formData.website) {
+      // Get latest data from localStorage
+      const currentData = getOnboardingData();
+      
+      // Get data from the nested structure
+      const brandName = currentData.project?.brandName;
+      const website = currentData.project?.website;
+      const industry = currentData.project?.industry;
+      
+      console.log('generatePromptsForBrand effect triggered', {
+        token: !!token,
+        authLoading,
+        brandName,
+        website,
+        industry,
+        projectData: currentData.project,
+        brandData: currentData.brand,
+        fullData: currentData
+      });
+      
+      if (!token || authLoading || !brandName || !website) {
+        console.log('Skipping prompt generation due to missing data:', {
+          hasToken: !!token,
+          authLoading,
+          hasBrandName: !!brandName,
+          hasWebsite: !!website
+        });
+        
+        // If just missing auth token, we'll retry when it's available
+        if (!token && !authLoading) {
+          setIsLoading(false);
+        }
         return
       }
 
       // Create a unique cache key based on brand data
-      const cacheKey = `prompts-${formData.brandName}-${formData.website}-${formData.industry}`;
+      const cacheKey = `prompts-${brandName}-${website}-${industry}`;
       
       try {
         setIsLoading(true)
         setError(null)
 
-        // Check if we already have prompts in formData (from navigation)
-        if (formData.visibilityPrompts?.length > 0 && formData.perceptionPrompts?.length > 0) {
+        // Check if we already have prompts
+        const existingVisibilityPrompts = currentData.prompts?.visibilityPrompts;
+        const existingPerceptionPrompts = currentData.prompts?.perceptionPrompts;
+        
+        if (existingVisibilityPrompts && existingPerceptionPrompts && 
+            existingVisibilityPrompts.length > 0 && existingPerceptionPrompts.length > 0) {
+          console.log('Using existing prompts from localData');
           setIsLoading(false)
           return
         }
@@ -58,11 +97,14 @@ export default function PromptSelection() {
             const cacheAge = Date.now() - cached.timestamp
             const maxAge = 24 * 60 * 60 * 1000 // 24 hours
             
-            if (cacheAge < maxAge) {
-              // Use cached prompts
-              updateFormData({
-                visibilityPrompts: cached.visibilityPrompts,
-                perceptionPrompts: cached.perceptionPrompts
+            if (cacheAge < maxAge && cached.visibilityPrompts?.length > 0 && cached.perceptionPrompts?.length > 0) {
+              // Use cached prompts only if they exist and are not empty
+              updateOnboardingData({
+                prompts: {
+                  ...currentData.prompts,
+                  visibilityPrompts: cached.visibilityPrompts,
+                  perceptionPrompts: cached.perceptionPrompts
+                }
               })
               setIsLoading(false)
               return
@@ -74,19 +116,50 @@ export default function PromptSelection() {
         }
 
         // Build the request from analyzed data or form data
+        // Get attributes
+        const keyBrandAttributes = currentData.brand?.analyzedData?.keyBrandAttributes || 
+                                  currentData.brand?.attributes || 
+                                  [];
+        
+        // Get competitors and ensure they're strings
+        const competitorsList = currentData.brand?.analyzedData?.competitors || 
+                               currentData.brand?.competitors || 
+                               [];
+        
+        // Convert competitor objects to strings if needed
+        const competitors = competitorsList.map((c: any) => {
+          if (typeof c === 'string') return c;
+          if (c.selected && c.name) return c.name;
+          if (c.name) return c.name;
+          return null;
+        }).filter((c: string | null): c is string => c !== null);
+        
         const request: GeneratePromptsRequest = {
-          brandName: formData.brandName,
-          website: formData.website,
-          industry: formData.industry,
-          market: formData.markets?.[0]?.country || 'United States',
-          language: formData.markets?.[0]?.languages?.[0] || 'English',
-          keyBrandAttributes: formData.analyzedData?.keyBrandAttributes || formData.attributes,
-          competitors: formData.analyzedData?.competitors || formData.competitors?.filter(c => c.selected).map(c => c.name) || [],
-          shortDescription: formData.description,
-          fullDescription: formData.analyzedData?.fullDescription || formData.description
+          brandName: brandName,
+          website: website,
+          industry: industry || '',
+          market: currentData.brand?.markets?.[0]?.country || 'United States',
+          language: currentData.brand?.markets?.[0]?.languages?.[0] || 'English',
+          keyBrandAttributes: keyBrandAttributes,
+          competitors: competitors,
+          shortDescription: currentData.project?.description || '',
+          fullDescription: currentData.brand?.analyzedData?.fullDescription || 
+                          currentData.project?.description || ''
         }
 
+        console.log('Generating prompts with request:', JSON.stringify(request, null, 2))
+        console.log('Request details:', {
+          hasKeyBrandAttributes: request.keyBrandAttributes.length > 0,
+          keyBrandAttributesCount: request.keyBrandAttributes.length,
+          keyBrandAttributesList: request.keyBrandAttributes,
+          hasCompetitors: request.competitors.length > 0,
+          competitorsCount: request.competitors.length,
+          competitorsList: request.competitors
+        })
+        console.log('Token being used:', token)
+        
         const response = await generatePrompts(request, token)
+        console.log('Generated prompts response:', response)
 
         // Map backend response to frontend format
         const visibilityPrompts = [
@@ -106,9 +179,12 @@ export default function PromptSelection() {
         localStorage.setItem(cacheKey, JSON.stringify(cacheData))
 
         // Update form data with generated prompts
-        updateFormData({
-          visibilityPrompts,
-          perceptionPrompts
+        updateOnboardingData({
+          prompts: {
+            ...currentData.prompts,
+            visibilityPrompts,
+            perceptionPrompts
+          }
         })
       } catch (err) {
         console.error('Error generating prompts:', err)
@@ -119,20 +195,30 @@ export default function PromptSelection() {
     }
 
     generatePromptsForBrand()
-  }, [token, authLoading, formData.brandName, formData.website])
+  }, [token, authLoading])
 
   // Toggle visibility prompt selection
   const toggleVisibilityPrompt = (index: number) => {
-    const updatedPrompts = [...formData.visibilityPrompts]
+    const updatedPrompts = [...visibilityPrompts]
     updatedPrompts[index].selected = !updatedPrompts[index].selected
-    updateFormData({ visibilityPrompts: updatedPrompts })
+    updateOnboardingData({ 
+      prompts: {
+        ...formData.prompts,
+        visibilityPrompts: updatedPrompts 
+      }
+    })
   }
 
   // Toggle perception prompt selection
   const togglePerceptionPrompt = (index: number) => {
-    const updatedPrompts = [...formData.perceptionPrompts]
+    const updatedPrompts = [...perceptionPrompts]
     updatedPrompts[index].selected = !updatedPrompts[index].selected
-    updateFormData({ perceptionPrompts: updatedPrompts })
+    updateOnboardingData({ 
+      prompts: {
+        ...formData.prompts,
+        perceptionPrompts: updatedPrompts 
+      }
+    })
   }
 
   // Start editing a prompt
@@ -141,22 +227,32 @@ export default function PromptSelection() {
     setEditingPromptIndex(index)
 
     if (type === "visibility") {
-      setEditingPromptValue(formData.visibilityPrompts[index].text)
+      setEditingPromptValue(visibilityPrompts[index]?.text || "")
     } else if (type === "perception") {
-      setEditingPromptValue(formData.perceptionPrompts[index].text)
+      setEditingPromptValue(perceptionPrompts[index]?.text || "")
     }
   }
 
   // Save edited prompt
   const saveEditedPrompt = () => {
     if (editingPromptType === "visibility" && editingPromptIndex !== null) {
-      const updatedPrompts = [...formData.visibilityPrompts]
+      const updatedPrompts = [...visibilityPrompts]
       updatedPrompts[editingPromptIndex].text = editingPromptValue
-      updateFormData({ visibilityPrompts: updatedPrompts })
+      updateOnboardingData({ 
+        prompts: {
+          ...formData.prompts,
+          visibilityPrompts: updatedPrompts 
+        }
+      })
     } else if (editingPromptType === "perception" && editingPromptIndex !== null) {
-      const updatedPrompts = [...formData.perceptionPrompts]
+      const updatedPrompts = [...perceptionPrompts]
       updatedPrompts[editingPromptIndex].text = editingPromptValue
-      updateFormData({ perceptionPrompts: updatedPrompts })
+      updateOnboardingData({ 
+        prompts: {
+          ...formData.prompts,
+          perceptionPrompts: updatedPrompts 
+        }
+      })
     }
 
     setEditingPromptIndex(null)
@@ -176,12 +272,17 @@ export default function PromptSelection() {
   const addVisibilityPrompt = () => {
     if (newVisibilityPrompt.trim() === "") return
 
-    const updatedPrompts = [...formData.visibilityPrompts]
+    const updatedPrompts = [...visibilityPrompts]
     updatedPrompts.push({
       text: newVisibilityPrompt,
       selected: true,
     })
-    updateFormData({ visibilityPrompts: updatedPrompts })
+    updateOnboardingData({ 
+      prompts: {
+        ...formData.prompts,
+        visibilityPrompts: updatedPrompts 
+      }
+    })
     setNewVisibilityPrompt("")
   }
 
@@ -234,8 +335,17 @@ export default function PromptSelection() {
     )
   }
 
-  // Show missing brand data state
-  if (!formData.brandName || !formData.website) {
+  // Show missing brand data state - check both old and new structure
+  const brandName = formData.project?.brandName;
+  const website = formData.project?.website;
+  
+  console.log('Checking for missing brand data:', {
+    brandName,
+    website,
+    projectData: formData.project
+  });
+  
+  if (!brandName || !website) {
     return (
       <div className="flex flex-col items-center justify-center py-20 animate-fade-in">
         <div className="w-16 h-16 mb-8 flex items-center justify-center bg-yellow-100 rounded-full">
@@ -276,7 +386,7 @@ export default function PromptSelection() {
                 <h2 className="text-lg font-semibold group-hover:text-accent-700 transition-colors">
                   Spontaneous Visibility Prompts
                 </h2>
-                <Badge className="ml-2 bg-accent-100 text-accent-700">{selectedVisibilityCount}/20 max</Badge>
+                <Badge className="ml-2 bg-accent-100 text-accent-700">{selectedVisibilityCount}/{visibilityPrompts.length} max</Badge>
               </div>
               <p className="text-sm text-gray-500 text-left">
                 These prompts test if your brand gets visibility in your market
@@ -285,7 +395,12 @@ export default function PromptSelection() {
           </AccordionTrigger>
           <AccordionContent className="px-6 py-4 bg-gray-50">
             <div className="space-y-3">
-              {formData.visibilityPrompts.map((prompt, index) => (
+              {visibilityPrompts.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <p>Generating visibility prompts...</p>
+                </div>
+              ) : (
+                visibilityPrompts.map((prompt: any, index: number) => (
                 <Card
                   key={index}
                   className={`border ${prompt.selected ? "border-accent-300 bg-white shadow-sm" : "border-gray-200 bg-white"} transition-all hover:shadow-sm`}
@@ -327,7 +442,8 @@ export default function PromptSelection() {
                     )}
                   </CardContent>
                 </Card>
-              ))}
+              ))
+              )}
             </div>
             {/* Add new visibility prompt */}
             <div className="mt-4 pt-4 border-t border-gray-200">
@@ -384,7 +500,7 @@ export default function PromptSelection() {
                   Direct Perception Prompts
                 </h2>
                 <Badge className="ml-2 bg-accent-100 text-accent-700">
-                  {selectedPerceptionCount}/{formData.perceptionPrompts.length}
+                  {selectedPerceptionCount}/{perceptionPrompts.length}
                 </Badge>
               </div>
               <p className="text-sm text-gray-500 text-left">
@@ -394,7 +510,12 @@ export default function PromptSelection() {
           </AccordionTrigger>
           <AccordionContent className="px-6 py-4 bg-gray-50">
             <div className="space-y-3">
-              {formData.perceptionPrompts.map((prompt, index) => (
+              {perceptionPrompts.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <p>Generating perception prompts...</p>
+                </div>
+              ) : (
+                perceptionPrompts.map((prompt: any, index: number) => (
                 <Card
                   key={index}
                   className={`border ${prompt.selected ? "border-accent-300 bg-white shadow-sm" : "border-gray-200 bg-white"} transition-all hover:shadow-sm`}
@@ -424,7 +545,7 @@ export default function PromptSelection() {
                           onClick={() => startEditingPrompt("perception", index)}
                         >
                           <p className="text-sm hover:text-accent-700 transition-colors">
-                            {prompt.text.replace("[Brand]", formData.brandName || "Your brand")}
+                            {prompt.text.replace("[Brand]", brandName || "Your brand")}
                           </p>
                           <div className="relative group mt-1">
                             <Info className="h-4 w-4 text-gray-400" />
@@ -444,7 +565,8 @@ export default function PromptSelection() {
                     )}
                   </CardContent>
                 </Card>
-              ))}
+              ))
+              )}
             </div>
           </AccordionContent>
         </AccordionItem>
