@@ -5,23 +5,22 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LineChart, Loader2 } from "lucide-react";
-import type { FormData } from "./types";
+import { getOnboardingData, updateOnboardingData } from "@/lib/onboarding-storage";
 
 interface ProjectInfoFieldsProps {
-  formData: FormData;
-  updateFormData: (data: Partial<FormData>) => void;
   isLoading: boolean;
   isScraped: boolean;
   hasError?: boolean;
 }
 
 export function ProjectInfoFields({
-  formData,
-  updateFormData,
   isLoading,
   isScraped,
   hasError,
 }: ProjectInfoFieldsProps) {
+  // Get form data from localStorage
+  const formData = getOnboardingData();
+  const project = formData.project || {};
   if (!isLoading && !isScraped && !hasError) return null;
 
   return (
@@ -70,8 +69,16 @@ export function ProjectInfoFields({
             id="brandName"
             placeholder="Brand name"
             className="h-10 input-focus"
-            value={formData.brandName}
-            onChange={(e) => updateFormData({ brandName: e.target.value })}
+            value={project.brandName || ""}
+            onChange={(e) => {
+              // Update localStorage directly
+              updateOnboardingData({
+                project: {
+                  ...project,
+                  brandName: e.target.value,
+                }
+              });
+            }}
           />
         </div>
 
@@ -86,8 +93,16 @@ export function ProjectInfoFields({
             id="description"
             placeholder="Describe your project in a few sentences"
             className="min-h-[80px] resize-none input-focus"
-            value={formData.description}
-            onChange={(e) => updateFormData({ description: e.target.value })}
+            value={project.description || ""}
+            onChange={(e) => {
+              // Update localStorage directly
+              updateOnboardingData({
+                project: {
+                  ...project,
+                  description: e.target.value,
+                }
+              });
+            }}
           />
         </div>
 
@@ -102,8 +117,16 @@ export function ProjectInfoFields({
             id="industry"
             placeholder="HR tech, Fintech, CRM..."
             className="h-10 input-focus"
-            value={formData.industry}
-            onChange={(e) => updateFormData({ industry: e.target.value })}
+            value={project.industry || ""}
+            onChange={(e) => {
+              // Update localStorage directly
+              updateOnboardingData({
+                project: {
+                  ...project,
+                  industry: e.target.value,
+                }
+              });
+            }}
           />
         </div>
       </CardContent>

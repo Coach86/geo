@@ -1,115 +1,162 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useOnboarding } from "@/providers/onboarding-provider"
+import { getOnboardingData, updateOnboardingData } from "@/lib/onboarding-storage"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { X, Plus, Check, Users, Tag } from "lucide-react"
 
 export default function BrandIdentity() {
-  const { formData, updateFormData } = useOnboarding()
   const [attributeInput, setAttributeInput] = useState("")
   const [competitorInput, setCompetitorInput] = useState("")
   const [editableValues, setEditableValues] = useState<{ [key: string]: string }>({})
   const [editingStates, setEditingStates] = useState<{ [key: string]: boolean }>({})
-
+  const [hasAutoPopulated, setHasAutoPopulated] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0) // Force re-render after localStorage updates
+  
+  // Get form data from localStorage
+  const formData = getOnboardingData()
+  
   // Get analyzed data from the identity card
-  const analyzedAttributes = formData.analyzedData?.keyBrandAttributes || []
-  const analyzedCompetitors = formData.analyzedData?.competitors || []
+  const analyzedAttributes = formData.brand?.analyzedData?.keyBrandAttributes || []
+  const analyzedCompetitors = formData.brand?.analyzedData?.competitors || []
+  // Get current attributes and competitors
+  const attributes = formData.brand?.attributes || []
+  const competitors = formData.brand?.competitors || []
   
   // Debug logging
   console.log('Brand Identity - FormData:', formData)
   console.log('Brand Identity - Analyzed Attributes:', analyzedAttributes)
   console.log('Brand Identity - Analyzed Competitors:', analyzedCompetitors)
+  console.log('Brand Identity - Current Attributes:', attributes)
+  console.log('Brand Identity - Current Competitors:', competitors)
+  console.log('Brand Identity - Has Auto Populated:', hasAutoPopulated)
   
   // Auto-populate attributes and competitors from analysis on initial load
   useEffect(() => {
+    console.log('[BrandIdentity useEffect] Running auto-populate check')
+    console.log('[BrandIdentity useEffect] attributes:', attributes)
+    console.log('[BrandIdentity useEffect] competitors:', competitors)
+    console.log('[BrandIdentity useEffect] analyzedAttributes:', analyzedAttributes)
+    console.log('[BrandIdentity useEffect] analyzedCompetitors:', analyzedCompetitors)
+    
+    // Only auto-populate once
+    if (hasAutoPopulated) {
+      console.log('[BrandIdentity useEffect] Already auto-populated, skipping')
+      return
+    }
+    
     // Check if we have analyzed data and haven't already populated from it
     const hasAnalyzedData = analyzedAttributes.length > 0 || analyzedCompetitors.length > 0
-    const hasDefaultCompetitors = formData.competitors.some(comp => comp.name.startsWith('Competitor '))
+    const hasNoCompetitors = competitors.length === 0
     
-    if (hasAnalyzedData && (formData.attributes.length === 0 || hasDefaultCompetitors)) {
+    // IMPORTANT: Only populate if we truly have EMPTY arrays, not if user has modified them
+    if (hasAnalyzedData && (attributes.length === 0 || hasNoCompetitors)) {
       const updates: any = {}
       
-      // Populate attributes from analysis
-      if (analyzedAttributes.length > 0 && formData.attributes.length === 0) {
+      // Populate attributes from analysis ONLY if completely empty
+      if (analyzedAttributes.length > 0 && attributes.length === 0) {
         const attributesToAdd = analyzedAttributes.slice(0, 5) // Max 5 attributes
         updates.attributes = attributesToAdd
+        console.log('[BrandIdentity useEffect] Will populate attributes:', attributesToAdd)
       }
       
-      // Populate competitors from analysis (replace default ones)
-      if (analyzedCompetitors.length > 0 && hasDefaultCompetitors) {
+      // Populate competitors from analysis ONLY if completely empty
+      if (analyzedCompetitors.length > 0 && hasNoCompetitors) {
         const competitorsToAdd = analyzedCompetitors.slice(0, 5).map((competitor, index) => ({
           name: competitor,
           selected: index < 5, // Select first 5
         }))
         updates.competitors = competitorsToAdd
+        console.log('[BrandIdentity useEffect] Will populate competitors:', competitorsToAdd)
       }
       
       if (Object.keys(updates).length > 0) {
-        console.log('Populating from analyzed data:', updates)
-        updateFormData(updates)
+        console.log('[BrandIdentity useEffect] Populating from analyzed data:', updates)
+        // Update localStorage directly
+        updateOnboardingData({
+          brand: {
+            ...formData.brand,
+            ...updates
+          }
+        })
+        setHasAutoPopulated(true)
+      } else {
+        console.log('[BrandIdentity useEffect] No updates needed, user has already modified data')
       }
+    } else {
+      console.log('[BrandIdentity useEffect] Skipping auto-populate - either no analyzed data or user has data')
     }
-  }, [analyzedAttributes.length, analyzedCompetitors.length, formData.attributes.length, formData.competitors])
+  }, [analyzedAttributes.length, analyzedCompetitors.length, attributes.length, competitors.length, hasAutoPopulated, refreshKey])
 
-  // Fallback suggested attributes if no analysis data available
-  const suggestedAttributes = [
-    "Innovative and forward-thinking",
-    "Reliable and trustworthy",
-    "Secure and privacy-focused",
-    "User-friendly and accessible",
-    "Affordable without compromising quality",
-    "Premium and high-end positioning",
-    "Sustainable and environmentally conscious",
-    "Efficient and performance-oriented",
-    "Scalable for growing businesses",
-    "Customizable to specific needs",
-  ].filter((attr) => !formData.attributes.includes(attr))
-
-  // Combine analyzed attributes with suggestions for display
-  const displayAttributes = [
-    ...analyzedAttributes.filter((attr) => !formData.attributes.includes(attr)),
-    ...suggestedAttributes
-  ].slice(0, 5 - formData.attributes.length)
+  // Only show analyzed attributes as suggestions (no hardcoded defaults)
+  const displayAttributes = analyzedAttributes
+    .filter((attr: string) => !attributes.includes(attr))
+    .slice(0, 5 - attributes.length)
 
   // Handle adding a new attribute
   const handleAddAttribute = (attribute: string) => {
-    if (attribute.trim() && !formData.attributes.includes(attribute.trim()) && formData.attributes.length < 5) {
-      updateFormData({
-        attributes: [...formData.attributes, attribute.trim()],
+    if (attribute.trim() && !attributes.includes(attribute.trim()) && attributes.length < 5) {
+      const newAttributes = [...attributes, attribute.trim()]
+      console.log('Brand Identity - Adding attribute:', attribute.trim())
+      console.log('Brand Identity - New attributes list:', newAttributes)
+      // Update localStorage directly
+      updateOnboardingData({
+        brand: {
+          ...formData.brand,
+          attributes: newAttributes,
+        }
       })
       setAttributeInput("")
+      // Force component to re-render with fresh data from localStorage
+      setRefreshKey(prev => prev + 1)
     }
   }
 
   // Handle removing an attribute
   const handleRemoveAttribute = (attribute: string) => {
-    updateFormData({
-      attributes: formData.attributes.filter((attr) => attr !== attribute),
+    const newAttributes = attributes.filter((attr: string) => attr !== attribute)
+    console.log('Brand Identity - Removing attribute:', attribute)
+    console.log('Brand Identity - New attributes list:', newAttributes)
+    // Update localStorage directly
+    updateOnboardingData({
+      brand: {
+        ...formData.brand,
+        attributes: newAttributes,
+      }
     })
+    // Force component to re-render with fresh data from localStorage
+    setRefreshKey(prev => prev + 1)
   }
 
   // Handle adding a new competitor
   const handleAddCompetitor = (competitor: string) => {
-    const selectedCount = formData.competitors.filter((comp) => comp.selected).length
+    const selectedCount = competitors.filter((comp: any) => comp.selected).length
 
-    if (competitor.trim() && !formData.competitors.some((c) => c.name === competitor.trim())) {
+    if (competitor.trim() && !competitors.some((c: any) => c.name === competitor.trim())) {
       // Si on a déjà 5 compétiteurs sélectionnés, on ajoute le nouveau mais non sélectionné
       const isSelected = selectedCount < 5
-
-      updateFormData({
-        competitors: [...formData.competitors, { name: competitor.trim(), selected: isSelected }],
+      const newCompetitors = [...competitors, { name: competitor.trim(), selected: isSelected }]
+      console.log('Brand Identity - Adding competitor:', competitor.trim())
+      console.log('Brand Identity - New competitors list:', newCompetitors)
+      // Update localStorage directly
+      updateOnboardingData({
+        brand: {
+          ...formData.brand,
+          competitors: newCompetitors,
+        }
       })
       setCompetitorInput("")
+      // Force component to re-render with fresh data from localStorage
+      setRefreshKey(prev => prev + 1)
     }
   }
 
   // Handle toggling a competitor
   const handleToggleCompetitor = (index: number) => {
-    const updatedCompetitors = [...formData.competitors]
-    const selectedCount = updatedCompetitors.filter((comp) => comp.selected).length
+    const updatedCompetitors = [...competitors]
+    const selectedCount = updatedCompetitors.filter((comp: any) => comp.selected).length
 
     // Si on essaie de sélectionner un compétiteur et qu'on a déjà 5 sélectionnés, on ne fait rien
     if (!updatedCompetitors[index].selected && selectedCount >= 5) {
@@ -117,7 +164,17 @@ export default function BrandIdentity() {
     }
 
     updatedCompetitors[index].selected = !updatedCompetitors[index].selected
-    updateFormData({ competitors: updatedCompetitors })
+    console.log('Brand Identity - Toggling competitor:', updatedCompetitors[index].name)
+    console.log('Brand Identity - Updated competitors:', updatedCompetitors)
+    // Update localStorage directly
+    updateOnboardingData({
+      brand: {
+        ...formData.brand,
+        competitors: updatedCompetitors,
+      }
+    })
+    // Force component to re-render with fresh data from localStorage
+    setRefreshKey(prev => prev + 1)
   }
 
   const handleEditAttribute = (attribute: string) => {
@@ -127,11 +184,55 @@ export default function BrandIdentity() {
 
   const handleCancelEdit = (attribute: string) => {
     setEditingStates((prev) => ({ ...prev, [attribute]: false }))
+    // Reset the editable value to the original
+    setEditableValues((prev) => {
+      const newValues = { ...prev }
+      delete newValues[attribute]
+      return newValues
+    })
   }
 
   const handleConfirmEdit = (originalAttribute: string, newAttributeValue: string) => {
-    handleAddAttribute(newAttributeValue)
+    // If the value hasn't changed, just exit edit mode
+    if (originalAttribute === newAttributeValue.trim()) {
+      setEditingStates((prev) => ({ ...prev, [originalAttribute]: false }))
+      return
+    }
+    
+    // Check if the new attribute already exists
+    if (attributes.includes(newAttributeValue.trim()) && originalAttribute !== newAttributeValue.trim()) {
+      console.log('Brand Identity - Attribute already exists:', newAttributeValue.trim())
+      return
+    }
+    
+    // Replace the original attribute with the new one
+    const updatedAttributes = attributes.map((attr: string) => 
+      attr === originalAttribute ? newAttributeValue.trim() : attr
+    )
+    
+    console.log('Brand Identity - Editing attribute from:', originalAttribute, 'to:', newAttributeValue.trim())
+    console.log('Brand Identity - Updated attributes:', updatedAttributes)
+    
+    console.log('[BrandIdentity] About to update localStorage with attributes:', updatedAttributes);
+    // Update localStorage directly
+    updateOnboardingData({
+      brand: {
+        ...formData.brand,
+        attributes: updatedAttributes,
+      }
+    })
+    console.log('[BrandIdentity] localStorage updated successfully');
+    
     setEditingStates((prev) => ({ ...prev, [originalAttribute]: false }))
+    // Clear the editable value for this attribute
+    setEditableValues((prev) => {
+      const newValues = { ...prev }
+      delete newValues[originalAttribute]
+      return newValues
+    })
+    
+    // Force component to re-render with fresh data from localStorage
+    setRefreshKey(prev => prev + 1)
   }
 
   const handleEditableValueChange = (attribute: string, value: string) => {
@@ -155,7 +256,7 @@ export default function BrandIdentity() {
             <div className="flex items-center gap-2 mb-2">
               <Tag className="h-5 w-5 text-accent-600" />
               <h2 className="text-xl font-semibold text-mono-900">Brand Attributes</h2>
-              <Badge className="bg-accent-100 text-accent-700 ml-2">{formData.attributes.length}/5</Badge>
+              <Badge className="bg-accent-100 text-accent-700 ml-2">{attributes.length}/5</Badge>
               {analyzedAttributes.length > 0 && (
                 <Badge className="bg-secondary-100 text-secondary-700 ml-1">
                   AI Analyzed
@@ -183,19 +284,19 @@ export default function BrandIdentity() {
                     }
                   }}
                   className="pr-10 input-focus"
-                  disabled={formData.attributes.length >= 5}
+                  disabled={attributes.length >= 5}
                 />
                 {attributeInput && (
                   <button
                     onClick={() => handleAddAttribute(attributeInput)}
                     className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                    disabled={formData.attributes.length >= 5}
+                    disabled={attributes.length >= 5}
                   >
                     <Plus className="h-5 w-5" />
                   </button>
                 )}
               </div>
-              {formData.attributes.length >= 5 && (
+              {attributes.length >= 5 && (
                 <p className="text-xs text-amber-600 mt-1">
                   You have reached the maximum of 5 attributes. Remove one to add a new one.
                 </p>
@@ -204,9 +305,9 @@ export default function BrandIdentity() {
 
             {/* Liste d'attributs avec le nouveau style UX */}
             <div className="space-y-3">
-              {[...formData.attributes, ...displayAttributes].map(
+              {[...attributes, ...displayAttributes].map(
                 (attribute, index) => {
-                  const isSelected = formData.attributes.includes(attribute)
+                  const isSelected = attributes.includes(attribute)
                   const isEditing = editingStates[attribute] || false
                   const editableValue = editableValues[attribute] || attribute
 
@@ -249,9 +350,14 @@ export default function BrandIdentity() {
                     <div
                       key={index}
                       className="flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:border-accent-200 transition-colors"
-                      onClick={() => handleEditAttribute(attribute)}
+                      onClick={() => {
+                        // Only allow editing for already selected attributes
+                        if (isSelected) {
+                          handleEditAttribute(attribute)
+                        }
+                      }}
                     >
-                      <span className="text-sm text-mono-800 cursor-pointer">{attribute}</span>
+                      <span className={`text-sm text-mono-800 ${isSelected ? 'cursor-pointer' : ''}`}>{attribute}</span>
                       <div className="relative inline-block w-10 h-6 transition duration-200 ease-in-out">
                         <input
                           type="checkbox"
@@ -297,7 +403,7 @@ export default function BrandIdentity() {
               <Users className="h-5 w-5 text-accent-600" />
               <h2 className="text-xl font-semibold text-mono-900">Competitor Selection</h2>
               <Badge className="bg-accent-100 text-accent-700 ml-2">
-                {formData.competitors.filter((comp) => comp.selected).length}/5
+                {competitors.filter((comp: any) => comp.selected).length}/5
               </Badge>
               {analyzedCompetitors.length > 0 && (
                 <Badge className="bg-secondary-100 text-secondary-700 ml-1">
@@ -326,7 +432,7 @@ export default function BrandIdentity() {
                   }}
                   className="pr-10 input-focus"
                   disabled={
-                    formData.competitors.filter((comp) => comp.selected).length >= 5 && competitorInput.trim() === ""
+                    competitors.filter((comp: any) => comp.selected).length >= 5 && competitorInput.trim() === ""
                   }
                 />
                 {competitorInput && (
@@ -338,7 +444,7 @@ export default function BrandIdentity() {
                   </button>
                 )}
               </div>
-              {formData.competitors.filter((comp) => comp.selected).length >= 5 && (
+              {competitors.filter((comp: any) => comp.selected).length >= 5 && (
                 <p className="text-xs text-amber-600 mt-1">
                   You have reached the maximum of 5 competitors. Deselect one to add a new one.
                 </p>
@@ -347,7 +453,7 @@ export default function BrandIdentity() {
 
             {/* Competitor cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {formData.competitors.map((competitor, index) => (
+              {competitors.map((competitor: any, index: number) => (
                 <Card
                   key={index}
                   className={`border ${

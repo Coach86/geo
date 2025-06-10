@@ -40,11 +40,11 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
     path: "/onboarding",
     canNavigate: (formData) => {
       return !!(
-        formData.website &&
-        formData.brandName &&
-        formData.description &&
-        formData.industry &&
-        formData.analyzedData // Ensure website has been analyzed
+        formData.project?.website &&
+        formData.project?.brandName &&
+        formData.project?.description &&
+        formData.project?.industry &&
+        formData.brand?.analyzedData // Ensure website has been analyzed
       );
     },
   },
@@ -56,10 +56,10 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
     path: "/onboarding",
     canNavigate: (formData) => {
       return !!(
-        formData.markets &&
-        formData.markets.length > 0 &&
-        formData.analyzedData?.keyBrandAttributes?.length > 0 &&
-        formData.analyzedData?.competitors?.length > 0
+        formData.brand?.markets &&
+        formData.brand?.markets.length > 0 &&
+        formData.brand?.analyzedData?.keyBrandAttributes?.length > 0 &&
+        formData.brand?.analyzedData?.competitors?.length > 0
       );
     },
   },
@@ -71,8 +71,8 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
     path: "/onboarding",
     canNavigate: (formData) => {
       // Check if at least some prompts are selected in each category
-      const hasVisibilityPrompts = formData.visibilityPrompts?.some((p: any) => p.selected);
-      const hasPerceptionPrompts = formData.perceptionPrompts?.some((p: any) => p.selected);
+      const hasVisibilityPrompts = formData.prompts?.visibilityPrompts?.some((p: any) => p.selected);
+      const hasPerceptionPrompts = formData.prompts?.perceptionPrompts?.some((p: any) => p.selected);
       // Since the form has prefilled prompts, we should allow navigation if we have any selected prompts
       return !!(hasVisibilityPrompts && hasPerceptionPrompts);
     },
@@ -84,7 +84,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
     component: PhoneVerification,
     path: "/onboarding",
     canNavigate: (formData) => {
-      return !!formData.phoneNumber;
+      return !!formData.contact?.phoneNumber;
     },
     nextButtonText: "Get my report",
   },

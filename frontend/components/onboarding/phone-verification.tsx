@@ -3,8 +3,8 @@
 import type React from "react";
 
 import { useState } from "react";
-import { useOnboarding } from "@/providers/onboarding-provider";
 import { useAuth } from "@/providers/auth-provider";
+import { getOnboardingData, updateOnboardingData } from "@/lib/onboarding-storage";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -135,11 +135,13 @@ const countryCodes = [
 ];
 
 export default function PhoneVerification() {
-  const { formData, updateFormData } = useOnboarding();
   const { token, isAuthenticated } = useAuth();
-  const [phoneNumber, setPhoneNumber] = useState(formData.phoneNumber || "");
+  
+  // Get form data from localStorage
+  const formData = getOnboardingData();
+  const [phoneNumber, setPhoneNumber] = useState(formData.contact?.phoneNumber || "");
   const [phoneCountry, setPhoneCountry] = useState(
-    formData.phoneCountry || "US"
+    formData.contact?.phoneCountry || "US"
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -155,13 +157,23 @@ export default function PhoneVerification() {
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatPhoneNumber(e.target.value);
     setPhoneNumber(formatted);
-    updateFormData({ phoneNumber: formatted });
+    updateOnboardingData({ 
+      contact: {
+        ...formData.contact,
+        phoneNumber: formatted 
+      }
+    });
   };
 
   // Gérer le changement de pays
   const handleCountryChange = (value: string) => {
     setPhoneCountry(value);
-    updateFormData({ phoneCountry: value });
+    updateOnboardingData({ 
+      contact: {
+        ...formData.contact,
+        phoneCountry: value 
+      }
+    });
   };
 
   // Obtenir l'indicatif téléphonique du pays sélectionné
@@ -195,9 +207,12 @@ export default function PhoneVerification() {
       toast.success("Phone number saved successfully!");
 
       // Update form data for consistency
-      updateFormData({
-        phoneNumber: phoneNumber,
-        phoneCountry: phoneCountry,
+      updateOnboardingData({
+        contact: {
+          ...formData.contact,
+          phoneNumber: phoneNumber,
+          phoneCountry: phoneCountry,
+        }
       });
     } catch (error) {
       console.error("Phone update error:", error);

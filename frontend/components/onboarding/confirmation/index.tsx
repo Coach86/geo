@@ -4,7 +4,9 @@ import { useState, useEffect } from "react";
 import { useOnboarding } from "@/providers/onboarding-provider";
 import { useAuth } from "@/providers/auth-provider";
 import { useRouter } from "next/navigation";
-import type { FormData } from "@/providers/onboarding-provider";
+import { StepId } from "@/app/onboarding/steps.config";
+import { getOnboardingData, updateOnboardingData } from "@/lib/onboarding-storage";
+import type { FormData } from "@/app/onboarding/types/form-data";
 
 // Import all sub-components
 import { ConfirmationHeader } from "./ConfirmationHeader";
@@ -18,15 +20,11 @@ import { calculateConfigStats, getSelectedItems } from "./utils";
 import { INITIAL_EXPANDED_SECTIONS, STEP_ROUTES } from "./constants";
 import type { NavigationHandlers } from "./types";
 
+// Export sub-components
+export { ModelsReview } from "./ModelsReview";
+
 export default function Confirmation() {
-  const {
-    formData,
-    savedConfigs,
-    addNewConfig,
-    setFormData,
-    setEditingMode,
-    setCurrentStep,
-  } = useOnboarding();
+  const { setCurrentStep } = useOnboarding();
   const { token, isAuthenticated, isLoading: authLoading } = useAuth();
   const router = useRouter();
 
@@ -34,23 +32,15 @@ export default function Confirmation() {
   const [currentConfigIndex, setCurrentConfigIndex] = useState<number>(0);
   const [viewingConfig, setViewingConfig] = useState<boolean>(false);
 
-  // Local copy of configurations
-  const [allConfigs, setAllConfigs] = useState<FormData[]>([]);
-
-  // Update configurations list
-  useEffect(() => {
-    const configs = [
-      formData,
-      ...savedConfigs.filter((config) => config.id !== formData.id),
-    ].filter((config) => config.website);
-    setAllConfigs(configs);
-  }, [formData, savedConfigs]);
+  // Get form data from localStorage
+  const formData = getOnboardingData();
 
   // Currently displayed configuration
-  const displayedConfig =
-    viewingConfig && allConfigs.length > currentConfigIndex
-      ? allConfigs[currentConfigIndex]
-      : formData;
+  const displayedConfig = formData;
+  
+  // Debug logging
+  console.log('Confirmation - FormData:', formData)
+  console.log('Confirmation - Displayed config:', displayedConfig)
 
   // Get submission hook
   const { isGenerating, generationError, handleGenerateReport } = useSubmission({
@@ -60,52 +50,54 @@ export default function Confirmation() {
   });
 
   // Calculate statistics
-  const configStats = calculateConfigStats(allConfigs);
+  const configStats = calculateConfigStats([formData]);
   const selectedItems = getSelectedItems(displayedConfig);
 
   // Navigation handlers
   const handleAddNewUrl = () => {
-    addNewConfig();
+    // Clear onboarding data and start fresh
+    updateOnboardingData({
+      project: {},
+      brand: {},
+      prompts: {},
+      contact: {}
+    });
     router.push("/onboarding");
   };
 
   const viewConfigDetails = (index: number) => {
-    setCurrentConfigIndex(index);
+    // In the new structure, we only have one config
+    console.log('[Confirmation] Viewing config');
     setViewingConfig(true);
   };
 
   const navigateConfig = (direction: "prev" | "next") => {
-    if (direction === "prev" && currentConfigIndex > 0) {
-      setCurrentConfigIndex(currentConfigIndex - 1);
-    } else if (
-      direction === "next" &&
-      currentConfigIndex < allConfigs.length - 1
-    ) {
-      setCurrentConfigIndex(currentConfigIndex + 1);
-    }
+    // No-op in new structure as we only have one config
   };
 
   const navigateToStep = (step: number) => {
-    const selectedConfig = allConfigs[currentConfigIndex];
-    if (selectedConfig) {
-      setFormData({
-        ...selectedConfig,
-        isEditing: true,
-      });
+    console.log('[Confirmation] navigateToStep called, step:', step);
+    
+    // Mark as editing
+    updateOnboardingData({ isEditing: true });
 
-      switch (step) {
-        case 0:
-          router.push(STEP_ROUTES.PROJECT_INFO);
-          break;
-        case 1:
-          router.push(STEP_ROUTES.BRAND_IDENTITY);
-          break;
-        case 2:
-          router.push(STEP_ROUTES.PROMPT_SELECTION);
-          break;
-        default:
-          router.push(STEP_ROUTES.PROJECT_INFO);
-      }
+    // Set the current step in the context before navigating
+    switch (step) {
+      case 0:
+        setCurrentStep(StepId.PROJECT);
+        router.push(STEP_ROUTES.PROJECT_INFO);
+        break;
+      case 1:
+        setCurrentStep(StepId.BRAND);
+        router.push(STEP_ROUTES.BRAND_IDENTITY);
+        break;
+      case 2:
+        setCurrentStep(StepId.PROMPTS);
+        router.push(STEP_ROUTES.PROMPT_SELECTION);
+        break;
+      default:
+        setCurrentStep(StepId.PROJECT);
+        router.push(STEP_ROUTES.PROJECT_INFO);
     }
   };
 
@@ -114,7 +106,9 @@ export default function Confirmation() {
     viewConfigDetails,
     navigateConfig,
     navigateToStep,
-    setEditingMode,
+    setEditingMode: (isEditing: boolean) => {
+      updateOnboardingData({ isEditing });
+    },
   };
 
   return (
@@ -123,23 +117,23 @@ export default function Confirmation() {
 
       <ErrorDisplay
         error={null}
-        showNoConfigWarning={allConfigs.length === 0}
+        showNoConfigWarning={!formData.project?.website}
       />
 
       <WebsiteSelector
-        allConfigs={allConfigs}
-        currentConfigIndex={currentConfigIndex}
+        allConfigs={formData.project?.website ? [formData] : []}
+        currentConfigIndex={0}
         viewingConfig={viewingConfig}
         onAddNewUrl={handleAddNewUrl}
         onSelectConfig={viewConfigDetails}
       />
 
-      {viewingConfig && allConfigs.length > 0 && (
+      {viewingConfig && formData.project?.website && (
         <ConfigurationDetails
           config={displayedConfig}
           selectedItems={selectedItems}
-          currentIndex={currentConfigIndex}
-          totalConfigs={allConfigs.length}
+          currentIndex={0}
+          totalConfigs={1}
           handlers={navigationHandlers}
         />
       )}
@@ -148,13 +142,23 @@ export default function Confirmation() {
 
       <ErrorDisplay error={generationError} />
 
-      {allConfigs.length > 0 && (
+      {formData.project?.website && (
         <GenerateButton
           isGenerating={isGenerating}
           authLoading={authLoading}
           token={token}
           stats={configStats}
-          onGenerate={() => handleGenerateReport(allConfigs)}
+          onGenerate={() => {
+            // Get fresh data from localStorage
+            const freshData = getOnboardingData();
+            
+            console.log('[Confirmation] About to call handleGenerateReport');
+            console.log('[Confirmation] Fresh data from localStorage:', freshData);
+            console.log('[Confirmation] Fresh data attributes:', freshData.brand?.attributes);
+            console.log('[Confirmation] Fresh data analyzedData:', freshData.brand?.analyzedData);
+            
+            handleGenerateReport([freshData]);
+          }}
         />
       )}
     </div>

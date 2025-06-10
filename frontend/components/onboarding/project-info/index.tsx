@@ -1,35 +1,45 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useOnboarding } from "@/providers/onboarding-provider";
 import { useAuth } from "@/providers/auth-provider";
 import { Building } from "lucide-react";
 import { WebsiteAnalyzer } from "./WebsiteAnalyzer";
 import { MarketSelector } from "./MarketSelector";
 import { ProjectInfoFields } from "./ProjectInfoFields";
 import { calculatePlanImpact } from "./utils";
+import { getOnboardingData, updateOnboardingData } from "@/lib/onboarding-storage";
 import type { ProjectInfoProps, PlanType } from "./types";
 
 export default function ProjectInfo(props: ProjectInfoProps) {
-  const { formData, updateFormData } = useOnboarding();
   const { token, isAuthenticated, isLoading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isScraped, setIsScraped] = useState(false);
   const [planImpact, setPlanImpact] = useState<PlanType>("Starter");
   const [showPricingDialog, setShowPricingDialog] = useState(false);
   const [analysisError, setAnalysisError] = useState(false);
+  
+  // Get form data from localStorage
+  const formData = getOnboardingData();
+  const markets = formData.brand?.markets || [];
 
   // Calculate plan impact whenever markets change
   useEffect(() => {
-    setPlanImpact(calculatePlanImpact(formData.markets));
-  }, [formData.markets]);
+    if (markets.length > 0) {
+      setPlanImpact(calculatePlanImpact(markets));
+    }
+  }, [markets]);
 
   const handleAnalysisComplete = () => {
     setIsScraped(true);
   };
 
-  const handleMarketsChange = (markets: typeof formData.markets) => {
-    updateFormData({ markets });
+  const handleMarketsChange = (newMarkets: any[]) => {
+    updateOnboardingData({
+      brand: {
+        ...formData.brand,
+        markets: newMarkets
+      }
+    });
   };
 
   return (
@@ -49,8 +59,6 @@ export default function ProjectInfo(props: ProjectInfoProps) {
       <div className="space-y-8">
         {/* Website Input and Analyzer */}
         <WebsiteAnalyzer
-          formData={formData}
-          updateFormData={updateFormData}
           token={token}
           isAuthenticated={isAuthenticated}
           authLoading={authLoading}
@@ -60,7 +68,7 @@ export default function ProjectInfo(props: ProjectInfoProps) {
 
         {/* Market Selection */}
         <MarketSelector
-          markets={formData.markets}
+          markets={markets}
           onMarketsChange={handleMarketsChange}
           planImpact={planImpact}
           onShowPricingDialog={() => setShowPricingDialog(true)}
@@ -68,8 +76,6 @@ export default function ProjectInfo(props: ProjectInfoProps) {
 
         {/* Project Info Fields */}
         <ProjectInfoFields
-          formData={formData}
-          updateFormData={updateFormData}
           isLoading={isLoading}
           isScraped={isScraped}
           hasError={analysisError}
