@@ -10,9 +10,10 @@ interface SentimentHeatmapProps {
       model: string;
       sentiment: string;
       status: string;
+      llmResponse?: string;
     }[];
   }[];
-  onCellClick?: (model: string, sentiment: string, status: string) => void;
+  onCellClick?: (model: string, sentiment: string, status: string, question: string, llmResponse?: string) => void;
 }
 
 export function SentimentHeatmap({ sentimentHeatmap, onCellClick }: SentimentHeatmapProps) {
@@ -118,7 +119,7 @@ export function SentimentHeatmap({ sentimentHeatmap, onCellClick }: SentimentHea
                             borderLeft: `1px solid ${colors.border}`,
                             borderRight: `1px solid ${colors.border}`,
                           }}
-                          onClick={() => onCellClick?.(result.model, result.sentiment, result.status)}
+                          onClick={() => onCellClick?.(result.model, result.sentiment, result.status, q.question, result.llmResponse)}
                           title={onCellClick ? `Click to view ${result.model} analysis` : undefined}
                         >
                           <div className="font-medium">{sentimentLabel}</div>
