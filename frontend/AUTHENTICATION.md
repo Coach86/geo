@@ -21,7 +21,7 @@ app/
 │   ├── layout.tsx       # Handles auth checks + DashboardLayout
 │   ├── page.tsx         # Main dashboard
 │   ├── settings/
-│   ├── battle/
+│   ├── competition/
 │   ├── sentiment/
 │   └── ... other protected pages
 ├── auth/                # Public auth pages

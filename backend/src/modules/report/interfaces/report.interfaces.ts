@@ -114,11 +114,18 @@ export interface AlignmentData {
   }[];
   detailedResults: {
     model: string;
+    promptIndex?: number;
+    originalPrompt?: string;
+    llmResponse?: string;
     attributeScores: {
       attribute: string;
       score: number;
       evaluation: string;
     }[];
+    usedWebSearch?: boolean;
+    citations?: any[];
+    toolUsage?: any[];
+    error?: string;
   }[];
 }
 

@@ -398,33 +398,75 @@ export class BrandReportOrchestratorService {
     const detailedResults: any[] = [];
 
     accuracyResults.results.forEach(result => {
+      // Process attribute scores for aggregation
+      result.attributeScores?.forEach(attrScore => {
+        if (!attributeScores[attrScore.attribute]) {
+          attributeScores[attrScore.attribute] = [];
+        }
+        attributeScores[attrScore.attribute].push(attrScore.score);
+      });
+
+      // Map the result to the alignment format with all available data
       const modelResult = {
         model: result.llmModel,
-        attributeScores: [] as any[],
+        promptIndex: result.promptIndex,
+        originalPrompt: result.originalPrompt || '',
+        llmResponse: result.llmResponse || '',
+        attributeScores: result.attributeScores || [],
+        usedWebSearch: result.usedWebSearch || false,
+        citations: result.citations || [],
+        toolUsage: result.toolUsage || [],
+        error: result.error || undefined,
       };
 
-      // TODO: Parse accuracy results to extract attribute alignment
-      // This would require analyzing the LLM responses
-      
       detailedResults.push(modelResult);
     });
 
-    // Calculate averages
+    // Calculate averages from processed attribute scores
     const averageAttributeScores: Record<string, number> = {};
     Object.entries(attributeScores).forEach(([attr, scores]) => {
-      averageAttributeScores[attr] = scores.reduce((a, b) => a + b, 0) / scores.length;
+      if (scores.length > 0) {
+        averageAttributeScores[attr] = scores.reduce((a, b) => a + b, 0) / scores.length;
+      }
     });
 
+    // Use processed averages or fall back to summary averages
+    const finalAverageScores = Object.keys(averageAttributeScores).length > 0 
+      ? averageAttributeScores 
+      : accuracyResults.summary.averageAttributeScores || {};
+
     const overallAlignmentScore = Math.round(
-      Object.values(accuracyResults.summary.averageAttributeScores || {})
+      Object.values(finalAverageScores)
         .reduce((sum, score) => sum + score, 0) / 
-      Object.keys(accuracyResults.summary.averageAttributeScores || {}).length * 100 || 0
+      Object.keys(finalAverageScores).length * 100 || 0
     );
+
+    // Create attribute alignment summary
+    const attributeAlignmentSummary = Object.entries(finalAverageScores).map(([attribute, avgScore]) => {
+      const mentionCount = accuracyResults.results.filter(r => 
+        r.attributeScores?.some(s => s.attribute === attribute)
+      ).length;
+      const mentionRate = `${Math.round((mentionCount / accuracyResults.results.length) * 100)}%`;
+      
+      // Convert score to alignment level
+      let alignment = "❌ Low";
+      if (avgScore >= 0.8) {
+        alignment = "✅ High";
+      } else if (avgScore >= 0.6) {
+        alignment = "⚠️ Medium";
+      }
+
+      return {
+        name: attribute,
+        mentionRate,
+        alignment,
+      };
+    });
 
     return {
       overallAlignmentScore,
-      averageAttributeScores,
-      attributeAlignmentSummary: [],
+      averageAttributeScores: finalAverageScores,
+      attributeAlignmentSummary,
       detailedResults,
     };
   }

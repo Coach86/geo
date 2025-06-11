@@ -148,16 +148,28 @@ export function transformAccordToAlignment(
   };
 
   // Transform detailed results with proper type safety
-  const detailedResults: DetailedAlignmentResult[] = results.map(result => ({
-    model: result.model,
-    promptIndex: result.promptIndex,
-    originalPrompt: result.originalPrompt || '',
-    llmResponse: result.llmResponse || '',
-    attributeScores: result.attributeScores || [],
-    citations: result.citations || [],
-    toolUsage: result.toolUsage || [],
-    error: result.error
-  }));
+  const detailedResults: DetailedAlignmentResult[] = results.map(result => {
+    console.log('Transforming alignment result:', {
+      model: result.model,
+      hasOriginalPrompt: !!result.originalPrompt,
+      hasLlmResponse: !!result.llmResponse,
+      hasCitations: !!(result.citations && result.citations.length > 0),
+      hasToolUsage: !!(result.toolUsage && result.toolUsage.length > 0),
+      originalPromptLength: result.originalPrompt?.length || 0,
+      llmResponseLength: result.llmResponse?.length || 0
+    });
+
+    return {
+      model: result.model,
+      promptIndex: result.promptIndex,
+      originalPrompt: result.originalPrompt && result.originalPrompt.trim() ? result.originalPrompt : undefined,
+      llmResponse: result.llmResponse && result.llmResponse.trim() ? result.llmResponse : undefined,
+      attributeScores: result.attributeScores || [],
+      citations: result.citations && result.citations.length > 0 ? result.citations : undefined,
+      toolUsage: result.toolUsage && result.toolUsage.length > 0 ? result.toolUsage : undefined,
+      error: result.error
+    };
+  });
 
   console.log('Transformed alignment results:', {
     overallScore: summary.overallAlignmentScore,

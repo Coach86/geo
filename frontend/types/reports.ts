@@ -40,7 +40,7 @@ export interface Competitor {
   global?: string;
 }
 
-export interface BrandBattleData {
+export interface CompetitionData {
   competitorAnalyses: {
     competitor: string;
     analysisByModel: {
@@ -167,8 +167,8 @@ export interface ReportResponse {
     competitors: Competitor[];
   };
 
-  // Brand Battle section
-  brandBattle: BrandBattleData;
+  // Competition section
+  brandBattle: CompetitionData;
 
   // Trace section
   trace: {
@@ -235,9 +235,9 @@ export interface SentimentProcessedReport extends BaseProcessedReport {
   };
 }
 
-export interface BattleProcessedReport extends BaseProcessedReport {
+export interface CompetitionProcessedReport extends BaseProcessedReport {
   competitors: string[];
-  brandBattle?: BrandBattleData;
+  brandBattle?: CompetitionData;
 }
 
 export interface CitationsProcessedReport extends BaseProcessedReport {

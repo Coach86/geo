@@ -1215,10 +1215,17 @@ export class BatchService {
 
     accuracyResults.results.forEach((result: any) => {
       if (result.attributeScores && Array.isArray(result.attributeScores)) {
-        // Build detailed result
+        // Build detailed result with all available data
         const modelResult = {
           model: result.llmModel,
+          promptIndex: result.promptIndex,
+          originalPrompt: result.originalPrompt || '',
+          llmResponse: result.llmResponse || '',
           attributeScores: result.attributeScores,
+          usedWebSearch: result.usedWebSearch || false,
+          citations: result.citations || [],
+          toolUsage: result.toolUsage || [],
+          error: result.error || undefined,
         };
         detailedResults.push(modelResult);
 

@@ -332,6 +332,17 @@ export default function AttributeScoresByModelTable({
             {selectedCellData && selectedCellData.detailedResults.length > 0 ? (
               (() => {
                 const currentResult = selectedCellData.detailedResults[currentResultIndex];
+                console.log('Drawer - Current result data:', {
+                  model: currentResult.model,
+                  hasOriginalPrompt: !!currentResult.originalPrompt,
+                  hasLlmResponse: !!currentResult.llmResponse,
+                  hasCitations: !!(currentResult.citations && currentResult.citations.length > 0),
+                  hasToolUsage: !!(currentResult.toolUsage && currentResult.toolUsage.length > 0),
+                  originalPromptLength: currentResult.originalPrompt?.length || 0,
+                  llmResponseLength: currentResult.llmResponse?.length || 0,
+                  citationsCount: currentResult.citations?.length || 0,
+                  fullResult: currentResult
+                });
                 return (
                   <div className="space-y-4">
                     <div>
