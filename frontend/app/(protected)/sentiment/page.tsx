@@ -27,6 +27,7 @@ import { useNavigation } from "@/providers/navigation-provider";
 import { useReportData } from "@/hooks/use-report-data";
 import { ProcessingLoader } from "@/components/shared/ProcessingLoader";
 import { getReportSentiment } from "@/lib/api/report";
+import { getModelFriendlyName } from "@/utils/model-utils";
 
 interface ProcessedReport extends ReportResponse {
   reportDate: string;
@@ -214,6 +215,73 @@ export default function SentimentPage() {
     }
   };
 
+  // Helper function to highlight keywords in text
+  const highlightKeywords = (text: string, positiveKeywords: string[], negativeKeywords: string[]) => {
+    if (!text) return text;
+    
+    // Create a map of all keywords with their type for highlighting
+    const keywordMap = new Map<string, 'positive' | 'negative'>();
+    
+    positiveKeywords.forEach(keyword => {
+      if (keyword && keyword.trim()) {
+        keywordMap.set(keyword.toLowerCase().trim(), 'positive');
+      }
+    });
+    
+    negativeKeywords.forEach(keyword => {
+      if (keyword && keyword.trim()) {
+        keywordMap.set(keyword.toLowerCase().trim(), 'negative');
+      }
+    });
+    
+    if (keywordMap.size === 0) return text;
+    
+    // Sort keywords by length (longest first) to avoid partial matches
+    const sortedKeywords = Array.from(keywordMap.keys()).sort((a, b) => b.length - a.length);
+    
+    // Split text into segments and highlight keywords
+    let result = text;
+    const highlightedParts: { text: string; type?: 'positive' | 'negative' }[] = [];
+    
+    // Create a regex pattern that matches any of the keywords (case insensitive)
+    const keywordPattern = sortedKeywords
+      .map(keyword => keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) // Escape regex special chars
+      .join('|');
+    
+    if (keywordPattern) {
+      const regex = new RegExp(`(${keywordPattern})`, 'gi');
+      const parts = result.split(regex);
+      
+      return (
+        <span>
+          {parts.map((part, index) => {
+            const lowerPart = part.toLowerCase().trim();
+            const keywordType = keywordMap.get(lowerPart);
+            
+            if (keywordType) {
+              return (
+                <span
+                  key={index}
+                  className={
+                    keywordType === 'positive'
+                      ? 'bg-accent-100 text-accent-700 px-1 rounded font-medium'
+                      : 'bg-destructive-100 text-destructive-700 px-1 rounded font-medium'
+                  }
+                >
+                  {part}
+                </span>
+              );
+            }
+            
+            return part;
+          })}
+        </span>
+      );
+    }
+    
+    return text;
+  };
+
   const getCellColor = (status: string) => {
     switch (status) {
       case "green":
@@ -377,7 +445,7 @@ export default function SentimentPage() {
           {/* Drawer Header */}
           <div className="px-6 py-4 border-b border-mono-200 flex items-center justify-between">
             <h3 className="text-lg font-semibold text-mono-900">
-              {selectedModel} Analysis
+              {getModelFriendlyName(selectedModel || '')} Analysis
             </h3>
             <Button
               variant="ghost"
@@ -406,7 +474,7 @@ export default function SentimentPage() {
                   <div>
                     <div className="flex items-center justify-between mb-4">
                       <h4 className="font-semibold text-mono-900">
-                        {selectedModel}
+                        {getModelFriendlyName(selectedModel || '')}
                       </h4>
                       <div
                         className="px-3 py-1 rounded-full text-sm font-medium"
@@ -451,12 +519,16 @@ export default function SentimentPage() {
                       {selectedLlmResponse && (
                         <>
                           <div className="text-sm font-medium text-mono-700 mb-2">
-                            {selectedModel} Response:
+                            Response:
                           </div>
                           <div className="bg-mono-50 p-4 rounded-lg border border-mono-200 mb-4 max-h-60 overflow-y-auto">
-                            <p className="text-sm text-mono-800 whitespace-pre-wrap">
-                              {selectedLlmResponse}
-                            </p>
+                            <div className="text-sm text-mono-800 whitespace-pre-wrap">
+                              {highlightKeywords(
+                                selectedLlmResponse,
+                                modelData.positiveKeywords || [],
+                                modelData.negativeKeywords || []
+                              )}
+                            </div>
                           </div>
                         </>
                       )}
@@ -466,7 +538,7 @@ export default function SentimentPage() {
                   {/* Positive Keywords */}
                   <div>
                     <div className="text-sm font-medium text-accent-700 mb-2">
-                      Main positive keywords:
+                      Main positive keywords (across all responses of {getModelFriendlyName(selectedModel || '')}):
                     </div>
                     <div className="bg-accent-50 p-4 rounded-lg border border-accent-200">
                       {modelData.positiveKeywords &&
@@ -489,7 +561,7 @@ export default function SentimentPage() {
                   {/* Negative Keywords */}
                   <div>
                     <div className="text-sm font-medium text-destructive-700 mb-2">
-                      Main negative keywords:
+                      Main negative keywords (across all responses of {getModelFriendlyName(selectedModel || '')}):
                     </div>
                     <div className="bg-destructive-50 p-4 rounded-lg border border-destructive-200">
                       {modelData.negativeKeywords &&
