@@ -9,14 +9,14 @@ import { ModelDisplay } from "@/components/shared/ModelDisplay";
 import { ReportSelector } from "@/components/shared/ReportSelector";
 import { useReportData } from "@/hooks/use-report-data";
 import type { ReportResponse } from "@/types/reports";
-import type { BrandBattleData } from "@/types/brand-battle";
+import type { CompetitionData as CompetitionTypeData } from "@/types/competition";
 import BreadcrumbNav from "@/components/layout/breadcrumb-nav";
 import { useNavigation } from "@/providers/navigation-provider";
 import { ProcessingLoader } from "@/components/shared/ProcessingLoader";
 import { getReportCompetition } from "@/lib/api/report";
 
 interface ProcessedReport extends ReportResponse {
-  brandBattle: BrandBattleData;
+  brandBattle: CompetitionTypeData;
   brandName: string;
   competitors: string[];
   reportDate: string;
@@ -49,7 +49,7 @@ interface CompetitionData {
   commonWeaknesses: string[];
 }
 
-export default function BattlePage() {
+export default function CompetitionPage() {
   const { token } = useAuth();
   const { filteredProjects, selectedProject, setSelectedProject } = useNavigation();
   const {
@@ -70,7 +70,7 @@ export default function BattlePage() {
       createdAt: report.generatedAt,
       brandName: reportData.brand || (report.metadata as any)?.brand || project.brandName,
       competitors: project.competitors || [],
-      brandBattle: reportData.brandBattle || {
+      brandBattle: reportData.competition || reportData.brandBattle || {
         competitorAnalyses: [],
         commonStrengths: [],
         commonWeaknesses: []
@@ -111,7 +111,7 @@ export default function BattlePage() {
   const selectedCompetitors = projectDetails?.competitors || [];
 
   // Get brand battle data (all competitors are included)
-  const getBattleData = (): BrandBattleData | null => {
+  const getBattleData = (): CompetitionTypeData | null => {
     if (!competitionData || !competitionData.competitorAnalyses || competitionData.competitorAnalyses.length === 0)
       return null;
 
@@ -130,7 +130,7 @@ export default function BattlePage() {
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Please select a company from the sidebar to view brand battle
+                Please select a company from the sidebar to view competition
                 analysis.
               </AlertDescription>
             </Alert>
@@ -165,7 +165,7 @@ export default function BattlePage() {
               createdAt: report.generatedAt,
               brandName: reportData.brand || (report.metadata as any)?.brand || projectDetails.brandName,
               competitors: projectDetails.competitors || [],
-              brandBattle: reportData.brandBattle || {
+              brandBattle: reportData.competition || reportData.brandBattle || {
                 competitorAnalyses: [],
                 commonStrengths: [],
                 commonWeaknesses: []
@@ -202,11 +202,11 @@ export default function BattlePage() {
       {/* Report Content */}
       {!loading && !loadingCompetition && selectedReport && competitionData && (
         <div className="space-y-6">
-          {/* Brand Battle Table */}
+          {/* Competition Table */}
           {getBattleData() &&
           getBattleData()!.competitorAnalyses &&
           getBattleData()!.competitorAnalyses.length > 0 ? (
-            <BrandBattleTable
+            <CompetitionTable
               brand={competitionData.brandName || selectedReport.brandName}
               data={getBattleData()!}
             />
@@ -216,7 +216,7 @@ export default function BattlePage() {
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    No brand battle data available for this report.
+                    No competition data available for this report.
                   </AlertDescription>
                 </Alert>
               </CardContent>
@@ -233,13 +233,13 @@ export default function BattlePage() {
   );
 }
 
-// Brand Battle Table Component
-function BrandBattleTable({
+// Competition Table Component
+function CompetitionTable({
   brand,
   data,
 }: {
   brand: string;
-  data: BrandBattleData;
+  data: CompetitionTypeData;
 }) {
   // Get unique list of models across all competitor analyses
   const models = Array.from(

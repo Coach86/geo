@@ -114,11 +114,29 @@ export class BrandReportResponseDto {
     }[];
     detailedResults: {
       model: string;
+      promptIndex?: number;
+      originalPrompt?: string;
+      llmResponse?: string;
       attributeScores: {
         attribute: string;
         score: number;
         evaluation: string;
       }[];
+      toolUsage?: {
+        type: string;
+        parameters?: Record<string, any>;
+        execution_details?: {
+          status: string;
+          result?: any;
+          error?: string;
+        };
+      }[];
+      citations?: {
+        url: string;
+        title?: string;
+        text?: string;
+      }[];
+      error?: string;
     }[];
   };
 

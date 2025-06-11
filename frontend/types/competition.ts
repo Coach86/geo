@@ -1,4 +1,4 @@
-export interface BrandBattleData {
+export interface CompetitionData {
   competitorAnalyses: {
     competitor: string;
     analysisByModel: {

@@ -29,7 +29,7 @@ const insightsMenuItems: SidebarItem[] = [
   { label: "Visibility", icon: Eye, href: "/visibility" },
   { label: "Sentiment", icon: Heart, href: "/sentiment" },
   { label: "Alignment", icon: Shield, href: "/alignment" },
-  { label: "Competition", icon: Swords, href: "/battle" },
+  { label: "Competition", icon: Swords, href: "/competition" },
   { label: "Explorer", icon: Compass, href: "/explorer" },
 ];
 

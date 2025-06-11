@@ -69,6 +69,7 @@ interface CitationsTableProps {
     webSearchQueries?: Array<{ query: string }>;
   }>;
   onExport: () => void;
+  searchQueryFilter?: string;
 }
 
 // Custom filter functions
@@ -117,7 +118,7 @@ const getDomain = (url: string) => {
   }
 };
 
-export function CitationsTable({ citations, onExport }: CitationsTableProps) {
+export function CitationsTable({ citations, onExport, searchQueryFilter }: CitationsTableProps) {
   const [globalFilter, setGlobalFilter] = React.useState("");
 
   // Transform citations data for table with grouping
@@ -515,6 +516,16 @@ export function CitationsTable({ citations, onExport }: CitationsTableProps) {
       },
     },
   });
+
+  // Apply search query filter effect
+  React.useEffect(() => {
+    if (searchQueryFilter) {
+      const searchQueryColumn = table.getColumn("searchQuery");
+      if (searchQueryColumn) {
+        searchQueryColumn.setFilterValue(searchQueryFilter);
+      }
+    }
+  }, [searchQueryFilter, table]);
 
   return (
     <div className="space-y-4">

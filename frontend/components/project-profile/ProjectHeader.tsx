@@ -59,6 +59,24 @@ export function ProjectHeader({
     return languageFlags[language] || "🌐";
   };
 
+  const getLanguageName = (language: string) => {
+    const languageNames: { [key: string]: string } = {
+      en: "English",
+      es: "Spanish",
+      fr: "French",
+      de: "German",
+      it: "Italian",
+      pt: "Portuguese",
+      ja: "Japanese",
+      zh: "Chinese",
+      ko: "Korean",
+      ar: "Arabic",
+      hi: "Hindi",
+      ru: "Russian",
+    };
+    return languageNames[language] || language;
+  };
+
   return (
     <Card className="overflow-hidden border-0 shadow-sm hover:shadow-md transition-shadow duration-300">
       <CardHeader className="bg-gradient-to-r from-gray-50 to-white pb-4">
@@ -102,7 +120,7 @@ export function ProjectHeader({
             >
               <Languages className="mr-1 h-3 w-3" />
               {getLanguageEmoji(project.language || "en")}{" "}
-              {project.language?.toUpperCase() || "EN"}
+              {getLanguageName(project.language || "en")}
             </Badge>
           </div>
         </div>

@@ -30,6 +30,7 @@ import { useReportData } from "@/hooks/use-report-data";
 import BreadcrumbNav from "@/components/layout/breadcrumb-nav";
 import { useNavigation } from "@/providers/navigation-provider";
 import { ProcessingLoader } from "@/components/shared/ProcessingLoader";
+import { toast } from "@/hooks/use-toast";
 
 interface ProcessedReport extends ReportResponse {
   createdAt: string;
@@ -59,6 +60,26 @@ export default function ExplorerPage() {
   const [explorerError, setExplorerError] = useState<string | null>(null);
   const [promptSet, setPromptSet] = useState<PromptSet | null>(null);
   const [expandedSources, setExpandedSources] = useState(false);
+  const [keywordFilter, setKeywordFilter] = useState<string>("");
+  const [filteringKeyword, setFilteringKeyword] = useState<string>("");
+
+  // Handle keyword click with animation
+  const handleKeywordClick = (keyword: string) => {
+    setFilteringKeyword(keyword);
+    
+    // Show toast notification
+    toast({
+      title: "Filter Applied",
+      description: `Filtering citations by "${keyword}"`,
+      duration: 2000,
+    });
+    
+    // Add a small delay for visual feedback
+    setTimeout(() => {
+      setKeywordFilter(keyword);
+      setFilteringKeyword("");
+    }, 300);
+  };
 
   // Fetch explorer data when selected report changes
   useEffect(() => {
@@ -412,26 +433,44 @@ export default function ExplorerPage() {
                 <CardContent>
                   <div className="flex flex-wrap gap-2">
                     {explorerData.topKeywords && explorerData.topKeywords.length > 0 ? (
-                      explorerData.topKeywords.slice(0, 10).map((item, index) => (
-                        <Badge
-                          key={index}
-                          variant={index < 3 ? "default" : "outline"}
-                          className={`
-                            ${index < 3
-                              ? "bg-purple-100 text-purple-800 border-purple-200"
-                              : "border-gray-300 text-gray-700"
-                            }
-                            text-sm font-medium px-3 py-1
-                          `}
-                        >
-                          {item.keyword} ({item.count})
-                          {index === 0 && (
-                            <span className="ml-1 text-xs">
-                              🔍
-                            </span>
-                          )}
-                        </Badge>
-                      ))
+                      explorerData.topKeywords.slice(0, 10).map((item, index) => {
+                        const isFiltering = filteringKeyword === item.keyword;
+                        const isActive = keywordFilter === item.keyword;
+                        return (
+                          <Badge
+                            key={index}
+                            variant={index < 3 ? "default" : "outline"}
+                            className={`
+                              ${isActive
+                                ? "bg-blue-100 text-blue-800 border-blue-300"
+                                : index < 3
+                                  ? "bg-purple-100 text-purple-800 border-purple-200"
+                                  : "border-gray-300 text-gray-700"
+                              }
+                              ${isFiltering ? "animate-pulse bg-blue-200" : ""}
+                              text-sm font-medium px-3 py-1 cursor-pointer hover:scale-105 transition-all duration-200
+                              ${isActive ? "ring-2 ring-blue-300 ring-opacity-50" : ""}
+                            `}
+                            onClick={() => handleKeywordClick(item.keyword)}
+                            title={`Click to filter citations by "${item.keyword}"`}
+                          >
+                            {isFiltering && (
+                              <span className="mr-1 animate-spin">⟳</span>
+                            )}
+                            {item.keyword} ({item.count})
+                            {index === 0 && !isFiltering && (
+                              <span className="ml-1 text-xs">
+                                🔍
+                              </span>
+                            )}
+                            {isActive && !isFiltering && (
+                              <span className="ml-1 text-xs">
+                                ✓
+                              </span>
+                            )}
+                          </Badge>
+                        );
+                      })
                     ) : (
                       <p className="text-sm text-gray-400 italic">
                         No keywords available
@@ -494,20 +533,48 @@ export default function ExplorerPage() {
 
 
             {/* Third Row: Full Width Citations Table */}
-            <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
+            <Card className={`
+              border-0 shadow-sm hover:shadow-md transition-all duration-300
+              ${filteringKeyword ? "animate-pulse" : ""}
+              ${keywordFilter ? "ring-2 ring-blue-200 ring-opacity-50" : ""}
+            `}>
               <CardHeader className="pb-4">
-                <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                  <Database className="h-5 w-5 text-purple-600" />
-                  All Citations
-                </CardTitle>
-                <p className="text-sm text-gray-600 mt-1">
-                  Complete list of sources cited in AI responses with advanced filtering and sorting
-                </p>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                      <Database className="h-5 w-5 text-purple-600" />
+                      All Citations
+                    </CardTitle>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Complete list of sources cited in AI responses with advanced filtering and sorting
+                    </p>
+                  </div>
+                  {keywordFilter && (
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 animate-in fade-in-0 slide-in-from-right-5 duration-300">
+                        <span className="text-xs">🔍</span> Filtered by: {keywordFilter}
+                      </Badge>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setKeywordFilter("");
+                          setFilteringKeyword("");
+                        }}
+                        className="h-7 w-7 p-0 hover:bg-red-100 hover:text-red-600 transition-colors"
+                        title="Clear filter"
+                      >
+                        ✕
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 <CitationsTable
                   citations={citationsWithPromptText}
                   onExport={exportToCSV}
+                  searchQueryFilter={keywordFilter}
                 />
               </CardContent>
             </Card>
