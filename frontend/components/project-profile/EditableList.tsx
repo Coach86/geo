@@ -268,13 +268,14 @@ export function EditableList({
                   onClick={() => {
                     if (isAtLimit && onAddClick) {
                       onAddClick();
-                    } else {
+                    } else if (!isAtLimit) {
                       setIsAdding(true);
                     }
                   }}
                   variant="outline"
                   size="sm"
                   className={`w-full border-dashed border-gray-300 ${colors.addHover} transition-colors`}
+                  disabled={isAtLimit && !onAddClick}
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   {addButtonLabel}
