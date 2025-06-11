@@ -69,7 +69,7 @@ export function PromptsDisplay({
             onClick={() => setIsDrawerOpen(true)}
           >
             <Settings className="h-3 w-3 mr-1" />
-            Manage prompts
+            Manage
           </Button>
         </div>
         
