@@ -113,7 +113,7 @@ export default function HomePage() {
                   <CardDescription className="flex items-center gap-2 text-sm">
                     <Globe className="h-3 w-3" />
                     {project.market}
-                    {project.language && ` • ${project.language.toUpperCase()}`}
+                    {project.language && ` • ${project.language}`}
                   </CardDescription>
                 </div>
               </div>

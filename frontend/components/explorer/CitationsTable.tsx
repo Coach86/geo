@@ -45,6 +45,7 @@ import {
   Database,
 } from "lucide-react";
 import { MultiSelectFilter } from "./MultiSelectFilter";
+import { getModelFriendlyName } from "@/utils/model-utils";
 
 // Types
 interface CitationRow {
@@ -368,9 +369,13 @@ export function CitationsTable({ citations, onExport }: CitationsTableProps) {
             </div>
           );
         },
-        cell: ({ getValue }) => (
-          <span className="text-sm text-gray-900">{getValue() as string}</span>
-        ),
+        cell: ({ getValue }) => {
+          const modelId = getValue() as string;
+          const friendlyName = getModelFriendlyName(modelId);
+          return (
+            <span className="text-sm text-gray-900">{friendlyName}</span>
+          );
+        },
         filterFn: multiSelectFilter,
         enableSorting: true,
         enableColumnFilter: true,
@@ -650,7 +655,7 @@ export function CitationsTable({ citations, onExport }: CitationsTableProps) {
                         )}
                       </td>
                       <td className={`px-4 py-3 border-b ${isLastInGroup ? 'border-gray-300' : 'border-gray-200'}`}>
-                        <span className="text-sm text-gray-900">{row.original.model}</span>
+                        <span className="text-sm text-gray-900">{getModelFriendlyName(row.original.model)}</span>
                       </td>
                       <td className={`px-4 py-3 border-b ${isLastInGroup ? 'border-gray-300' : 'border-gray-200'}`}>
                         <Badge variant="outline" className="text-xs">

@@ -214,7 +214,7 @@ export default function Sidebar({
                   pathname === "/settings" ? "text-accent-600" : "text-dark-400"
                 }`}
               />
-              <span className="flex-1">Organizational Settings</span>
+              <span className="flex-1">Account</span>
             </Link>
           )}
         </div>

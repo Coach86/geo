@@ -43,8 +43,11 @@ export {
 export {
   getProjectReports,
   getBatchResults,
-  getReportCitations,
-  getReportSpontaneous,
+  getReportExplorer,
+  getReportVisibility,
+  getReportSentiment,
+  getReportAlignment,
+  getReportCompetition,
 } from './report';
 
 // Export organization functions and types
@@ -59,6 +62,13 @@ export {
   type OrganizationUser,
   type OrganizationModelsResponse,
 } from './organization';
+
+// Export config functions
+export {
+  getModelsConfig,
+  type ModelConfig,
+  type ModelsResponse,
+} from './config';
 
 // Export utils if needed
 export { apiFetch, buildQueryString } from './utils';

@@ -19,13 +19,11 @@ import {
 } from "lucide-react";
 import { CitationsTable } from "@/components/explorer/CitationsTable";
 import {
-  getReportCitations,
-  CitationsData,
-  getReportSpontaneous,
-  SpontaneousData,
+  getReportExplorer,
   getPromptSet,
   PromptSet,
 } from "@/lib/auth-api";
+import type { ExplorerData } from "@/types/brand-reports";
 import type { ReportResponse } from "@/types/reports";
 import { ReportSelector } from "@/components/shared/ReportSelector";
 import { useReportData } from "@/hooks/use-report-data";
@@ -38,7 +36,7 @@ interface ProcessedReport extends ReportResponse {
   reportDate: string;
 }
 
-export default function CitationsPage() {
+export default function ExplorerPage() {
   const { token } = useAuth();
   const { filteredProjects, selectedProject, setSelectedProject } = useNavigation();
   const {
@@ -56,61 +54,35 @@ export default function CitationsPage() {
     };
   });
 
-  const [citationsData, setCitationsData] = useState<CitationsData | null>(null);
-  const [loadingCitations, setLoadingCitations] = useState(false);
-  const [citationsError, setCitationsError] = useState<string | null>(null);
-  const [spontaneousData, setSpontaneousData] = useState<SpontaneousData | null>(null);
-  const [loadingSpontaneous, setLoadingSpontaneous] = useState(false);
+  const [explorerData, setExplorerData] = useState<ExplorerData | null>(null);
+  const [loadingExplorer, setLoadingExplorer] = useState(false);
+  const [explorerError, setExplorerError] = useState<string | null>(null);
   const [promptSet, setPromptSet] = useState<PromptSet | null>(null);
   const [expandedSources, setExpandedSources] = useState(false);
 
-  // Fetch citations when selected report changes
+  // Fetch explorer data when selected report changes
   useEffect(() => {
-    const fetchCitations = async () => {
+    const fetchExplorerData = async () => {
       if (!selectedReport || !token) {
-        setCitationsData(null);
+        setExplorerData(null);
         return;
       }
 
-      setLoadingCitations(true);
-      setCitationsError(null);
+      setLoadingExplorer(true);
+      setExplorerError(null);
 
       try {
-        const data = await getReportCitations(selectedReport.id, token);
-        setCitationsData(data);
+        const data = await getReportExplorer(selectedReport.id, token);
+        setExplorerData(data);
       } catch (err) {
-        console.error("Failed to fetch citations:", err);
-        setCitationsError("Failed to load citations data. Please try again later.");
+        console.error("Failed to fetch explorer data:", err);
+        setExplorerError("Failed to load explorer data. Please try again later.");
       } finally {
-        setLoadingCitations(false);
+        setLoadingExplorer(false);
       }
     };
 
-    fetchCitations();
-  }, [selectedReport, token]);
-
-  // Fetch spontaneous data when selected report changes
-  useEffect(() => {
-    const fetchSpontaneous = async () => {
-      if (!selectedReport || !token) {
-        setSpontaneousData(null);
-        return;
-      }
-
-      setLoadingSpontaneous(true);
-      try {
-        const data = await getReportSpontaneous(selectedReport.id, token);
-        setSpontaneousData(data);
-      } catch (err) {
-        console.error("Failed to fetch spontaneous data:", err);
-        // Don't show error for spontaneous data, just log it
-        setSpontaneousData(null);
-      } finally {
-        setLoadingSpontaneous(false);
-      }
-    };
-
-    fetchSpontaneous();
+    fetchExplorerData();
   }, [selectedReport, token]);
 
   // Fetch prompt set when selected project changes
@@ -160,20 +132,20 @@ export default function CitationsPage() {
 
   // Pre-compute prompt texts for all citations
   const citationsWithPromptText = useMemo(() => {
-    if (!citationsData) return [];
+    if (!explorerData) return [];
     
-    return citationsData.citations.map(citation => ({
+    return explorerData.citations.map(citation => ({
       ...citation,
       promptText: getPromptText(citation.promptType, citation.promptIndex)
     }));
-  }, [citationsData, promptSet]);
+  }, [explorerData, promptSet]);
 
   // Calculate total unfiltered citations (how they would appear in the table)
   const totalUnfilteredCitations = useMemo(() => {
-    if (!citationsData) return 0;
+    if (!explorerData) return 0;
     
     let count = 0;
-    citationsData.citations.forEach((citation) => {
+    explorerData.citations.forEach((citation) => {
       if (citation.webSearchQueries && citation.webSearchQueries.length > 0) {
         // This citation will appear once for each query
         count += citation.webSearchQueries.length;
@@ -183,11 +155,11 @@ export default function CitationsPage() {
       }
     });
     return count;
-  }, [citationsData]);
+  }, [explorerData]);
 
   // Export citations to CSV
   const exportToCSV = useCallback(() => {
-    if (!citationsData || citationsData.citations.length === 0) return;
+    if (!explorerData || explorerData.citations.length === 0) return;
 
     // Use all data for export (not filtered)
     const headers = ["Search Query", "Source", "Link", "Model", "Prompt Category", "Prompt Detail"];
@@ -242,7 +214,7 @@ export default function CitationsPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  }, [citationsWithPromptText, selectedReport]);
+  }, [citationsWithPromptText, selectedReport, explorerData]);
 
   if (!selectedProjectId) {
     return (
@@ -252,7 +224,7 @@ export default function CitationsPage() {
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Please select a project from the sidebar to view citations
+                  Please select a project from the sidebar to view explorer
                   data.
                 </AlertDescription>
               </Alert>
@@ -270,7 +242,7 @@ export default function CitationsPage() {
             projects={filteredProjects}
             selectedProject={selectedProject}
             onProjectSelect={setSelectedProject}
-            currentPage="Citations"
+            currentPage="Explorer"
             showReportSelector={true}
             token={token}
             onReportSelect={(report) => {
@@ -291,15 +263,15 @@ export default function CitationsPage() {
 
 
         {/* Error State */}
-        {(error || citationsError) && (
+        {(error || explorerError) && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error || citationsError}</AlertDescription>
+            <AlertDescription>{error || explorerError}</AlertDescription>
           </Alert>
         )}
 
         {/* Loading State */}
-        {(loading || loadingCitations) && (
+        {(loading || loadingExplorer) && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card>
@@ -330,8 +302,8 @@ export default function CitationsPage() {
           </div>
         )}
 
-        {/* Citations Content */}
-        {!loading && !loadingCitations && selectedReport && citationsData && (
+        {/* Explorer Content */}
+        {!loading && !loadingExplorer && selectedReport && explorerData && (
           <div className="space-y-6">
             {/* First Row: Three Columns */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -346,7 +318,7 @@ export default function CitationsPage() {
                 <CardContent>
                   <div className="space-y-2">
                     <div className="text-3xl font-bold text-purple-600">
-                      {citationsData.webAccess.totalResponses || 0}
+                      {explorerData.summary.totalPrompts || 0}
                     </div>
                   </div>
                 </CardContent>
@@ -380,15 +352,7 @@ export default function CitationsPage() {
                 <CardContent>
                   <div className="space-y-2">
                     <div className="text-3xl font-bold text-green-600">
-                      {new Set(citationsData.citations.map(c => {
-                        const url = c.website || c.link || '';
-                        try {
-                          const urlObj = new URL(url);
-                          return urlObj.hostname.replace("www.", "");
-                        } catch {
-                          return url;
-                        }
-                      })).size}
+                      {explorerData.summary.uniqueSources || 0}
                     </div>
                   </div>
                 </CardContent>
@@ -406,13 +370,9 @@ export default function CitationsPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {loadingSpontaneous ? (
-                    <div className="flex items-center justify-center py-8">
-                      <div className="text-sm text-gray-500">Loading...</div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-wrap gap-2">
-                      {spontaneousData?.summary?.topMentionCounts?.slice(0, 10).map((item, index) => (
+                  <div className="flex flex-wrap gap-2">
+                    {explorerData.topMentions && explorerData.topMentions.length > 0 ? (
+                      explorerData.topMentions.slice(0, 10).map((item, index) => (
                         <Badge
                           key={index}
                           variant={index < 3 ? "default" : "outline"}
@@ -431,32 +391,13 @@ export default function CitationsPage() {
                             </span>
                           )}
                         </Badge>
-                      )) || spontaneousData?.summary?.topMentions?.slice(0, 10).map((mention, index) => (
-                        <Badge
-                          key={index}
-                          variant={index < 3 ? "default" : "outline"}
-                          className={`
-                            ${index < 3
-                              ? "bg-secondary-100 text-secondary-800 border-secondary-200"
-                              : "border-gray-300 text-gray-700"
-                            }
-                            text-sm font-medium px-3 py-1
-                          `}
-                        >
-                          {mention}
-                          {index === 0 && (
-                            <span className="ml-1 text-xs">
-                              👑
-                            </span>
-                          )}
-                        </Badge>
-                      )) || (
-                        <p className="text-sm text-gray-400 italic">
-                          No mentions found
-                        </p>
-                      )}
-                    </div>
-                  )}
+                      ))
+                    ) : (
+                      <p className="text-sm text-gray-400 italic">
+                        No mentions found
+                      </p>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
 
@@ -470,8 +411,8 @@ export default function CitationsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2">
-                    {citationsData.topKeywords && citationsData.topKeywords.length > 0 ? (
-                      citationsData.topKeywords.slice(0, 10).map((item, index) => (
+                    {explorerData.topKeywords && explorerData.topKeywords.length > 0 ? (
+                      explorerData.topKeywords.slice(0, 10).map((item, index) => (
                         <Badge
                           key={index}
                           variant={index < 3 ? "default" : "outline"}
@@ -510,9 +451,9 @@ export default function CitationsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    {citationsData.topSources.length > 0 ? (
+                    {explorerData.topSources.length > 0 ? (
                       <>
-                        {citationsData.topSources.slice(0, expandedSources ? 10 : 5).map((source, index) => (
+                        {explorerData.topSources.slice(0, expandedSources ? 10 : 5).map((source, index) => (
                           <div
                             key={source.domain}
                             className="flex items-center justify-between p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors duration-200"
@@ -530,14 +471,14 @@ export default function CitationsPage() {
                             </Badge>
                           </div>
                         ))}
-                        {citationsData.topSources.length > 5 && (
+                        {explorerData.topSources.length > 5 && (
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => setExpandedSources(!expandedSources)}
                             className="w-full mt-2 text-gray-600 hover:text-gray-900"
                           >
-                            {expandedSources ? 'Show less' : `Show ${Math.min(5, citationsData.topSources.length - 5)} more`}
+                            {expandedSources ? 'Show less' : `Show ${Math.min(5, explorerData.topSources.length - 5)} more`}
                           </Button>
                         )}
                       </>

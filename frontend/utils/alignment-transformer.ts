@@ -27,7 +27,7 @@ interface ToolUsage {
 }
 
 interface AccuracyPipelineResult {
-  llmProvider: string;
+  model: string;
   promptIndex: number;
   attributeScores: AttributeAccuracyScore[];
   originalPrompt?: string;
@@ -149,7 +149,7 @@ export function transformAccordToAlignment(
 
   // Transform detailed results with proper type safety
   const detailedResults: DetailedAlignmentResult[] = results.map(result => ({
-    llmProvider: result.llmProvider,
+    model: result.model,
     promptIndex: result.promptIndex,
     originalPrompt: result.originalPrompt || '',
     llmResponse: result.llmResponse || '',

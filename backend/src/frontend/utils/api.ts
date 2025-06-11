@@ -291,8 +291,8 @@ export const getAllProjectReports = async (
   }[];
   total: number;
 }> => {
-  const response = await authApi.get(`/reports/${projectId}/all`);
-  return response.data;
+  const response = await authApi.get(`/brand-reports/project/${projectId}`);
+  return { reports: response.data, total: response.data.length };
 };
 
 // Send a report access email to a specific address
@@ -305,7 +305,7 @@ export const sendReportEmail = async (
   success: boolean;
   message: string;
 }> => {
-  const response = await authApi.post('/reports/send-email', {
+  const response = await authApi.post('/brand-reports/send-email', {
     reportId,
     projectId,
     email,
@@ -322,7 +322,7 @@ export const generateReportToken = async (
   accessUrl?: string;
 }> => {
   // Call our new admin endpoint which handles all the logic
-  const response = await authApi.post(`/reports/generate-token/${reportId}`);
+  const response = await authApi.post(`/brand-reports/generate-token/${reportId}`);
   return response.data;
 };
 
@@ -337,7 +337,7 @@ export const generateReportFromBatch = async (
   includedTypes?: string[];
   message: string;
 }> => {
-  const response = await authApi.post(`/reports/generate-from-batch/${batchExecutionId}`);
+  const response = await authApi.post(`/brand-reports/generate-from-batch/${batchExecutionId}`);
   return response.data;
 };
 

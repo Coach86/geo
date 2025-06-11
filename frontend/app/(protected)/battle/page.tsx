@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useAuth } from "@/providers/auth-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -12,6 +13,7 @@ import type { BrandBattleData } from "@/types/brand-battle";
 import BreadcrumbNav from "@/components/layout/breadcrumb-nav";
 import { useNavigation } from "@/providers/navigation-provider";
 import { ProcessingLoader } from "@/components/shared/ProcessingLoader";
+import { getReportCompetition } from "@/lib/api/report";
 
 interface ProcessedReport extends ReportResponse {
   brandBattle: BrandBattleData;
@@ -20,6 +22,31 @@ interface ProcessedReport extends ReportResponse {
   reportDate: string;
   createdAt: string;
   projectId: string;
+}
+
+interface CompetitionData {
+  brandName: string;
+  competitors: string[];
+  competitorAnalyses: {
+    competitor: string;
+    analysisByModel: {
+      model: string;
+      strengths: string[];
+      weaknesses: string[];
+    }[];
+  }[];
+  competitorMetrics?: {
+    competitor: string;
+    overallRank: number;
+    mentionRate: number;
+    modelMentions: {
+      model: string;
+      rank: number;
+      mentionRate: number;
+    }[];
+  }[];
+  commonStrengths: string[];
+  commonWeaknesses: string[];
 }
 
 export default function BattlePage() {
@@ -50,16 +77,49 @@ export default function BattlePage() {
       },
     };
   });
+  
+  const [competitionData, setCompetitionData] = useState<CompetitionData | null>(null);
+  const [loadingCompetition, setLoadingCompetition] = useState(false);
+  const [competitionError, setCompetitionError] = useState<string | null>(null);
+
+  // Fetch competition data when selected report changes
+  useEffect(() => {
+    const fetchCompetitionData = async () => {
+      if (!selectedReport || !token) {
+        setCompetitionData(null);
+        return;
+      }
+
+      setLoadingCompetition(true);
+      setCompetitionError(null);
+
+      try {
+        const data = await getReportCompetition(selectedReport.id, token);
+        setCompetitionData(data);
+      } catch (err) {
+        console.error("Failed to fetch competition data:", err);
+        setCompetitionError("Failed to load competition data. Please try again later.");
+      } finally {
+        setLoadingCompetition(false);
+      }
+    };
+
+    fetchCompetitionData();
+  }, [selectedReport, token]);
 
   // All competitors are always selected
   const selectedCompetitors = projectDetails?.competitors || [];
 
   // Get brand battle data (all competitors are included)
   const getBattleData = (): BrandBattleData | null => {
-    if (!selectedReport?.brandBattle || !projectDetails?.competitors || projectDetails.competitors.length === 0)
+    if (!competitionData || !competitionData.competitorAnalyses || competitionData.competitorAnalyses.length === 0)
       return null;
 
-    return selectedReport.brandBattle;
+    return {
+      competitorAnalyses: competitionData.competitorAnalyses,
+      commonStrengths: competitionData.commonStrengths || [],
+      commonWeaknesses: competitionData.commonWeaknesses || []
+    };
   };
 
   if (!selectedProjectId) {
@@ -118,15 +178,15 @@ export default function BattlePage() {
 
 
       {/* Error State */}
-      {error && (
+      {(error || competitionError) && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>{error || competitionError}</AlertDescription>
         </Alert>
       )}
 
       {/* Loading State */}
-      {loading && (
+      {(loading || loadingCompetition) && (
         <div className="space-y-6">
           <Card>
             <CardHeader>
@@ -140,14 +200,14 @@ export default function BattlePage() {
       )}
 
       {/* Report Content */}
-      {!loading && selectedReport && (
+      {!loading && !loadingCompetition && selectedReport && competitionData && (
         <div className="space-y-6">
           {/* Brand Battle Table */}
           {getBattleData() &&
           getBattleData()!.competitorAnalyses &&
           getBattleData()!.competitorAnalyses.length > 0 ? (
             <BrandBattleTable
-              brand={selectedReport.brandName}
+              brand={competitionData.brandName || selectedReport.brandName}
               data={getBattleData()!}
             />
           ) : (

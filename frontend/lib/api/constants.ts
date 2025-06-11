@@ -41,11 +41,15 @@ export const API_ENDPOINTS = {
     BY_PROJECT: (projectId: string) => `/prompts/${projectId}`,
   },
   
-  // Report endpoints
-  REPORTS: {
-    BY_PROJECT: (projectId: string) => `/reports/project/${projectId}`,
-    CITATIONS: (reportId: string) => `/reports/citations/${reportId}`,
-    SPONTANEOUS: (reportId: string) => `/reports/spontaneous/${reportId}`,
+  // Brand Report endpoints
+  BRAND_REPORTS: {
+    BY_PROJECT: (projectId: string) => `/brand-reports/project/${projectId}`,
+    BY_ID: (reportId: string) => `/brand-reports/${reportId}`,
+    EXPLORER: (reportId: string) => `/brand-reports/${reportId}/explorer`,
+    VISIBILITY: (reportId: string) => `/brand-reports/${reportId}/visibility`,
+    SENTIMENT: (reportId: string) => `/brand-reports/${reportId}/sentiment`,
+    ALIGNMENT: (reportId: string) => `/brand-reports/${reportId}/alignment`,
+    COMPETITION: (reportId: string) => `/brand-reports/${reportId}/competition`,
   },
   
   // Batch result endpoints
@@ -59,5 +63,10 @@ export const API_ENDPOINTS = {
     USERS: '/user/organization/users',
     USER_BY_ID: (userId: string) => `/user/organization/users/${userId}`,
     MODELS: '/user/organization/models',
+  },
+  
+  // Config endpoints
+  CONFIG: {
+    MODELS: '/config/models',
   },
 } as const;

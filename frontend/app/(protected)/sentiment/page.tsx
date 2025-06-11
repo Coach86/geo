@@ -26,6 +26,7 @@ import BreadcrumbNav from "@/components/layout/breadcrumb-nav";
 import { useNavigation } from "@/providers/navigation-provider";
 import { useReportData } from "@/hooks/use-report-data";
 import { ProcessingLoader } from "@/components/shared/ProcessingLoader";
+import { getReportSentiment } from "@/lib/api/report";
 
 interface ProcessedReport extends ReportResponse {
   reportDate: string;
@@ -53,6 +54,33 @@ interface ProcessedReport extends ReportResponse {
     negativeKeywords: string[];
   }[];
   brandName: string;
+}
+
+interface SentimentData {
+  overallScore: number;
+  overallSentiment: 'positive' | 'neutral' | 'negative';
+  distribution: {
+    positive: number;
+    neutral: number;
+    negative: number;
+    total: number;
+  };
+  modelSentiments: {
+    model: string;
+    sentiment: 'positive' | 'neutral' | 'negative';
+    status: 'green' | 'yellow' | 'red';
+    positiveKeywords: string[];
+    negativeKeywords: string[];
+  }[];
+  heatmapData: {
+    question: string;
+    results: {
+      model: string;
+      sentiment: 'positive' | 'neutral' | 'negative';
+      status: 'green' | 'yellow' | 'red';
+      llmResponse?: string;
+    }[];
+  }[];
 }
 
 export default function SentimentPage() {
@@ -115,6 +143,34 @@ export default function SentimentPage() {
   const [selectedQuestion, setSelectedQuestion] = useState<string | null>(null);
   const [selectedLlmResponse, setSelectedLlmResponse] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [sentimentData, setSentimentData] = useState<SentimentData | null>(null);
+  const [loadingSentiment, setLoadingSentiment] = useState(false);
+  const [sentimentError, setSentimentError] = useState<string | null>(null);
+
+  // Fetch sentiment data when selected report changes
+  useEffect(() => {
+    const fetchSentimentData = async () => {
+      if (!selectedReport || !token) {
+        setSentimentData(null);
+        return;
+      }
+
+      setLoadingSentiment(true);
+      setSentimentError(null);
+
+      try {
+        const data = await getReportSentiment(selectedReport.id, token);
+        setSentimentData(data);
+      } catch (err) {
+        console.error("Failed to fetch sentiment data:", err);
+        setSentimentError("Failed to load sentiment data. Please try again later.");
+      } finally {
+        setLoadingSentiment(false);
+      }
+    };
+
+    fetchSentimentData();
+  }, [selectedReport, token]);
 
 
   // Format date for display
@@ -138,8 +194,8 @@ export default function SentimentPage() {
 
   // Get model data
   const getModelData = () => {
-    if (!selectedModel || !selectedReport) return null;
-    return selectedReport.modelSentiments.find(
+    if (!selectedModel || !sentimentData) return null;
+    return sentimentData.modelSentiments.find(
       (s) => s.model === selectedModel
     );
   };
@@ -223,15 +279,15 @@ export default function SentimentPage() {
 
 
         {/* Error State */}
-        {error && (
+        {(error || sentimentError) && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription>{error || sentimentError}</AlertDescription>
           </Alert>
         )}
 
         {/* Loading State */}
-        {loading && (
+        {(loading || loadingSentiment) && (
           <div className="space-y-6">
             <Card>
               <CardHeader>
@@ -271,28 +327,24 @@ export default function SentimentPage() {
         )}
 
         {/* Report Content */}
-        {!loading && selectedReport && (
+        {!loading && !loadingSentiment && selectedReport && sentimentData && (
           <div className="space-y-6 fade-in-section is-visible">
             {/* Overall Sentiment Score */}
             <SentimentOverview
-              sentimentScore={selectedReport.sentimentScore || 0}
-              totalResponses={selectedReport.sentimentCounts?.total || 0}
+              sentimentScore={sentimentData.overallScore}
+              totalResponses={sentimentData.distribution.total}
             />
 
             {/* Sentiment Distribution */}
-            {selectedReport.sentimentCounts && (
-              <SentimentDistribution
-                sentimentCounts={selectedReport.sentimentCounts}
-              />
-            )}
+            <SentimentDistribution
+              sentimentCounts={sentimentData.distribution}
+            />
 
             {/* Sentiment Heatmap */}
-            {selectedReport.sentimentHeatmap && (
-              <SentimentHeatmap
-                sentimentHeatmap={selectedReport.sentimentHeatmap}
-                onCellClick={handleCellClick}
-              />
-            )}
+            <SentimentHeatmap
+              sentimentHeatmap={sentimentData.heatmapData}
+              onCellClick={handleCellClick}
+            />
           </div>
         )}
 

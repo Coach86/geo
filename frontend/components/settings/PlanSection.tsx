@@ -89,11 +89,12 @@ export function PlanSection({ organization, selectedModelsCount }: PlanSectionPr
               <div
                 className="bg-primary h-2 rounded-full transition-all"
                 style={{
-                  width: `${
+                  width: `${Math.min(
                     ((organization.currentProjects || 0) /
                       organization.planSettings.maxProjects) *
+                    100,
                     100
-                  }%`,
+                  )}%`,
                 }}
               />
             </div>
@@ -116,11 +117,12 @@ export function PlanSection({ organization, selectedModelsCount }: PlanSectionPr
                 <div
                   className="bg-primary h-2 rounded-full transition-all"
                   style={{
-                    width: `${
+                    width: `${Math.min(
                       ((organization.currentUsers || 0) /
                         organization.planSettings.maxUsers) *
+                      100,
                       100
-                    }%`,
+                    )}%`,
                   }}
                 />
               </div>
@@ -142,11 +144,12 @@ export function PlanSection({ organization, selectedModelsCount }: PlanSectionPr
               <div
                 className="bg-primary h-2 rounded-full transition-all"
                 style={{
-                  width: `${
+                  width: `${Math.min(
                     (selectedModelsCount /
                       organization.planSettings.maxAIModels) *
+                    100,
                     100
-                  }%`,
+                  )}%`,
                 }}
               />
             </div>

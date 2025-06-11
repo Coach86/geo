@@ -1,5 +1,5 @@
 /**
- * Report API
+ * Brand Report API
  */
 
 import { API_ENDPOINTS } from './constants';
@@ -16,7 +16,7 @@ export async function getProjectReports(
 ): Promise<ReportResponse[]> {
   try {
     return await apiFetch<ReportResponse[]>(
-      API_ENDPOINTS.REPORTS.BY_PROJECT(projectId),
+      API_ENDPOINTS.BRAND_REPORTS.BY_PROJECT(projectId),
       {
         method: 'GET',
         token,
@@ -54,49 +54,116 @@ export async function getBatchResults(
 }
 
 /**
- * Get citations data for a report (requires token authentication)
+ * Get explorer data for a report (requires token authentication)
  */
-export async function getReportCitations(
+export async function getReportExplorer(
   reportId: string,
   token: string
-): Promise<CitationsData> {
+): Promise<any> {
   try {
-    return await apiFetch<CitationsData>(
-      API_ENDPOINTS.REPORTS.CITATIONS(reportId),
+    return await apiFetch<any>(
+      API_ENDPOINTS.BRAND_REPORTS.EXPLORER(reportId),
       {
         method: 'GET',
         token,
       }
     );
   } catch (error) {
-    console.error('Get report citations error:', error);
+    console.error('Get report explorer error:', error);
     throw new Error(
-      error instanceof Error ? error.message : 'Failed to get report citations'
+      error instanceof Error ? error.message : 'Failed to get report explorer data'
     );
   }
 }
 
 /**
- * Get spontaneous data for a report (requires token authentication)
+ * Get visibility data for a report (requires token authentication)
  */
-export async function getReportSpontaneous(
+export async function getReportVisibility(
   reportId: string,
   token: string
-): Promise<SpontaneousData> {
+): Promise<any> {
   try {
-    return await apiFetch<SpontaneousData>(
-      API_ENDPOINTS.REPORTS.SPONTANEOUS(reportId),
+    return await apiFetch<any>(
+      API_ENDPOINTS.BRAND_REPORTS.VISIBILITY(reportId),
       {
         method: 'GET',
         token,
       }
     );
   } catch (error) {
-    console.error('Get report spontaneous error:', error);
+    console.error('Get report visibility error:', error);
     throw new Error(
-      error instanceof Error
-        ? error.message
-        : 'Failed to get report spontaneous data'
+      error instanceof Error ? error.message : 'Failed to get report visibility data'
+    );
+  }
+}
+
+/**
+ * Get sentiment data for a report (requires token authentication)
+ */
+export async function getReportSentiment(
+  reportId: string,
+  token: string
+): Promise<any> {
+  try {
+    return await apiFetch<any>(
+      API_ENDPOINTS.BRAND_REPORTS.SENTIMENT(reportId),
+      {
+        method: 'GET',
+        token,
+      }
+    );
+  } catch (error) {
+    console.error('Get report sentiment error:', error);
+    throw new Error(
+      error instanceof Error ? error.message : 'Failed to get report sentiment data'
+    );
+  }
+}
+
+/**
+ * Get alignment data for a report (requires token authentication)
+ */
+export async function getReportAlignment(
+  reportId: string,
+  token: string
+): Promise<any> {
+  try {
+    return await apiFetch<any>(
+      API_ENDPOINTS.BRAND_REPORTS.ALIGNMENT(reportId),
+      {
+        method: 'GET',
+        token,
+      }
+    );
+  } catch (error) {
+    console.error('Get report alignment error:', error);
+    throw new Error(
+      error instanceof Error ? error.message : 'Failed to get report alignment data'
+    );
+  }
+}
+
+/**
+ * Get competition data for a report (requires token authentication)
+ */
+export async function getReportCompetition(
+  reportId: string,
+  token: string
+): Promise<any> {
+  try {
+    return await apiFetch<any>(
+      API_ENDPOINTS.BRAND_REPORTS.COMPETITION(reportId),
+      {
+        method: 'GET',
+        token,
+      }
+    );
+  } catch (error) {
+    console.error('Get report competition error:', error);
+    throw new Error(
+      error instanceof Error ? error.message : 'Failed to get report competition data'
     );
   }
 }

@@ -2,6 +2,7 @@
 
 import { ModelIcon } from "@/components/ui/model-icon";
 import { cn } from "@/lib/utils";
+import { getModelFriendlyName } from "@/utils/model-utils";
 
 interface ModelDisplayProps {
   model: string;
@@ -18,10 +19,12 @@ export function ModelDisplay({
   showIcon = true,
   iconFirst = true
 }: ModelDisplayProps) {
+  const friendlyName = getModelFriendlyName(model);
+  
   const content = (
     <>
       {showIcon && iconFirst && <ModelIcon model={model} size={size} />}
-      <span>{model}</span>
+      <span>{friendlyName}</span>
       {showIcon && !iconFirst && <ModelIcon model={model} size={size} />}
     </>
   );

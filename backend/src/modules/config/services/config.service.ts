@@ -32,6 +32,7 @@ export class ConfigService {
   getAvailableModels() {
     return (this.config.llmModels || []).map((model: any) => ({
       id: model.id,
+      model: model.model, // Include the actual model identifier used in the database
       name: model.name,
       provider: model.provider,
       enabled: model.enabled || false,
