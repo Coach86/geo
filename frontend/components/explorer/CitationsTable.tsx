@@ -44,6 +44,7 @@ import {
   ChevronsRight,
   Database,
 } from "lucide-react";
+import { MultiSelectFilter } from "./MultiSelectFilter";
 
 // Types
 interface CitationRow {
@@ -76,6 +77,13 @@ const fuzzyFilter: FilterFn<CitationRow> = (row, columnId, value, addMeta) => {
     itemRank,
   });
   return itemRank.passed;
+};
+
+// Multi-select filter function
+const multiSelectFilter: FilterFn<CitationRow> = (row, columnId, value) => {
+  if (!value || !Array.isArray(value) || value.length === 0) return true;
+  const rowValue = row.getValue(columnId) as string;
+  return value.includes(rowValue);
 };
 
 // Simple fuzzy matching function
@@ -293,22 +301,13 @@ export function CitationsTable({ citations, onExport }: CitationsTableProps) {
                   <ArrowUpDown className="ml-2 h-4 w-4" />
                 )}
               </Button>
-              <>
-                {/* Autocomplete suggestions using HTML5 datalist */}
-                <datalist id={column.id + 'list'}>
-                  {sortedUniqueValues.map((value: string) => (
-                    <option value={value} key={value} />
-                  ))}
-                </datalist>
-                <Input
-                  type="text"
-                  value={(column.getFilterValue() ?? '') as string}
-                  onChange={(e) => column.setFilterValue(e.target.value)}
-                  placeholder={`Filter domains... (${column.getFacetedUniqueValues().size})`}
-                  className="h-8 text-xs"
-                  list={column.id + 'list'}
-                />
-              </>
+              <MultiSelectFilter
+                title="Domain"
+                options={sortedUniqueValues}
+                selectedValues={(column.getFilterValue() as string[]) || []}
+                onSelectionChange={(values) => column.setFilterValue(values.length > 0 ? values : undefined)}
+                placeholder={`Filter domains... (${column.getFacetedUniqueValues().size})`}
+              />
             </div>
           );
         },
@@ -330,6 +329,7 @@ export function CitationsTable({ citations, onExport }: CitationsTableProps) {
             </a>
           );
         },
+        filterFn: multiSelectFilter,
         enableSorting: true,
         enableColumnFilter: true,
       }),
@@ -358,28 +358,20 @@ export function CitationsTable({ citations, onExport }: CitationsTableProps) {
                   <ArrowUpDown className="ml-2 h-4 w-4" />
                 )}
               </Button>
-              <>
-                {/* Autocomplete suggestions using HTML5 datalist */}
-                <datalist id={column.id + 'list'}>
-                  {sortedUniqueValues.map((value: string) => (
-                    <option value={value} key={value} />
-                  ))}
-                </datalist>
-                <Input
-                  type="text"
-                  value={(column.getFilterValue() ?? '') as string}
-                  onChange={(e) => column.setFilterValue(e.target.value)}
-                  placeholder={`Filter models... (${column.getFacetedUniqueValues().size})`}
-                  className="h-8 text-xs"
-                  list={column.id + 'list'}
-                />
-              </>
+              <MultiSelectFilter
+                title="Model"
+                options={sortedUniqueValues}
+                selectedValues={(column.getFilterValue() as string[]) || []}
+                onSelectionChange={(values) => column.setFilterValue(values.length > 0 ? values : undefined)}
+                placeholder={`Filter models... (${column.getFacetedUniqueValues().size})`}
+              />
             </div>
           );
         },
         cell: ({ getValue }) => (
           <span className="text-sm text-gray-900">{getValue() as string}</span>
         ),
+        filterFn: multiSelectFilter,
         enableSorting: true,
         enableColumnFilter: true,
       }),
@@ -408,22 +400,13 @@ export function CitationsTable({ citations, onExport }: CitationsTableProps) {
                   <ArrowUpDown className="ml-2 h-4 w-4" />
                 )}
               </Button>
-              <>
-                {/* Autocomplete suggestions using HTML5 datalist */}
-                <datalist id={column.id + 'list'}>
-                  {sortedUniqueValues.map((value: string) => (
-                    <option value={value} key={value} />
-                  ))}
-                </datalist>
-                <Input
-                  type="text"
-                  value={(column.getFilterValue() ?? '') as string}
-                  onChange={(e) => column.setFilterValue(e.target.value)}
-                  placeholder={`Filter categories... (${column.getFacetedUniqueValues().size})`}
-                  className="h-8 text-xs"
-                  list={column.id + 'list'}
-                />
-              </>
+              <MultiSelectFilter
+                title="Prompt Category"
+                options={sortedUniqueValues}
+                selectedValues={(column.getFilterValue() as string[]) || []}
+                onSelectionChange={(values) => column.setFilterValue(values.length > 0 ? values : undefined)}
+                placeholder={`Filter categories... (${column.getFacetedUniqueValues().size})`}
+              />
             </div>
           );
         },
@@ -432,6 +415,7 @@ export function CitationsTable({ citations, onExport }: CitationsTableProps) {
             {getValue() as string}
           </Badge>
         ),
+        filterFn: multiSelectFilter,
         enableSorting: true,
         enableColumnFilter: true,
       }),
@@ -462,22 +446,13 @@ export function CitationsTable({ citations, onExport }: CitationsTableProps) {
                   <ArrowUpDown className="ml-2 h-4 w-4" />
                 )}
               </Button>
-              <>
-                {/* Autocomplete suggestions using HTML5 datalist */}
-                <datalist id={column.id + 'list'}>
-                  {sortedUniqueValues.map((value: string) => (
-                    <option value={value} key={value} />
-                  ))}
-                </datalist>
-                <Input
-                  type="text"
-                  value={(column.getFilterValue() ?? '') as string}
-                  onChange={(e) => column.setFilterValue(e.target.value)}
-                  placeholder={`Filter prompts... (${column.getFacetedUniqueValues().size})`}
-                  className="h-8 text-xs"
-                  list={column.id + 'list'}
-                />
-              </>
+              <MultiSelectFilter
+                title="Prompt Detail"
+                options={sortedUniqueValues}
+                selectedValues={(column.getFilterValue() as string[]) || []}
+                onSelectionChange={(values) => column.setFilterValue(values.length > 0 ? values : undefined)}
+                placeholder={`Filter prompts... (${column.getFacetedUniqueValues().size})`}
+              />
             </div>
           );
         },
