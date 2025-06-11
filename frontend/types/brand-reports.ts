@@ -98,7 +98,7 @@ export interface SentimentData {
 }
 
 export interface AlignmentData {
-  overallAlignmentScore: number;
+  overallAlignmentScore: number; // Percentage value 0-100
   averageAttributeScores: Record<string, number>;
   attributeAlignmentSummary: {
     name: string;

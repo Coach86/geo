@@ -418,7 +418,7 @@ export class BrandReportOrchestratorService {
     const overallAlignmentScore = Math.round(
       Object.values(accuracyResults.summary.averageAttributeScores || {})
         .reduce((sum, score) => sum + score, 0) / 
-      Object.keys(accuracyResults.summary.averageAttributeScores || {}).length || 0
+      Object.keys(accuracyResults.summary.averageAttributeScores || {}).length * 100 || 0
     );
 
     return {
