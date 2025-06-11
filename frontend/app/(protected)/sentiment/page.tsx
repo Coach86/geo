@@ -422,7 +422,7 @@ export default function SentimentPage() {
                         <ul className="list-disc pl-5 text-sm space-y-1">
                           {modelData.positiveKeywords.map((item, i) => (
                             <li key={i} className="text-accent-700">
-                              {item.trim()}
+                              {item.trim().charAt(0).toUpperCase() + item.trim().slice(1)}
                             </li>
                           ))}
                         </ul>
@@ -445,7 +445,7 @@ export default function SentimentPage() {
                         <ul className="list-disc pl-5 text-sm space-y-1">
                           {modelData.negativeKeywords.map((item, i) => (
                             <li key={i} className="text-destructive-700">
-                              {item.trim()}
+                              {item.trim().charAt(0).toUpperCase() + item.trim().slice(1)}
                             </li>
                           ))}
                         </ul>
