@@ -1,0 +1,189 @@
+"use client"
+
+import { useNavigation } from "@/providers/navigation-provider"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Plus, Calendar, BarChart3, Globe } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useState } from "react"
+import AddProjectModal from "@/components/AddProjectModal"
+import { formatDistanceToNow } from "date-fns"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useAuth } from "@/providers/auth-provider"
+import { createProjectFromUrl, ProjectResponse } from "@/lib/auth-api"
+import { getMyOrganization, Organization } from "@/lib/organization-api"
+import { useEffect } from "react"
+
+export default function HomePage() {
+  const { filteredProjects, allProjects, setSelectedProject } = useNavigation()
+  const { token } = useAuth()
+  const router = useRouter()
+  const [showAddProjectModal, setShowAddProjectModal] = useState(false)
+  const [organization, setOrganization] = useState<Organization | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  // Fetch organization to check plan limits
+  useEffect(() => {
+    const fetchOrganization = async () => {
+      if (!token) return
+      try {
+        const org = await getMyOrganization(token)
+        setOrganization(org)
+      } catch (error) {
+        console.error("Failed to fetch organization:", error)
+      }
+    }
+    fetchOrganization()
+  }, [token])
+
+  const handleProjectClick = (project: ProjectResponse) => {
+    setSelectedProject(project)
+    router.push("/project-settings")
+  }
+
+  const handleAddProjectClick = () => {
+    if (!organization) {
+      setShowAddProjectModal(true)
+      return
+    }
+
+    const currentProjectCount = allProjects.length
+    const maxProjects = organization.planSettings?.maxProjects || 1
+
+    console.log('Add project clicked:', {
+      currentProjectCount,
+      maxProjects,
+      shouldRedirect: currentProjectCount >= maxProjects,
+      planSettings: organization.planSettings
+    })
+
+    if (currentProjectCount >= maxProjects) {
+      // Redirect to update plan page
+      router.push("/update-plan")
+    } else {
+      setShowAddProjectModal(true)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="container mx-auto py-8">
+        <h1 className="text-3xl font-bold mb-8">Projects</h1>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="h-[200px]">
+              <CardHeader>
+                <Skeleton className="h-6 w-3/4 mb-2" />
+                <Skeleton className="h-4 w-1/2" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-4 w-full mb-2" />
+                <Skeleton className="h-4 w-5/6" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="container mx-auto py-8">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">Projects</h1>
+        <div className="text-sm text-muted-foreground">
+          {filteredProjects.length} project{filteredProjects.length !== 1 ? "s" : ""}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Project Cards */}
+        {filteredProjects.map((project) => (
+          <Card 
+            key={project.id} 
+            className="cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={() => handleProjectClick(project)}
+          >
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <CardTitle className="text-xl mb-1">
+                    {project.name || project.brandName}
+                  </CardTitle>
+                  <CardDescription className="flex items-center gap-2 text-sm">
+                    <Globe className="h-3 w-3" />
+                    {project.market}
+                    {project.language && ` • ${project.language.toUpperCase()}`}
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
+                {project.shortDescription}
+              </p>
+              
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <BarChart3 className="h-3 w-3" />
+                  <span>{project.keyBrandAttributes?.length || 0} attributes</span>
+                </div>
+                
+                {project.generatedAt && (
+                  <div className="flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    <span>
+                      {formatDistanceToNow(new Date(project.generatedAt), { 
+                        addSuffix: true 
+                      })}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+
+        {/* Add Project Card - at the end */}
+        <Card 
+          className="border-dashed cursor-pointer hover:bg-accent/50 transition-colors flex items-center justify-center min-h-[200px]"
+          onClick={handleAddProjectClick}
+        >
+          <div className="text-center">
+            <Plus className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-semibold">Add New Project</h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Create a new brand analysis project
+            </p>
+          </div>
+        </Card>
+      </div>
+
+      {filteredProjects.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground mb-4">
+            No projects found for the selected domain.
+          </p>
+          <Button onClick={handleAddProjectClick}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Your First Project
+          </Button>
+        </div>
+      )}
+
+      <AddProjectModal 
+        isOpen={showAddProjectModal} 
+        onClose={() => setShowAddProjectModal(false)}
+        onSuccess={(projectId) => {
+          // Reload the page to refresh the project list
+          window.location.reload()
+        }}
+        onCreateProject={async (data) => {
+          if (!token) throw new Error("Not authenticated")
+          const result = await createProjectFromUrl(data, token)
+          return result
+        }}
+      />
+    </div>
+  )
+}

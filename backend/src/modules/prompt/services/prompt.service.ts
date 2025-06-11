@@ -99,6 +99,7 @@ export class PromptService implements OnModuleInit {
         industry: projectRaw.industry,
         shortDescription: projectRaw.shortDescription,
         fullDescription: projectRaw.fullDescription,
+        objectives: projectRaw.objectives,
         keyBrandAttributes: projectRaw.keyBrandAttributes,
         competitors: projectRaw.competitors,
         updatedAt: projectRaw.updatedAt instanceof Date ? projectRaw.updatedAt : new Date(),
@@ -359,6 +360,53 @@ export class PromptService implements OnModuleInit {
   }
 
   /**
+   * Create a new prompt set for a project
+   * @param projectId - ID of the project
+   * @param prompts - Object containing the prompts to save
+   * @returns The created prompt set
+   */
+  async createPromptSet(
+    projectId: string,
+    prompts: {
+      spontaneous?: string[];
+      direct?: string[];
+      comparison?: string[];
+      accuracy?: string[];
+      brandBattle?: string[];
+    },
+  ) {
+    this.logger.log(`Creating prompt set for project: ${projectId}`);
+
+    try {
+      // Check if a prompt set already exists for this project
+      const existingPromptSet = await this.promptSetRepository.findByProjectId(projectId);
+
+      if (existingPromptSet) {
+        this.logger.log(`Prompt set already exists for project ${projectId}, updating it instead`);
+        return this.updatePromptSet(projectId, prompts);
+      }
+
+      // Create new prompt set
+      const promptSetData = {
+        projectId,
+        spontaneous: prompts.spontaneous || [],
+        direct: prompts.direct || [],
+        comparison: prompts.comparison || [],
+        accuracy: prompts.accuracy || [],
+        brandBattle: prompts.brandBattle || [],
+      };
+
+      const savedPromptSet = await this.promptSetRepository.create(promptSetData);
+      this.logger.log(`Prompt set created successfully for project ${projectId}`);
+
+      return savedPromptSet;
+    } catch (error) {
+      this.logger.error(`Error creating prompt set for project ${projectId}: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
    * Update prompt set for a project
    * @param projectId - ID of the project
    * @param updatedPrompts - Object containing the updated prompts
@@ -482,6 +530,7 @@ export class PromptService implements OnModuleInit {
         industry: projectRaw.industry,
         shortDescription: projectRaw.shortDescription,
         fullDescription: projectRaw.fullDescription,
+        objectives: projectRaw.objectives,
         keyBrandAttributes: projectRaw.keyBrandAttributes,
         competitors: projectRaw.competitors,
         updatedAt: projectRaw.updatedAt instanceof Date ? projectRaw.updatedAt : new Date(),

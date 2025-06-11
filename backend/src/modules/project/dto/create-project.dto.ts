@@ -10,6 +10,33 @@ import {
   MaxLength,
 } from 'class-validator';
 
+export class PromptsDto {
+  @ApiPropertyOptional({ description: 'Spontaneous visibility prompts', type: [String] })
+  @IsOptional()
+  @IsArray()
+  spontaneous?: string[];
+
+  @ApiPropertyOptional({ description: 'Direct perception prompts', type: [String] })
+  @IsOptional()
+  @IsArray()
+  direct?: string[];
+
+  @ApiPropertyOptional({ description: 'Comparison prompts', type: [String] })
+  @IsOptional()
+  @IsArray()
+  comparison?: string[];
+
+  @ApiPropertyOptional({ description: 'Accuracy prompts', type: [String] })
+  @IsOptional()
+  @IsArray()
+  accuracy?: string[];
+
+  @ApiPropertyOptional({ description: 'Brand battle prompts', type: [String] })
+  @IsOptional()
+  @IsArray()
+  brandBattle?: string[];
+}
+
 export class ProjectDataDto {
   @ApiPropertyOptional({ description: 'Optional project name' })
   @IsOptional()
@@ -68,6 +95,12 @@ export class ProjectDataDto {
   @MinLength(1)
   fullDescription?: string;
 
+  @ApiPropertyOptional({ description: 'Business objectives and goals of the company' })
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  objectives?: string;
+
   @ApiPropertyOptional({
     description: 'List of key features or offerings of the company',
     type: [String],
@@ -80,6 +113,15 @@ export class ProjectDataDto {
   @IsOptional()
   @IsArray()
   competitors?: string[];
+
+  @ApiPropertyOptional({
+    description: 'Custom prompts for different analysis types',
+    type: PromptsDto,
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PromptsDto)
+  prompts?: PromptsDto;
 }
 
 export class CreateProjectDto {

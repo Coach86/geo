@@ -8,6 +8,9 @@ interface AttributesListProps {
 }
 
 export function AttributesList({ project, onEdit, onUpdate }: AttributesListProps) {
+  const maxAttributes = 5;
+  const isAtLimit = project.keyBrandAttributes.length >= maxAttributes;
+  
   return (
     <EditableList
       title="Key Brand Attributes"
@@ -21,6 +24,9 @@ export function AttributesList({ project, onEdit, onUpdate }: AttributesListProp
       bgColor="blue"
       inputType="input"
       addButtonLabel="Add Attribute"
+      isAtLimit={isAtLimit}
+      limitMessage="(Max 5)"
+      itemCount={`${project.keyBrandAttributes.length}/${maxAttributes} attributes`}
     />
   );
 }

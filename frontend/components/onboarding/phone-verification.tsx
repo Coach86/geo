@@ -2,9 +2,8 @@
 
 import type React from "react";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/providers/auth-provider";
-import { getOnboardingData, updateOnboardingData } from "@/lib/onboarding-storage";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -134,17 +133,29 @@ const countryCodes = [
   },
 ];
 
-export default function PhoneVerification() {
+interface PhoneVerificationProps {
+  initialData?: {
+    phoneNumber: string;
+    phoneCountry: string;
+  };
+  onDataReady?: (data: { phoneNumber: string; phoneCountry: string }) => void;
+}
+
+export default function PhoneVerification({ initialData, onDataReady }: PhoneVerificationProps) {
   const { token, isAuthenticated } = useAuth();
   
-  // Get form data from localStorage
-  const formData = getOnboardingData();
-  const [phoneNumber, setPhoneNumber] = useState(formData.contact?.phoneNumber || "");
-  const [phoneCountry, setPhoneCountry] = useState(
-    formData.contact?.phoneCountry || "US"
-  );
+  // Local state - no localStorage updates
+  const [phoneNumber, setPhoneNumber] = useState(initialData?.phoneNumber || "");
+  const [phoneCountry, setPhoneCountry] = useState(initialData?.phoneCountry || "US");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+
+  // Notify parent when data changes (for validation purposes)
+  useEffect(() => {
+    if (onDataReady) {
+      onDataReady({ phoneNumber, phoneCountry });
+    }
+  }, [phoneNumber, phoneCountry, onDataReady]);
 
   // Fonction pour formater le numéro de téléphone
   const formatPhoneNumber = (value: string) => {
@@ -157,23 +168,11 @@ export default function PhoneVerification() {
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatPhoneNumber(e.target.value);
     setPhoneNumber(formatted);
-    updateOnboardingData({ 
-      contact: {
-        ...formData.contact,
-        phoneNumber: formatted 
-      }
-    });
   };
 
   // Gérer le changement de pays
   const handleCountryChange = (value: string) => {
     setPhoneCountry(value);
-    updateOnboardingData({ 
-      contact: {
-        ...formData.contact,
-        phoneCountry: value 
-      }
-    });
   };
 
   // Obtenir l'indicatif téléphonique du pays sélectionné
@@ -205,15 +204,6 @@ export default function PhoneVerification() {
 
       setIsSubmitted(true);
       toast.success("Phone number saved successfully!");
-
-      // Update form data for consistency
-      updateOnboardingData({
-        contact: {
-          ...formData.contact,
-          phoneNumber: phoneNumber,
-          phoneCountry: phoneCountry,
-        }
-      });
     } catch (error) {
       console.error("Phone update error:", error);
       toast.error(

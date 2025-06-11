@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, ChevronDown, ChevronUp, X } from "lucide-react";
 
 interface EditableListProps {
   title: string;
@@ -54,6 +54,17 @@ export function EditableList({
     } else {
       updated.splice(index, 1);
     }
+    
+    if (onUpdate) {
+      onUpdate(updated);
+    } else if (onEdit) {
+      onEdit();
+    }
+  };
+
+  const handleDelete = (index: number) => {
+    const updated = [...items];
+    updated.splice(index, 1);
     
     if (onUpdate) {
       onUpdate(updated);
@@ -122,48 +133,77 @@ export function EditableList({
           displayedItems.map((item, index) => (
             <div
               key={index}
-              className={`px-3 py-3 ${colors.normal} rounded-md text-sm text-gray-700 transition-colors cursor-pointer min-h-[2.75rem] flex items-center`}
+              className={`px-3 py-3 ${colors.normal} rounded-md text-sm text-gray-700 transition-colors cursor-pointer min-h-[2.75rem] flex items-center justify-between group`}
               onClick={() => {
-                if (onUpdate) {
+                if (onUpdate && editingIndex !== index) {
                   setEditingIndex(index);
                   setEditingValue(item);
                 }
               }}
             >
               {editingIndex === index ? (
-                inputType === "textarea" ? (
-                  <Textarea
-                    value={editingValue}
-                    onChange={(e) => setEditingValue(e.target.value)}
-                    autoFocus
-                    className="min-h-[60px] resize-none"
-                    onBlur={() => {
-                      handleEdit(index, editingValue);
-                      setEditingIndex(null);
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                ) : (
-                  <Input
-                    value={editingValue}
-                    onChange={(e) => setEditingValue(e.target.value)}
-                    onBlur={() => {
-                      handleEdit(index, editingValue);
-                      setEditingIndex(null);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
+                <div className="flex items-center gap-2 w-full">
+                  {inputType === "textarea" ? (
+                    <Textarea
+                      value={editingValue}
+                      onChange={(e) => setEditingValue(e.target.value)}
+                      autoFocus
+                      className="min-h-[60px] resize-none flex-1"
+                      onBlur={() => {
                         handleEdit(index, editingValue);
                         setEditingIndex(null);
-                      }
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  ) : (
+                    <Input
+                      value={editingValue}
+                      onChange={(e) => setEditingValue(e.target.value)}
+                      onBlur={() => {
+                        handleEdit(index, editingValue);
+                        setEditingIndex(null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleEdit(index, editingValue);
+                          setEditingIndex(null);
+                        }
+                      }}
+                      autoFocus
+                      className="h-8 px-2 text-sm flex-1"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(index);
+                      setEditingIndex(null);
                     }}
-                    autoFocus
-                    className="h-8 px-2 text-sm"
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                )
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
               ) : (
-                item
+                <>
+                  <span>{item}</span>
+                  {onUpdate && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(index);
+                      }}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  )}
+                </>
               )}
             </div>
           ))

@@ -5,22 +5,31 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LineChart, Loader2 } from "lucide-react";
-import { getOnboardingData, updateOnboardingData } from "@/lib/onboarding-storage";
 
 interface ProjectInfoFieldsProps {
   isLoading: boolean;
   isScraped: boolean;
   hasError?: boolean;
+  brandName: string;
+  description: string;
+  industry: string;
+  onBrandNameChange: (value: string) => void;
+  onDescriptionChange: (value: string) => void;
+  onIndustryChange: (value: string) => void;
 }
 
 export function ProjectInfoFields({
   isLoading,
   isScraped,
   hasError,
+  brandName,
+  description,
+  industry,
+  onBrandNameChange,
+  onDescriptionChange,
+  onIndustryChange,
 }: ProjectInfoFieldsProps) {
-  // Get form data from localStorage
-  const formData = getOnboardingData();
-  const project = formData.project || {};
+  
   if (!isLoading && !isScraped && !hasError) return null;
 
   return (
@@ -69,16 +78,8 @@ export function ProjectInfoFields({
             id="brandName"
             placeholder="Brand name"
             className="h-10 input-focus"
-            value={project.brandName || ""}
-            onChange={(e) => {
-              // Update localStorage directly
-              updateOnboardingData({
-                project: {
-                  ...project,
-                  brandName: e.target.value,
-                }
-              });
-            }}
+            value={brandName}
+            onChange={(e) => onBrandNameChange(e.target.value)}
           />
         </div>
 
@@ -93,16 +94,8 @@ export function ProjectInfoFields({
             id="description"
             placeholder="Describe your project in a few sentences"
             className="min-h-[80px] resize-none input-focus"
-            value={project.description || ""}
-            onChange={(e) => {
-              // Update localStorage directly
-              updateOnboardingData({
-                project: {
-                  ...project,
-                  description: e.target.value,
-                }
-              });
-            }}
+            value={description}
+            onChange={(e) => onDescriptionChange(e.target.value)}
           />
         </div>
 
@@ -117,16 +110,8 @@ export function ProjectInfoFields({
             id="industry"
             placeholder="HR tech, Fintech, CRM..."
             className="h-10 input-focus"
-            value={project.industry || ""}
-            onChange={(e) => {
-              // Update localStorage directly
-              updateOnboardingData({
-                project: {
-                  ...project,
-                  industry: e.target.value,
-                }
-              });
-            }}
+            value={industry}
+            onChange={(e) => onIndustryChange(e.target.value)}
           />
         </div>
       </CardContent>

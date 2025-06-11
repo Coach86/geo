@@ -27,6 +27,9 @@ export class Project {
   @ApiProperty({ description: 'Full detailed description of the company' })
   fullDescription: string;
 
+  @ApiProperty({ description: 'Business objectives and goals of the company', required: false })
+  objectives?: string;
+
   @ApiProperty({ description: 'List of key features or offerings of the company', type: [String] })
   keyBrandAttributes: string[];
 

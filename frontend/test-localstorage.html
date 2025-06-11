@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Brand Identity LocalStorage</title>
+    <script>
+        // Test the brand identity functionality
+        function testBrandIdentity() {
+            // Set initial data
+            const initialData = {
+                brand: {
+                    attributes: ["Innovative", "Reliable", "Customer-focused"],
+                    competitors: [
+                        { name: "Company A", selected: true },
+                        { name: "Company B", selected: false },
+                        { name: "Company C", selected: true }
+                    ],
+                    analyzedData: {
+                        keyBrandAttributes: ["Innovative", "Trustworthy", "Modern", "Efficient", "Professional"],
+                        competitors: ["Company A", "Company B", "Company C", "Company D"]
+                    }
+                }
+            };
+            
+            localStorage.setItem('onboardingFormData', JSON.stringify(initialData));
+            console.log('Initial data set:', initialData);
+            
+            // Simulate editing an attribute
+            const currentData = JSON.parse(localStorage.getItem('onboardingFormData'));
+            const newAttributes = currentData.brand.attributes.filter((_, i) => i !== 1); // Remove "Reliable"
+            newAttributes.push("Dependable"); // Add "Dependable"
+            
+            currentData.brand.attributes = newAttributes;
+            localStorage.setItem('onboardingFormData', JSON.stringify(currentData));
+            
+            console.log('After edit - attributes:', newAttributes);
+            console.log('Full data in localStorage:', JSON.parse(localStorage.getItem('onboardingFormData')));
+        }
+        
+        // Run test on page load
+        window.onload = testBrandIdentity;
+    </script>
+</head>
+<body>
+    <h1>Test Brand Identity LocalStorage</h1>
+    <p>Check the console for results</p>
+    <button onclick="testBrandIdentity()">Run Test Again</button>
+    <button onclick="console.log(JSON.parse(localStorage.getItem('onboardingFormData')))">Show Current Data</button>
+    <button onclick="localStorage.clear(); console.log('Cleared!')">Clear LocalStorage</button>
+</body>
+</html>

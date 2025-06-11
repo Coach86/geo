@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/providers/auth-provider";
 import { getMyOrganization } from "@/lib/organization-api";
 
 export default function RootPage() {
   const router = useRouter();
+  const pathname = usePathname();
   const { token } = useAuth();
 
   useEffect(() => {
@@ -26,8 +27,8 @@ export default function RootPage() {
           return;
         }
 
-        // If user has projects, redirect to profile
-        router.replace("/profile");
+        // If user has projects, redirect to home
+        router.replace("/home");
       } catch (error) {
         console.error("Failed to fetch organization:", error);
         router.replace("/auth/login");
@@ -35,7 +36,7 @@ export default function RootPage() {
     };
 
     checkAuthAndRedirect();
-  }, [router, token]);
+  }, [router, token, pathname]);
 
   // Show nothing while checking
   return null;

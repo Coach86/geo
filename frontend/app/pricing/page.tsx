@@ -3,18 +3,22 @@
 import { useEffect, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import PricingPage from "@/components/pricing/pricing-page"
-import { useOnboarding } from "@/providers/onboarding-provider"
+import { getOnboardingData } from "@/lib/onboarding-storage"
 
 export default function Pricing() {
   const searchParams = useSearchParams()
-  const { formData } = useOnboarding()
   const [recommendedPlan, setRecommendedPlan] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // First check if we have data from localStorage (via the context)
+    // Get data from localStorage
+    const formData = getOnboardingData()
+    
+    // Check if we have onboarding data
     const hasOnboardingData =
-      formData.markets.length > 0 || formData.website || formData.llmModels.some((m) => m.selected)
+      (formData.brand?.markets?.length > 0) || 
+      (formData.project?.website) || 
+      (formData.prompts?.llmModels?.some((m: any) => m.selected))
 
     // Get plan from URL parameters
     const plan = searchParams.get("plan")
@@ -43,7 +47,7 @@ export default function Pricing() {
       document.body.classList.remove("pricing-page")
       clearTimeout(timer)
     }
-  }, [searchParams, formData])
+  }, [searchParams])
 
   // Show loading state while determining the plan
   if (isLoading || !recommendedPlan) {

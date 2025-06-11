@@ -142,6 +142,7 @@ export class ProjectController {
     response.shortDescription = project.shortDescription;
     response.fullDescription = project.fullDescription;
     response.longDescription = project.fullDescription; // Alias for frontend
+    response.objectives = project.objectives;
     response.keyBrandAttributes = project.keyBrandAttributes;
     response.competitors = project.competitors;
     response.organizationId = project.organizationId;

@@ -277,6 +277,23 @@ export class PublicReportController {
             return [];
           }
         }) || [];
+        
+        // Count actual citations with multiple queries properly
+        let actualTotalCitations = 0;
+        allCitations.forEach((citation: any) => {
+          if (citation.link && citation.link !== '') {
+            // Real citations
+            if (citation.webSearchQueries && citation.webSearchQueries.length > 1) {
+              // This citation will appear multiple times in the frontend table
+              actualTotalCitations += citation.webSearchQueries.length;
+            } else {
+              actualTotalCitations += 1;
+            }
+          } else {
+            // Placeholder entries (no link) count as 1
+            actualTotalCitations += 1;
+          }
+        });
 
         return {
           webAccess: {
@@ -287,6 +304,7 @@ export class PublicReportController {
           topSources: report.citationsData.topSources || [],
           topKeywords: report.citationsData.topKeywords || [],
           citations: allCitations,
+          totalCitations: actualTotalCitations,
         };
       }
 

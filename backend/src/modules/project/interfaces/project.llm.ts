@@ -9,6 +9,7 @@ export interface LlmSummaryResult {
   industry: string;
   shortDescription: string;
   fullDescription: string;
+  objectives?: string;
   keyBrandAttributes: string[];
   // competitors removed from main summary result
 }
@@ -28,6 +29,7 @@ export const projectSummarySchema = z.object({
   industry: z.string(),
   shortDescription: z.string(),
   fullDescription: z.string(),
+  objectives: z.string().optional(),
   keyBrandAttributes: z.array(z.string()),
 });
 

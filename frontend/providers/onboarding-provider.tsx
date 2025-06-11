@@ -19,13 +19,15 @@ import { NavigationConfirmationDialog } from "@/components/onboarding/navigation
 import { getOnboardingData, updateOnboardingData, clearOnboardingData } from "@/lib/onboarding-storage";
 import type { FormData } from "@/app/onboarding/types/form-data";
 
-// Define the context type - only navigation-related
+// Define the context type - navigation + step data management
 type OnboardingContextType = {
   currentStep: StepId;
   setCurrentStep: (step: StepId) => void;
   navigateNext: () => void;
   navigatePrevious: () => void;
   canNavigateFromStep: (stepNumber: StepId) => boolean;
+  currentStepData: any;
+  setCurrentStepData: (data: any) => void;
 };
 
 
@@ -36,12 +38,15 @@ const OnboardingContext = createContext<OnboardingContextType>({
   navigateNext: () => {},
   navigatePrevious: () => {},
   canNavigateFromStep: () => true,
+  currentStepData: null,
+  setCurrentStepData: () => {},
 });
 
 // Create a provider component
 export function OnboardingProvider({ children }: { children: ReactNode }) {
   // Initialize state for navigation only
   const [currentStep, setCurrentStepState] = useState(StepId.PROJECT);
+  const [currentStepData, setCurrentStepData] = useState<any>(null);
   
   // Navigation confirmation dialog state
   const [confirmationDialog, setConfirmationDialog] = useState<{
@@ -159,6 +164,8 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       });
     }
     
+    // Clear current step data when navigating
+    setCurrentStepData(null);
     setCurrentStepState(step);
   };
   
@@ -220,6 +227,8 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
         navigateNext,
         navigatePrevious,
         canNavigateFromStep,
+        currentStepData,
+        setCurrentStepData,
       }}
     >
       {children}
