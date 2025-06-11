@@ -48,7 +48,8 @@ export function buildProjectPrompt({
     2. The industry or sector they operate in
     3. A short description (1-2 sentences)
     4. A full description (2-3 paragraphs)
-    5. 4-6 key brand attributes of the company
+    5. The company's business objectives and goals (1-2 paragraphs describing their mission, vision, and strategic objectives)
+    6. 4-6 key brand attributes of the company
 
     ## OUTPUT LANGUAGE:
     **Output language MUST BE ${language}**

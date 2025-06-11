@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useOnboarding } from "@/providers/onboarding-provider";
+import { getOnboardingData } from "@/lib/onboarding-storage";
 import { Button } from "@/components/ui/button";
 import {
   ArrowRight,
@@ -29,7 +29,6 @@ export default function PricingPage({
   forcedRecommendedPlan,
 }: PricingPageProps) {
   const router = useRouter();
-  const { formData } = useOnboarding();
   const { plans, loading, error } = usePlans();
   const { user } = useAuth();
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">(
@@ -44,21 +43,24 @@ export default function PricingPage({
 
   // Ensure data is loaded from localStorage
   useEffect(() => {
+    // Get data from localStorage
+    const formData = getOnboardingData();
+    
     // Check if we have data
     const hasData =
-      formData.markets.length > 0 ||
-      !!formData.website ||
-      formData.llmModels.some((m) => m.selected);
+      (formData.brand?.markets?.length > 0) ||
+      !!formData.project?.website ||
+      (formData.prompts?.llmModels?.some((m: any) => m.selected));
     setIsDataLoaded(hasData);
 
     // Log data for debugging
     console.log("Onboarding data in pricing page:", {
-      website: formData.website,
-      markets: formData.markets,
-      modelCount: formData.llmModels.filter((m) => m.selected).length,
-      competitorCount: formData.competitors.filter((c) => c.selected).length,
+      website: formData.project?.website,
+      markets: formData.brand?.markets,
+      modelCount: formData.prompts?.llmModels?.filter((m: any) => m.selected).length || 0,
+      competitorCount: formData.brand?.competitors?.filter((c: any) => c.selected).length || 0,
     });
-  }, [formData]);
+  }, []);
 
   // Set the selected plan to growth by default
   const [selectedPlan, setSelectedPlan] = useState<

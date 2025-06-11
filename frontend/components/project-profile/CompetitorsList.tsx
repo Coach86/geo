@@ -8,6 +8,9 @@ interface CompetitorsListProps {
 }
 
 export function CompetitorsList({ project, onEdit, onUpdate }: CompetitorsListProps) {
+  const maxCompetitors = 5;
+  const isAtLimit = project.competitors.length >= maxCompetitors;
+  
   return (
     <EditableList
       title="Competitors"
@@ -21,6 +24,9 @@ export function CompetitorsList({ project, onEdit, onUpdate }: CompetitorsListPr
       bgColor="gray"
       inputType="input"
       addButtonLabel="Add Competitor"
+      isAtLimit={isAtLimit}
+      limitMessage="(Max 5)"
+      itemCount={`${project.competitors.length}/${maxCompetitors} competitors`}
     />
   );
 }

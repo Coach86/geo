@@ -41,6 +41,9 @@ export class Project {
   @Prop({ required: true })
   fullDescription: string;
 
+  @Prop({ required: false })
+  objectives: string;
+
   @Prop({
     type: [String],
     required: true,

@@ -35,6 +35,7 @@ export interface GeneratePromptsRequest {
   competitors: string[];
   shortDescription?: string;
   fullDescription?: string;
+  objectives?: string;
 }
 
 export interface GeneratePromptsResponse {
@@ -226,6 +227,7 @@ export class PublicPromptController {
         competitors: body.competitors,
         shortDescription: body.shortDescription || '',
         fullDescription: body.fullDescription || body.shortDescription || '',
+        objectives: body.objectives || '',
         organizationId: 'temp-org-id', // Temporary ID since we're not saving
         updatedAt: new Date(),
       };

@@ -52,7 +52,7 @@ export function EditCompetitorsDialog({
         <DialogHeader>
           <DialogTitle>Edit Competitors</DialogTitle>
           <DialogDescription>
-            Add, edit, or remove competitors for {brandName}
+            Add, edit, or remove competitors for {brandName} (Maximum 5 competitors)
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -88,7 +88,7 @@ export function EditCompetitorsDialog({
             disabled={editingCompetitors.length >= 5}
           >
             <Plus className="h-4 w-4 mr-2" />
-            Add Competitor
+            Add Competitor ({editingCompetitors.length}/5)
           </Button>
         </div>
         <DialogFooter>
