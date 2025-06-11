@@ -148,10 +148,7 @@ export default function AlignmentPage() {
                 </div>
                 <div className="text-right">
                   <div className="text-3xl font-bold text-primary-600">
-                    {(
-                      alignmentData.overallAlignmentScore *
-                      100
-                    ).toFixed(0)}%
+                    {alignmentData.overallAlignmentScore}%
                   </div>
                   <p className="text-sm text-mono-400 mt-1">
                     Alignment Score

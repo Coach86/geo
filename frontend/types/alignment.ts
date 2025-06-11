@@ -57,7 +57,7 @@ export interface AttributeAlignmentSummaryItem {
  * Overall summary of alignment results.
  */
 export interface AlignmentSummary {
-  overallAlignmentScore: number; // Overall score, e.g., 0.87 for 87%
+  overallAlignmentScore: number; // Overall score as percentage, e.g., 87 for 87%
   // Average scores for each attribute across all models/tests
   averageAttributeScores: Record<string, number>; // e.g., { "Trustworthiness": 0.9, "Transparency": 0.8 }
   // Data for the "Attribute Alignment" table in the accordion
