@@ -39,4 +39,13 @@ export class UpdateProjectDto {
   @IsString()
   @IsOptional()
   market?: string;
+
+  @ApiProperty({
+    description: 'Business objectives and goals of the company',
+    example: 'To provide innovative solutions for...',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  objectives?: string;
 }

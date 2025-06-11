@@ -132,15 +132,17 @@ export class ProjectService {
         }
 
         // Create from provided data
+        const brandName = createProjectDto.data.brandName || 'Unknown';
         project = {
           projectId: uuidv4(),
-          name: createProjectDto.data.name,
-          brandName: createProjectDto.data.brandName || 'Unknown',
+          name: createProjectDto.data.name || `project-${brandName.toLowerCase()}`,
+          brandName: brandName,
           website: this.stripUrlProtocol(createProjectDto.data.website || ''),
           industry: createProjectDto.data.industry || 'Unknown',
           market: createProjectDto.data.market,
           shortDescription: createProjectDto.data.shortDescription || '',
           fullDescription: createProjectDto.data.fullDescription || '',
+          objectives: createProjectDto.data.objectives || '',
           keyBrandAttributes: createProjectDto.data.keyBrandAttributes || [],
           competitors: createProjectDto.data.competitors || [],
           language: createProjectDto.data.language || 'en',
@@ -154,13 +156,14 @@ export class ProjectService {
       // Prepare database data object
       const dbData: any = {
         id: project.projectId, // Using the correct field name
-        name: createProjectDto.data?.name || project.name,
+        name: project.name, // Always use the generated name from project object
         brandName: project.brandName,
         website: project.website,
         industry: project.industry,
         market: project.market,
         shortDescription: project.shortDescription,
         fullDescription: project.fullDescription,
+        objectives: project.objectives,
         keyBrandAttributes: project.keyBrandAttributes,
         competitors: project.competitors,
         language: project.language,
@@ -202,7 +205,7 @@ export class ProjectService {
 
   async update(
     projectId: string,
-    updateData: { name?: string; keyBrandAttributes?: string[]; competitors?: string[]; market?: string },
+    updateData: { name?: string; keyBrandAttributes?: string[]; competitors?: string[]; market?: string; objectives?: string },
   ): Promise<Project> {
     try {
       // First check if the project exists
@@ -225,6 +228,10 @@ export class ProjectService {
 
       if (updateData.market !== undefined) {
         updateObj.market = updateData.market;
+      }
+
+      if (updateData.objectives !== undefined) {
+        updateObj.objectives = updateData.objectives;
       }
 
       // Only update if there are changes
@@ -319,12 +326,14 @@ export class ProjectService {
       // Step 3: Combine results into a complete project
       return {
         projectId: uuidv4(),
+        name: `project-${mainProject.brandName.toLowerCase()}`,
         brandName: mainProject.brandName,
         website: this.stripUrlProtocol(url),
         industry: mainProject.industry,
         market: market,
         shortDescription: mainProject.shortDescription,
         fullDescription: mainProject.fullDescription,
+        objectives: mainProject.objectives,
         keyBrandAttributes: mainProject.keyBrandAttributes,
         competitors: competitors,
         language: language,

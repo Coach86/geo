@@ -134,6 +134,7 @@ export class UserRepository {
         market: project.market,
         shortDescription: project.shortDescription,
         fullDescription: project.fullDescription,
+        objectives: project.objectives,
         keyBrandAttributes: project.keyBrandAttributes,
         competitors: project.competitors,
         updatedAt: project.updatedAt instanceof Date ? project.updatedAt : new Date(),

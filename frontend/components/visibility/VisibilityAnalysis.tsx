@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { ModelIcon } from "@/components/ui/model-icon";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Eye } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Eye, Info } from "lucide-react";
 
 interface ModeMetric {
   model: string;
@@ -68,10 +69,17 @@ export function VisibilityAnalysis({
               <Eye className="h-5 w-5 text-primary-600" />
             </div>
             Brand Visibility Analysis
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-gray-400 cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Overall and per-model mention rates with competitor comparison</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </CardTitle>
-          <p className="text-sm text-gray-600 mt-1">
-            Overall and per-model mention rates with competitor comparison
-          </p>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
@@ -113,8 +121,18 @@ export function VisibilityAnalysis({
 
             {/* Overall Mention Rate */}
             <div className="pb-4 border-b border-gray-200">
-              <h4 className="text-sm font-semibold text-gray-700 mb-4">
+              <h4 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
                 Overall Mention Rate
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-gray-400 cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Percentage of relevant conversations mentioning each brand across all models</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </h4>
 
               <div className="space-y-3">
@@ -181,11 +199,6 @@ export function VisibilityAnalysis({
                   );
                 })}
               </div>
-
-              <p className="text-xs text-gray-500 mt-3">
-                Percentage of relevant conversations mentioning each brand
-                across all models
-              </p>
             </div>
 
             {/* By Model Breakdown */}

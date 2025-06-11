@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/providers/auth-provider"
-import { getOnboardingData, updateOnboardingData } from "@/lib/onboarding-storage"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
@@ -13,9 +12,51 @@ import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { generatePrompts, type GeneratePromptsRequest } from "@/lib/auth-api"
 
-export default function PromptSelection() {
+interface Prompt {
+  text: string;
+  selected: boolean;
+}
+
+interface PromptSelectionProps {
+  initialData?: {
+    visibilityPrompts: Prompt[];
+    perceptionPrompts: Prompt[];
+    projectData?: {
+      brandName: string;
+      website: string;
+      industry: string;
+      description?: string;
+    };
+    brandData?: {
+      markets?: Array<{ country: string; languages: string[] }>;
+      attributes?: string[];
+      competitors?: Array<{ name: string; selected: boolean }>;
+      analyzedData?: {
+        keyBrandAttributes?: string[];
+        competitors?: string[];
+        fullDescription?: string;
+      };
+    };
+  };
+  onDataReady?: (data: { 
+    visibilityPrompts: Prompt[]; 
+    perceptionPrompts: Prompt[] 
+  }) => void;
+}
+
+export default function PromptSelection({ initialData, onDataReady }: PromptSelectionProps) {
   const { token, isAuthenticated, isLoading: authLoading } = useAuth()
   const router = useRouter()
+  
+  // Local state - no localStorage updates
+  const [visibilityPrompts, setVisibilityPrompts] = useState<Prompt[]>(
+    initialData?.visibilityPrompts || []
+  );
+  const [perceptionPrompts, setPerceptionPrompts] = useState<Prompt[]>(
+    initialData?.perceptionPrompts || []
+  );
+  
+  // UI state
   const [editingPromptIndex, setEditingPromptIndex] = useState<number | null>(null)
   const [editingPromptType, setEditingPromptType] = useState<"visibility" | "perception" | null>(null)
   const [editingPromptValue, setEditingPromptValue] = useState("")
@@ -23,26 +64,25 @@ export default function PromptSelection() {
   const [showPricingDialog, setShowPricingDialog] = useState(false)
   const [newVisibilityPrompt, setNewVisibilityPrompt] = useState("")
   const [error, setError] = useState<string | null>(null)
-  
-  // Get form data from localStorage
-  const formData = getOnboardingData()
+
+  // Notify parent when data changes (for validation purposes)
+  useEffect(() => {
+    if (onDataReady) {
+      onDataReady({ visibilityPrompts, perceptionPrompts });
+    }
+  }, [visibilityPrompts, perceptionPrompts, onDataReady]);
 
   // Count selected items for plan impact
-  const visibilityPrompts = formData.prompts?.visibilityPrompts || []
-  const perceptionPrompts = formData.prompts?.perceptionPrompts || []
   const selectedVisibilityCount = visibilityPrompts.filter((p: any) => p.selected).length
   const selectedPerceptionCount = perceptionPrompts.filter((p: any) => p.selected).length
 
   // Generate prompts when component loads
   useEffect(() => {
     const generatePromptsForBrand = async () => {
-      // Get latest data from localStorage
-      const currentData = getOnboardingData();
-      
-      // Get data from the nested structure
-      const brandName = currentData.project?.brandName;
-      const website = currentData.project?.website;
-      const industry = currentData.project?.industry;
+      // Get data from initial props
+      const brandName = initialData?.projectData?.brandName;
+      const website = initialData?.projectData?.website;
+      const industry = initialData?.projectData?.industry;
       
       console.log('generatePromptsForBrand effect triggered', {
         token: !!token,
@@ -50,9 +90,8 @@ export default function PromptSelection() {
         brandName,
         website,
         industry,
-        projectData: currentData.project,
-        brandData: currentData.brand,
-        fullData: currentData
+        projectData: initialData?.projectData,
+        brandData: initialData?.brandData,
       });
       
       if (!token || authLoading || !brandName || !website) {
@@ -70,23 +109,19 @@ export default function PromptSelection() {
         return
       }
 
+      // If we already have prompts, don't regenerate
+      if (visibilityPrompts.length > 0 && perceptionPrompts.length > 0) {
+        console.log('Using existing prompts');
+        setIsLoading(false);
+        return;
+      }
+
       // Create a unique cache key based on brand data
       const cacheKey = `prompts-${brandName}-${website}-${industry}`;
       
       try {
         setIsLoading(true)
         setError(null)
-
-        // Check if we already have prompts
-        const existingVisibilityPrompts = currentData.prompts?.visibilityPrompts;
-        const existingPerceptionPrompts = currentData.prompts?.perceptionPrompts;
-        
-        if (existingVisibilityPrompts && existingPerceptionPrompts && 
-            existingVisibilityPrompts.length > 0 && existingPerceptionPrompts.length > 0) {
-          console.log('Using existing prompts from localData');
-          setIsLoading(false)
-          return
-        }
 
         // Check localStorage cache
         const cachedData = localStorage.getItem(cacheKey)
@@ -98,14 +133,9 @@ export default function PromptSelection() {
             const maxAge = 24 * 60 * 60 * 1000 // 24 hours
             
             if (cacheAge < maxAge && cached.visibilityPrompts?.length > 0 && cached.perceptionPrompts?.length > 0) {
-              // Use cached prompts only if they exist and are not empty
-              updateOnboardingData({
-                prompts: {
-                  ...currentData.prompts,
-                  visibilityPrompts: cached.visibilityPrompts,
-                  perceptionPrompts: cached.perceptionPrompts
-                }
-              })
+              // Use cached prompts
+              setVisibilityPrompts(cached.visibilityPrompts);
+              setPerceptionPrompts(cached.perceptionPrompts);
               setIsLoading(false)
               return
             }
@@ -116,14 +146,13 @@ export default function PromptSelection() {
         }
 
         // Build the request from analyzed data or form data
-        // Get attributes
-        const keyBrandAttributes = currentData.brand?.analyzedData?.keyBrandAttributes || 
-                                  currentData.brand?.attributes || 
+        const keyBrandAttributes = initialData?.brandData?.analyzedData?.keyBrandAttributes || 
+                                  initialData?.brandData?.attributes || 
                                   [];
         
         // Get competitors and ensure they're strings
-        const competitorsList = currentData.brand?.analyzedData?.competitors || 
-                               currentData.brand?.competitors || 
+        const competitorsList = initialData?.brandData?.analyzedData?.competitors || 
+                               initialData?.brandData?.competitors || 
                                [];
         
         // Convert competitor objects to strings if needed
@@ -138,54 +167,40 @@ export default function PromptSelection() {
           brandName: brandName,
           website: website,
           industry: industry || '',
-          market: currentData.brand?.markets?.[0]?.country || 'United States',
-          language: currentData.brand?.markets?.[0]?.languages?.[0] || 'English',
+          market: initialData?.brandData?.markets?.[0]?.country || 'United States',
+          language: initialData?.brandData?.markets?.[0]?.languages?.[0] || 'English',
           keyBrandAttributes: keyBrandAttributes,
           competitors: competitors,
-          shortDescription: currentData.project?.description || '',
-          fullDescription: currentData.brand?.analyzedData?.fullDescription || 
-                          currentData.project?.description || ''
+          shortDescription: initialData?.projectData?.description || '',
+          fullDescription: initialData?.brandData?.analyzedData?.fullDescription || 
+                          initialData?.projectData?.description || ''
         }
 
         console.log('Generating prompts with request:', JSON.stringify(request, null, 2))
-        console.log('Request details:', {
-          hasKeyBrandAttributes: request.keyBrandAttributes.length > 0,
-          keyBrandAttributesCount: request.keyBrandAttributes.length,
-          keyBrandAttributesList: request.keyBrandAttributes,
-          hasCompetitors: request.competitors.length > 0,
-          competitorsCount: request.competitors.length,
-          competitorsList: request.competitors
-        })
-        console.log('Token being used:', token)
         
         const response = await generatePrompts(request, token)
         console.log('Generated prompts response:', response)
 
         // Map backend response to frontend format
-        const visibilityPrompts = [
+        const newVisibilityPrompts = [
           ...response.spontaneous.map(text => ({ text, selected: true })),
         ]
 
-        const perceptionPrompts = [
+        const newPerceptionPrompts = [
           ...response.direct.map(text => ({ text, selected: true })),
         ]
 
         // Cache the generated prompts
         const cacheData = {
-          visibilityPrompts,
-          perceptionPrompts,
+          visibilityPrompts: newVisibilityPrompts,
+          perceptionPrompts: newPerceptionPrompts,
           timestamp: Date.now()
         }
         localStorage.setItem(cacheKey, JSON.stringify(cacheData))
 
-        // Update form data with generated prompts
-        updateOnboardingData({
-          prompts: {
-            ...currentData.prompts,
-            visibilityPrompts,
-            perceptionPrompts
-          }
-        })
+        // Update state with generated prompts
+        setVisibilityPrompts(newVisibilityPrompts);
+        setPerceptionPrompts(newPerceptionPrompts);
       } catch (err) {
         console.error('Error generating prompts:', err)
         setError(err instanceof Error ? err.message : 'Failed to generate prompts')
@@ -195,30 +210,20 @@ export default function PromptSelection() {
     }
 
     generatePromptsForBrand()
-  }, [token, authLoading])
+  }, [token, authLoading, initialData])
 
   // Toggle visibility prompt selection
   const toggleVisibilityPrompt = (index: number) => {
     const updatedPrompts = [...visibilityPrompts]
     updatedPrompts[index].selected = !updatedPrompts[index].selected
-    updateOnboardingData({ 
-      prompts: {
-        ...formData.prompts,
-        visibilityPrompts: updatedPrompts 
-      }
-    })
+    setVisibilityPrompts(updatedPrompts);
   }
 
   // Toggle perception prompt selection
   const togglePerceptionPrompt = (index: number) => {
     const updatedPrompts = [...perceptionPrompts]
     updatedPrompts[index].selected = !updatedPrompts[index].selected
-    updateOnboardingData({ 
-      prompts: {
-        ...formData.prompts,
-        perceptionPrompts: updatedPrompts 
-      }
-    })
+    setPerceptionPrompts(updatedPrompts);
   }
 
   // Start editing a prompt
@@ -238,21 +243,11 @@ export default function PromptSelection() {
     if (editingPromptType === "visibility" && editingPromptIndex !== null) {
       const updatedPrompts = [...visibilityPrompts]
       updatedPrompts[editingPromptIndex].text = editingPromptValue
-      updateOnboardingData({ 
-        prompts: {
-          ...formData.prompts,
-          visibilityPrompts: updatedPrompts 
-        }
-      })
+      setVisibilityPrompts(updatedPrompts);
     } else if (editingPromptType === "perception" && editingPromptIndex !== null) {
       const updatedPrompts = [...perceptionPrompts]
       updatedPrompts[editingPromptIndex].text = editingPromptValue
-      updateOnboardingData({ 
-        prompts: {
-          ...formData.prompts,
-          perceptionPrompts: updatedPrompts 
-        }
-      })
+      setPerceptionPrompts(updatedPrompts);
     }
 
     setEditingPromptIndex(null)
@@ -267,7 +262,6 @@ export default function PromptSelection() {
     setEditingPromptValue("")
   }
 
-
   // Add new visibility prompt
   const addVisibilityPrompt = () => {
     if (newVisibilityPrompt.trim() === "") return
@@ -277,12 +271,7 @@ export default function PromptSelection() {
       text: newVisibilityPrompt,
       selected: true,
     })
-    updateOnboardingData({ 
-      prompts: {
-        ...formData.prompts,
-        visibilityPrompts: updatedPrompts 
-      }
-    })
+    setVisibilityPrompts(updatedPrompts);
     setNewVisibilityPrompt("")
   }
 
@@ -335,15 +324,9 @@ export default function PromptSelection() {
     )
   }
 
-  // Show missing brand data state - check both old and new structure
-  const brandName = formData.project?.brandName;
-  const website = formData.project?.website;
-  
-  console.log('Checking for missing brand data:', {
-    brandName,
-    website,
-    projectData: formData.project
-  });
+  // Show missing brand data state
+  const brandName = initialData?.projectData?.brandName;
+  const website = initialData?.projectData?.website;
   
   if (!brandName || !website) {
     return (

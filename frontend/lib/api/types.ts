@@ -114,6 +114,7 @@ export interface ProjectResponse {
   shortDescription: string;
   fullDescription: string;
   longDescription: string;
+  objectives?: string;
   keyBrandAttributes: string[];
   competitors: string[];
   createdAt: string;
@@ -132,6 +133,13 @@ export interface CreateFullProjectRequest {
   language?: string;
   keyBrandAttributes?: string[];
   competitors?: string[];
+  prompts?: {
+    spontaneous?: string[];
+    direct?: string[];
+    comparison?: string[];
+    accuracy?: string[];
+    brandBattle?: string[];
+  };
 }
 
 export interface CreateProjectFromUrlRequest {
@@ -223,6 +231,7 @@ export interface CitationsData {
     promptType: string;
     fullCitation?: Record<string, unknown>;
   }>;
+  totalCitations?: number;
 }
 
 // Spontaneous data types

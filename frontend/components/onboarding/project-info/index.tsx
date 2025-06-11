@@ -7,20 +7,63 @@ import { WebsiteAnalyzer } from "./WebsiteAnalyzer";
 import { MarketSelector } from "./MarketSelector";
 import { ProjectInfoFields } from "./ProjectInfoFields";
 import { calculatePlanImpact } from "./utils";
-import { getOnboardingData, updateOnboardingData } from "@/lib/onboarding-storage";
 import type { ProjectInfoProps, PlanType } from "./types";
+import type { Market } from "@/app/onboarding/types/form-data";
 
-export default function ProjectInfo(props: ProjectInfoProps) {
+interface ProjectInfoComponentProps {
+  initialData?: {
+    project?: {
+      website: string;
+      brandName: string;
+      description: string;
+      industry: string;
+    };
+    brand?: {
+      markets: Market[];
+      analyzedData?: {
+        keyBrandAttributes: string[];
+        competitors: string[];
+        fullDescription?: string;
+      };
+    };
+  };
+  onDataReady?: (data: {
+    project: {
+      website: string;
+      brandName: string;
+      description: string;
+      industry: string;
+    };
+    brand: {
+      markets: Market[];
+      analyzedData?: {
+        keyBrandAttributes: string[];
+        competitors: string[];
+        fullDescription?: string;
+      };
+    };
+  }) => void;
+}
+
+export default function ProjectInfo({ initialData, onDataReady }: ProjectInfoComponentProps) {
   const { token, isAuthenticated, isLoading: authLoading } = useAuth();
+  
+  // Local state - no localStorage updates
+  const [website, setWebsite] = useState(initialData?.project?.website || "");
+  const [brandName, setBrandName] = useState(initialData?.project?.brandName || "");
+  const [description, setDescription] = useState(initialData?.project?.description || "");
+  const [industry, setIndustry] = useState(initialData?.project?.industry || "");
+  const [markets, setMarkets] = useState<Market[]>(
+    initialData?.brand?.markets || [{ country: "United States", languages: ["English"] }]
+  );
+  const [analyzedData, setAnalyzedData] = useState(initialData?.brand?.analyzedData);
+  
+  // UI state
   const [isLoading, setIsLoading] = useState(false);
   const [isScraped, setIsScraped] = useState(false);
   const [planImpact, setPlanImpact] = useState<PlanType>("Starter");
   const [showPricingDialog, setShowPricingDialog] = useState(false);
   const [analysisError, setAnalysisError] = useState(false);
-  
-  // Get form data from localStorage
-  const formData = getOnboardingData();
-  const markets = formData.brand?.markets || [];
 
   // Calculate plan impact whenever markets change
   useEffect(() => {
@@ -29,17 +72,41 @@ export default function ProjectInfo(props: ProjectInfoProps) {
     }
   }, [markets]);
 
-  const handleAnalysisComplete = () => {
+  // Notify parent when data changes (for validation purposes)
+  useEffect(() => {
+    if (onDataReady) {
+      onDataReady({
+        project: {
+          website,
+          brandName,
+          description,
+          industry,
+        },
+        brand: {
+          markets,
+          analyzedData,
+        },
+      });
+    }
+  }, [website, brandName, description, industry, markets, analyzedData, onDataReady]);
+
+  const handleAnalysisComplete = (data?: {
+    brandName: string;
+    description: string;
+    industry: string;
+    analyzedData: any;
+  }) => {
     setIsScraped(true);
+    if (data) {
+      setBrandName(data.brandName);
+      setDescription(data.description);
+      setIndustry(data.industry);
+      setAnalyzedData(data.analyzedData);
+    }
   };
 
-  const handleMarketsChange = (newMarkets: any[]) => {
-    updateOnboardingData({
-      brand: {
-        ...formData.brand,
-        markets: newMarkets
-      }
-    });
+  const handleMarketsChange = (newMarkets: Market[]) => {
+    setMarkets(newMarkets);
   };
 
   return (
@@ -59,6 +126,9 @@ export default function ProjectInfo(props: ProjectInfoProps) {
       <div className="space-y-8">
         {/* Website Input and Analyzer */}
         <WebsiteAnalyzer
+          website={website}
+          onWebsiteChange={setWebsite}
+          markets={markets}
           token={token}
           isAuthenticated={isAuthenticated}
           authLoading={authLoading}
@@ -79,6 +149,12 @@ export default function ProjectInfo(props: ProjectInfoProps) {
           isLoading={isLoading}
           isScraped={isScraped}
           hasError={analysisError}
+          brandName={brandName}
+          description={description}
+          industry={industry}
+          onBrandNameChange={setBrandName}
+          onDescriptionChange={setDescription}
+          onIndustryChange={setIndustry}
         />
       </div>
     </div>

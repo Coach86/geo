@@ -12,6 +12,7 @@ import { TokenService } from '../auth/services/token.service';
 import { AccessTokenRepository } from '../auth/repositories/access-token.repository';
 import { AccessToken, AccessTokenSchema } from '../auth/schemas/access-token.schema';
 import { OrganizationModule } from '../organization/organization.module';
+import { PromptModule } from '../prompt/prompt.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { OrganizationModule } from '../organization/organization.module';
     LlmModule,
     ConfigModule,
     forwardRef(() => OrganizationModule),
+    forwardRef(() => PromptModule),
   ],
   controllers: [ProjectController, UserProjectController],
   providers: [

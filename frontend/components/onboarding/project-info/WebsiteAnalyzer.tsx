@@ -6,19 +6,29 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Globe, AlertCircle, Loader2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { analyzeWebsite } from "@/lib/auth-api";
-import { getOnboardingData, updateOnboardingData } from "@/lib/onboarding-storage";
 import type { IdentityCardResponse } from "./types";
-import type { FormData } from "@/app/onboarding/types/form-data";
+import type { Market } from "@/app/onboarding/types/form-data";
 
 interface WebsiteAnalyzerProps {
+  website: string;
+  onWebsiteChange: (website: string) => void;
+  markets: Market[];
   token: string | null;
   isAuthenticated: boolean;
   authLoading: boolean;
-  onAnalysisComplete: () => void;
+  onAnalysisComplete: (data?: {
+    brandName: string;
+    description: string;
+    industry: string;
+    analyzedData: any;
+  }) => void;
   onError?: (hasError: boolean) => void;
 }
 
 export function WebsiteAnalyzer({
+  website,
+  onWebsiteChange,
+  markets,
   token,
   isAuthenticated,
   authLoading,
@@ -28,11 +38,6 @@ export function WebsiteAnalyzer({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasAnalyzed, setHasAnalyzed] = useState(false);
-  
-  // Get form data from localStorage
-  const formData = getOnboardingData();
-  const website = formData.project?.website || "";
-  const markets = formData.brand?.markets || [{ country: "United States", languages: ["English"] }];
 
   const handleAnalyzeWebsite = async () => {
     if (!website || !token || hasAnalyzed) return;
@@ -55,42 +60,20 @@ export function WebsiteAnalyzer({
       );
 
       console.log("Identity card response:", identityCard);
-      console.log("Key brand attributes:", identityCard.keyBrandAttributes);
-      console.log("Competitors:", identityCard.competitors);
 
-      // Update form data with the real identity card data
-      console.log('[WebsiteAnalyzer] Updating form data with identity card:', identityCard);
-      
-      // Update localStorage with NEW structure only
-      updateOnboardingData({
-        project: {
-          ...formData.project,
-          brandName: identityCard.brandName || "",
-          description: identityCard.shortDescription || "",
-          industry: identityCard.industry || "",
-          website: website,
+      // Pass the analyzed data to parent
+      onAnalysisComplete({
+        brandName: identityCard.brandName || "",
+        description: identityCard.shortDescription || "",
+        industry: identityCard.industry || "",
+        analyzedData: {
+          keyBrandAttributes: identityCard.keyBrandAttributes || [],
+          competitors: identityCard.competitors || [],
+          fullDescription: identityCard.fullDescription || identityCard.longDescription || "",
         },
-        brand: {
-          ...formData.brand,
-          attributes: identityCard.keyBrandAttributes || [],
-          competitors: (identityCard.competitors || []).map((name: string) => ({
-            name,
-            selected: true,
-            logo: ""
-          })),
-          analyzedData: {
-            keyBrandAttributes: identityCard.keyBrandAttributes || [],
-            competitors: identityCard.competitors || [],
-            fullDescription:
-              identityCard.fullDescription || identityCard.longDescription || "",
-          },
-        }
       });
-      
-      console.log('[WebsiteAnalyzer] Form data updated successfully');
 
       setHasAnalyzed(true);
-      onAnalysisComplete();
       onError?.(false);
     } catch (err) {
       console.error("Identity card creation failed:", err);
@@ -124,13 +107,7 @@ export function WebsiteAnalyzer({
               className="h-12 pl-10 text-base input-focus"
               value={website}
               onChange={(e) => {
-                // Update localStorage directly
-                updateOnboardingData({
-                  project: {
-                    ...formData.project,
-                    website: e.target.value,
-                  }
-                });
+                onWebsiteChange(e.target.value);
                 setHasAnalyzed(false);
                 setError(null);
               }}

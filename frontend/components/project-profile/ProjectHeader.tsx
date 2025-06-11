@@ -9,6 +9,7 @@ interface ProjectHeaderProps {
   isDescriptionExpanded: boolean;
   setIsDescriptionExpanded: (expanded: boolean) => void;
   onEditName?: () => void;
+  onEditObjectives?: () => void;
 }
 
 export function ProjectHeader({
@@ -16,6 +17,7 @@ export function ProjectHeader({
   isDescriptionExpanded,
   setIsDescriptionExpanded,
   onEditName,
+  onEditObjectives,
 }: ProjectHeaderProps) {
   const getMarketEmoji = (market: string) => {
     const marketFlags: { [key: string]: string } = {
@@ -149,6 +151,33 @@ export function ProjectHeader({
                 </button>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Objectives Section */}
+        <div className="relative mt-6">
+          <div className="flex items-center gap-2 mb-2">
+            <h3 className="font-semibold text-xs uppercase tracking-wider text-gray-500">
+              Project Objectives
+            </h3>
+            {onEditObjectives && (
+              <Button
+                onClick={onEditObjectives}
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0"
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+          <div className="relative pl-4">
+            <div className="absolute left-0 top-0 w-1 h-full bg-gradient-to-b from-purple-500 to-pink-500 rounded-full"></div>
+            <p className="text-sm text-gray-700 leading-relaxed">
+              {project.objectives || (
+                <span className="text-gray-400 italic">No project objectives defined yet. Click edit to add tracking objectives.</span>
+              )}
+            </p>
           </div>
         </div>
       </CardContent>

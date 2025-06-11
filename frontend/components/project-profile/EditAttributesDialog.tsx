@@ -52,7 +52,7 @@ export function EditAttributesDialog({
         <DialogHeader>
           <DialogTitle>Edit Key Brand Attributes</DialogTitle>
           <DialogDescription>
-            Add, edit, or remove brand attributes for {brandName}
+            Add, edit, or remove brand attributes for {brandName} (Maximum 5 attributes)
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -85,10 +85,10 @@ export function EditAttributesDialog({
             size="sm"
             onClick={() => setEditingAttributes([...editingAttributes, ""])}
             className="w-full"
-            disabled={editingAttributes.length >= 6}
+            disabled={editingAttributes.length >= 5}
           >
             <Plus className="h-4 w-4 mr-2" />
-            Add Attribute
+            Add Attribute ({editingAttributes.length}/5)
           </Button>
         </div>
         <DialogFooter>

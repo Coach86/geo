@@ -151,7 +151,7 @@ export async function getProjectById(
  */
 export async function updateProject(
   projectId: string,
-  data: { name?: string; keyBrandAttributes?: string[]; competitors?: string[] },
+  data: { name?: string; keyBrandAttributes?: string[]; competitors?: string[]; objectives?: string },
   token: string
 ): Promise<ProjectResponse> {
   try {

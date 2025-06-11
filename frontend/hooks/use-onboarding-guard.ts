@@ -28,9 +28,9 @@ export function useOnboardingGuard() {
         // Fetch organization data
         const org = await getMyOrganization(token);
 
-        // If user has projects, redirect to profile
+        // If user has projects, redirect to home
         if (org.currentProjects && org.currentProjects > 0) {
-          router.replace("/profile");
+          router.replace("/home");
           return;
         }
 

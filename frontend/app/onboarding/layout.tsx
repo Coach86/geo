@@ -10,8 +10,9 @@ import { useRouter } from "next/navigation"
 import { getStepById, isLastStep, PRICING_STEP, StepId, getNextButtonText } from "./steps.config"
 import OnboardingHeader from "@/components/onboarding/onboarding-header"
 import { useAuth } from "@/providers/auth-provider"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { createProject, type CreateFullProjectRequest } from "@/lib/auth-api"
+import { getOnboardingData, updateOnboardingData, clearOnboardingData } from "@/lib/onboarding-storage"
 
 export default function OnboardingLayout({ children }: { children: ReactNode }) {
   return (
@@ -63,7 +64,7 @@ function ProtectedOnboarding({ children }: { children: ReactNode }) {
 }
 
 function NavigationButtons() {
-  const { currentStep, navigateNext, navigatePrevious, canNavigateFromStep, formData, savedConfigs } = useOnboarding()
+  const { currentStep, navigateNext, navigatePrevious, currentStepData, setCurrentStepData } = useOnboarding()
   const router = useRouter()
   const { token, isAuthenticated, isLoading: authLoading } = useAuth()
   const [isGenerating, setIsGenerating] = useState(false)
@@ -78,11 +79,59 @@ function NavigationButtons() {
   }
 
   const handleNext = async () => {
+    // Save current step data to localStorage before navigating
+    if (currentStepData) {
+      const existingData = getOnboardingData();
+      
+      switch (currentStep) {
+        case StepId.PROJECT:
+          updateOnboardingData({
+            project: currentStepData.project,
+            brand: {
+              ...existingData.brand,
+              markets: currentStepData.brand?.markets || existingData.brand.markets,
+              analyzedData: currentStepData.brand?.analyzedData || existingData.brand.analyzedData,
+            }
+          });
+          break;
+          
+        case StepId.BRAND:
+          updateOnboardingData({
+            brand: {
+              ...existingData.brand,
+              attributes: currentStepData.attributes || [],
+              competitors: currentStepData.competitors || [],
+            }
+          });
+          break;
+          
+        case StepId.PROMPTS:
+          updateOnboardingData({
+            prompts: {
+              ...existingData.prompts,
+              visibilityPrompts: currentStepData.visibilityPrompts || [],
+              perceptionPrompts: currentStepData.perceptionPrompts || [],
+            }
+          });
+          break;
+          
+        case StepId.CONTACT:
+          updateOnboardingData({
+            contact: {
+              ...existingData.contact,
+              phoneNumber: currentStepData.phoneNumber || "",
+              phoneCountry: currentStepData.phoneCountry || "US",
+            }
+          });
+          // From contact step, create the project before going to pricing
+          await handleGenerateReport()
+          return;
+          break;
+      }
+    }
+
     if (currentStep === StepId.PRICING) {
       router.push("/results")
-    } else if (currentStep === StepId.CONTACT) {
-      // From contact step, create the project before going to pricing
-      await handleGenerateReport()
     } else {
       navigateNext()
     }
@@ -94,9 +143,10 @@ function NavigationButtons() {
       return
     }
 
-    const allConfigs = savedConfigs.length > 0 ? savedConfigs : [formData]
-    if (allConfigs.length === 0) {
-      setGenerationError("No configurations found. Please add at least one website.")
+    // Get data from localStorage
+    const formData = getOnboardingData()
+    if (!formData.project?.website) {
+      setGenerationError("No website found. Please complete the project information.")
       return
     }
 
@@ -104,30 +154,51 @@ function NavigationButtons() {
     setGenerationError(null)
 
     try {
-      // Process each configuration
-      for (const config of allConfigs) {
-        console.log("Processing configuration:", config.website)
+      console.log("Processing configuration:", formData)
 
-        // Prepare the identity card request
-        const identityCardRequest: CreateFullProjectRequest = {
-          url: config.website,
-          brandName: config.brandName,
-          description: config.analyzedData?.fullDescription || config.description,
-          industry: config.industry,
-          market: config.markets?.[0]?.country || "United States",
-          language: config.markets?.[0]?.languages?.[0] || "English",
-          keyBrandAttributes: config.analyzedData?.keyBrandAttributes || config.attributes || [],
-          competitors: config.analyzedData?.competitors ||
-            config.competitors?.filter((c) => c.selected).map((c) => c.name) || [],
-        }
-
-        // Save the identity card
-        console.log("Saving identity card for:", config.brandName)
-        const identityCard = await createProject(identityCardRequest, token)
-        console.log("Identity card saved successfully:", identityCard.id)
+      // Prepare the identity card request
+      const identityCardRequest: CreateFullProjectRequest = {
+        url: formData.project?.website || "",
+        brandName: formData.project?.brandName || "",
+        description: formData.brand?.analyzedData?.fullDescription || formData.project?.description || "",
+        industry: formData.project?.industry || "",
+        market: formData.brand?.markets?.[0]?.country || "United States",
+        language: formData.brand?.markets?.[0]?.languages?.[0] || "English",
+        keyBrandAttributes: formData.brand?.attributes || formData.brand?.analyzedData?.keyBrandAttributes || [],
+        competitors: formData.brand?.competitors?.filter((c: any) => c.selected).map((c: any) => c.name) || 
+                    formData.brand?.analyzedData?.competitors || [],
       }
 
-      console.log("All configurations processed successfully")
+      // Add prompts if they exist and have been edited
+      if (formData.prompts) {
+        const selectedVisibilityPrompts = formData.prompts.visibilityPrompts
+          ?.filter((p: any) => p.selected)
+          .map((p: any) => p.text);
+        
+        const selectedPerceptionPrompts = formData.prompts.perceptionPrompts
+          ?.filter((p: any) => p.selected)
+          .map((p: any) => p.text);
+
+        if (selectedVisibilityPrompts?.length > 0 || selectedPerceptionPrompts?.length > 0) {
+          identityCardRequest.prompts = {
+            spontaneous: selectedVisibilityPrompts || [],
+            direct: selectedPerceptionPrompts || [],
+            // Initialize other prompt types as empty arrays
+            comparison: [],
+            accuracy: [],
+            brandBattle: []
+          };
+        }
+      }
+
+      // Save the identity card
+      console.log("Saving identity card for:", identityCardRequest.brandName)
+      const identityCard = await createProject(identityCardRequest, token)
+      console.log("Identity card saved successfully:", identityCard.id)
+
+      // Clear onboarding data after successful creation
+      clearOnboardingData()
+      
       // Navigate to pricing page after project creation
       router.push("/pricing")
     } catch (error) {
@@ -142,8 +213,41 @@ function NavigationButtons() {
     }
   }
 
+  // Check if we can navigate based on step data
+  const canNavigate = (() => {
+    if (!currentStepData) return false;
+    
+    const step = getStepById(currentStep);
+    if (!step?.canNavigate) return true;
+    
+    // For validation, we need to check the current step data
+    switch (currentStep) {
+      case StepId.PROJECT:
+        return !!(
+          currentStepData.project?.website &&
+          currentStepData.project?.brandName &&
+          currentStepData.project?.description &&
+          currentStepData.project?.industry &&
+          currentStepData.brand?.analyzedData
+        );
+      case StepId.BRAND:
+        return !!(
+          currentStepData.attributes?.length > 0 &&
+          currentStepData.competitors?.length > 0
+        );
+      case StepId.PROMPTS:
+        return !!(
+          currentStepData.visibilityPrompts?.some((p: any) => p.selected) &&
+          currentStepData.perceptionPrompts?.some((p: any) => p.selected)
+        );
+      case StepId.CONTACT:
+        return !!currentStepData.phoneNumber;
+      default:
+        return true;
+    }
+  })();
+
   const isPricingStep = currentStep === StepId.PRICING
-  const canNavigate = canNavigateFromStep(currentStep)
   const buttonText = getNextButtonText(currentStep, canNavigate)
 
   return (

@@ -41,6 +41,9 @@ export class ProjectResponseDto {
   })
   longDescription?: string;
 
+  @ApiPropertyOptional({ description: 'Business objectives and goals of the company' })
+  objectives?: string;
+
   @ApiProperty({ description: 'List of key features or offerings of the company', type: [String] })
   keyBrandAttributes: string[];
 

@@ -86,6 +86,28 @@ export function useSubmission({
             configData.analyzedData?.competitors ||
             [],
         };
+
+        // Add prompts if they exist and have been edited
+        if (configData.prompts) {
+          const selectedVisibilityPrompts = configData.prompts.visibilityPrompts
+            ?.filter((p: any) => p.selected)
+            .map((p: any) => p.text);
+          
+          const selectedPerceptionPrompts = configData.prompts.perceptionPrompts
+            ?.filter((p: any) => p.selected)
+            .map((p: any) => p.text);
+
+          if (selectedVisibilityPrompts?.length > 0 || selectedPerceptionPrompts?.length > 0) {
+            identityCardRequest.prompts = {
+              spontaneous: selectedVisibilityPrompts || [],
+              direct: selectedPerceptionPrompts || [],
+              // Initialize other prompt types as empty arrays
+              comparison: [],
+              accuracy: [],
+              brandBattle: []
+            };
+          }
+        }
         
         console.log("Identity card request:", identityCardRequest);
         console.log("Attributes being sent:", identityCardRequest.keyBrandAttributes);
@@ -114,18 +136,9 @@ export function useSubmission({
       localStorage.removeItem('onboardingStep');
       localStorage.removeItem('savedConfigs');
 
-      // Redirect to the project profile page instead of continuing onboarding
-      if (allConfigs.length === 1) {
-        const lastProjectId = localStorage.getItem('lastCreatedProjectId');
-        if (lastProjectId) {
-          console.log("Redirecting to project profile:", lastProjectId);
-          router.push(`/profile`);
-          return;
-        }
-      }
-      
-      // For multiple projects, go to the project list
-      router.push("/");
+      // Redirect to the home page
+      console.log("Redirecting to home page");
+      router.push("/home");
     } catch (error) {
       console.error("Error generating report:", error);
       setGenerationError(
