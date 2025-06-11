@@ -7,32 +7,17 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import {
   AlertCircle,
   Globe,
-  Search,
-  ExternalLink,
   TrendingUp,
   Database,
-  Link as LinkIcon,
   Download,
   Brain,
   Hash,
+  Link as LinkIcon,
 } from "lucide-react";
+import { CitationsTable } from "@/components/explorer/CitationsTable";
 import {
   getReportCitations,
   CitationsData,
@@ -78,14 +63,6 @@ export default function CitationsPage() {
   const [loadingSpontaneous, setLoadingSpontaneous] = useState(false);
   const [promptSet, setPromptSet] = useState<PromptSet | null>(null);
   const [expandedSources, setExpandedSources] = useState(false);
-  
-  // Filter states
-  const [queryFilter, setQueryFilter] = useState("");
-  const [sourceFilter, setSourceFilter] = useState("");
-  const [linkFilter, setLinkFilter] = useState("");
-  const [modelFilter, setModelFilter] = useState<string>("all");
-  const [promptTypeFilter, setPromptTypeFilter] = useState<string>("all");
-  const [promptDetailFilter, setPromptDetailFilter] = useState<string>("all");
 
   // Fetch citations when selected report changes
   useEffect(() => {
@@ -158,15 +135,6 @@ export default function CitationsPage() {
   }, [selectedProjectId, token]);
 
 
-  // Get domain for URL display
-  const getDomain = (url: string) => {
-    try {
-      const urlObj = new URL(url);
-      return urlObj.hostname.replace("www.", "");
-    } catch {
-      return url;
-    }
-  };
 
   // Get prompt text based on type and index
   const getPromptText = (promptType?: string, promptIndex?: number): string | null => {
@@ -200,116 +168,6 @@ export default function CitationsPage() {
     }));
   }, [citationsData, promptSet]);
 
-  // Process and group citations by query with filters
-  const processedCitations = useMemo(() => {
-    if (!citationsWithPromptText.length) return new Map();
-    
-    const citationsByQuery = new Map<string, typeof citationsWithPromptText>();
-    
-    // First pass: filter citations
-    const filteredCitations = citationsWithPromptText.filter(citation => {
-      // Apply model filter
-      if (modelFilter !== "all" && citation.model !== modelFilter) return false;
-      
-      // Apply prompt type filter
-      if (promptTypeFilter !== "all" && citation.promptType !== promptTypeFilter) return false;
-      
-      // Apply link filter
-      if (linkFilter && (!citation.link || !citation.link.toLowerCase().includes(linkFilter.toLowerCase()))) {
-        return false;
-      }
-      
-      // Apply prompt detail filter
-      if (promptDetailFilter !== "all") {
-        if (promptDetailFilter === "N/A") {
-          if (citation.promptText) return false;
-        } else {
-          if (!citation.promptText || !citation.promptText.includes(promptDetailFilter)) return false;
-        }
-      }
-      
-      // Apply source filter
-      if (sourceFilter && !citation.website.toLowerCase().includes(sourceFilter.toLowerCase())) {
-        return false;
-      }
-      
-      return true;
-    });
-    
-    // Second pass: group by query
-    filteredCitations.forEach((citation) => {
-      if (citation.webSearchQueries && citation.webSearchQueries.length > 0) {
-        citation.webSearchQueries.forEach((queryObj) => {
-          const query = queryObj.query;
-          
-          // Apply query filter
-          if (queryFilter && !query.toLowerCase().includes(queryFilter.toLowerCase())) {
-            return;
-          }
-          
-          if (!citationsByQuery.has(query)) {
-            citationsByQuery.set(query, []);
-          }
-          citationsByQuery.get(query)!.push(citation);
-        });
-      } else {
-        const noQueryKey = 'No search query';
-        
-        // Apply query filter
-        if (queryFilter && !noQueryKey.toLowerCase().includes(queryFilter.toLowerCase())) {
-          return;
-        }
-        
-        if (!citationsByQuery.has(noQueryKey)) {
-          citationsByQuery.set(noQueryKey, []);
-        }
-        citationsByQuery.get(noQueryKey)!.push(citation);
-      }
-    });
-    
-    return citationsByQuery;
-  }, [citationsWithPromptText, queryFilter, sourceFilter, linkFilter, modelFilter, promptTypeFilter, promptDetailFilter]);
-
-  // Get unique values for filters
-  const uniqueModels = useMemo(() => {
-    if (!citationsData) return [];
-    const models = new Set(citationsData.citations.map(c => c.model || "Unknown"));
-    return Array.from(models).sort();
-  }, [citationsData]);
-
-  const uniquePromptTypes = useMemo(() => {
-    if (!citationsData) return [];
-    const types = new Set(citationsData.citations.map(c => c.promptType || "Unknown"));
-    return Array.from(types).sort();
-  }, [citationsData]);
-  
-  const uniquePromptDetails = useMemo(() => {
-    if (!citationsWithPromptText.length) return [];
-    const detailsMap = new Map<string, string>();
-    
-    citationsWithPromptText.forEach((citation) => {
-      if (citation.promptText && !detailsMap.has(citation.promptText)) {
-        // Store full text as key, shortened text as display value
-        const shortText = citation.promptText.length > 50 ? `${citation.promptText.substring(0, 50)}...` : citation.promptText;
-        detailsMap.set(citation.promptText, shortText);
-      }
-    });
-    
-    // Return array of objects with full and short text
-    return Array.from(detailsMap.entries())
-      .map(([full, short]) => ({ full, short }))
-      .sort((a, b) => a.short.localeCompare(b.short));
-  }, [citationsWithPromptText]);
-  
-  // Calculate total displayed entries
-  const totalDisplayed = useMemo(() => {
-    let count = 0;
-    processedCitations.forEach((citations) => {
-      count += citations.length;
-    });
-    return count;
-  }, [processedCitations]);
-
   // Calculate total unfiltered citations (how they would appear in the table)
   const totalUnfilteredCitations = useMemo(() => {
     if (!citationsData) return 0;
@@ -328,7 +186,7 @@ export default function CitationsPage() {
   }, [citationsData]);
 
   // Export citations to CSV
-  const exportToCSV = () => {
+  const exportToCSV = useCallback(() => {
     if (!citationsData || citationsData.citations.length === 0) return;
 
     // Use all data for export (not filtered)
@@ -384,7 +242,7 @@ export default function CitationsPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
+  }, [citationsWithPromptText, selectedReport]);
 
   if (!selectedProjectId) {
     return (
@@ -522,7 +380,15 @@ export default function CitationsPage() {
                 <CardContent>
                   <div className="space-y-2">
                     <div className="text-3xl font-bold text-green-600">
-                      {new Set(citationsData.citations.map(c => getDomain(c.website || c.link || ''))).size}
+                      {new Set(citationsData.citations.map(c => {
+                        const url = c.website || c.link || '';
+                        try {
+                          const urlObj = new URL(url);
+                          return urlObj.hostname.replace("www.", "");
+                        } catch {
+                          return url;
+                        }
+                      })).size}
                     </div>
                   </div>
                 </CardContent>
@@ -688,266 +554,20 @@ export default function CitationsPage() {
 
             {/* Third Row: Full Width Citations Table */}
             <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
-              <CardHeader className="pb-4 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                      <Database className="h-5 w-5 text-purple-600" />
-                      All Citations
-                      <span className="ml-2 text-sm font-normal text-gray-500">
-                        ({totalDisplayed} {totalDisplayed === 1 ? 'entry' : 'entries'} displayed)
-                      </span>
-                    </CardTitle>
-                    <p className="text-sm text-gray-600 mt-1">
-                      Complete list of sources cited in AI responses
-                    </p>
-                  </div>
-                  <Button
-                    onClick={exportToCSV}
-                    variant="outline"
-                    size="sm"
-                    disabled={
-                      !citationsData || citationsData.citations.length === 0
-                    }
-                    className="flex items-center gap-2"
-                  >
-                    <Download className="h-4 w-4" />
-                    Export All to CSV
-                  </Button>
-                </div>
-                
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <Database className="h-5 w-5 text-purple-600" />
+                  All Citations
+                </CardTitle>
+                <p className="text-sm text-gray-600 mt-1">
+                  Complete list of sources cited in AI responses with advanced filtering and sorting
+                </p>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto bg-white rounded-lg border border-gray-200">
-                  <table className="w-full min-w-[1000px] border-collapse table-fixed">
-                      <colgroup>
-                        <col className="w-[25%]" />
-                        <col className="w-[20%]" />
-                        <col className="w-[20%]" />
-                        <col className="w-[10%]" />
-                        <col className="w-[15%]" />
-                        <col className="w-[10%]" />
-                      </colgroup>
-                      <thead>
-                        <tr className="bg-gray-50">
-                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 border-b-2 border-gray-200">
-                            <div className="space-y-2">
-                              <div>Search Queries</div>
-                              <Input
-                                placeholder="Filter queries..."
-                                value={queryFilter}
-                                onChange={(e) => setQueryFilter(e.target.value)}
-                                className="h-8 text-xs"
-                              />
-                            </div>
-                          </th>
-                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 border-b-2 border-gray-200">
-                            <div className="space-y-2">
-                              <div>Source</div>
-                              <Input
-                                placeholder="Filter sources..."
-                                value={sourceFilter}
-                                onChange={(e) => setSourceFilter(e.target.value)}
-                                className="h-8 text-xs"
-                              />
-                            </div>
-                          </th>
-                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 border-b-2 border-gray-200">
-                            <div className="space-y-2">
-                              <div>Link</div>
-                              <Input
-                                placeholder="Filter links..."
-                                value={linkFilter}
-                                onChange={(e) => setLinkFilter(e.target.value)}
-                                className="h-8 text-xs"
-                              />
-                            </div>
-                          </th>
-                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 border-b-2 border-gray-200">
-                            <div className="space-y-2">
-                              <div>Model</div>
-                              <Select value={modelFilter} onValueChange={setModelFilter}>
-                                <SelectTrigger className="h-8 text-xs">
-                                  <SelectValue placeholder="All" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="all">All Models</SelectItem>
-                                  {uniqueModels.map((model) => (
-                                    <SelectItem key={model} value={model}>
-                                      {model}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </th>
-                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 border-b-2 border-gray-200">
-                            <div className="space-y-2">
-                              <div>Prompt Category</div>
-                              <Select value={promptTypeFilter} onValueChange={setPromptTypeFilter}>
-                                <SelectTrigger className="h-8 text-xs">
-                                  <SelectValue placeholder="All" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="all">All Types</SelectItem>
-                                  {uniquePromptTypes.map((type) => (
-                                    <SelectItem key={type} value={type}>
-                                      {type}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </th>
-                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 border-b-2 border-gray-200">
-                            <div className="space-y-2">
-                              <div>Prompt Detail</div>
-                              <Select value={promptDetailFilter} onValueChange={setPromptDetailFilter}>
-                                <SelectTrigger className="h-8 text-xs">
-                                  <SelectValue placeholder="All" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="all">All Details</SelectItem>
-                                  <SelectItem value="N/A">N/A</SelectItem>
-                                  {uniquePromptDetails.map((detail) => (
-                                    <SelectItem key={detail.full} value={detail.full}>
-                                      {detail.short}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {processedCitations.size > 0 ? (
-                          (() => {
-                            const rows: JSX.Element[] = [];
-                            
-                            processedCitations.forEach((citations, query) => {
-                              citations.forEach((citation, citationIndex) => {
-                                const isFirstInGroup = citationIndex === 0;
-                                const isLastInGroup = citationIndex === citations.length - 1;
-                                const promptText = citation.promptText;
-                                
-                                rows.push(
-                                  <tr key={`${query}-${citationIndex}`} className="hover:bg-gray-50">
-                                    <td 
-                                      className={`px-4 py-3 border-b ${isLastInGroup ? 'border-gray-300' : 'border-gray-200'}`}
-                                      rowSpan={isFirstInGroup ? citations.length : undefined}
-                                      style={isFirstInGroup ? {} : { display: 'none' }}
-                                    >
-                                      {isFirstInGroup && (
-                                        <div className="space-y-1">
-                                          <div className="flex flex-wrap gap-1">
-                                            <Badge
-                                              variant="outline"
-                                              className="text-xs bg-blue-50 text-blue-700 border-blue-200"
-                                            >
-                                              <Search className="h-3 w-3 mr-1" />
-                                              {query === 'No search query' ? (
-                                                <span className="italic">{query}</span>
-                                              ) : (
-                                                query
-                                              )}
-                                            </Badge>
-                                          </div>
-                                          {citations.length > 1 && (
-                                            <div className="text-xs text-gray-500 mt-1">
-                                              {citations.length} results
-                                            </div>
-                                          )}
-                                        </div>
-                                      )}
-                                    </td>
-                                    <td className={`px-4 py-3 border-b ${isLastInGroup ? 'border-gray-300' : 'border-gray-200'}`}>
-                                      <div className="flex items-center gap-2 min-w-0">
-                                        <LinkIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                                        <TooltipProvider>
-                                          <Tooltip>
-                                            <TooltipTrigger asChild>
-                                              <span className="font-medium text-gray-900 truncate cursor-default">
-                                                {citation.website}
-                                              </span>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                              <p className="max-w-xs break-all">{citation.website}</p>
-                                            </TooltipContent>
-                                          </Tooltip>
-                                        </TooltipProvider>
-                                      </div>
-                                    </td>
-                                    <td className={`px-4 py-3 border-b ${isLastInGroup ? 'border-gray-300' : 'border-gray-200'}`}>
-                                      {citation.link ? (
-                                        <a
-                                          href={citation.link}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="flex items-center gap-1 text-blue-600 hover:text-blue-800 transition-colors duration-200"
-                                        >
-                                          <span className="text-sm">
-                                            {getDomain(citation.link)}
-                                          </span>
-                                          <ExternalLink className="h-3 w-3" />
-                                        </a>
-                                      ) : (
-                                        <span className="text-sm text-gray-400 italic">
-                                          No link
-                                        </span>
-                                      )}
-                                    </td>
-                                    <td className={`px-4 py-3 border-b ${isLastInGroup ? 'border-gray-300' : 'border-gray-200'}`}>
-                                      <span className="text-sm text-gray-900">
-                                        {citation.model || 'Unknown'}
-                                      </span>
-                                    </td>
-                                    <td className={`px-4 py-3 border-b ${isLastInGroup ? 'border-gray-300' : 'border-gray-200'}`}>
-                                      <Badge variant="outline" className="text-xs">
-                                        {citation.promptType || 'Unknown'}
-                                      </Badge>
-                                    </td>
-                                    <td className={`px-4 py-3 border-b ${isLastInGroup ? 'border-gray-300' : 'border-gray-200'}`}>
-                                      <div className="max-w-xs">
-                                        {promptText ? (
-                                          <TooltipProvider>
-                                            <Tooltip>
-                                              <TooltipTrigger asChild>
-                                                <div className="text-sm text-gray-700 cursor-help line-clamp-2 overflow-hidden">
-                                                  {promptText}
-                                                </div>
-                                              </TooltipTrigger>
-                                              <TooltipContent side="left" className="max-w-md">
-                                                <p className="text-sm text-gray-700 whitespace-pre-wrap">{promptText}</p>
-                                              </TooltipContent>
-                                            </Tooltip>
-                                          </TooltipProvider>
-                                        ) : (
-                                          <span className="text-sm text-gray-400 italic">N/A</span>
-                                        )}
-                                      </div>
-                                    </td>
-                                  </tr>
-                                );
-                              });
-                            });
-                            
-                            return rows;
-                          })()
-                        ) : (
-                          <tr>
-                            <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
-                              <div className="flex flex-col items-center gap-2">
-                                <Database className="h-8 w-8 text-gray-300" />
-                                <p className="text-sm">No citations match your filters</p>
-                                <p className="text-xs text-gray-400">Try adjusting your search criteria</p>
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
+                <CitationsTable
+                  citations={citationsWithPromptText}
+                  onExport={exportToCSV}
+                />
               </CardContent>
             </Card>
           </div>

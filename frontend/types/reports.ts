@@ -20,6 +20,7 @@ export interface Question {
     status: string;
     positiveKeywords: string[];
     negativeKeywords: string[];
+    llmResponse?: string;
   }[];
 }
 

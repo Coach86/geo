@@ -112,6 +112,8 @@ export default function SentimentPage() {
   });
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
+  const [selectedQuestion, setSelectedQuestion] = useState<string | null>(null);
+  const [selectedLlmResponse, setSelectedLlmResponse] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
 
@@ -126,9 +128,11 @@ export default function SentimentPage() {
   };
 
   // Handle cell click from heatmap
-  const handleCellClick = (model: string, sentiment: string, status: string) => {
+  const handleCellClick = (model: string, sentiment: string, status: string, question: string, llmResponse?: string) => {
     setSelectedModel(model);
     setSelectedStatus(status);
+    setSelectedQuestion(question);
+    setSelectedLlmResponse(llmResponse || null);
     setIsDrawerOpen(true);
   };
 
@@ -379,6 +383,33 @@ export default function SentimentPage() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Question and Answer Section */}
+                  {selectedQuestion && (
+                    <div>
+                      <div className="text-sm font-medium text-mono-700 mb-2">
+                        Question:
+                      </div>
+                      <div className="bg-mono-50 p-4 rounded-lg border border-mono-200 mb-4">
+                        <p className="text-sm text-mono-800 whitespace-pre-wrap">
+                          {selectedQuestion}
+                        </p>
+                      </div>
+                      
+                      {selectedLlmResponse && (
+                        <>
+                          <div className="text-sm font-medium text-mono-700 mb-2">
+                            {selectedModel} Response:
+                          </div>
+                          <div className="bg-mono-50 p-4 rounded-lg border border-mono-200 mb-4 max-h-60 overflow-y-auto">
+                            <p className="text-sm text-mono-800 whitespace-pre-wrap">
+                              {selectedLlmResponse}
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
 
                   {/* Positive Keywords */}
                   <div>

@@ -132,6 +132,7 @@ export class WeeklyBrandReport {
         status: string;
         positiveKeywords: string[];
         negativeKeywords: string[];
+        llmResponse?: string;
       }>;
     }>;
   };

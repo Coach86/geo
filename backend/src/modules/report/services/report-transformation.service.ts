@@ -140,6 +140,7 @@ export class ReportTransformationService {
               r.sentiment === 'positive' ? 'green' : r.sentiment === 'negative' ? 'red' : 'yellow',
             positiveKeywords: r.extractedPositiveKeywords,
             negativeKeywords: r.extractedNegativeKeywords,
+            llmResponse: r.llmResponse,
           })),
       };
     });
