@@ -12,6 +12,7 @@ import { useReportData } from "@/hooks/use-report-data";
 import BreadcrumbNav from "@/components/layout/breadcrumb-nav";
 import { useNavigation } from "@/providers/navigation-provider";
 import { ProcessingLoader } from "@/components/shared/ProcessingLoader";
+import { getReportVisibility } from "@/lib/api/report";
 
 interface ProcessedReport extends ReportResponse {
   createdAt: string;
@@ -29,6 +30,21 @@ interface ProcessedReport extends ReportResponse {
   }[];
   arenaData: any[]; // Full arena data for table
   brandName: string;
+}
+
+interface VisibilityData {
+  overallMentionRate: number;
+  promptsTested: number;
+  modelVisibility: {
+    model: string;
+    mentionRate: number;
+  }[];
+  arenaMetrics: {
+    model: string;
+    mentions: number;
+    score: number;
+    rank: number;
+  }[];
 }
 
 export default function VisibilityPage() {
@@ -86,6 +102,34 @@ export default function VisibilityPage() {
   });
 
   const [selectedCompetitors, setSelectedCompetitors] = useState<string[]>([]);
+  const [visibilityData, setVisibilityData] = useState<VisibilityData | null>(null);
+  const [loadingVisibility, setLoadingVisibility] = useState(false);
+  const [visibilityError, setVisibilityError] = useState<string | null>(null);
+
+  // Fetch visibility data when selected report changes
+  useEffect(() => {
+    const fetchVisibilityData = async () => {
+      if (!selectedReport || !token) {
+        setVisibilityData(null);
+        return;
+      }
+
+      setLoadingVisibility(true);
+      setVisibilityError(null);
+
+      try {
+        const data = await getReportVisibility(selectedReport.id, token);
+        setVisibilityData(data);
+      } catch (err) {
+        console.error("Failed to fetch visibility data:", err);
+        setVisibilityError("Failed to load visibility data. Please try again later.");
+      } finally {
+        setLoadingVisibility(false);
+      }
+    };
+
+    fetchVisibilityData();
+  }, [selectedReport, token]);
 
 
   if (!selectedProjectId) {
@@ -123,15 +167,15 @@ export default function VisibilityPage() {
 
 
         {/* Error State */}
-        {error && (
+        {(error || visibilityError) && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription>{error || visibilityError}</AlertDescription>
           </Alert>
         )}
 
         {/* Loading State */}
-        {loading && (
+        {(loading || loadingVisibility) && (
           <div className="space-y-6">
             <Card>
               <CardHeader>
@@ -163,12 +207,12 @@ export default function VisibilityPage() {
         )}
 
         {/* Report Content */}
-        {!loading && selectedReport && (
+        {!loading && !loadingVisibility && selectedReport && visibilityData && (
           <div className="space-y-6 fade-in-section is-visible">
             <VisibilityAnalysis
-              mentionRate={selectedReport.mentionRate}
-              modeMetrics={selectedReport.modeMetrics}
-              arenaData={selectedReport.arenaData}
+              mentionRate={visibilityData.overallMentionRate}
+              modeMetrics={visibilityData.modelVisibility}
+              arenaData={visibilityData.arenaMetrics}
               brandName={selectedReport.brandName}
               selectedCompetitors={selectedCompetitors}
               onCompetitorToggle={(competitorName, checked) => {

@@ -12,7 +12,7 @@ import { SentimentPipelineService } from './services/sentiment-pipeline.service'
 import { AccuracyPipelineService } from './services/accuracy-pipeline.service';
 import { ComparisonPipelineService } from './services/comparison-pipeline.service';
 import { BatchExecutionService } from './services/batch-execution.service';
-import { ProjectBatchOrchestratorService } from './services/project-batch-orchestrator.service';
+import { BrandReportOrchestratorService } from './services/brand-report-orchestrator.service';
 import { RawResponseService } from './services/raw-response.service';
 import { BatchExecution, BatchExecutionSchema } from './schemas/batch-execution.schema';
 import { BatchResult, BatchResultSchema } from './schemas/batch-result.schema';
@@ -61,7 +61,7 @@ import { ConfigModule } from '../config/config.module';
     SentimentPipelineService,
     AccuracyPipelineService,
     ComparisonPipelineService,
-    ProjectBatchOrchestratorService,
+    BrandReportOrchestratorService,
     RawResponseService,
     BatchExecutionRepository,
     BatchResultRepository,
@@ -71,7 +71,7 @@ import { ConfigModule } from '../config/config.module';
   exports: [
     BatchService,
     BatchExecutionService,
-    ProjectBatchOrchestratorService,
+    BrandReportOrchestratorService,
     RawResponseService,
     BatchExecutionRepository,
     BatchResultRepository,

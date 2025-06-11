@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/accordion";
 import AttributeScoresByModelTable from "@/components/alignment/attribute-scores-table";
 import { getBatchResults } from "@/lib/auth-api";
+import { getReportAlignment } from "@/lib/api/report";
 import { useAuth } from "@/providers/auth-provider";
 import type { AlignmentResults } from "@/types/alignment";
 import { transformAccordToAlignment } from "@/utils/alignment-transformer";
@@ -67,31 +68,20 @@ export default function AlignmentPage() {
 
       try {
         console.log("[Alignment] Processing report:", selectedReport.id);
-        const batchResults = await getBatchResults(selectedReport.id, token);
-        console.log("[Alignment] batchResults for report", selectedReport.id, ":", batchResults);
+        // Use the new brand-reports endpoint
+        const alignmentResponse = await getReportAlignment(selectedReport.id, token);
+        console.log("[Alignment] alignment data for report", selectedReport.id, ":", alignmentResponse);
         
-        // Find the accuracy pipeline results
-        const accuracyResult = batchResults.find(
-          (result: any) =>
-            result.resultType === "accuracy" ||
-            result.pipelineType === "accuracy"
-        );
-        
-        if (accuracyResult && accuracyResult.result) {
-          const accuracyData =
-            typeof accuracyResult.result === "string"
-              ? JSON.parse(accuracyResult.result)
-              : accuracyResult.result;
-
-          const transformedData = transformAccordToAlignment(accuracyData);
-          setAlignmentData(transformedData);
+        // The new API returns data in the expected format
+        if (alignmentResponse) {
+          setAlignmentData(alignmentResponse);
         } else {
-          console.warn("[Alignment] No accuracy batch result for report:", selectedReport.id);
+          console.warn("[Alignment] No alignment data for report:", selectedReport.id);
           setAlignmentError("No alignment data available for this report");
           setAlignmentData(null);
         }
       } catch (err) {
-        console.error("Failed to fetch batch results for report:", selectedReport.id, err);
+        console.error("Failed to fetch alignment data for report:", selectedReport.id, err);
         setAlignmentError("Failed to load alignment data");
         setAlignmentData(null);
       } finally {
@@ -159,7 +149,7 @@ export default function AlignmentPage() {
                 <div className="text-right">
                   <div className="text-3xl font-bold text-primary-600">
                     {(
-                      alignmentData.summary.overallAlignmentScore *
+                      alignmentData.overallAlignmentScore *
                       100
                     ).toFixed(0)}%
                   </div>

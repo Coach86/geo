@@ -10,18 +10,27 @@ import { PromptService } from '../../prompt/services/prompt.service';
 import { PromptSetRepository } from '../../prompt/repositories/prompt-set.repository';
 import { UserService } from '../../user/services/user.service';
 import { LlmService } from '../../llm/services/llm.service';
-import { ReportService } from '../../report/services/report.service';
-import { BatchReportInput } from '../../report/interfaces/report-input.interfaces';
 import { RawResponseService } from './raw-response.service';
 import { SpontaneousPipelineService } from './spontaneous-pipeline.service';
 import { SentimentPipelineService } from './sentiment-pipeline.service';
 import { AccuracyPipelineService } from './accuracy-pipeline.service';
 import { ComparisonPipelineService } from './comparison-pipeline.service';
 import { BatchExecutionService } from './batch-execution.service';
+import { BrandReportOrchestratorService } from './brand-report-orchestrator.service';
 import { ProjectBatchContext } from '../interfaces/batch.interfaces';
 import { Project } from '../../project/entities/project.entity';
 import { OnEvent } from '@nestjs/event-emitter';
 import { OrganizationService } from '../../organization/services/organization.service';
+import { BatchReportInput } from '../../report/interfaces/report-input.interfaces';
+import { BrandReportPersistenceService } from '../../report/services/brand-report-persistence.service';
+import {
+  ReportStructure,
+  ExplorerData,
+  VisibilityData,
+  SentimentData,
+  AlignmentData,
+  CompetitionData,
+} from '../../report/interfaces/report.interfaces';
 
 @Injectable()
 export class BatchService {
@@ -36,7 +45,6 @@ export class BatchService {
     private readonly batchExecutionRepository: BatchExecutionRepository,
     private readonly batchResultRepository: BatchResultRepository,
     private readonly rawResponseRepository: RawResponseRepository,
-    private readonly reportService: ReportService,
     private readonly batchExecutionService: BatchExecutionService,
     private readonly spontaneousPipelineService: SpontaneousPipelineService,
     private readonly sentimentPipelineService: SentimentPipelineService,
@@ -45,6 +53,10 @@ export class BatchService {
     private readonly userService: UserService,
     @Inject(forwardRef(() => OrganizationService))
     private readonly organizationService: OrganizationService,
+    @Inject(forwardRef(() => ProjectService))
+    private readonly projectService: ProjectService,
+    @Inject(forwardRef(() => BrandReportPersistenceService))
+    private readonly brandReportPersistenceService: BrandReportPersistenceService,
   ) {
     // Initialize the concurrency limiter with high parallelism
     // Ensure concurrencyLimit is a number and at least 1
@@ -364,21 +376,44 @@ export class BatchService {
         ),
       ]);
 
-      // Create the weekly report with proper typing including the new accuracy results
-      const batchReportInput: BatchReportInput = {
-        projectId: context.projectId,
-        date,
-        spontaneous: spontaneousResults,
-        sentiment: sentimentResults,
-        accord: accuracyResults,
-        comparison: comparisonResults,
-        llmVersions,
+      // Get project details for report metadata
+      const project = await this.projectService.findById(context.projectId);
+      if (!project) {
+        throw new Error(`Project ${context.projectId} not found`);
+      }
+
+      // Create the new report structure
+      const reportDate = new Date();
+      const brandReport: ReportStructure = {
+        id: batchExecutionId, // Use batch execution ID as report ID
+        projectId: project.projectId,
+        reportDate,
         generatedAt: new Date(),
-        batchExecutionId: batchExecutionId,
+        batchExecutionId,
+        brandName: project.brandName,
+        metadata: {
+          url: project.website || '',
+          market: project.market || '',
+          countryCode: project.market || 'US', // Default to US if not specified
+          competitors: project.competitors || [],
+          modelsUsed: this.extractModelsUsed(spontaneousResults, sentimentResults, accuracyResults, comparisonResults),
+          promptsExecuted: this.countPromptsExecuted(spontaneousResults, sentimentResults, accuracyResults, comparisonResults),
+          executionContext: {
+            batchId: batchExecutionId,
+            pipeline: 'brand-report',
+            version: '2.0.0',
+          },
+        },
+        explorer: this.buildExplorerData(spontaneousResults, sentimentResults, accuracyResults, comparisonResults),
+        visibility: this.buildVisibilityData(spontaneousResults, project.brandName, project.competitors || []),
+        sentiment: this.buildSentimentData(sentimentResults),
+        alignment: this.buildAlignmentData(accuracyResults),
+        competition: this.buildCompetitionData(comparisonResults, project.brandName, project.competitors || []),
       };
 
-      // Save the report using the properly typed method
-      await this.reportService.saveReportFromBatch(batchReportInput);
+      // Save the report using the new persistence service
+      await this.brandReportPersistenceService.saveReport(brandReport);
+      this.logger.log(`Successfully saved brand report for project ${context.projectId}`);
 
       // Mark the batch execution as completed
       await this.batchExecutionService.updateBatchExecutionStatus(batchExecutionId, 'completed');
@@ -416,8 +451,8 @@ export class BatchService {
     const versions: Record<string, string> = {};
 
     for (const result of results) {
-      if (result.llmProvider && !versions[result.llmProvider]) {
-        versions[result.llmProvider] = `${result.llmProvider.toLowerCase()}-version`;
+      if (result.llmModel && !versions[result.llmModel]) {
+        versions[result.llmModel] = `${result.llmModel.toLowerCase()}-version`;
       }
     }
 
@@ -738,5 +773,555 @@ export class BatchService {
     }
     // Optionally, log the cleanup
     this.logger.log(`Cleaned up batch data for deleted project ${projectId}`);
+  }
+
+  // Helper methods for building report structure
+  private extractModelsUsed(...results: any[]): string[] {
+    const models = new Set<string>();
+    results.forEach(result => {
+      if (result?.results) {
+        result.results.forEach((r: any) => {
+          if (r.llmProvider) models.add(r.llmProvider);
+        });
+      }
+    });
+    return Array.from(models);
+  }
+
+  private countPromptsExecuted(...results: any[]): number {
+    let count = 0;
+    results.forEach(result => {
+      if (result?.results) {
+        count += result.results.length;
+      }
+    });
+    return count;
+  }
+
+  private buildExplorerData(
+    spontaneousResults: any,
+    sentimentResults: any,
+    accuracyResults: any,
+    comparisonResults: any,
+  ): ExplorerData {
+    // Extract top mentions from spontaneous results
+    const mentionCounts: Record<string, number> = {};
+    spontaneousResults.results.forEach((result: any) => {
+      if (result.mentioned && result.topOfMind) {
+        result.topOfMind.forEach((brand: string) => {
+          mentionCounts[brand] = (mentionCounts[brand] || 0) + 1;
+        });
+      }
+    });
+
+    const topMentions = Object.entries(mentionCounts)
+      .map(([mention, count]) => ({ mention, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+
+    // Build citations data using logic from deleted ReportConverterService
+    const allCitationsData: Array<{
+      modelId: string;
+      modelProvider: string;
+      promptIndex: number;
+      promptType: string;
+      citations: any[];
+      webSearchQueries: any[];
+    }> = [];
+
+    // Collect citations from all pipeline results
+    const collectCitations = (results: any[] | undefined, promptType: string) => {
+      if (!results) return;
+
+      results.forEach((result, index) => {
+        // Extract web search queries
+        let webSearchQueries: any[] = [];
+
+        // Check if webSearchQueries is already extracted
+        if (result.webSearchQueries && Array.isArray(result.webSearchQueries)) {
+          webSearchQueries = result.webSearchQueries;
+        }
+        // Fallback to extracting from toolUsage
+        else if (result.toolUsage && Array.isArray(result.toolUsage)) {
+          const extractedQueries: any[] = [];
+          result.toolUsage.forEach((tool: any) => {
+            if (tool.type === 'web_search' || tool.type === 'search' || tool.type?.includes('search')) {
+              const query = tool.input?.query || tool.parameters?.query || tool.parameters?.q || tool.query;
+              if (query) {
+                extractedQueries.push({
+                  query: query,
+                  timestamp: new Date().toISOString(),
+                });
+              }
+            }
+          });
+          webSearchQueries = extractedQueries;
+        }
+
+        // Add entry if we have citations OR web search queries
+        if ((result.citations && result.citations.length > 0) || webSearchQueries.length > 0) {
+          allCitationsData.push({
+            modelId: result.llmModel || 'unknown',
+            modelProvider: result.llmProvider || 'unknown',
+            promptIndex: result.promptIndex ?? index,
+            promptType,
+            citations: result.citations || [],
+            webSearchQueries: webSearchQueries,
+          });
+        }
+      });
+    };
+
+    // Collect from all pipelines
+    collectCitations(spontaneousResults?.results, 'spontaneous');
+    collectCitations(sentimentResults?.results, 'sentiment');
+    collectCitations(accuracyResults?.results, 'accuracy');
+    collectCitations(comparisonResults?.results, 'comparison');
+
+    // Calculate statistics
+    const totalPrompts = this.countPromptsExecuted(spontaneousResults, sentimentResults, accuracyResults, comparisonResults);
+    const promptsWithWebAccess = allCitationsData.length;
+    const webAccessPercentage = totalPrompts > 0 ? (promptsWithWebAccess / totalPrompts) * 100 : 0;
+
+    // Aggregate source statistics
+    const sourceMap = new Map<string, {
+      totalMentions: number;
+      citedByModels: Set<string>;
+      associatedQueries: Set<string>;
+    }>();
+
+    let totalCitations = 0;
+    const allCitations: any[] = [];
+
+    allCitationsData.forEach(({ modelId, modelProvider, promptIndex, promptType, citations, webSearchQueries }) => {
+      const queriesForThisModel = webSearchQueries.map((q: any) =>
+        typeof q === 'string' ? q : (q.query || q)
+      );
+
+      citations.forEach((citation: any) => {
+        totalCitations++;
+        const domain = this.extractDomain(citation.url || citation.source || '');
+
+        // Add to citations array for the response
+        allCitations.push({
+          website: domain,
+          link: citation.url,
+          model: modelId,
+          promptType,
+          promptIndex,
+          promptText: '', // Would need to be passed from result.originalPrompt
+          webSearchQueries: webSearchQueries,
+        });
+
+        if (domain) {
+          if (!sourceMap.has(domain)) {
+            sourceMap.set(domain, {
+              totalMentions: 0,
+              citedByModels: new Set(),
+              associatedQueries: new Set(),
+            });
+          }
+
+          const stats = sourceMap.get(domain)!;
+          stats.totalMentions++;
+          stats.citedByModels.add(modelId);
+
+          // Add all web search queries that led to this citation
+          queriesForThisModel.forEach((query: string) => {
+            if (query) {
+              stats.associatedQueries.add(query);
+            }
+          });
+        }
+      });
+    });
+
+    // Get top sources
+    const topSources = Array.from(sourceMap.entries())
+      .map(([domain, stats]) => ({
+        domain,
+        count: stats.totalMentions,
+        percentage: totalCitations > 0 ? (stats.totalMentions / totalCitations) * 100 : 0,
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+
+    // Extract keywords from web search queries
+    const keywordMap = new Map<string, number>();
+    const stopWords = new Set([
+      'the', 'is', 'at', 'which', 'on', 'and', 'a', 'an', 'as', 'are',
+      'been', 'be', 'have', 'has', 'had', 'do', 'does', 'did', 'done',
+      'will', 'would', 'could', 'should', 'may', 'might', 'must', 'can',
+      'this', 'that', 'these', 'those', 'with', 'from', 'for', 'about',
+      'into', 'through', 'during', 'before', 'after', 'above', 'below',
+      'between', 'under', 'over', 'then', 'than', 'when', 'where', 'what',
+      'who', 'whom', 'whose', 'which', 'why', 'how'
+    ]);
+
+    allCitationsData.forEach(({ webSearchQueries }) => {
+      webSearchQueries.forEach((queryObj: any) => {
+        const query = typeof queryObj === 'string' ? queryObj : (queryObj.query || queryObj);
+        if (query) {
+          // Simple split by spaces and filter stop words
+          const words = query.toLowerCase().split(/\s+/).filter((word: string) => 
+            word.trim() !== '' && !stopWords.has(word) && word.length > 2
+          );
+          
+          words.forEach((word: string) => {
+            keywordMap.set(word, (keywordMap.get(word) || 0) + 1);
+          });
+        }
+      });
+    });
+
+    // Count total web search queries for percentage calculation
+    const totalWebSearchQueries = allCitationsData.reduce(
+      (sum, item) => sum + item.webSearchQueries.length,
+      0
+    );
+
+    // Get top keywords
+    const topKeywords = Array.from(keywordMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([keyword, count]) => ({
+        keyword,
+        count,
+        percentage: totalWebSearchQueries > 0 ? (count / totalWebSearchQueries) * 100 : 0,
+      }));
+
+    return {
+      summary: {
+        totalPrompts,
+        promptsWithWebAccess,
+        webAccessPercentage,
+        totalCitations,
+        uniqueSources: sourceMap.size,
+      },
+      topMentions,
+      topKeywords,
+      topSources,
+      citations: allCitations,
+      webAccess: {
+        totalResponses: totalPrompts,
+        successfulQueries: promptsWithWebAccess,
+        failedQueries: 0, // Would need error tracking
+      },
+    };
+  }
+
+  private extractDomain(url: string): string {
+    try {
+      if (!url) return '';
+      // Handle URLs that might not have protocol
+      const urlWithProtocol = url.startsWith('http') ? url : `https://${url}`;
+      const urlObj = new URL(urlWithProtocol);
+      return urlObj.hostname.replace('www.', '');
+    } catch {
+      return url; // Return as-is if not a valid URL
+    }
+  }
+
+  private getPromptTypeFromResult(result: any): string {
+    // Determine prompt type based on result structure
+    if (result.topOfMind !== undefined) return 'spontaneous';
+    if (result.sentiment !== undefined) return 'sentiment';
+    if (result.attributeScores !== undefined) return 'accuracy';
+    if (result.brandStrengths !== undefined || result.competitorStrengths !== undefined) return 'comparison';
+    return 'unknown';
+  }
+
+  private buildVisibilityData(spontaneousResults: any, brandName: string, competitors: string[] = []): VisibilityData {
+    // Calculate model visibility from spontaneous results
+    const modelMentions: Record<string, { mentioned: number; total: number }> = {};
+    
+    spontaneousResults.results.forEach((result: any) => {
+      const model = result.llmModel;
+      if (!modelMentions[model]) {
+        modelMentions[model] = { mentioned: 0, total: 0 };
+      }
+      modelMentions[model].total++;
+      if (result.mentioned) {
+        modelMentions[model].mentioned++;
+      }
+    });
+
+    const modelVisibility = Object.entries(modelMentions).map(([model, stats]) => ({
+      model,
+      mentionRate: Math.round((stats.mentioned / stats.total) * 100),
+    }));
+
+    const overallMentionRate = Math.round(
+      (spontaneousResults.summary.mentionRate || 0) * 100
+    );
+
+    // Extract competitor mentions for arena metrics (only configured competitors)
+    const competitorMentions: Record<string, Record<string, number>> = {};
+    const models: string[] = Array.from(new Set(spontaneousResults.results.map((r: any) => r.llmModel)));
+
+    // Initialize competitor mentions only for configured competitors
+    competitors.forEach(competitor => {
+      competitorMentions[competitor] = {};
+      models.forEach(model => {
+        competitorMentions[competitor][model] = 0;
+      });
+    });
+
+    // Count mentions of configured competitors only
+    spontaneousResults.results.forEach((result: any) => {
+      if (result.topOfMind && Array.isArray(result.topOfMind)) {
+        result.topOfMind.forEach((brand: string) => {
+          // Only count if this brand is in the configured competitors list
+          const matchingCompetitor = competitors.find(comp => 
+            comp.toLowerCase() === brand.toLowerCase()
+          );
+          if (matchingCompetitor && competitorMentions[matchingCompetitor]) {
+            competitorMentions[matchingCompetitor][result.llmModel] = 
+              (competitorMentions[matchingCompetitor][result.llmModel] || 0) + 1;
+          }
+        });
+      }
+    });
+
+    // Build arena metrics from competitor mentions
+    const arenaMetrics = Object.entries(competitorMentions).map(([competitorName, modelMentionsData]) => {
+      const modelsMentionsRate = models.map((model: string) => {
+        const modelResults = spontaneousResults.results.filter((r: any) => r.llmModel === model);
+        const promptsTested = modelResults.length;
+        const mentions = modelMentionsData[model] || 0;
+        
+        return {
+          model,
+          mentionsRate: promptsTested > 0 ? Math.round((mentions / promptsTested) * 100) : 0,
+        };
+      });
+
+      // Calculate global mention rate
+      const totalMentions = Object.values(modelMentionsData).reduce((sum: number, count: number) => sum + count, 0);
+      const totalPrompts = spontaneousResults.results.length;
+      const globalRate = totalPrompts > 0 ? Math.round((totalMentions / totalPrompts) * 100) : 0;
+
+      return {
+        name: competitorName,
+        size: globalRate > 20 ? 'lg' : globalRate > 10 ? 'md' : 'sm' as 'lg' | 'md' | 'sm',
+        global: `${globalRate}%`,
+        modelsMentionsRate,
+      };
+    }).sort((a, b) => parseInt(b.global) - parseInt(a.global)); // Sort by global rate descending
+
+    return {
+      overallMentionRate,
+      promptsTested: spontaneousResults.results.length,
+      modelVisibility,
+      arenaMetrics,
+    };
+  }
+
+  private buildSentimentData(sentimentResults: any): SentimentData {
+    // Count sentiment distribution
+    const distribution = { positive: 0, neutral: 0, negative: 0, total: 0 };
+    const modelSentiments: Record<string, any> = {};
+    const heatmapDataMap: Record<string, any> = {};
+
+    sentimentResults.results.forEach((result: any) => {
+      distribution.total++;
+      switch (result.sentiment) {
+        case 'positive':
+          distribution.positive++;
+          break;
+        case 'neutral':
+          distribution.neutral++;
+          break;
+        case 'negative':
+          distribution.negative++;
+          break;
+      }
+
+      // Aggregate by model
+      if (!modelSentiments[result.llmModel]) {
+        modelSentiments[result.llmModel] = {
+          model: result.llmModel,
+          sentiments: [],
+          positiveKeywords: new Set<string>(),
+          negativeKeywords: new Set<string>(),
+        };
+      }
+      
+      modelSentiments[result.llmModel].sentiments.push(result.sentiment);
+      result.extractedPositiveKeywords?.forEach((k: string) => modelSentiments[result.llmModel].positiveKeywords.add(k));
+      result.extractedNegativeKeywords?.forEach((k: string) => modelSentiments[result.llmModel].negativeKeywords.add(k));
+
+      // Build heatmap data by grouping results by prompt
+      const promptKey = result.originalPrompt || `prompt_${result.promptIndex}`;
+      if (!heatmapDataMap[promptKey]) {
+        heatmapDataMap[promptKey] = {
+          question: promptKey,
+          results: [],
+        };
+      }
+
+      const status: 'green' | 'yellow' | 'red' = result.sentiment === 'positive' ? 'green' : 
+                     result.sentiment === 'negative' ? 'red' : 'yellow';
+
+      heatmapDataMap[promptKey].results.push({
+        model: result.llmModel,
+        sentiment: result.sentiment,
+        status,
+        llmResponse: result.llmResponse,
+      });
+    });
+
+    // Calculate overall sentiment
+    const overallSentiment = sentimentResults.summary.overallSentiment;
+    const overallScore = Math.round(sentimentResults.summary.overallSentimentPercentage || 0);
+
+    // Transform model sentiments
+    const modelSentimentsList = Object.values(modelSentiments).map((ms: any) => {
+      // Determine most common sentiment for this model
+      const sentimentCounts = { positive: 0, neutral: 0, negative: 0 };
+      ms.sentiments.forEach((s: string) => sentimentCounts[s as keyof typeof sentimentCounts]++);
+      
+      const dominantSentiment = Object.entries(sentimentCounts)
+        .sort(([, a], [, b]) => b - a)[0][0] as 'positive' | 'neutral' | 'negative';
+      
+      const status: 'green' | 'yellow' | 'red' = dominantSentiment === 'positive' ? 'green' : 
+                     dominantSentiment === 'negative' ? 'red' : 'yellow';
+
+      return {
+        model: ms.model,
+        sentiment: dominantSentiment,
+        status,
+        positiveKeywords: Array.from(ms.positiveKeywords) as string[],
+        negativeKeywords: Array.from(ms.negativeKeywords) as string[],
+      };
+    });
+
+    // Convert heatmap data map to array
+    const heatmapData = Object.values(heatmapDataMap);
+
+    return {
+      overallScore,
+      overallSentiment,
+      distribution,
+      modelSentiments: modelSentimentsList,
+      heatmapData,
+    };
+  }
+
+  private buildAlignmentData(accuracyResults: any): AlignmentData {
+    // Extract attribute scores from results
+    const attributeScores: Record<string, number[]> = {};
+    const detailedResults: any[] = [];
+
+    accuracyResults.results.forEach((result: any) => {
+      if (result.attributeScores && Array.isArray(result.attributeScores)) {
+        // Build detailed result
+        const modelResult = {
+          model: result.llmModel,
+          attributeScores: result.attributeScores,
+        };
+        detailedResults.push(modelResult);
+
+        // Aggregate scores by attribute
+        result.attributeScores.forEach((score: any) => {
+          if (!attributeScores[score.attribute]) {
+            attributeScores[score.attribute] = [];
+          }
+          attributeScores[score.attribute].push(score.score);
+        });
+      }
+    });
+
+    // Use summary data if available, otherwise calculate from raw scores
+    const averageAttributeScores = accuracyResults.summary.averageAttributeScores || {};
+    
+    // If summary doesn't have averages, calculate them
+    if (Object.keys(averageAttributeScores).length === 0) {
+      Object.entries(attributeScores).forEach(([attr, scores]) => {
+        averageAttributeScores[attr] = scores.reduce((a, b) => a + b, 0) / scores.length;
+      });
+    }
+
+    // Calculate overall alignment score
+    const overallAlignmentScore = Math.round(
+      (Object.values(averageAttributeScores) as number[])
+        .reduce((sum: number, score: number) => sum + score, 0) / 
+      Object.keys(averageAttributeScores).length * 100 || 0
+    );
+
+    // Create attribute alignment summary
+    const attributeAlignmentSummary = Object.entries(averageAttributeScores).map(([attribute, avgScore]) => {
+      const mentionCount = accuracyResults.results.filter((r: any) => 
+        r.attributeScores?.some((s: any) => s.attribute === attribute)
+      ).length;
+      const mentionRate = `${Math.round((mentionCount / accuracyResults.results.length) * 100)}%`;
+      
+      // Convert score to alignment level
+      const scoreValue = avgScore as number;
+      const alignment = scoreValue >= 0.8 ? '✅ High' : 
+                       scoreValue >= 0.6 ? '⚠️ Medium' : 
+                       '❌ Low';
+
+      return {
+        name: attribute,
+        mentionRate,
+        alignment,
+      };
+    });
+
+    return {
+      overallAlignmentScore,
+      averageAttributeScores,
+      attributeAlignmentSummary,
+      detailedResults,
+    };
+  }
+
+  private buildCompetitionData(
+    comparisonResults: any,
+    brandName: string,
+    competitors: string[]
+  ): CompetitionData {
+    // Use the summary data which already has the analysis
+    const commonStrengths = comparisonResults.summary.commonStrengths || [];
+    const commonWeaknesses = comparisonResults.summary.commonWeaknesses || [];
+
+    // Transform competitorAnalyses to match expected structure
+    const competitorAnalysesMap: Record<string, any> = {};
+    
+    // Group results by competitor
+    comparisonResults.results.forEach((result: any) => {
+      if (!competitorAnalysesMap[result.competitor]) {
+        competitorAnalysesMap[result.competitor] = {
+          competitor: result.competitor,
+          analysisByModel: [],
+        };
+      }
+      
+      competitorAnalysesMap[result.competitor].analysisByModel.push({
+        model: result.llmModel,
+        strengths: result.brandStrengths || [],
+        weaknesses: result.brandWeaknesses || [],
+      });
+    });
+
+    const competitorAnalyses = Object.values(competitorAnalysesMap);
+
+    // Build competitor metrics
+    const competitorMetrics = competitors.map((competitor, index) => ({
+      competitor,
+      overallRank: index + 1,
+      mentionRate: 0, // This would need to be calculated from other data
+      modelMentions: [],
+    }));
+
+    return {
+      brandName,
+      competitors,
+      competitorAnalyses,
+      competitorMetrics,
+      commonStrengths,
+      commonWeaknesses,
+    };
   }
 }

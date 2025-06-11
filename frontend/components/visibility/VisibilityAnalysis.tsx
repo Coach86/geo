@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Eye, Info } from "lucide-react";
+import { getModelFriendlyName } from "@/utils/model-utils";
 
 interface ModeMetric {
   model: string;
@@ -280,7 +281,7 @@ export function VisibilityAnalysis({
                             )} font-medium flex items-center gap-1 w-fit`}
                           >
                             <ModelIcon model={model} size="xs" />
-                            {model}
+                            {getModelFriendlyName(model)}
                           </Badge>
                         </div>
 

@@ -3,7 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { OnEvent } from '@nestjs/event-emitter';
 import { ConfigService } from '@nestjs/config';
 import { BatchService } from '../services/batch.service';
-import { ProjectBatchOrchestratorService } from '../services/project-batch-orchestrator.service';
+import { BrandReportOrchestratorService } from '../services/brand-report-orchestrator.service';
 import { BatchExecutionService } from '../services/batch-execution.service';
 import { ProjectService } from '../../project/services/project.service';
 
@@ -15,7 +15,7 @@ export class BatchTask {
   constructor(
     private readonly configService: ConfigService,
     private readonly batchService: BatchService,
-    private readonly batchOrchestratorService: ProjectBatchOrchestratorService,
+    private readonly batchOrchestratorService: BrandReportOrchestratorService,
     private readonly batchExecutionService: BatchExecutionService,
     private readonly projectService: ProjectService,
   ) {

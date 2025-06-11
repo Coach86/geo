@@ -3,7 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { IsOptional, IsString } from 'class-validator';
 import { BatchService } from '../services/batch.service';
 import { BatchTask } from '../tasks/batch.task';
-import { ProjectBatchOrchestratorService } from '../services/project-batch-orchestrator.service';
+import { BrandReportOrchestratorService } from '../services/brand-report-orchestrator.service';
 import { BatchEventsGateway } from '../gateways/batch-events.gateway';
 
 class BatchRunDto {
@@ -18,7 +18,7 @@ export class BatchController {
   constructor(
     private readonly batchService: BatchService,
     private readonly batchTask: BatchTask,
-    private readonly batchOrchestratorService: ProjectBatchOrchestratorService,
+    private readonly batchOrchestratorService: BrandReportOrchestratorService,
     private readonly batchEventsGateway: BatchEventsGateway,
   ) {}
 

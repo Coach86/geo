@@ -34,7 +34,7 @@ export interface AttributeScore {
  * This often corresponds to one model evaluating one prompt/query.
  */
 export interface DetailedAlignmentResult {
-  llmProvider: string; // Name of the LLM (e.g., "GPT-4")
+  model: string; // Name of the LLM (e.g., "GPT-4")
   promptIndex?: number; // Optional, if multiple prompts are used per model
   originalPrompt?: string; // The prompt given to the LLM
   llmResponse?: string; // The raw response from the LLM

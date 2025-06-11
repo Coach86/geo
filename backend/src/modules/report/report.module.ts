@@ -1,56 +1,34 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { AdminReportController } from './controllers/admin-report.controller';
-import { PublicReportController } from './controllers/public-report.controller';
-import { ReportService } from './services/report.service';
-import { WeeklyBrandReport, WeeklyBrandReportSchema } from './schemas/weekly-brand-report.schema';
+import { BrandReportController } from './controllers/brand-report.controller';
+import { AdminBrandReportController } from './controllers/admin-brand-report.controller';
+import { BrandReportService } from './services/brand-report.service';
+import { BrandReport, BrandReportSchema } from './schemas/brand-report.schema';
 import { ProjectModule } from '../project/project.module';
 import { AuthModule } from '../auth/auth.module';
 import { BatchModule } from '../batch/batch.module';
-
-// Import specialized services
-import { ReportTransformationService } from './services/report-transformation.service';
-import { ReportAccessService } from './services/report-access.service';
-import { ReportIntegrationService } from './services/report-integration.service';
-import { ReportPersistenceService } from './services/report-persistence.service';
-import { ReportRetrievalService } from './services/report-retrieval.service';
-import { ReportConverterService } from './services/report-converter.service';
+import { BrandReportPersistenceService } from './services/brand-report-persistence.service';
 import { UserModule } from '../user/user.module';
 import { TokenAuthGuard } from '../auth/guards/token-auth.guard';
-import { TokenService } from '../auth/services/token.service';
-import { WeeklyBrandReportRepository } from './repositories/weekly-brand-report.repository';
 import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
-      { name: WeeklyBrandReport.name, schema: WeeklyBrandReportSchema },
+      { name: BrandReport.name, schema: BrandReportSchema },
     ]),
-    forwardRef(() => ProjectModule), // Import the Project module to access its service
+    forwardRef(() => ProjectModule),
     forwardRef(() => UserModule),
     forwardRef(() => AuthModule),
-    forwardRef(() => BatchModule), // Import the Batch module
-    ConfigModule, // Add ConfigModule for ReportIntegrationService
+    forwardRef(() => BatchModule),
+    ConfigModule,
   ],
-  controllers: [AdminReportController, PublicReportController],
+  controllers: [BrandReportController, AdminBrandReportController],
   providers: [
-    // Main services
-    ReportService,
-
-    // Specialized services
-    ReportTransformationService,
-    ReportAccessService,
-    ReportIntegrationService,
-    ReportPersistenceService,
-    ReportRetrievalService,
-    ReportConverterService,
-    
-    // Repositories
-    WeeklyBrandReportRepository,
-    
-    // Guards
+    BrandReportService,
+    BrandReportPersistenceService,
     TokenAuthGuard,
   ],
-  exports: [ReportService, ReportRetrievalService, ReportAccessService],
+  exports: [BrandReportService, BrandReportPersistenceService],
 })
 export class ReportModule {}

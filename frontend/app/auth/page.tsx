@@ -73,7 +73,7 @@ export default function AuthPage() {
         <div className="p-8">
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold text-mono-900 mb-2">
-              Welcome to MINT
+              Welcome to Mint
             </h1>
             <p className="text-mono-600">Create an account to get started.</p>
           </div>
@@ -165,13 +165,6 @@ export default function AuthPage() {
                 <span className="font-medium">{email}</span>. Click the link in
                 the email to sign in.
               </p>
-              <Button
-                type="button"
-                className="w-full h-12 bg-accent-500 hover:bg-accent-600 text-white"
-                onClick={handleMagicLinkContinue}
-              >
-                I've signed in
-              </Button>
             </div>
           )}
         </div>

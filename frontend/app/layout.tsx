@@ -4,6 +4,7 @@ import { DM_Sans, Inconsolata } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { AuthProvider } from "@/providers/auth-provider";
+import { ModelsProvider } from "@/providers/models-provider";
 import { ReportProvider } from "@/providers/report-provider";
 
 const dmSans = DM_Sans({
@@ -41,9 +42,11 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>
-            <ReportProvider>
-              {children}
-            </ReportProvider>
+            <ModelsProvider>
+              <ReportProvider>
+                {children}
+              </ReportProvider>
+            </ModelsProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>
