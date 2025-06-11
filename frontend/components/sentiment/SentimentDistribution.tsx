@@ -22,8 +22,8 @@ export function SentimentDistribution({ sentimentCounts }: SentimentDistribution
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       {/* Positive Sentiment */}
       <div>
-        <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300 bg-accent-50 border-accent-200">
-          <CardHeader className="pb-4 bg-accent-100">
+        <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
+          <CardHeader className="pb-4">
             <CardTitle className="text-lg font-semibold text-accent-700 flex items-center gap-2">
               <div>
                 <Heart className="h-5 w-5" />
@@ -53,8 +53,8 @@ export function SentimentDistribution({ sentimentCounts }: SentimentDistribution
 
       {/* Neutral Sentiment */}
       <div>
-        <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300 bg-primary-50 border-primary-200">
-          <CardHeader className="pb-4 bg-primary-100">
+        <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
+          <CardHeader className="pb-4">
             <CardTitle className="text-lg font-semibold text-primary-700 flex items-center gap-2">
               <div>
                 <Meh className="h-5 w-5" />
@@ -84,8 +84,8 @@ export function SentimentDistribution({ sentimentCounts }: SentimentDistribution
 
       {/* Negative Sentiment */}
       <div>
-        <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300 bg-destructive-50 border-destructive-200">
-          <CardHeader className="pb-4 bg-destructive-100">
+        <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
+          <CardHeader className="pb-4">
             <CardTitle className="text-lg font-semibold text-destructive-700 flex items-center gap-2">
               <div>
                 <Frown className="h-5 w-5" />
