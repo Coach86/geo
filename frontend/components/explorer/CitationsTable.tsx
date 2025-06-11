@@ -481,7 +481,7 @@ export function CitationsTable({ citations, onExport }: CitationsTableProps) {
             </div>
           );
         },
-        filterFn: fuzzyFilter,
+        filterFn: multiSelectFilter,
         enableSorting: true,
         enableColumnFilter: true,
       }),
