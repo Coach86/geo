@@ -2,8 +2,7 @@
 
 import type React from "react";
 
-import { useState } from "react";
-import { useOnboarding } from "@/providers/onboarding-provider";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/providers/auth-provider";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -134,15 +133,29 @@ const countryCodes = [
   },
 ];
 
-export default function PhoneVerification() {
-  const { formData, updateFormData } = useOnboarding();
+interface PhoneVerificationProps {
+  initialData?: {
+    phoneNumber: string;
+    phoneCountry: string;
+  };
+  onDataReady?: (data: { phoneNumber: string; phoneCountry: string }) => void;
+}
+
+export default function PhoneVerification({ initialData, onDataReady }: PhoneVerificationProps) {
   const { token, isAuthenticated } = useAuth();
-  const [phoneNumber, setPhoneNumber] = useState(formData.phoneNumber || "");
-  const [phoneCountry, setPhoneCountry] = useState(
-    formData.phoneCountry || "US"
-  );
+  
+  // Local state - no localStorage updates
+  const [phoneNumber, setPhoneNumber] = useState(initialData?.phoneNumber || "");
+  const [phoneCountry, setPhoneCountry] = useState(initialData?.phoneCountry || "US");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+
+  // Notify parent when data changes (for validation purposes)
+  useEffect(() => {
+    if (onDataReady) {
+      onDataReady({ phoneNumber, phoneCountry });
+    }
+  }, [phoneNumber, phoneCountry, onDataReady]);
 
   // Fonction pour formater le numéro de téléphone
   const formatPhoneNumber = (value: string) => {
@@ -155,13 +168,11 @@ export default function PhoneVerification() {
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatPhoneNumber(e.target.value);
     setPhoneNumber(formatted);
-    updateFormData({ phoneNumber: formatted });
   };
 
   // Gérer le changement de pays
   const handleCountryChange = (value: string) => {
     setPhoneCountry(value);
-    updateFormData({ phoneCountry: value });
   };
 
   // Obtenir l'indicatif téléphonique du pays sélectionné
@@ -193,12 +204,6 @@ export default function PhoneVerification() {
 
       setIsSubmitted(true);
       toast.success("Phone number saved successfully!");
-
-      // Update form data for consistency
-      updateFormData({
-        phoneNumber: phoneNumber,
-        phoneCountry: phoneCountry,
-      });
     } catch (error) {
       console.error("Phone update error:", error);
       toast.error(

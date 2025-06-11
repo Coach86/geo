@@ -5,23 +5,31 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LineChart, Loader2 } from "lucide-react";
-import type { FormData } from "./types";
 
 interface ProjectInfoFieldsProps {
-  formData: FormData;
-  updateFormData: (data: Partial<FormData>) => void;
   isLoading: boolean;
   isScraped: boolean;
   hasError?: boolean;
+  brandName: string;
+  description: string;
+  industry: string;
+  onBrandNameChange: (value: string) => void;
+  onDescriptionChange: (value: string) => void;
+  onIndustryChange: (value: string) => void;
 }
 
 export function ProjectInfoFields({
-  formData,
-  updateFormData,
   isLoading,
   isScraped,
   hasError,
+  brandName,
+  description,
+  industry,
+  onBrandNameChange,
+  onDescriptionChange,
+  onIndustryChange,
 }: ProjectInfoFieldsProps) {
+  
   if (!isLoading && !isScraped && !hasError) return null;
 
   return (
@@ -70,8 +78,8 @@ export function ProjectInfoFields({
             id="brandName"
             placeholder="Brand name"
             className="h-10 input-focus"
-            value={formData.brandName}
-            onChange={(e) => updateFormData({ brandName: e.target.value })}
+            value={brandName}
+            onChange={(e) => onBrandNameChange(e.target.value)}
           />
         </div>
 
@@ -86,8 +94,8 @@ export function ProjectInfoFields({
             id="description"
             placeholder="Describe your project in a few sentences"
             className="min-h-[80px] resize-none input-focus"
-            value={formData.description}
-            onChange={(e) => updateFormData({ description: e.target.value })}
+            value={description}
+            onChange={(e) => onDescriptionChange(e.target.value)}
           />
         </div>
 
@@ -102,8 +110,8 @@ export function ProjectInfoFields({
             id="industry"
             placeholder="HR tech, Fintech, CRM..."
             className="h-10 input-focus"
-            value={formData.industry}
-            onChange={(e) => updateFormData({ industry: e.target.value })}
+            value={industry}
+            onChange={(e) => onIndustryChange(e.target.value)}
           />
         </div>
       </CardContent>

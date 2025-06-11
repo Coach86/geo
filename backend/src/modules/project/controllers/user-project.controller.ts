@@ -17,6 +17,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { ProjectService } from '../services/project.service';
 import { ProjectRepository } from '../repositories/project.repository';
 import { CreateProjectDto } from '../dto/create-project.dto';
+import { UpdateProjectDto } from '../dto/update-project.dto';
 import { ProjectResponseDto } from '../dto/project-response.dto';
 import { TokenRoute } from '../../auth/decorators/token-route.decorator';
 import { TokenService } from '../../auth/services/token.service';
@@ -25,6 +26,7 @@ import { ProjectCreatedEvent } from '../events/project-created.event';
 import { v4 as uuidv4 } from 'uuid';
 import { UserService } from '../../user/services/user.service';
 import { OrganizationService } from '../../organization/services/organization.service';
+import { PromptService } from '../../prompt/services/prompt.service';
 
 @ApiTags('user-projects')
 @Controller('user/project')
@@ -39,6 +41,7 @@ export class UserProjectController {
     private readonly eventEmitter: EventEmitter2,
     private readonly userService: UserService,
     private readonly organizationService: OrganizationService,
+    private readonly promptService: PromptService,
   ) {}
 
   @Get('url-usage')
@@ -470,10 +473,21 @@ export class UserProjectController {
         brandName: { type: 'string', example: 'Acme Corp' },
         description: { type: 'string', example: 'A leading provider of innovative solutions' },
         industry: { type: 'string', example: 'Technology' },
+        objectives: { type: 'string', example: 'To revolutionize the industry with innovative solutions' },
         market: { type: 'string', example: 'United States' },
         language: { type: 'string', example: 'English' },
         keyBrandAttributes: { type: 'array', items: { type: 'string' } },
         competitors: { type: 'array', items: { type: 'string' } },
+        prompts: {
+          type: 'object',
+          properties: {
+            spontaneous: { type: 'array', items: { type: 'string' } },
+            direct: { type: 'array', items: { type: 'string' } },
+            comparison: { type: 'array', items: { type: 'string' } },
+            accuracy: { type: 'array', items: { type: 'string' } },
+            brandBattle: { type: 'array', items: { type: 'string' } },
+          },
+        },
       },
       required: ['url', 'brandName', 'market'],
     },
@@ -493,10 +507,18 @@ export class UserProjectController {
       brandName: string;
       description?: string;
       industry?: string;
+      objectives?: string;
       market: string;
       language?: string;
       keyBrandAttributes?: string[];
       competitors?: string[];
+      prompts?: {
+        spontaneous?: string[];
+        direct?: string[];
+        comparison?: string[];
+        accuracy?: string[];
+        brandBattle?: string[];
+      };
     },
   ): Promise<ProjectResponseDto> {
     try {
@@ -538,6 +560,7 @@ export class UserProjectController {
         industry: body.industry || '',
         shortDescription: body.description || '',
         fullDescription: body.description || '',
+        objectives: body.objectives || '',
         market: body.market,
         language: body.language || 'en',
         keyBrandAttributes: body.keyBrandAttributes || [],
@@ -552,8 +575,28 @@ export class UserProjectController {
       // Save directly to database without analysis
       const savedProject = await this.projectRepository.save(projectData);
 
-      // Emit the project created event to trigger prompt generation
-      this.eventEmitter.emit('project.created', new ProjectCreatedEvent(projectId));
+      // Handle custom prompts if provided
+      if (body.prompts && ((body.prompts.spontaneous?.length ?? 0) > 0 || (body.prompts.direct?.length ?? 0) > 0)) {
+        this.logger.log(`Saving custom prompts for project ${projectId}`);
+        
+        try {
+          await this.promptService.createPromptSet(projectId, {
+            spontaneous: body.prompts.spontaneous || [],
+            direct: body.prompts.direct || [],
+            comparison: body.prompts.comparison || [],
+            accuracy: body.prompts.accuracy || [],
+            brandBattle: body.prompts.brandBattle || [],
+          });
+          this.logger.log(`Custom prompts saved successfully for project ${projectId}`);
+        } catch (promptError) {
+          this.logger.error(`Failed to save custom prompts: ${promptError.message}`, promptError.stack);
+          // Don't fail the project creation if prompt saving fails
+        }
+      } else {
+        // Only emit the event if no custom prompts were provided
+        // This will trigger automatic prompt generation
+        this.eventEmitter.emit('project.created', new ProjectCreatedEvent(projectId));
+      }
 
       this.logger.log(`Project saved successfully with ID: ${projectId}`);
 
@@ -565,6 +608,7 @@ export class UserProjectController {
         industry: body.industry || '',
         shortDescription: body.description || '',
         fullDescription: body.description || '',
+        objectives: body.objectives || '',
         market: body.market,
         language: body.language || 'en',
         keyBrandAttributes: body.keyBrandAttributes || [],
@@ -593,6 +637,7 @@ export class UserProjectController {
         name: { type: 'string' },
         keyBrandAttributes: { type: 'array', items: { type: 'string' } },
         competitors: { type: 'array', items: { type: 'string' } },
+        objectives: { type: 'string' },
       },
     },
   })
@@ -606,7 +651,7 @@ export class UserProjectController {
   async updateProject(
     @Req() request: any,
     @Param('projectId') projectId: string,
-    @Body() body: { name?: string; keyBrandAttributes?: string[]; competitors?: string[] },
+    @Body() body: UpdateProjectDto,
   ): Promise<ProjectResponseDto> {
     try {
       this.logger.log(`Updating project ${projectId} for authenticated user`);
@@ -641,6 +686,7 @@ export class UserProjectController {
       }
 
       this.logger.log(`Updating project ${projectId} for user: ${request.userId}`);
+      this.logger.log(`Update request body: ${JSON.stringify(body)}`);
 
       // Update the project
       const updateData: any = {};
@@ -653,10 +699,15 @@ export class UserProjectController {
       if (body.competitors !== undefined) {
         updateData.competitors = body.competitors;
       }
+      if (body.objectives !== undefined) {
+        updateData.objectives = body.objectives;
+      }
 
+      this.logger.log(`Update data to be sent: ${JSON.stringify(updateData)}`);
       const updatedProject = await this.projectService.update(projectId, updateData);
 
       this.logger.log(`Project ${projectId} updated successfully`);
+      this.logger.log(`Updated project data: ${JSON.stringify(updatedProject)}`);
 
       // Map to response DTO
       return this.mapToResponseDto(updatedProject);
@@ -682,6 +733,7 @@ export class UserProjectController {
     response.shortDescription = project.shortDescription;
     response.fullDescription = project.fullDescription;
     response.longDescription = project.fullDescription;
+    response.objectives = project.objectives;
     response.keyBrandAttributes = project.keyBrandAttributes;
     response.competitors = project.competitors;
     response.organizationId = project.organizationId;

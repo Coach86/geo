@@ -70,6 +70,7 @@ export class ProjectRepository {
    * Update a project
    */
   async update(projectId: string, updateData: any): Promise<ProjectDocument> {
+    console.log(`[ProjectRepository] Updating project ${projectId} with data:`, updateData);
     const updatedProject = await this.projectModel
       .findOneAndUpdate(
         { id: projectId },
@@ -105,6 +106,7 @@ export class ProjectRepository {
       market: document.market,
       shortDescription: document.shortDescription,
       fullDescription: document.fullDescription,
+      objectives: document.objectives,
       keyBrandAttributes: document.keyBrandAttributes,
       competitors: document.competitors,
       updatedAt: document.updatedAt instanceof Date ? document.updatedAt : new Date(),

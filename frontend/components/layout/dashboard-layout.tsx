@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/providers/auth-provider";
 import Sidebar from "./sidebar";
 import { getUserProjects, ProjectResponse } from "@/lib/auth-api";
@@ -14,6 +14,7 @@ interface DashboardLayoutProps {
 
 function DashboardLayoutContent({ children }: DashboardLayoutProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const {
     isAuthenticated,
     isLoading: authLoading,
@@ -83,12 +84,16 @@ function DashboardLayoutContent({ children }: DashboardLayoutProps) {
     return null;
   }
 
+  // Determine sidebar variant based on current route
+  const sidebarVariant = pathname === "/home" || pathname === "/settings" ? "global" : "project";
+
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar
         identityCards={allProjects}
         selectedProject={selectedProject}
         onProjectSelect={handleProjectSelect}
+        variant={sidebarVariant}
       />
       <main className="flex-1 overflow-y-auto ml-60">
         <div className="p-8">{children}</div>

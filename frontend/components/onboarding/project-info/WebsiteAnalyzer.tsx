@@ -6,21 +6,29 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Globe, AlertCircle, Loader2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { analyzeWebsite } from "@/lib/auth-api";
-import type { FormData, IdentityCardResponse } from "./types";
+import type { IdentityCardResponse } from "./types";
+import type { Market } from "@/app/onboarding/types/form-data";
 
 interface WebsiteAnalyzerProps {
-  formData: FormData;
-  updateFormData: (data: Partial<FormData>) => void;
+  website: string;
+  onWebsiteChange: (website: string) => void;
+  markets: Market[];
   token: string | null;
   isAuthenticated: boolean;
   authLoading: boolean;
-  onAnalysisComplete: () => void;
+  onAnalysisComplete: (data?: {
+    brandName: string;
+    description: string;
+    industry: string;
+    analyzedData: any;
+  }) => void;
   onError?: (hasError: boolean) => void;
 }
 
 export function WebsiteAnalyzer({
-  formData,
-  updateFormData,
+  website,
+  onWebsiteChange,
+  markets,
   token,
   isAuthenticated,
   authLoading,
@@ -32,19 +40,19 @@ export function WebsiteAnalyzer({
   const [hasAnalyzed, setHasAnalyzed] = useState(false);
 
   const handleAnalyzeWebsite = async () => {
-    if (!formData.website || !token || hasAnalyzed) return;
+    if (!website || !token || hasAnalyzed) return;
 
     setIsLoading(true);
     setError(null);
 
     try {
       // Get the primary market and language for analysis
-      const primaryMarket = formData.markets[0]?.country || "United States";
-      const primaryLanguage = formData.markets[0]?.languages[0] || "English";
+      const primaryMarket = markets[0]?.country || "United States";
+      const primaryLanguage = markets[0]?.languages?.[0] || "English";
 
       const identityCard: IdentityCardResponse = await analyzeWebsite(
         {
-          url: formData.website,
+          url: website,
           market: primaryMarket,
           language: primaryLanguage,
         },
@@ -52,24 +60,20 @@ export function WebsiteAnalyzer({
       );
 
       console.log("Identity card response:", identityCard);
-      console.log("Key brand attributes:", identityCard.keyBrandAttributes);
-      console.log("Competitors:", identityCard.competitors);
 
-      // Update form data with the real identity card data
-      updateFormData({
+      // Pass the analyzed data to parent
+      onAnalysisComplete({
         brandName: identityCard.brandName || "",
         description: identityCard.shortDescription || "",
         industry: identityCard.industry || "",
         analyzedData: {
           keyBrandAttributes: identityCard.keyBrandAttributes || [],
           competitors: identityCard.competitors || [],
-          fullDescription:
-            identityCard.fullDescription || identityCard.longDescription || "",
+          fullDescription: identityCard.fullDescription || identityCard.longDescription || "",
         },
       });
 
       setHasAnalyzed(true);
-      onAnalysisComplete();
       onError?.(false);
     } catch (err) {
       console.error("Identity card creation failed:", err);
@@ -101,9 +105,9 @@ export function WebsiteAnalyzer({
               type="url"
               placeholder="https://example.com"
               className="h-12 pl-10 text-base input-focus"
-              value={formData.website}
+              value={website}
               onChange={(e) => {
-                updateFormData({ website: e.target.value });
+                onWebsiteChange(e.target.value);
                 setHasAnalyzed(false);
                 setError(null);
               }}
@@ -145,7 +149,7 @@ export function WebsiteAnalyzer({
       </Card>
 
       {/* Continue Button - now requires both website AND market */}
-      {formData.website && formData.markets.length > 0 && !hasAnalyzed && (
+      {website && markets.length > 0 && !hasAnalyzed && (
         <div className="mt-4">
           <Button
             onClick={handleAnalyzeWebsite}
