@@ -46,13 +46,13 @@ export class BatchResultController {
   @ApiParam({ 
     name: 'resultType', 
     description: 'The type of result',
-    enum: ['spontaneous', 'sentiment', 'comparison', 'accuracy']
+    enum: ['visibility', 'sentiment', 'competition', 'alignment']
   })
   @ApiResponse({ status: 200, description: 'Return the specific batch result' })
   @ApiResponse({ status: 404, description: 'Batch result not found' })
   async getResultByTypeAndExecution(
     @Param('executionId') executionId: string,
-    @Param('resultType') resultType: 'spontaneous' | 'sentiment' | 'comparison' | 'accuracy',
+    @Param('resultType') resultType: 'visibility' | 'sentiment' | 'competition' | 'alignment',
   ) {
     const result = await this.batchResultRepository.findByExecutionIdAndTypeLean(
       executionId,
@@ -82,12 +82,12 @@ export class BatchResultController {
     name: 'resultType', 
     required: false, 
     description: 'Filter by result type',
-    enum: ['spontaneous', 'sentiment', 'comparison', 'accuracy']
+    enum: ['visibility', 'sentiment', 'competition', 'alignment']
   })
   @ApiResponse({ status: 200, description: 'Return the latest batch results' })
   async getLatestResultsByProject(
     @Param('projectId') projectId: string,
-    @Query('resultType') resultType?: 'spontaneous' | 'sentiment' | 'comparison' | 'accuracy',
+    @Query('resultType') resultType?: 'visibility' | 'sentiment' | 'competition' | 'alignment',
   ) {
     // Get the latest completed batch execution for this project
     const latestExecution = await this.batchExecutionRepository.findLatestByProjectId(

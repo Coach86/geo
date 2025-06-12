@@ -41,11 +41,11 @@ export function PromptsReview({ config, selectedItems }: PromptsReviewProps) {
         )}
       </div>
 
-      {/* Perception Prompts */}
+      {/* Sentiment Prompts */}
       <div>
         <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
           <LineChart className="h-4 w-4 mr-2 text-secondary-600" />
-          Perception Prompts
+          Sentiment Prompts
           <Badge className="ml-2 bg-secondary-100 text-secondary-700">
             {selectedPerceptionPrompts.length}
           </Badge>
@@ -66,16 +66,16 @@ export function PromptsReview({ config, selectedItems }: PromptsReviewProps) {
           </ul>
         ) : (
           <p className="text-sm text-gray-500 italic pl-6">
-            No perception prompts selected
+            No sentiment prompts selected
           </p>
         )}
       </div>
 
-      {/* Comparison Prompts */}
+      {/* Competition Prompts */}
       <div>
         <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
           <Users className="h-4 w-4 mr-2 text-accent-600" />
-          Comparison Prompts
+          Competition Prompts
           <Badge className="ml-2 bg-accent-100 text-accent-700">
             {selectedCompetitors.length}
           </Badge>

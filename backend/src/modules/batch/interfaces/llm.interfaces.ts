@@ -7,9 +7,9 @@ import { LlmProvider } from '../../llm/interfaces/llm-provider.enum';
  * Enum for prompt types to ensure type safety
  */
 export enum PromptType {
-  SPONTANEOUS = 'spontaneous',
-  COMPARISON = 'comparison',
-  ACCURACY = 'accuracy',
+  VISIBILITY = 'visibility',
+  COMPETITION = 'competition',
+  ALIGNMENT = 'alignment',
   SENTIMENT = 'sentiment',
 }
 
@@ -17,10 +17,10 @@ export enum PromptType {
  * Enum for pipeline types to ensure type safety
  */
 export enum PipelineType {
-  SPONTANEOUS = 'spontaneous',
+  VISIBILITY = 'visibility',
   SENTIMENT = 'sentiment',
-  COMPARISON = 'comparison',
-  ACCURACY = 'accuracy',
+  COMPETITION = 'competition',
+  ALIGNMENT = 'alignment',
 }
 
 export interface LlmModelConfig {
@@ -51,16 +51,16 @@ export interface AnalyzerConfig {
 export interface PipelineConfig {
   llmModels: LlmModelConfig[];
   analyzerConfig: {
-    spontaneous: AnalyzerConfig;
+    visibility: AnalyzerConfig;
     sentiment: AnalyzerConfig;
-    comparison: AnalyzerConfig;
-    accuracy?: AnalyzerConfig;
+    competition: AnalyzerConfig;
+    alignment?: AnalyzerConfig;
   };
   concurrencyLimit: number;
   pipelineLimits?: {
-    spontaneous?: number;
+    visibility?: number;
     sentiment?: number;
-    comparison?: number;
-    accuracy?: number;
+    competition?: number;
+    alignment?: number;
   };
 }

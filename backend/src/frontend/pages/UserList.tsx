@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -27,6 +27,7 @@ import {
   Select,
   MenuItem,
   CircularProgress,
+  Link,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EmailIcon from '@mui/icons-material/Email';
@@ -44,6 +45,7 @@ interface Organization {
 }
 
 const UserList: React.FC = () => {
+  const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
@@ -126,6 +128,10 @@ const UserList: React.FC = () => {
   const getOrganizationId = (orgId: string | undefined) => {
     if (!orgId) return '-';
     return orgId;
+  };
+
+  const handleOrganizationClick = (organizationId: string) => {
+    navigate(`/organization?filter=${organizationId}`);
   };
 
   if (loading) {
@@ -212,9 +218,24 @@ const UserList: React.FC = () => {
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
                           <BusinessIcon sx={{ mr: 1, color: 'text.secondary', fontSize: 20 }} />
-                          <Typography variant="body2">
-                            {getOrganizationId(user.organizationId)}
-                          </Typography>
+                          {user.organizationId ? (
+                            <Link
+                              component="button"
+                              variant="body2"
+                              onClick={() => handleOrganizationClick(user.organizationId!)}
+                              sx={{
+                                textDecoration: 'none',
+                                color: 'primary.main',
+                                '&:hover': {
+                                  textDecoration: 'underline',
+                                },
+                              }}
+                            >
+                              {getOrganizationId(user.organizationId)}
+                            </Link>
+                          ) : (
+                            <Typography variant="body2">-</Typography>
+                          )}
                         </Box>
                       </TableCell>
                       <TableCell>

@@ -7,7 +7,7 @@ import {
   BrandBattleAnalysis,
   BrandBattlePipelineResult,
   ProjectBatchContext,
-  ComparisonResults,
+  CompetitionResults,
   WebSearchSummary,
 } from '../interfaces/batch.interfaces';
 import {
@@ -20,7 +20,7 @@ import { BasePipelineService } from './base-pipeline.service';
 import { SystemPrompts, PromptTemplates, formatPrompt } from '../prompts/prompts';
 
 @Injectable()
-export class ComparisonPipelineService extends BasePipelineService {
+export class CompetitionPipelineService extends BasePipelineService {
   constructor(
     protected readonly configService: ConfigService,
     protected readonly llmService: LlmService,
@@ -29,8 +29,8 @@ export class ComparisonPipelineService extends BasePipelineService {
     super(
       configService,
       llmService,
-      ComparisonPipelineService.name,
-      PipelineType.COMPARISON,
+      CompetitionPipelineService.name,
+      PipelineType.COMPETITION,
       rawResponseService,
     );
   }
@@ -39,25 +39,25 @@ export class ComparisonPipelineService extends BasePipelineService {
    * Get analyzer config for this specific pipeline
    */
   protected getAnalyzerConfig(): AnalyzerConfig {
-    return this.config.analyzerConfig.comparison;
+    return this.config.analyzerConfig.competition;
   }
 
   /**
-   * Run the comparison pipeline for a company
+   * Run the competition pipeline for a company
    * @param context Company batch context
-   * @returns Comparison results with brand battle data
+   * @returns Competition results with brand battle data
    */
-  async run(context: ProjectBatchContext): Promise<ComparisonResults> {
+  async run(context: ProjectBatchContext): Promise<CompetitionResults> {
     this.logger.log(
-      `Running brand battle pipeline for ${context.projectId} (${context.brandName})`,
+      `Running competition pipeline for ${context.projectId} (${context.brandName})`,
     );
 
     try {
-      // Get comparison prompts
-      const comparisonPrompts = context.promptSet?.brandBattle || [];
+      // Get competition prompts
+      const competitionPrompts = context.promptSet?.competition || [];
 
-      if (!comparisonPrompts.length) {
-        throw new Error('No comparison prompts found for this company');
+      if (!competitionPrompts.length) {
+        throw new Error('No competition prompts found for this company');
       }
 
       // Get competitors, default to empty array if not provided
@@ -70,16 +70,16 @@ export class ComparisonPipelineService extends BasePipelineService {
         throw new Error('Brand battle requires competitors to be specified');
       }
 
-      const comparisonResults = await this.runComparison(context, comparisonPrompts, competitors);
+      const competitionResults = await this.runCompetition(context, competitionPrompts, competitors);
 
       this.logger.log(
-        `Completed comparison pipeline for ${context.projectId} with ${comparisonResults.results.length} results`,
+        `Completed competition pipeline for ${context.projectId} with ${competitionResults.results.length} results`,
       );
 
-      return comparisonResults;
+      return competitionResults;
     } catch (error) {
       this.logger.error(
-        `Failed to run brand battle pipeline for ${context.projectId}: ${error.message}`,
+        `Failed to run competition pipeline for ${context.projectId}: ${error.message}`,
         error.stack,
       );
       throw error;
@@ -88,7 +88,7 @@ export class ComparisonPipelineService extends BasePipelineService {
 
   /**
    * Create a summary of web search usage in the results
-   * @param results Array of comparison pipeline results
+   * @param results Array of competition pipeline results
    * @returns Web search summary
    */
   private createWebSearchSummary(
@@ -163,19 +163,19 @@ export class ComparisonPipelineService extends BasePipelineService {
   }
 
   /**
-   * Run the comparison pipeline for a company against each competitor
+   * Run the competition pipeline for a company against each competitor
    * @param context Company batch context
    * @param prompts Array of brand battle prompts
    * @param competitors Array of competitor names
-   * @returns Comparison results with brand battle data
+   * @returns Competition results with brand battle data
    */
-  private async runComparison(
+  private async runCompetition(
     context: ProjectBatchContext,
     prompts: string[],
     competitors: string[],
-  ): Promise<ComparisonResults> {
+  ): Promise<CompetitionResults> {
     this.logger.log(
-      `Running comparison for ${context.projectId} against ${competitors.length} competitors`,
+      `Running competition for ${context.projectId} against ${competitors.length} competitors`,
     );
 
     // Get the enabled LLM models
@@ -224,7 +224,7 @@ export class ComparisonPipelineService extends BasePipelineService {
                 );
 
                 // Analyze the response
-                return await this.analyzeComparisonResponse(
+                return await this.analyzeCompetitionResponse(
                   modelConfig,
                   context.brandName,
                   competitor,
@@ -257,8 +257,8 @@ export class ComparisonPipelineService extends BasePipelineService {
     // Run all tasks
     const results = await Promise.all(tasks);
 
-    // Analyze and summarize comparison results
-    const competitorAnalyses = this.analyzeComparisonResults(
+    // Analyze and summarize competition results
+    const competitorAnalyses = this.analyzeCompetitionResults(
       context.brandName,
       competitors,
       results,
@@ -283,16 +283,16 @@ export class ComparisonPipelineService extends BasePipelineService {
   }
 
   /**
-   * Analyze the LLM response for comparison to extract strengths and weaknesses
+   * Analyze the LLM response for competition to extract strengths and weaknesses
    * @param modelConfig The LLM model configuration
    * @param brandName The company brand name
    * @param competitor The competitor name
    * @param prompt The original prompt
    * @param llmResponseObj The response from the LLM
    * @param promptIndex The index of the prompt
-   * @returns Analysis of the LLM response for comparison
+   * @returns Analysis of the LLM response for competition
    */
-  private async analyzeComparisonResponse(
+  private async analyzeCompetitionResponse(
     modelConfig: LlmModelConfig,
     brandName: string,
     competitor: string,
@@ -320,7 +320,7 @@ export class ComparisonPipelineService extends BasePipelineService {
     error?: string;
   }> {
     this.logger.log(
-      `Analyzing comparison response from ${modelConfig.provider}/${modelConfig.model} for ${brandName} vs ${competitor}`,
+      `Analyzing competition response from ${modelConfig.provider}/${modelConfig.model} for ${brandName} vs ${competitor}`,
     );
 
     // Extract the text from the response object
@@ -343,7 +343,7 @@ export class ComparisonPipelineService extends BasePipelineService {
     });
 
     // Format the user prompt using the template
-    const userPrompt = formatPrompt(PromptTemplates.BRAND_BATTLE_ANALYSIS, {
+    const userPrompt = formatPrompt(PromptTemplates.COMPETITION_ANALYSIS, {
       originalPrompt: prompt,
       brandName,
       competitor,
@@ -356,10 +356,10 @@ export class ComparisonPipelineService extends BasePipelineService {
       const result = await this.getStructuredAnalysis(
         userPrompt,
         schema,
-        SystemPrompts.COMPARISON_ANALYSIS,
+        SystemPrompts.COMPETITION_ANALYSIS,
         typeof llmResponseObj === 'string' ? undefined : llmResponseObj.batchExecutionId,
         promptIndex,
-        PromptType.COMPARISON,
+        PromptType.COMPETITION,
         prompt,
         llmResponse,
         modelConfig.model,
@@ -382,19 +382,19 @@ export class ComparisonPipelineService extends BasePipelineService {
         toolUsage: metadata.toolUsage || ([] as unknown[]),
       };
     } catch (error) {
-      this.logger.error(`All analyzers failed for comparison analysis: ${error.message}`);
+      this.logger.error(`All analyzers failed for competition analysis: ${error.message}`);
       throw error;
     }
   }
 
   /**
-   * Analyze and summarize comparison results
+   * Analyze and summarize competition results
    * @param brandName The company's brand name
    * @param competitors List of competitor names
-   * @param results Array of comparison pipeline results
+   * @param results Array of competition pipeline results
    * @returns Array of competitor analyses
    */
-  private analyzeComparisonResults(
+  private analyzeCompetitionResults(
     brandName: string,
     competitors: string[],
     results: Array<{

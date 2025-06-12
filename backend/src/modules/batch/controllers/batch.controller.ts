@@ -133,14 +133,14 @@ export class BatchController {
     };
   }
 
-  @Post('pipeline/spontaneous/:projectId')
-  @ApiOperation({ summary: 'Run spontaneous mentions pipeline for a project' })
+  @Post('pipeline/visibility/:projectId')
+  @ApiOperation({ summary: 'Run visibility mentions pipeline for a project' })
   @ApiParam({ name: 'projectId', description: 'The ID of the project' })
   @ApiResponse({
     status: 202,
-    description: 'Spontaneous mentions pipeline started',
+    description: 'Visibility mentions pipeline started',
   })
-  async runSpontaneousPipeline(@Param('projectId') projectId: string) {
+  async runVisibilityPipeline(@Param('projectId') projectId: string) {
     // Get project data
     const projectContext = await this.batchService.getProjectBatchContext(projectId);
     if (!projectContext) {
@@ -150,7 +150,7 @@ export class BatchController {
     // Create batch execution record
     const batchExecution = await this.batchService.createSinglePipelineBatchExecution(
       projectId,
-      'spontaneous',
+      'visibility',
     );
     const batchExecutionId = batchExecution.id;
 
@@ -173,7 +173,7 @@ export class BatchController {
     };
   }
 
-  // Background processing method for spontaneous pipeline
+  // Background processing method for visibility pipeline
   private async processSpontaneousPipeline(projectContext: any, batchExecutionId: string) {
     // Add batch execution ID to context
     const contextWithExecId = { ...projectContext, batchExecutionId };
@@ -188,10 +188,10 @@ export class BatchController {
       );
 
       // Run pipeline
-      const result = await this.batchService.runSpontaneousPipeline(contextWithExecId);
+      const result = await this.batchService.runVisibilityPipeline(contextWithExecId);
 
       // Save result to batch_results
-      await this.batchService.saveSinglePipelineResult(batchExecutionId, 'spontaneous', result);
+      await this.batchService.saveSinglePipelineResult(batchExecutionId, 'visibility', result);
 
       // Mark batch execution as completed
       await this.batchService.completeSinglePipelineBatchExecution(batchExecutionId);
@@ -218,14 +218,14 @@ export class BatchController {
         batchExecutionId,
         projectContext.projectId,
         projectContext.brandName,
-        'spontaneous',
+        'visibility',
         error.message
       );
       this.batchEventsGateway.emitBatchFailed(
         batchExecutionId,
         projectContext.projectId,
         projectContext.brandName,
-        'spontaneous',
+        'visibility',
         error.message
       );
     }
@@ -329,14 +329,14 @@ export class BatchController {
     }
   }
 
-  @Post('pipeline/comparison/:projectId')
-  @ApiOperation({ summary: 'Run comparison pipeline for a project' })
+  @Post('pipeline/competition/:projectId')
+  @ApiOperation({ summary: 'Run competition pipeline for a project' })
   @ApiParam({ name: 'projectId', description: 'The ID of the project' })
   @ApiResponse({
     status: 202,
-    description: 'Comparison pipeline started',
+    description: 'Competition pipeline started',
   })
-  async runComparisonPipeline(@Param('projectId') projectId: string) {
+  async runCompetitionPipeline(@Param('projectId') projectId: string) {
     // Get project data
     const projectContext = await this.batchService.getProjectBatchContext(projectId);
     if (!projectContext) {
@@ -346,7 +346,7 @@ export class BatchController {
     // Create batch execution record
     const batchExecution = await this.batchService.createSinglePipelineBatchExecution(
       projectId,
-      'comparison',
+      'competition',
     );
     const batchExecutionId = batchExecution.id;
 
@@ -369,7 +369,7 @@ export class BatchController {
     };
   }
 
-  // Background processing method for comparison pipeline
+  // Background processing method for competition pipeline
   private async processComparisonPipeline(projectContext: any, batchExecutionId: string) {
     // Add batch execution ID to context
     const contextWithExecId = { ...projectContext, batchExecutionId };
@@ -384,10 +384,10 @@ export class BatchController {
       );
 
       // Run pipeline
-      const result = await this.batchService.runComparisonPipeline(contextWithExecId);
+      const result = await this.batchService.runCompetitionPipeline(contextWithExecId);
 
       // Save result to batch_results
-      await this.batchService.saveSinglePipelineResult(batchExecutionId, 'comparison', result);
+      await this.batchService.saveSinglePipelineResult(batchExecutionId, 'competition', result);
 
       // Mark batch execution as completed
       await this.batchService.completeSinglePipelineBatchExecution(batchExecutionId);
@@ -414,27 +414,27 @@ export class BatchController {
         batchExecutionId,
         projectContext.projectId,
         projectContext.brandName,
-        'comparison',
+        'competition',
         error.message
       );
       this.batchEventsGateway.emitBatchFailed(
         batchExecutionId,
         projectContext.projectId,
         projectContext.brandName,
-        'comparison',
+        'competition',
         error.message
       );
     }
   }
 
-  @Post('pipeline/accuracy/:projectId')
-  @ApiOperation({ summary: 'Run accuracy analysis pipeline for a project' })
+  @Post('pipeline/alignment/:projectId')
+  @ApiOperation({ summary: 'Run alignment analysis pipeline for a project' })
   @ApiParam({ name: 'projectId', description: 'The ID of the project' })
   @ApiResponse({
     status: 202,
-    description: 'Accuracy analysis pipeline started',
+    description: 'Alignment analysis pipeline started',
   })
-  async runAccuracyPipeline(@Param('projectId') projectId: string) {
+  async runAlignmentPipeline(@Param('projectId') projectId: string) {
     // Get project data
     const projectContext = await this.batchService.getProjectBatchContext(projectId);
     if (!projectContext) {
@@ -444,7 +444,7 @@ export class BatchController {
     // Create batch execution record
     const batchExecution = await this.batchService.createSinglePipelineBatchExecution(
       projectId,
-      'accuracy',
+      'alignment',
     );
     const batchExecutionId = batchExecution.id;
 
@@ -467,7 +467,7 @@ export class BatchController {
     };
   }
 
-  // Background processing method for accuracy pipeline
+  // Background processing method for alignment pipeline
   private async processAccuracyPipeline(projectContext: any, batchExecutionId: string) {
     // Add batch execution ID to context
     const contextWithExecId = { ...projectContext, batchExecutionId };
@@ -482,10 +482,10 @@ export class BatchController {
       );
 
       // Run pipeline
-      const result = await this.batchService.runAccuracyPipeline(contextWithExecId);
+      const result = await this.batchService.runAlignmentPipeline(contextWithExecId);
 
       // Save result to batch_results
-      await this.batchService.saveSinglePipelineResult(batchExecutionId, 'accuracy', result);
+      await this.batchService.saveSinglePipelineResult(batchExecutionId, 'alignment', result);
 
       // Mark batch execution as completed
       await this.batchService.completeSinglePipelineBatchExecution(batchExecutionId);
@@ -512,14 +512,14 @@ export class BatchController {
         batchExecutionId,
         projectContext.projectId,
         projectContext.brandName,
-        'accuracy',
+        'alignment',
         error.message
       );
       this.batchEventsGateway.emitBatchFailed(
         batchExecutionId,
         projectContext.projectId,
         projectContext.brandName,
-        'accuracy',
+        'alignment',
         error.message
       );
     }
