@@ -40,9 +40,8 @@ interface PromptSelectionProps {
   onDataReady?: (data: { 
     visibilityPrompts: { text: string; selected: boolean }[]; 
     perceptionPrompts: { text: string; selected: boolean }[];
-    comparisonPrompts?: string[];
-    accuracyPrompts?: string[];
-    brandBattlePrompts?: string[];
+    alignmentPrompts?: string[];
+    competitionPrompts?: string[];
   }) => void;
 }
 
@@ -64,9 +63,8 @@ export default function PromptSelection({ initialData, onDataReady }: PromptSele
   // Local state - no localStorage updates
   const [visibilityPrompts, setVisibilityPrompts] = useState<PromptItem[]>([]);
   const [perceptionPrompts, setPerceptionPrompts] = useState<PromptItem[]>([]);
-  const [comparisonPrompts, setComparisonPrompts] = useState<string[]>([]);
-  const [accuracyPrompts, setAccuracyPrompts] = useState<string[]>([]);
-  const [brandBattlePrompts, setBrandBattlePrompts] = useState<string[]>([]);
+  const [alignmentPrompts, setAlignmentPrompts] = useState<string[]>([]);
+  const [competitionPrompts, setCompetitionPrompts] = useState<string[]>([]);
   
   // UI state
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -84,12 +82,11 @@ export default function PromptSelection({ initialData, onDataReady }: PromptSele
       onDataReady({ 
         visibilityPrompts: visibilityPromptsData, 
         perceptionPrompts: perceptionPromptsData,
-        comparisonPrompts,
-        accuracyPrompts,
-        brandBattlePrompts
+        alignmentPrompts,
+        competitionPrompts
       });
     }
-  }, [visibilityPrompts, perceptionPrompts, comparisonPrompts, accuracyPrompts, brandBattlePrompts]); // Remove onDataReady from dependencies
+  }, [visibilityPrompts, perceptionPrompts, alignmentPrompts, competitionPrompts]); // Remove onDataReady from dependencies
 
   // Count selected items for plan impact
   const selectedVisibilityCount = visibilityPrompts.filter(p => p.selected).length
@@ -137,9 +134,8 @@ export default function PromptSelection({ initialData, onDataReady }: PromptSele
               // Use cached prompts
               setVisibilityPrompts(initializePrompts(cached.visibilityPrompts));
               setPerceptionPrompts(initializePrompts(cached.perceptionPrompts));
-              setComparisonPrompts(cached.comparisonPrompts || []);
-              setAccuracyPrompts(cached.accuracyPrompts || []);
-              setBrandBattlePrompts(cached.brandBattlePrompts || []);
+              setAlignmentPrompts(cached.alignmentPrompts || []);
+              setCompetitionPrompts(cached.competitionPrompts || []);
               setIsLoading(false)
               return
             }
@@ -183,16 +179,15 @@ export default function PromptSelection({ initialData, onDataReady }: PromptSele
         const response = await generatePrompts(request, token)
 
         // Map backend response to frontend format
-        const newVisibilityPrompts = response.spontaneous.map(text => ({ text, selected: true }));
-        const newPerceptionPrompts = response.direct.map(text => ({ text, selected: true }));
+        const newVisibilityPrompts = response.visibility.map(text => ({ text, selected: true }));
+        const newPerceptionPrompts = response.sentiment.map(text => ({ text, selected: true }));
 
         // Cache ALL generated prompts (including hidden ones)
         const cacheData = {
           visibilityPrompts: newVisibilityPrompts,
           perceptionPrompts: newPerceptionPrompts,
-          comparisonPrompts: response.comparison,
-          accuracyPrompts: response.accuracy,
-          brandBattlePrompts: response.brandBattle,
+          alignmentPrompts: response.alignment || [],
+          competitionPrompts: response.competition || [],
           timestamp: Date.now()
         }
         localStorage.setItem(cacheKey, JSON.stringify(cacheData))
@@ -200,9 +195,8 @@ export default function PromptSelection({ initialData, onDataReady }: PromptSele
         // Update state with generated prompts
         setVisibilityPrompts(initializePrompts(newVisibilityPrompts));
         setPerceptionPrompts(initializePrompts(newPerceptionPrompts));
-        setComparisonPrompts(response.comparison);
-        setAccuracyPrompts(response.accuracy);
-        setBrandBattlePrompts(response.brandBattle);
+        setAlignmentPrompts(response.alignment);
+        setCompetitionPrompts(response.competition);
       } catch (err) {
         console.error('Error generating prompts:', err)
         setError(err instanceof Error ? err.message : 'Failed to generate prompts')
@@ -352,12 +346,12 @@ export default function PromptSelection({ initialData, onDataReady }: PromptSele
         <p className="text-gray-600 max-w-md mx-auto">Select the prompts that will be used to analyze your brand</p>
       </div>
 
-      {/* Spontaneous Visibility Prompts */}
+      {/* Visibility Prompts */}
       <Card className="border border-gray-200 shadow-sm">
         <CardContent className="p-6">
           <div className="flex items-center gap-2 mb-2">
             <TrendingUp className="h-5 w-5 text-accent-600" />
-            <h2 className="text-xl font-semibold text-mono-900">Spontaneous Visibility Prompts</h2>
+            <h2 className="text-xl font-semibold text-mono-900">Visibility Prompts</h2>
             <Badge className="bg-accent-100 text-accent-700 ml-2">{selectedVisibilityCount}/{visibilityPrompts.length}</Badge>
           </div>
           <p className="text-sm text-gray-500 mb-4">

@@ -33,7 +33,7 @@ interface EditablePromptsProps {
   title: string;
   icon: React.ReactNode;
   prompts: string[];
-  promptType: 'direct' | 'spontaneous' | 'comparison' | 'accuracy' | 'brand-battle';
+  promptType: 'sentiment' | 'visibility' | 'competition' | 'alignment' | 'brand-battle';
   description: string;
   onUpdate: (newPrompts: string[]) => void;
 }
@@ -54,13 +54,13 @@ const EditablePrompts: React.FC<EditablePromptsProps> = ({
 
   const getIcon = (type: string) => {
     switch (type) {
-      case 'direct':
+      case 'sentiment':
         return <ChatBubbleOutlineIcon color="primary" />;
-      case 'spontaneous':
+      case 'visibility':
         return <QuestionAnswerIcon color="primary" />;
-      case 'comparison':
+      case 'competition':
         return <CompareArrowsIcon color="primary" />;
-      case 'accuracy':
+      case 'alignment':
         return <FactCheckIcon color="primary" />;
       case 'brand-battle':
         return <SportsMmaIcon color="primary" />;

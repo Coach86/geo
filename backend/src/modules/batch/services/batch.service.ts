@@ -11,10 +11,10 @@ import { PromptSetRepository } from '../../prompt/repositories/prompt-set.reposi
 import { UserService } from '../../user/services/user.service';
 import { LlmService } from '../../llm/services/llm.service';
 import { RawResponseService } from './raw-response.service';
-import { SpontaneousPipelineService } from './spontaneous-pipeline.service';
+import { VisibilityPipelineService } from './visibility-pipeline.service';
 import { SentimentPipelineService } from './sentiment-pipeline.service';
-import { AccuracyPipelineService } from './accuracy-pipeline.service';
-import { ComparisonPipelineService } from './comparison-pipeline.service';
+import { AlignmentPipelineService } from './alignment-pipeline.service';
+import { CompetitionPipelineService } from './competition-pipeline.service';
 import { BatchExecutionService } from './batch-execution.service';
 import { BrandReportOrchestratorService } from './brand-report-orchestrator.service';
 import { ProjectBatchContext } from '../interfaces/batch.interfaces';
@@ -46,10 +46,10 @@ export class BatchService {
     private readonly batchResultRepository: BatchResultRepository,
     private readonly rawResponseRepository: RawResponseRepository,
     private readonly batchExecutionService: BatchExecutionService,
-    private readonly spontaneousPipelineService: SpontaneousPipelineService,
+    private readonly visibilityPipelineService: VisibilityPipelineService,
     private readonly sentimentPipelineService: SentimentPipelineService,
-    private readonly accuracyPipelineService: AccuracyPipelineService,
-    private readonly comparisonPipelineService: ComparisonPipelineService,
+    private readonly alignmentPipelineService: AlignmentPipelineService,
+    private readonly competitionPipelineService: CompetitionPipelineService,
     private readonly userService: UserService,
     @Inject(forwardRef(() => OrganizationService))
     private readonly organizationService: OrganizationService,
@@ -229,7 +229,7 @@ export class BatchService {
    * @param context Project context
    */
   async runPipeline(
-    pipelineType: 'spontaneous' | 'sentiment' | 'accuracy' | 'comparison',
+    pipelineType: 'visibility' | 'sentiment' | 'alignment' | 'competition',
     context: ProjectBatchContext,
   ) {
     this.logger.log(
@@ -241,17 +241,17 @@ export class BatchService {
 
       // Run the appropriate pipeline
       switch (pipelineType) {
-        case 'spontaneous':
-          result = await this.spontaneousPipelineService.run(context);
+        case 'visibility':
+          result = await this.visibilityPipelineService.run(context);
           break;
         case 'sentiment':
           result = await this.sentimentPipelineService.run(context);
           break;
-        case 'accuracy':
-          result = await this.accuracyPipelineService.run(context);
+        case 'alignment':
+          result = await this.alignmentPipelineService.run(context);
           break;
-        case 'comparison':
-          result = await this.comparisonPipelineService.run(context);
+        case 'competition':
+          result = await this.competitionPipelineService.run(context);
           break;
         default:
           throw new Error(`Unknown pipeline type: ${pipelineType}`);
@@ -268,12 +268,12 @@ export class BatchService {
   }
 
   /**
-   * Run the spontaneous pipeline for a project
+   * Run the visibility pipeline for a project
    * @param context Project batch context
    * @returns Pipeline results
    */
-  async runSpontaneousPipeline(context: ProjectBatchContext) {
-    return this.runPipeline('spontaneous', context);
+  async runVisibilityPipeline(context: ProjectBatchContext) {
+    return this.runPipeline('visibility', context);
   }
 
   /**
@@ -286,21 +286,21 @@ export class BatchService {
   }
 
   /**
-   * Run the accuracy pipeline for a project
+   * Run the alignment pipeline for a project
    * @param context Project batch context
    * @returns Pipeline results
    */
-  async runAccuracyPipeline(context: ProjectBatchContext) {
-    return this.runPipeline('accuracy', context);
+  async runAlignmentPipeline(context: ProjectBatchContext) {
+    return this.runPipeline('alignment', context);
   }
 
   /**
-   * Run the comparison pipeline for a project
+   * Run the competition pipeline for a project
    * @param context Project batch context
    * @returns Pipeline results
    */
-  async runComparisonPipeline(context: ProjectBatchContext) {
-    return this.runPipeline('comparison', context);
+  async runCompetitionPipeline(context: ProjectBatchContext) {
+    return this.runPipeline('competition', context);
   }
 
   /**
@@ -335,26 +335,26 @@ export class BatchService {
       const contextWithBatchExecId = { ...context, batchExecutionId };
 
       // Run all four pipelines in parallel
-      const [spontaneousResults, sentimentResults, accuracyResults, comparisonResults] =
+      const [visibilityResults, sentimentResults, alignmentResults, competitionResults] =
         await Promise.all([
-          this.spontaneousPipelineService.run(contextWithBatchExecId),
+          this.visibilityPipelineService.run(contextWithBatchExecId),
           this.sentimentPipelineService.run(contextWithBatchExecId),
-          this.accuracyPipelineService.run(contextWithBatchExecId),
-          this.comparisonPipelineService.run(contextWithBatchExecId),
+          this.alignmentPipelineService.run(contextWithBatchExecId),
+          this.competitionPipelineService.run(contextWithBatchExecId),
         ]);
 
       // Get LLM versions
       const comparisonLlmResults = [];
 
-      // Get comparison results - now only one format is used
-      if (comparisonResults && Array.isArray(comparisonResults.results)) {
-        comparisonLlmResults.push(...comparisonResults.results);
+      // Get competition results - now only one format is used
+      if (competitionResults && Array.isArray(competitionResults.results)) {
+        comparisonLlmResults.push(...competitionResults.results);
       }
 
       const llmVersions = this.getLlmVersions([
-        ...spontaneousResults.results,
+        ...visibilityResults.results,
         ...sentimentResults.results,
-        ...accuracyResults.results,
+        ...alignmentResults.results,
         ...comparisonLlmResults,
       ]);
 
@@ -364,15 +364,15 @@ export class BatchService {
       await Promise.all([
         this.batchExecutionService.saveBatchResult(
           batchExecutionId,
-          'spontaneous',
-          spontaneousResults,
+          'visibility',
+          visibilityResults,
         ),
         this.batchExecutionService.saveBatchResult(batchExecutionId, 'sentiment', sentimentResults),
-        this.batchExecutionService.saveBatchResult(batchExecutionId, 'accuracy', accuracyResults),
+        this.batchExecutionService.saveBatchResult(batchExecutionId, 'alignment', alignmentResults),
         this.batchExecutionService.saveBatchResult(
           batchExecutionId,
-          'comparison',
-          comparisonResults,
+          'competition',
+          competitionResults,
         ),
       ]);
 
@@ -396,19 +396,19 @@ export class BatchService {
           market: project.market || '',
           countryCode: project.market || 'US', // Default to US if not specified
           competitors: project.competitors || [],
-          modelsUsed: this.extractModelsUsed(spontaneousResults, sentimentResults, accuracyResults, comparisonResults),
-          promptsExecuted: this.countPromptsExecuted(spontaneousResults, sentimentResults, accuracyResults, comparisonResults),
+          modelsUsed: this.extractModelsUsed(visibilityResults, sentimentResults, alignmentResults, competitionResults),
+          promptsExecuted: this.countPromptsExecuted(visibilityResults, sentimentResults, alignmentResults, competitionResults),
           executionContext: {
             batchId: batchExecutionId,
             pipeline: 'brand-report',
             version: '2.0.0',
           },
         },
-        explorer: this.buildExplorerData(spontaneousResults, sentimentResults, accuracyResults, comparisonResults),
-        visibility: this.buildVisibilityData(spontaneousResults, project.brandName, project.competitors || []),
+        explorer: this.buildExplorerData(visibilityResults, sentimentResults, alignmentResults, competitionResults),
+        visibility: this.buildVisibilityData(visibilityResults, project.brandName, project.competitors || []),
         sentiment: this.buildSentimentData(sentimentResults),
-        alignment: this.buildAlignmentData(accuracyResults),
-        competition: this.buildCompetitionData(comparisonResults, project.brandName, project.competitors || []),
+        alignment: this.buildAlignmentData(alignmentResults),
+        competition: this.buildCompetitionData(competitionResults, project.brandName, project.competitors || []),
       };
 
       // Save the report using the new persistence service
@@ -423,10 +423,10 @@ export class BatchService {
       return {
         batchExecutionId,
         results: {
-          spontaneous: spontaneousResults,
+          visibility: visibilityResults,
           sentiment: sentimentResults,
-          accuracy: accuracyResults,
-          comparison: comparisonResults,
+          alignment: alignmentResults,
+          competition: competitionResults,
         },
       };
     } catch (error) {
@@ -548,11 +548,11 @@ export class BatchService {
       // If the result contains results for different pipelines, save them individually
       if (result && result.results) {
         // Check which pipeline results are available
-        if (result.results.spontaneous) {
+        if (result.results.visibility) {
           await this.batchExecutionService.saveBatchResult(
             batchExecutionId,
-            'spontaneous',
-            result.results.spontaneous,
+            'visibility',
+            result.results.visibility,
           );
         }
 
@@ -564,19 +564,19 @@ export class BatchService {
           );
         }
 
-        if (result.results.accuracy) {
+        if (result.results.alignment) {
           await this.batchExecutionService.saveBatchResult(
             batchExecutionId,
-            'accuracy',
-            result.results.accuracy,
+            'alignment',
+            result.results.alignment,
           );
         }
 
-        if (result.results.comparison) {
+        if (result.results.competition) {
           await this.batchExecutionService.saveBatchResult(
             batchExecutionId,
-            'comparison',
-            result.results.comparison,
+            'competition',
+            result.results.competition,
           );
         }
       }
@@ -627,7 +627,7 @@ export class BatchService {
    */
   async createSinglePipelineBatchExecution(
     projectId: string,
-    pipelineType: 'spontaneous' | 'sentiment' | 'accuracy' | 'comparison',
+    pipelineType: 'visibility' | 'sentiment' | 'alignment' | 'competition',
   ): Promise<any> {
     this.logger.log(
       `Creating batch execution for ${pipelineType} pipeline for project ${projectId}`,
@@ -658,7 +658,7 @@ export class BatchService {
    */
   async saveSinglePipelineResult(
     batchExecutionId: string,
-    pipelineType: 'spontaneous' | 'sentiment' | 'accuracy' | 'comparison',
+    pipelineType: 'visibility' | 'sentiment' | 'alignment' | 'competition',
     result: any,
   ): Promise<any> {
     this.logger.log(`Saving ${pipelineType} result for batch execution ${batchExecutionId}`);
@@ -799,14 +799,14 @@ export class BatchService {
   }
 
   private buildExplorerData(
-    spontaneousResults: any,
+    visibilityResults: any,
     sentimentResults: any,
-    accuracyResults: any,
-    comparisonResults: any,
+    alignmentResults: any,
+    competitionResults: any,
   ): ExplorerData {
-    // Extract top mentions from spontaneous results
+    // Extract top mentions from visibility results
     const mentionCounts: Record<string, number> = {};
-    spontaneousResults.results.forEach((result: any) => {
+    visibilityResults.results.forEach((result: any) => {
       if (result.mentioned && result.topOfMind) {
         result.topOfMind.forEach((brand: string) => {
           mentionCounts[brand] = (mentionCounts[brand] || 0) + 1;
@@ -873,13 +873,13 @@ export class BatchService {
     };
 
     // Collect from all pipelines
-    collectCitations(spontaneousResults?.results, 'spontaneous');
+    collectCitations(visibilityResults?.results, 'visibility');
     collectCitations(sentimentResults?.results, 'sentiment');
-    collectCitations(accuracyResults?.results, 'accuracy');
-    collectCitations(comparisonResults?.results, 'comparison');
+    collectCitations(alignmentResults?.results, 'alignment');
+    collectCitations(competitionResults?.results, 'competition');
 
     // Calculate statistics
-    const totalPrompts = this.countPromptsExecuted(spontaneousResults, sentimentResults, accuracyResults, comparisonResults);
+    const totalPrompts = this.countPromptsExecuted(visibilityResults, sentimentResults, alignmentResults, competitionResults);
     const promptsWithWebAccess = allCitationsData.length;
     const webAccessPercentage = totalPrompts > 0 ? (promptsWithWebAccess / totalPrompts) * 100 : 0;
 
@@ -1024,18 +1024,18 @@ export class BatchService {
 
   private getPromptTypeFromResult(result: any): string {
     // Determine prompt type based on result structure
-    if (result.topOfMind !== undefined) return 'spontaneous';
+    if (result.topOfMind !== undefined) return 'visibility';
     if (result.sentiment !== undefined) return 'sentiment';
-    if (result.attributeScores !== undefined) return 'accuracy';
-    if (result.brandStrengths !== undefined || result.competitorStrengths !== undefined) return 'comparison';
+    if (result.attributeScores !== undefined) return 'alignment';
+    if (result.brandStrengths !== undefined || result.competitorStrengths !== undefined) return 'competition';
     return 'unknown';
   }
 
-  private buildVisibilityData(spontaneousResults: any, brandName: string, competitors: string[] = []): VisibilityData {
-    // Calculate model visibility from spontaneous results
+  private buildVisibilityData(visibilityResults: any, brandName: string, competitors: string[] = []): VisibilityData {
+    // Calculate model visibility from visibility results
     const modelMentions: Record<string, { mentioned: number; total: number }> = {};
     
-    spontaneousResults.results.forEach((result: any) => {
+    visibilityResults.results.forEach((result: any) => {
       const model = result.llmModel;
       if (!modelMentions[model]) {
         modelMentions[model] = { mentioned: 0, total: 0 };
@@ -1052,12 +1052,12 @@ export class BatchService {
     }));
 
     const overallMentionRate = Math.round(
-      (spontaneousResults.summary.mentionRate || 0) * 100
+      (visibilityResults.summary.mentionRate || 0) * 100
     );
 
     // Extract competitor mentions for arena metrics (only configured competitors)
     const competitorMentions: Record<string, Record<string, number>> = {};
-    const models: string[] = Array.from(new Set(spontaneousResults.results.map((r: any) => r.llmModel)));
+    const models: string[] = Array.from(new Set(visibilityResults.results.map((r: any) => r.llmModel)));
 
     // Initialize competitor mentions only for configured competitors
     competitors.forEach(competitor => {
@@ -1068,7 +1068,7 @@ export class BatchService {
     });
 
     // Count mentions of configured competitors only
-    spontaneousResults.results.forEach((result: any) => {
+    visibilityResults.results.forEach((result: any) => {
       if (result.topOfMind && Array.isArray(result.topOfMind)) {
         result.topOfMind.forEach((brand: string) => {
           // Only count if this brand is in the configured competitors list
@@ -1086,7 +1086,7 @@ export class BatchService {
     // Build arena metrics from competitor mentions
     const arenaMetrics = Object.entries(competitorMentions).map(([competitorName, modelMentionsData]) => {
       const modelsMentionsRate = models.map((model: string) => {
-        const modelResults = spontaneousResults.results.filter((r: any) => r.llmModel === model);
+        const modelResults = visibilityResults.results.filter((r: any) => r.llmModel === model);
         const promptsTested = modelResults.length;
         const mentions = modelMentionsData[model] || 0;
         
@@ -1098,7 +1098,7 @@ export class BatchService {
 
       // Calculate global mention rate
       const totalMentions = Object.values(modelMentionsData).reduce((sum: number, count: number) => sum + count, 0);
-      const totalPrompts = spontaneousResults.results.length;
+      const totalPrompts = visibilityResults.results.length;
       const globalRate = totalPrompts > 0 ? Math.round((totalMentions / totalPrompts) * 100) : 0;
 
       return {
@@ -1111,7 +1111,7 @@ export class BatchService {
 
     return {
       overallMentionRate,
-      promptsTested: spontaneousResults.results.length,
+      promptsTested: visibilityResults.results.length,
       modelVisibility,
       arenaMetrics,
     };
@@ -1208,12 +1208,12 @@ export class BatchService {
     };
   }
 
-  private buildAlignmentData(accuracyResults: any): AlignmentData {
+  private buildAlignmentData(alignmentResults: any): AlignmentData {
     // Extract attribute scores from results
     const attributeScores: Record<string, number[]> = {};
     const detailedResults: any[] = [];
 
-    accuracyResults.results.forEach((result: any) => {
+    alignmentResults.results.forEach((result: any) => {
       if (result.attributeScores && Array.isArray(result.attributeScores)) {
         // Build detailed result with all available data
         const modelResult = {
@@ -1240,7 +1240,7 @@ export class BatchService {
     });
 
     // Use summary data if available, otherwise calculate from raw scores
-    const averageAttributeScores = accuracyResults.summary.averageAttributeScores || {};
+    const averageAttributeScores = alignmentResults.summary.averageAttributeScores || {};
     
     // If summary doesn't have averages, calculate them
     if (Object.keys(averageAttributeScores).length === 0) {
@@ -1258,10 +1258,10 @@ export class BatchService {
 
     // Create attribute alignment summary
     const attributeAlignmentSummary = Object.entries(averageAttributeScores).map(([attribute, avgScore]) => {
-      const mentionCount = accuracyResults.results.filter((r: any) => 
+      const mentionCount = alignmentResults.results.filter((r: any) => 
         r.attributeScores?.some((s: any) => s.attribute === attribute)
       ).length;
-      const mentionRate = `${Math.round((mentionCount / accuracyResults.results.length) * 100)}%`;
+      const mentionRate = `${Math.round((mentionCount / alignmentResults.results.length) * 100)}%`;
       
       // Convert score to alignment level
       const scoreValue = avgScore as number;
@@ -1285,19 +1285,19 @@ export class BatchService {
   }
 
   private buildCompetitionData(
-    comparisonResults: any,
+    competitionResults: any,
     brandName: string,
     competitors: string[]
   ): CompetitionData {
     // Use the summary data which already has the analysis
-    const commonStrengths = comparisonResults.summary.commonStrengths || [];
-    const commonWeaknesses = comparisonResults.summary.commonWeaknesses || [];
+    const commonStrengths = competitionResults.summary.commonStrengths || [];
+    const commonWeaknesses = competitionResults.summary.commonWeaknesses || [];
 
     // Transform competitorAnalyses to match expected structure
     const competitorAnalysesMap: Record<string, any> = {};
     
     // Group results by competitor
-    comparisonResults.results.forEach((result: any) => {
+    competitionResults.results.forEach((result: any) => {
       if (!competitorAnalysesMap[result.competitor]) {
         competitorAnalysesMap[result.competitor] = {
           competitor: result.competitor,

@@ -245,11 +245,11 @@ const BatchesTab: React.FC<BatchesTabProps> = ({ projectId, onRunNewBatch, onRun
               'aria-labelledby': 'single-batch-button',
             }}
           >
-            <MenuItem onClick={() => handleRunSingleBatchType(BatchType.SPONTANEOUS)}>
+            <MenuItem onClick={() => handleRunSingleBatchType(BatchType.VISIBILITY)}>
               <ListItemIcon>
                 <ModeCommentIcon fontSize="small" />
               </ListItemIcon>
-              <ListItemText>Pulse</ListItemText>
+              <ListItemText>Visibility</ListItemText>
             </MenuItem>
             <MenuItem onClick={() => handleRunSingleBatchType(BatchType.SENTIMENT)}>
               <ListItemIcon>
@@ -257,17 +257,17 @@ const BatchesTab: React.FC<BatchesTabProps> = ({ projectId, onRunNewBatch, onRun
               </ListItemIcon>
               <ListItemText>Tone</ListItemText>
             </MenuItem>
-            <MenuItem onClick={() => handleRunSingleBatchType(BatchType.ACCURACY)}>
+            <MenuItem onClick={() => handleRunSingleBatchType(BatchType.ALIGNMENT)}>
               <ListItemIcon>
                 <FactCheckIcon fontSize="small" />
               </ListItemIcon>
-              <ListItemText>Accord</ListItemText>
+              <ListItemText>Alignment</ListItemText>
             </MenuItem>
-            <MenuItem onClick={() => handleRunSingleBatchType(BatchType.COMPARISON)}>
+            <MenuItem onClick={() => handleRunSingleBatchType(BatchType.COMPETITION)}>
               <ListItemIcon>
                 <CompareArrowsIcon fontSize="small" />
               </ListItemIcon>
-              <ListItemText>Battle</ListItemText>
+              <ListItemText>Competition</ListItemText>
             </MenuItem>
           </Menu>
         </Box>
@@ -422,10 +422,10 @@ const BatchesTab: React.FC<BatchesTabProps> = ({ projectId, onRunNewBatch, onRun
                   </Box>
 
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, ml: 0.5 }}>
-                    {resultTypes[BatchType.SPONTANEOUS] && (
+                    {resultTypes[BatchType.VISIBILITY] && (
                       <Chip
                         size="small"
-                        label={`Spontaneous: ${resultTypes[BatchType.SPONTANEOUS]}`}
+                        label={`Visibility: ${resultTypes[BatchType.VISIBILITY]}`}
                         variant="outlined"
                         color="info"
                         sx={{ mr: 1, mb: 0.5 }}
@@ -440,19 +440,19 @@ const BatchesTab: React.FC<BatchesTabProps> = ({ projectId, onRunNewBatch, onRun
                         sx={{ mr: 1, mb: 0.5 }}
                       />
                     )}
-                    {resultTypes[BatchType.ACCURACY] && (
+                    {resultTypes[BatchType.ALIGNMENT] && (
                       <Chip
                         size="small"
-                        label={`Accuracy: ${resultTypes[BatchType.ACCURACY]}`}
+                        label={`Alignment: ${resultTypes[BatchType.ALIGNMENT]}`}
                         variant="outlined"
                         color="secondary"
                         sx={{ mr: 1, mb: 0.5 }}
                       />
                     )}
-                    {resultTypes[BatchType.COMPARISON] && (
+                    {resultTypes[BatchType.COMPETITION] && (
                       <Chip
                         size="small"
-                        label={`Comparison: ${resultTypes[BatchType.COMPARISON]}`}
+                        label={`Competition: ${resultTypes[BatchType.COMPETITION]}`}
                         variant="outlined"
                         color="warning"
                         sx={{ mr: 1, mb: 0.5 }}

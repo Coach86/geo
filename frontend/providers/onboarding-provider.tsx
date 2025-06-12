@@ -153,9 +153,8 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
         prompts: {
           visibilityPrompts: [],
           perceptionPrompts: [],
-          comparisonPrompts: [],
-          accuracyPrompts: [],
-          brandBattlePrompts: [],
+          alignmentPrompts: [],
+          competitionPrompts: [],
           llmModels: []
         }
       });

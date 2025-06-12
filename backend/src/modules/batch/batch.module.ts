@@ -7,10 +7,10 @@ import { BatchExecutionController } from './controllers/batch-execution.controll
 import { BatchResultController } from './controllers/batch-result.controller';
 import { RawResponseController } from './controllers/raw-response.controller';
 import { PublicBatchResultsController } from './controllers/public-batch-results.controller';
-import { SpontaneousPipelineService } from './services/spontaneous-pipeline.service';
+import { VisibilityPipelineService } from './services/visibility-pipeline.service';
 import { SentimentPipelineService } from './services/sentiment-pipeline.service';
-import { AccuracyPipelineService } from './services/accuracy-pipeline.service';
-import { ComparisonPipelineService } from './services/comparison-pipeline.service';
+import { AlignmentPipelineService } from './services/alignment-pipeline.service';
+import { CompetitionPipelineService } from './services/competition-pipeline.service';
 import { BatchExecutionService } from './services/batch-execution.service';
 import { BrandReportOrchestratorService } from './services/brand-report-orchestrator.service';
 import { RawResponseService } from './services/raw-response.service';
@@ -57,10 +57,10 @@ import { ConfigModule } from '../config/config.module';
     BatchService,
     BatchTask,
     BatchExecutionService,
-    SpontaneousPipelineService,
+    VisibilityPipelineService,
     SentimentPipelineService,
-    AccuracyPipelineService,
-    ComparisonPipelineService,
+    AlignmentPipelineService,
+    CompetitionPipelineService,
     BrandReportOrchestratorService,
     RawResponseService,
     BatchExecutionRepository,

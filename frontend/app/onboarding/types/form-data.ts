@@ -57,9 +57,8 @@ export interface LLMModel {
 export interface PromptData {
   visibilityPrompts: Prompt[];
   perceptionPrompts: Prompt[];
-  comparisonPrompts: string[];
-  accuracyPrompts?: string[];
-  brandBattlePrompts?: string[];
+  alignmentPrompts?: string[];
+  competitionPrompts?: string[];
   llmModels: LLMModel[];
 }
 
@@ -107,9 +106,8 @@ export const DEFAULT_BRAND_DATA: BrandData = {
 export const DEFAULT_PROMPT_DATA: PromptData = {
   visibilityPrompts: [],
   perceptionPrompts: [],
-  comparisonPrompts: [],
-  accuracyPrompts: [],
-  brandBattlePrompts: [],
+  alignmentPrompts: [],
+  competitionPrompts: [],
   llmModels: [],
 };
 

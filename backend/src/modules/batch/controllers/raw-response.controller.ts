@@ -45,8 +45,8 @@ export class RawResponseController {
   @ApiQuery({
     name: 'promptType',
     required: false,
-    description: 'Filter by prompt type (spontaneous, direct, comparison, accuracy)',
-    enum: ['spontaneous', 'direct', 'comparison', 'accuracy'],
+    description: 'Filter by prompt type (visibility, sentiment, competition, alignment)',
+    enum: ['visibility', 'sentiment', 'competition', 'alignment'],
   })
   @ApiResponse({
     status: 200,

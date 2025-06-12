@@ -232,21 +232,20 @@ export default function Home() {
                   <div className="col-span-5">
                     {promptSet && (
                       <PromptsDisplay
-                        prompts={promptSet.spontaneous}
+                        prompts={promptSet.visibility || []}
                         type="visibility"
                         onUpdate={async (updatedPrompts) => {
-                          const updatedSet = { ...promptSet, spontaneous: updatedPrompts };
+                          const updatedSet = { ...promptSet, visibility: updatedPrompts };
                           setPromptSet(updatedSet);
                           if (token) {
                             try {
                               await updatePromptSet(
                                 projectDetails.id,
                                 {
-                                  spontaneous: updatedSet.spontaneous,
-                                  direct: updatedSet.direct,
-                                  comparison: updatedSet.comparison || [],
-                                  accuracy: updatedSet.accuracy,
-                                  brandBattle: updatedSet.brandBattle,
+                                  visibility: updatedSet.visibility,
+                                  sentiment: updatedSet.sentiment,
+                                  alignment: updatedSet.alignment,
+                                  competition: updatedSet.competition,
                                 },
                                 token
                               );
@@ -289,21 +288,20 @@ export default function Home() {
                   <div className="col-span-5">
                     {promptSet && (
                       <PromptsDisplay
-                        prompts={promptSet.accuracy}
+                        prompts={promptSet.alignment || []}
                         type="alignment"
                         onUpdate={async (updatedPrompts) => {
-                          const updatedSet = { ...promptSet, accuracy: updatedPrompts };
+                          const updatedSet = { ...promptSet, alignment: updatedPrompts };
                           setPromptSet(updatedSet);
                           if (token) {
                             try {
                               await updatePromptSet(
                                 projectDetails.id,
                                 {
-                                  spontaneous: updatedSet.spontaneous,
-                                  direct: updatedSet.direct,
-                                  comparison: updatedSet.comparison || [],
-                                  accuracy: updatedSet.accuracy,
-                                  brandBattle: updatedSet.brandBattle,
+                                  visibility: updatedSet.visibility,
+                                  sentiment: updatedSet.sentiment,
+                                  alignment: updatedSet.alignment,
+                                  competition: updatedSet.competition,
                                 },
                                 token
                               );
@@ -330,21 +328,20 @@ export default function Home() {
                   <div className="col-span-5">
                     {promptSet && (
                       <PromptsDisplay
-                        prompts={promptSet.direct}
+                        prompts={promptSet.sentiment || []}
                         type="sentiment"
                         onUpdate={async (updatedPrompts) => {
-                          const updatedSet = { ...promptSet, direct: updatedPrompts };
+                          const updatedSet = { ...promptSet, sentiment: updatedPrompts };
                           setPromptSet(updatedSet);
                           if (token) {
                             try {
                               await updatePromptSet(
                                 projectDetails.id,
                                 {
-                                  spontaneous: updatedSet.spontaneous,
-                                  direct: updatedSet.direct,
-                                  comparison: updatedSet.comparison || [],
-                                  accuracy: updatedSet.accuracy,
-                                  brandBattle: updatedSet.brandBattle,
+                                  visibility: updatedSet.visibility,
+                                  sentiment: updatedSet.sentiment,
+                                  alignment: updatedSet.alignment,
+                                  competition: updatedSet.competition,
                                 },
                                 token
                               );

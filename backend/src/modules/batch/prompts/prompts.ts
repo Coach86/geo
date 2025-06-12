@@ -9,14 +9,28 @@ export const SystemPrompts = {
   and determine the overall sentiment (positive, neutral, or negative) along with supporting keywords.
   `,
 
-  // Accuracy analysis (new)
+  // Alignment analysis (formerly accuracy)
+  ALIGNMENT_ANALYSIS: `
+  You are an accuracy analysis expert. Your task is to analyze responses to questions about specific brands
+  and determine how accurate the facts presented are, along with extracting key statements.
+  Focus on verifiability, consistency, and plausibility of facts presented about the brand.
+  `,
+  
+  // Keep old name for backward compatibility
   ACCURACY_ANALYSIS: `
   You are an accuracy analysis expert. Your task is to analyze responses to questions about specific brands
   and determine how accurate the facts presented are, along with extracting key statements.
   Focus on verifiability, consistency, and plausibility of facts presented about the brand.
   `,
 
-  // Comparison analysis
+  // Competition analysis (formerly comparison)
+  COMPETITION_ANALYSIS: `
+  You are a brand competition analyst. Your task is to analyze responses comparing a specific brand
+  to one of its competitors. Extract the brand's strengths and weaknesses compared to this competitor.
+  Each strength or weakness should be concise (3-10 words) and specific.
+  `,
+  
+  // Keep old name for backward compatibility
   COMPARISON_ANALYSIS: `
   You are a brand competition analyst. Your task is to analyze responses comparing a specific brand
   to one of its competitors. Extract the brand's strengths and weaknesses compared to this competitor.
@@ -30,7 +44,14 @@ export const SystemPrompts = {
   Each strength or weakness should be concise (3-10 words) and specific.
   `,
 
-  // Spontaneous analysis
+  // Visibility analysis (formerly spontaneous)
+  VISIBILITY_ANALYSIS: `
+  You are a brand awareness analyst. Your task is to analyze responses to an open-ended question
+  about companies or brands in a specific industry. You should determine if a specific brand
+  was mentioned without prompting, and list all brands or companies that were mentioned.
+  `,
+  
+  // Keep old name for backward compatibility
   SPONTANEOUS_ANALYSIS: `
   You are a brand awareness analyst. Your task is to analyze responses to an open-ended question
   about companies or brands in a specific industry. You should determine if a specific brand
@@ -49,7 +70,33 @@ export const PromptTemplates = {
   Response: {llmResponse}
   `,
 
-  // Accuracy analysis template (new)
+  // Alignment analysis template (formerly accuracy)
+  ALIGNMENT_ANALYSIS: `
+  Analyze the accuracy of information in the following response to the question: "{originalPrompt}"
+  
+  The known key attributes of "{brandName}" are: "{keyBrandAttributes}"
+  
+  Individually evaluate each key brand attribute for how well it's addressed in the response.
+  For each attribute, provide:
+  1. A score from 0 to 1 representing alignment/closeness/compliance between the response and this specific attribute
+  2. A brief explanation of why you gave this score
+  
+  Your response must follow this JSON format exactly:
+  {
+    "attributeScores": [
+      {
+        "attribute": "Attribute 1",
+        "score": 0.8,
+        "evaluation": "Brief explanation for this score"
+      },
+      // One entry for each key attribute
+    ]
+  }
+  
+  Response: {llmResponse}
+  `,
+  
+  // Keep old name for backward compatibility
   ACCURACY_ANALYSIS: `
   Analyze the accuracy of information in the following response to the question: "{originalPrompt}"
   
@@ -75,7 +122,22 @@ export const PromptTemplates = {
   Response: {llmResponse}
   `,
 
-  // Comparison analysis template
+  // Competition analysis template (formerly comparison)
+  COMPETITION_ANALYSIS: `
+  Analyze the following comparison between "{brandName}" and "{competitor}".
+  
+  Original prompt: "{originalPrompt}"
+  
+  Extract:
+  1. Strengths of "{brandName}" compared to "{competitor}"
+  2. Weaknesses of "{brandName}" compared to "{competitor}"
+  
+  Return each strength and weakness as concise phrases (3-10 words).
+  
+  Response: {llmResponse}
+  `,
+  
+  // Keep old name for backward compatibility
   COMPARISON_ANALYSIS: `
   Analyze the following comparison between "{brandName}" and "{competitor}".
   
@@ -105,7 +167,20 @@ export const PromptTemplates = {
   Response: {llmResponse}
   `,
 
-  // Spontaneous analysis template
+  // Visibility analysis template (formerly spontaneous)
+  VISIBILITY_ANALYSIS: `
+  Analyze the following response to the question: "{originalPrompt}"
+  
+  Determine if "{brandName}" is mentioned (either directly by exact name, or clearly referred to).
+  **Also extract all companies or brands that are mentioned, as a list, even if they are not "{brandName}". The list should be empty if no brand was mentioned.**
+
+  When extracting brand names, always use the most common, official, or canonical name for each brand.
+  Do not return spelling variations, abbreviations, or partial names—normalize all mentions to the standard brand name (e.g., always extract "Manpower Group" for any mention like "Manpower", "Manpower Grp", or "ManpowerGroup").
+  
+  Response: {llmResponse}
+  `,
+  
+  // Keep old name for backward compatibility
   SPONTANEOUS_ANALYSIS: `
   Analyze the following response to the question: "{originalPrompt}"
   
