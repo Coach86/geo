@@ -1,8 +1,9 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { validateToken } from '@/lib/auth-api';
+import { validateToken, getUserProfile } from '@/lib/auth-api';
 import { clearAllSelectedReportIds } from '@/lib/report-selection';
+import { usePostHog } from 'posthog-js/react';
 
 interface AuthUser {
   id: string;
@@ -25,6 +26,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const posthog = usePostHog();
 
   const isAuthenticated = !!user;
 
@@ -34,20 +36,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const validation = await validateToken(token);
       
       if (validation.valid && validation.userId) {
-        const authUser: AuthUser = {
-          id: validation.userId,
-          email: '', // We'll get this from user profile if needed
-          token,
-        };
-        
-        setUser(authUser);
-        
-        // Store token in localStorage for persistence
-        localStorage.setItem('authToken', token);
-        localStorage.setItem('userId', validation.userId);
-        
-        // Clear all report selections on login to ensure fresh data
-        clearAllSelectedReportIds();
+        // Fetch user profile to get email
+        try {
+          const profile = await getUserProfile(token);
+          
+          const authUser: AuthUser = {
+            id: validation.userId,
+            email: profile.email || '',
+            token,
+          };
+          
+          setUser(authUser);
+          
+          // Identify user in PostHog
+          if (posthog) {
+            posthog.identify(validation.userId, {
+              email: profile.email,
+            });
+          }
+          
+          // Store token in localStorage for persistence
+          localStorage.setItem('authToken', token);
+          localStorage.setItem('userId', validation.userId);
+          
+          // Clear all report selections on login to ensure fresh data
+          clearAllSelectedReportIds();
+        } catch (profileError) {
+          console.error('Failed to fetch user profile:', profileError);
+          // Continue with login even if profile fetch fails
+          const authUser: AuthUser = {
+            id: validation.userId,
+            email: '',
+            token,
+          };
+          
+          setUser(authUser);
+          
+          // Still identify in PostHog with just the user ID
+          if (posthog) {
+            posthog.identify(validation.userId);
+          }
+          
+          localStorage.setItem('authToken', token);
+          localStorage.setItem('userId', validation.userId);
+          clearAllSelectedReportIds();
+        }
         
         return true;
       } else {
@@ -66,6 +99,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('authToken');
     localStorage.removeItem('userId');
     localStorage.removeItem('pendingUserId');
+    
+    // Reset PostHog identity
+    if (posthog) {
+      posthog.reset();
+    }
   };
 
   const checkAuth = async (): Promise<boolean> => {
@@ -80,13 +118,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const validation = await validateToken(token);
       
       if (validation.valid && validation.userId) {
-        const authUser: AuthUser = {
-          id: validation.userId,
-          email: '',
-          token,
-        };
+        // Try to fetch user profile
+        try {
+          const profile = await getUserProfile(token);
+          
+          const authUser: AuthUser = {
+            id: validation.userId,
+            email: profile.email || '',
+            token,
+          };
+          
+          setUser(authUser);
+          
+          // Identify user in PostHog
+          if (posthog) {
+            posthog.identify(validation.userId, {
+              email: profile.email,
+            });
+          }
+        } catch (profileError) {
+          console.error('Failed to fetch user profile during auth check:', profileError);
+          // Continue without email if profile fetch fails
+          const authUser: AuthUser = {
+            id: validation.userId,
+            email: '',
+            token,
+          };
+          
+          setUser(authUser);
+          
+          // Still identify in PostHog with just the user ID
+          if (posthog) {
+            posthog.identify(validation.userId);
+          }
+        }
         
-        setUser(authUser);
         return true;
       } else {
         // Token is invalid, clear storage
