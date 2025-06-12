@@ -46,3 +46,4 @@ prisma/dev.db
 prisma/dev.db-journal
 
 /backend/public/
+backend/public/index.html
