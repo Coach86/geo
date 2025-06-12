@@ -44,4 +44,11 @@ export class Project {
 
   @ApiProperty({ description: 'Language of the project', nullable: true })
   language: string;
+
+  @ApiProperty({ 
+    description: 'Next allowed timestamp for manual analysis trigger', 
+    required: false,
+    nullable: true 
+  })
+  nextManualAnalysisAllowedAt?: Date;
 }

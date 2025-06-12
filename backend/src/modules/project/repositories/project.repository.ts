@@ -94,6 +94,22 @@ export class ProjectRepository {
   }
 
   /**
+   * Update the next manual analysis allowed timestamp
+   */
+  async updateAnalysisTime(projectId: string, nextAllowedTime: Date): Promise<void> {
+    const result = await this.projectModel
+      .updateOne(
+        { id: projectId },
+        { $set: { nextManualAnalysisAllowedAt: nextAllowedTime } }
+      )
+      .exec();
+
+    if (result.matchedCount === 0) {
+      throw new NotFoundException(`Project with ID ${projectId} not found for analysis time update`);
+    }
+  }
+
+  /**
    * Map database document to entity
    */
   mapToEntity(document: ProjectDocument): Project {
@@ -112,6 +128,7 @@ export class ProjectRepository {
       updatedAt: document.updatedAt instanceof Date ? document.updatedAt : new Date(),
       organizationId: document.organizationId,
       language: document.language,
+      nextManualAnalysisAllowedAt: document.nextManualAnalysisAllowedAt,
     };
   }
 }

@@ -216,24 +216,193 @@ export class BrandReportOrchestratorService {
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
 
-    // TODO: Implement citation tracking across all pipelines
-    // This would require tracking web access during LLM calls
+    // Build citations data
+    const allCitationsData: Array<{
+      modelId: string;
+      modelProvider: string;
+      promptIndex: number;
+      promptType: string;
+      citations: any[];
+      webSearchQueries: any[];
+    }> = [];
+
+    // Collect citations from all pipeline results
+    const collectCitations = (results: any[] | undefined, promptType: string) => {
+      if (!results) return;
+
+      results.forEach((result, index) => {
+        // Extract web search queries
+        let webSearchQueries: any[] = [];
+
+        // Check if webSearchQueries is already extracted
+        if (result.webSearchQueries && Array.isArray(result.webSearchQueries)) {
+          webSearchQueries = result.webSearchQueries;
+        }
+        // Fallback to extracting from toolUsage
+        else if (result.toolUsage && Array.isArray(result.toolUsage)) {
+          const extractedQueries: any[] = [];
+          result.toolUsage.forEach((tool: any) => {
+            if (tool.type === 'web_search' || tool.type === 'search' || tool.type?.includes('search')) {
+              const query = tool.input?.query || tool.parameters?.query || tool.parameters?.q || tool.query;
+              if (query) {
+                extractedQueries.push({
+                  query: query,
+                  timestamp: new Date().toISOString(),
+                });
+              }
+            }
+          });
+          webSearchQueries = extractedQueries;
+        }
+
+        // Add entry if we have citations OR web search queries
+        if ((result.citations && result.citations.length > 0) || webSearchQueries.length > 0) {
+          allCitationsData.push({
+            modelId: result.llmModel || 'unknown',
+            modelProvider: result.llmProvider || 'unknown',
+            promptIndex: result.promptIndex ?? index,
+            promptType,
+            citations: result.citations || [],
+            webSearchQueries: webSearchQueries,
+          });
+        }
+      });
+    };
+
+    // Collect from all pipelines
+    collectCitations(spontaneousResults?.results, 'visibility');
+    collectCitations(sentimentResults?.results, 'sentiment');
+    collectCitations(accuracyResults?.results, 'alignment');
+    collectCitations(comparisonResults?.results, 'competition');
+
+    // Calculate statistics
+    const totalPrompts = this.countPromptsExecuted(spontaneousResults, sentimentResults, accuracyResults, comparisonResults);
+    const promptsWithWebAccess = allCitationsData.length;
+    const webAccessPercentage = totalPrompts > 0 ? (promptsWithWebAccess / totalPrompts) * 100 : 0;
+
+    // Aggregate source statistics
+    const sourceMap = new Map<string, {
+      totalMentions: number;
+      citedByModels: Set<string>;
+      associatedQueries: Set<string>;
+    }>();
+
+    let totalCitations = 0;
+    const allCitations: any[] = [];
+
+    allCitationsData.forEach(({ modelId, modelProvider, promptIndex, promptType, citations, webSearchQueries }) => {
+      const queriesForThisModel = webSearchQueries.map((q: any) =>
+        typeof q === 'string' ? q : (q.query || q)
+      );
+
+      citations.forEach((citation: any) => {
+        totalCitations++;
+        const domain = this.extractDomain(citation.url || citation.source || '');
+
+        // Add to citations array for the response
+        allCitations.push({
+          website: domain,
+          link: citation.url,
+          model: modelId,
+          promptType,
+          promptIndex,
+          promptText: '', // Would need to be passed from result.originalPrompt
+          webSearchQueries: webSearchQueries,
+        });
+
+        if (domain) {
+          if (!sourceMap.has(domain)) {
+            sourceMap.set(domain, {
+              totalMentions: 0,
+              citedByModels: new Set(),
+              associatedQueries: new Set(),
+            });
+          }
+
+          const stats = sourceMap.get(domain)!;
+          stats.totalMentions++;
+          stats.citedByModels.add(modelId);
+
+          // Add all web search queries that led to this citation
+          queriesForThisModel.forEach((query: string) => {
+            if (query) {
+              stats.associatedQueries.add(query);
+            }
+          });
+        }
+      });
+    });
+
+    // Get top sources
+    const topSources = Array.from(sourceMap.entries())
+      .map(([domain, stats]) => ({
+        domain,
+        count: stats.totalMentions,
+        percentage: totalCitations > 0 ? (stats.totalMentions / totalCitations) * 100 : 0,
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+
+    // Extract keywords from web search queries
+    const keywordMap = new Map<string, number>();
+    const stopWords = new Set([
+      'the', 'is', 'at', 'which', 'on', 'and', 'a', 'an', 'as', 'are',
+      'been', 'be', 'have', 'has', 'had', 'do', 'does', 'did', 'done',
+      'will', 'would', 'could', 'should', 'may', 'might', 'must', 'can',
+      'this', 'that', 'these', 'those', 'with', 'from', 'for', 'about',
+      'into', 'through', 'during', 'before', 'after', 'above', 'below',
+      'between', 'under', 'over', 'then', 'than', 'when', 'where', 'what',
+      'who', 'whom', 'whose', 'which', 'why', 'how'
+    ]);
+
+    allCitationsData.forEach(({ webSearchQueries }) => {
+      webSearchQueries.forEach((queryObj: any) => {
+        const query = typeof queryObj === 'string' ? queryObj : (queryObj.query || queryObj);
+        if (query) {
+          // Simple split by spaces and filter stop words
+          const words = query.toLowerCase().split(/\s+/).filter((word: string) => 
+            word.trim() !== '' && !stopWords.has(word) && word.length > 2
+          );
+          
+          words.forEach((word: string) => {
+            keywordMap.set(word, (keywordMap.get(word) || 0) + 1);
+          });
+        }
+      });
+    });
+
+    // Count total web search queries for percentage calculation
+    const totalWebSearchQueries = allCitationsData.reduce(
+      (sum, item) => sum + item.webSearchQueries.length,
+      0
+    );
+
+    // Get top keywords
+    const topKeywords = Array.from(keywordMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([keyword, count]) => ({
+        keyword,
+        count,
+        percentage: totalWebSearchQueries > 0 ? (count / totalWebSearchQueries) * 100 : 0,
+      }));
+
     return {
       summary: {
-        totalPrompts: this.countPromptsExecuted(spontaneousResults, sentimentResults, accuracyResults, comparisonResults),
-        promptsWithWebAccess: 0, // TODO: Track web access
-        webAccessPercentage: 0,
-        totalCitations: 0,
-        uniqueSources: 0,
+        totalPrompts,
+        promptsWithWebAccess,
+        webAccessPercentage,
+        totalCitations,
+        uniqueSources: sourceMap.size,
       },
       topMentions,
-      topKeywords: [],
-      topSources: [],
-      citations: [],
+      topKeywords,
+      topSources,
+      citations: allCitations,
       webAccess: {
-        totalResponses: 0,
-        successfulQueries: 0,
-        failedQueries: 0,
+        totalResponses: totalPrompts,
+        successfulQueries: promptsWithWebAccess,
+        failedQueries: 0, // Would need error tracking
       },
     };
   }
@@ -536,5 +705,17 @@ export class BrandReportOrchestratorService {
       commonStrengths,
       commonWeaknesses,
     };
+  }
+
+  private extractDomain(url: string): string {
+    try {
+      if (!url) return '';
+      // Handle URLs that might not have protocol
+      const urlWithProtocol = url.startsWith('http') ? url : `https://${url}`;
+      const urlObj = new URL(urlWithProtocol);
+      return urlObj.hostname.replace('www.', '');
+    } catch {
+      return url; // Return as-is if not a valid URL
+    }
   }
 }
