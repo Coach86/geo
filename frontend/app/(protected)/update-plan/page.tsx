@@ -38,7 +38,7 @@ export default function UpdatePlanPage() {
     setSelectedPlan(planName.toLowerCase());
     setIsSubmitting(true);
 
-    if (planName === "Enterprise" || planName === "Agencies") {
+    if (planName === "For Enterprise & Agencies" || planName === "Custom" || planName === "Enterprise" || planName === "Agencies") {
       // Open contact sales dialog
       setContactPlanName(planName);
       setContactSalesOpen(true);
@@ -118,29 +118,31 @@ export default function UpdatePlanPage() {
       ctaColor:
         index === 0
           ? "bg-gray-800 hover:bg-gray-900"
-          : "bg-accent-500 hover:bg-accent-600",
-      checkColor: index === 0 ? "text-green-500" : "text-accent-500",
-      plusColor: index === 0 ? "" : "text-accent-500",
-      tagBgColor: index === 0 ? "bg-gray-100" : "bg-accent-100",
-      tagTextColor: index === 0 ? "text-gray-600" : "text-accent-700",
+          : index === 1
+          ? "bg-accent-500 hover:bg-accent-600"
+          : "bg-blue-600 hover:bg-blue-700",
+      checkColor: index === 0 ? "text-green-500" : index === 1 ? "text-accent-500" : "text-blue-500",
+      plusColor: index === 0 ? "" : index === 1 ? "text-accent-500" : "text-blue-500",
+      tagBgColor: index === 0 ? "bg-gray-100" : index === 1 ? "bg-accent-100" : "bg-blue-100",
+      tagTextColor: index === 0 ? "text-gray-600" : index === 1 ? "text-accent-700" : "text-blue-700",
     };
   });
 
-  // Static plans for Enterprise and Agencies
+  // Static plan for Enterprise & Agencies
   const staticPlans = [
     {
-      name: "Enterprise",
-      tag: "For global brand teams",
-      subtitle: "Global scalability with enterprise-grade support",
+      name: "For Enterprise & Agencies",
+      tag: "For enterprises & agencies",
+      subtitle: "Tailored solutions for your specific needs",
       features: [
-        "Monitor 15+ brands globally",
-        "Use on-demand refresh and white-label dashboards",
-        "Get SSO and dedicated support",
+        "Monitor 15+ brands globally or unlimited for agencies",
+        "Custom prompts, personas, and white-label options",
+        "SSO, API access (beta), and dedicated support",
       ],
       included: [
-        "All features from Growth",
-        "15 brands, 3 markets each",
-        "SSO and dedicated support",
+        "All features from Pro",
+        "Custom brand limits",
+        "Enterprise features & support",
       ],
       price: "Contact Us",
       pricePeriod: "",
@@ -148,39 +150,12 @@ export default function UpdatePlanPage() {
       savings: null,
       isMostPopular: false,
       ctaText: "Contact Sales",
-      ctaAction: () => handleSelectPlan(undefined, "Enterprise"),
+      ctaAction: () => handleSelectPlan(undefined, "For Enterprise & Agencies"),
       ctaColor: "bg-purple-600 hover:bg-purple-700",
       checkColor: "text-purple-500",
       plusColor: "text-purple-500",
       tagBgColor: "bg-purple-50",
       tagTextColor: "text-purple-700",
-    },
-    {
-      name: "Agencies",
-      tag: "For multi-client agencies",
-      subtitle: "Custom solutions for multi-client management",
-      features: [
-        "Monitor unlimited brands or clients",
-        "Create custom prompts and personas",
-        "Access daily refresh and API (beta)",
-      ],
-      included: [
-        "All features from Growth",
-        "Unlimited brands",
-        "Prompts, personas, API (beta)",
-      ],
-      price: "Contact Us",
-      pricePeriod: "",
-      billedAnnually: false,
-      savings: null,
-      isMostPopular: false,
-      ctaText: "Contact Sales",
-      ctaAction: () => handleSelectPlan(undefined, "Agencies"),
-      ctaColor: "bg-teal-600 hover:bg-teal-700",
-      checkColor: "text-teal-500",
-      plusColor: "text-teal-500",
-      tagBgColor: "bg-teal-50",
-      tagTextColor: "text-teal-700",
     },
   ];
 
