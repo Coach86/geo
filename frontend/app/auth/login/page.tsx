@@ -5,11 +5,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Sparkles, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { useAuth } from "@/providers/auth-provider";
 import { Button } from "@/components/ui/button";
+import { useAnalytics } from "@/hooks/use-analytics";
 
 export default function AuthLoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login } = useAuth();
+  const analytics = useAnalytics();
 
   const [status, setStatus] = useState<"verifying" | "success" | "error">(
     "verifying"
@@ -38,6 +40,8 @@ export default function AuthLoginPage() {
 
         if (success) {
           setStatus("success");
+          // Track successful login
+          analytics.trackLogin('email');
           // Redirect after a short delay to show success message
           setTimeout(() => {
             router.push(`/?url=${encodeURIComponent(urlParam)}`);
@@ -45,6 +49,7 @@ export default function AuthLoginPage() {
         } else {
           setStatus("error");
           setError("Invalid or expired authentication link");
+          analytics.trackError('auth_login_failed', 'Invalid or expired authentication link');
           hasProcessedToken.current = false; // Allow retry
         }
       } catch (error) {

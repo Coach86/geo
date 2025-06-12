@@ -118,6 +118,7 @@ export class ProjectRepository {
       name: document.name,
       brandName: document.brandName,
       website: document.website,
+      favicon: document.favicon,
       industry: document.industry,
       market: document.market,
       shortDescription: document.shortDescription,

@@ -65,6 +65,14 @@
         {
           "name": "ALLOWED_ORIGINS",
           "value": "https://app.getmint.ai"
+        },
+        {
+          "name": "POSTHOG_KEY",
+          "value": "phc_iNSRIwgW553mS6cI4rBvjMX0pisqkBeXGYvkm4kraft"
+        },
+        {
+          "name": "POSTHOG_HOST",
+          "value": "https://eu.i.posthog.com"
         }
       ],
       "secrets": [

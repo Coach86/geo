@@ -26,6 +26,9 @@ export class Project {
   @Prop({ required: true })
   website: string;
 
+  @Prop({ required: false })
+  favicon?: string;
+
   @Prop({ required: true })
   industry: string;
 

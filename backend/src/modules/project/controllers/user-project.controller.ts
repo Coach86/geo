@@ -736,6 +736,7 @@ export class UserProjectController {
     response.organizationId = project.organizationId;
     response.createdAt = project.updatedAt;
     response.updatedAt = project.updatedAt;
+    response.nextManualAnalysisAllowedAt = project.nextManualAnalysisAllowedAt;
     return response;
   }
 }

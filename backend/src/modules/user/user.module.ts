@@ -11,6 +11,7 @@ import { AccessTokenRepository } from '../auth/repositories/access-token.reposit
 import { AccessToken, AccessTokenSchema } from '../auth/schemas/access-token.schema';
 import { OrganizationModule } from '../organization/organization.module';
 import { ConfigModule } from '../config/config.module';
+import { AnalyticsModule } from '../analytics/analytics.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { ConfigModule } from '../config/config.module';
     ]),
     forwardRef(() => OrganizationModule),
     ConfigModule,
+    AnalyticsModule,
   ],
   controllers: [UserController, UserProfileController],
   providers: [UserService, UserRepository, TokenService, AccessTokenRepository],

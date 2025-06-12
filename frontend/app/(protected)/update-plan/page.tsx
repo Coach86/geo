@@ -10,11 +10,14 @@ import { usePlans } from "@/hooks/use-plans";
 import { redirectToStripeCheckout } from "@/lib/stripe-utils";
 import { useAuth } from "@/providers/auth-provider";
 import { toast } from "sonner";
+import { useAnalytics } from "@/hooks/use-analytics";
+import { useEffect } from "react";
 
 export default function UpdatePlanPage() {
   const router = useRouter();
   const { plans, loading, error } = usePlans();
   const { user } = useAuth();
+  const analytics = useAnalytics();
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">(
     "yearly"
   );
@@ -22,6 +25,11 @@ export default function UpdatePlanPage() {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [contactSalesOpen, setContactSalesOpen] = useState(false);
   const [contactPlanName, setContactPlanName] = useState<string>("");
+
+  useEffect(() => {
+    // Track plan page view
+    analytics.trackPlanViewed('current_plan');
+  }, []);
 
   const handleSelectPlan = async (
     planId: string | undefined,
@@ -52,6 +60,9 @@ export default function UpdatePlanPage() {
     }
 
     try {
+      // Track plan upgrade started
+      analytics.trackPlanUpgradeStarted('current_plan', planName);
+      
       // Create checkout session with user context
       const success = await redirectToStripeCheckout({
         planId: planId,
@@ -62,6 +73,7 @@ export default function UpdatePlanPage() {
       if (!success) {
         console.error("Failed to create checkout session for plan:", planName);
         toast.error("Failed to create payment session.");
+        analytics.trackError('checkout_session_failed', `Failed to create checkout for ${planName}`);
         setIsSubmitting(false);
       }
     } catch (error) {

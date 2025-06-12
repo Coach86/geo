@@ -13,6 +13,9 @@ export class Project {
   @ApiProperty({ description: 'Company website URL' })
   website: string;
 
+  @ApiProperty({ description: 'Company favicon URL', required: false })
+  favicon?: string;
+
   @ApiProperty({ description: 'Industry the company operates in' })
   industry: string;
 

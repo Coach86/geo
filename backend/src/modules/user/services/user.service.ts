@@ -10,6 +10,7 @@ import { UserDocument } from '../schemas/user.schema';
 import { User as UserEntity } from '../entities/user.entity';
 import { Project } from '../../project/entities/project.entity';
 import { OrganizationService } from '../../organization/services/organization.service';
+import { PostHogService } from '../../analytics/services/posthog.service';
 
 @Injectable()
 export class UserService {
@@ -19,6 +20,7 @@ export class UserService {
     private userRepository: UserRepository,
     @Inject(forwardRef(() => OrganizationService))
     private organizationService: OrganizationService,
+    private postHogService: PostHogService,
   ) {}
 
   /**
@@ -31,6 +33,7 @@ export class UserService {
       this.logger.log(`Creating user with email: ${createUserDto.email}`);
 
       let organizationId = createUserDto.organizationId;
+      let isNewOrganization = false;
 
       // If no organizationId is provided, create a new organization with defaults
       if (!organizationId) {
@@ -41,6 +44,7 @@ export class UserService {
         });
         
         organizationId = newOrganization.id;
+        isNewOrganization = true;
         this.logger.log(`Created organization ${organizationId} for user ${createUserDto.email}`);
       }
 
@@ -52,6 +56,27 @@ export class UserService {
       };
 
       const savedUser = await this.userRepository.save(userData);
+
+      // Track user registration in PostHog
+      await this.postHogService.trackUserRegistered(
+        savedUser.id,
+        savedUser.email,
+        {
+          organizationId: savedUser.organizationId,
+          registrationMethod: 'email', // Magic link registration
+        }
+      );
+
+      this.logger.log(`Tracked user registration for ${savedUser.email} in PostHog`);
+
+      // If a new organization was created, track that too
+      if (isNewOrganization) {
+        await this.postHogService.trackOrganizationCreated(
+          savedUser.id,
+          organizationId,
+          `org_${organizationId}` // Use organization ID as name since orgs don't have names
+        );
+      }
 
       return this.mapToResponseDto(savedUser);
     } catch (error) {

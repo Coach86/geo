@@ -22,6 +22,7 @@ import { toast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import BreadcrumbNav from "@/components/layout/breadcrumb-nav";
 import { useNavigation } from "@/providers/navigation-provider";
+import { useAnalytics } from "@/hooks/use-analytics";
 
 // Import component modules
 import { ProjectHeader } from "@/components/project-profile/ProjectHeader";
@@ -37,6 +38,7 @@ import { EditObjectivesDialog } from "@/components/project-profile/EditObjective
 export default function Home() {
   const { token } = useAuth();
   const router = useRouter();
+  const analytics = useAnalytics();
   const { filteredProjects, selectedProject, setSelectedProject } = useNavigation();
   const [projectDetails, setProjectDetails] = useState<ProjectResponse | null>(null);
   const [promptSet, setPromptSet] = useState<PromptSet | null>(null);

@@ -11,11 +11,18 @@ import {
 import { Globe, ArrowRightLeft } from "lucide-react";
 import { ProjectResponse } from "@/lib/auth-api";
 import { extractHostname } from "@/utils/url-utils";
+import { Favicon } from "@/components/ui/favicon";
 
 interface DomainSelectorProps {
   projects: ProjectResponse[];
   selectedDomain: string | null;
   onDomainSelect: (domain: string) => void;
+}
+
+// Helper to get favicon for a domain from projects
+function getFaviconForDomain(domain: string, projects: ProjectResponse[]): string | undefined {
+  const project = projects.find(p => extractHostname(p.url) === domain);
+  return project?.favicon;
 }
 
 export default function DomainSelector({
@@ -58,7 +65,12 @@ export default function DomainSelector({
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center">
-                <Globe className="w-5 h-5 text-gray-600" />
+                <Favicon 
+                  src={selectedDomain ? getFaviconForDomain(selectedDomain, projects) : undefined}
+                  alt={`${selectedDomain} favicon`}
+                  className="w-5 h-5"
+                  fallbackClassName="w-5 h-5 text-gray-600"
+                />
               </div>
               <div className="text-left">
                 <p className="text-xs text-gray-500 font-medium">Domain</p>
@@ -74,7 +86,12 @@ export default function DomainSelector({
           {domains.map((domain) => (
             <SelectItem key={domain} value={domain} className="cursor-pointer">
               <div className="flex items-center gap-2 py-1">
-                <Globe className="w-4 h-4 text-gray-500" />
+                <Favicon 
+                  src={getFaviconForDomain(domain, projects)}
+                  alt={`${domain} favicon`}
+                  className="w-4 h-4"
+                  fallbackClassName="w-4 h-4 text-gray-500"
+                />
                 <span className="truncate text-sm">{domain}</span>
               </div>
             </SelectItem>
