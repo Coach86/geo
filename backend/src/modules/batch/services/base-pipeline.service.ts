@@ -11,10 +11,10 @@ import { ConfigService as AppConfigService } from '../../config/services/config.
 // Default concurrency limits for different pipeline types
 const DEFAULT_CONCURRENCY = 100; // Very high concurrency for batch processing
 const DEFAULT_PIPELINE_LIMITS = {
-  spontaneous: 150, // Higher since these are typically simpler prompts
+  visibility: 150, // Higher since these are typically simpler prompts
   sentiment: 100, // Medium complexity analysis
-  comparison: 80, // More complex comparisons that may require more resources
-  accuracy: 100, // Medium complexity analysis similar to sentiment
+  competition: 80, // More complex comparisons that may require more resources
+  alignment: 100, // Medium complexity analysis similar to sentiment
 };
 
 /**

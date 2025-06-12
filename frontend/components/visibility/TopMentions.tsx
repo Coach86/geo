@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Brain } from "lucide-react";
 
-interface SpontaneousData {
+interface VisibilityData {
   summary?: {
     topMentions?: string[];
     topMentionCounts?: {
@@ -15,11 +15,11 @@ interface SpontaneousData {
 }
 
 interface TopMentionsProps {
-  spontaneousData: SpontaneousData | null;
-  loadingSpontaneous: boolean;
+  visibilityData: VisibilityData | null;
+  loadingVisibility: boolean;
 }
 
-export function TopMentions({ spontaneousData, loadingSpontaneous }: TopMentionsProps) {
+export function TopMentions({ visibilityData, loadingVisibility }: TopMentionsProps) {
 
   return (
     <div>
@@ -36,18 +36,18 @@ export function TopMentions({ spontaneousData, loadingSpontaneous }: TopMentions
           </p>
         </CardHeader>
       <CardContent>
-        {loadingSpontaneous ? (
+        {loadingVisibility ? (
           <div className="flex items-center justify-center py-8">
             <div className="text-sm text-gray-500">Loading top mentions...</div>
           </div>
         ) : (
           <>
             <div className="flex flex-wrap gap-2 mt-2">
-              {spontaneousData?.summary?.topMentions && spontaneousData.summary.topMentions.length > 0 ? (
-                // Check if we have actual counts from spontaneous data
-                spontaneousData.summary.topMentionCounts ? (
+              {visibilityData?.summary?.topMentions && visibilityData.summary.topMentions.length > 0 ? (
+                // Check if we have actual counts from visibility data
+                visibilityData.summary.topMentionCounts ? (
                   // Display mentions with counts if available
-                  spontaneousData.summary.topMentionCounts.map((item, index) => (
+                  visibilityData.summary.topMentionCounts.map((item, index) => (
                     <div key={index}>
                       <Badge
                         variant={index < 3 ? "default" : "outline"}
@@ -70,7 +70,7 @@ export function TopMentions({ spontaneousData, loadingSpontaneous }: TopMentions
                   ))
                 ) : (
                   // Fallback to displaying just mentions without counts
-                  spontaneousData.summary.topMentions.map((mention, index) => (
+                  visibilityData.summary.topMentions.map((mention, index) => (
                     <div key={index}>
                       <Badge
                         variant={index < 3 ? "default" : "outline"}

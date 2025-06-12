@@ -2,7 +2,6 @@
 export const INITIAL_EXPANDED_SECTIONS = {
   visibility: false,
   perception: false,
-  comparison: false,
   models: false,
   urls: true,
 };

@@ -42,9 +42,8 @@ export function getOnboardingData(): FormData {
         // Ensure arrays exist
         visibilityPrompts: parsed.prompts?.visibilityPrompts || DEFAULT_PROMPT_DATA.visibilityPrompts,
         perceptionPrompts: parsed.prompts?.perceptionPrompts || DEFAULT_PROMPT_DATA.perceptionPrompts,
-        comparisonPrompts: parsed.prompts?.comparisonPrompts || DEFAULT_PROMPT_DATA.comparisonPrompts,
-        accuracyPrompts: parsed.prompts?.accuracyPrompts || DEFAULT_PROMPT_DATA.accuracyPrompts,
-        brandBattlePrompts: parsed.prompts?.brandBattlePrompts || DEFAULT_PROMPT_DATA.brandBattlePrompts,
+        alignmentPrompts: parsed.prompts?.alignmentPrompts || DEFAULT_PROMPT_DATA.alignmentPrompts,
+        competitionPrompts: parsed.prompts?.competitionPrompts || DEFAULT_PROMPT_DATA.competitionPrompts,
         llmModels: parsed.prompts?.llmModels || DEFAULT_PROMPT_DATA.llmModels,
       },
       contact: {

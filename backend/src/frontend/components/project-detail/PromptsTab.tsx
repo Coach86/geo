@@ -40,16 +40,16 @@ interface PromptsTabProps {
 }
 
 enum PromptTabValue {
-  DIRECT = 'direct',
-  SPONTANEOUS = 'spontaneous',
-  COMPARISON = 'comparison',
-  ACCURACY = 'accuracy',
+  SENTIMENT = 'sentiment',
+  VISIBILITY = 'visibility',
+  COMPETITION = 'competition',
+  ALIGNMENT = 'alignment',
   BRAND_BATTLE = 'brand-battle',
 }
 
 const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
   const theme = useTheme();
-  const [currentTab, setCurrentTab] = useState<PromptTabValue>(PromptTabValue.SPONTANEOUS);
+  const [currentTab, setCurrentTab] = useState<PromptTabValue>(PromptTabValue.VISIBILITY);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [regeneratedPromptSet, setRegeneratedPromptSet] = useState<PromptSet | null>(null);
@@ -58,21 +58,21 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
 
   // Handle both direct arrays and JSON strings
-  const [directPrompts, setDirectPrompts] = useState<string[]>(
-    Array.isArray(promptSet.direct) ? promptSet.direct : JSON.parse(promptSet.direct || '[]'),
+  const [sentimentPrompts, setSentimentPrompts] = useState<string[]>(
+    Array.isArray(promptSet.sentiment) ? promptSet.sentiment : JSON.parse(promptSet.sentiment || '[]'),
   );
-  const [spontaneousPrompts, setSpontaneousPrompts] = useState<string[]>(
-    Array.isArray(promptSet.spontaneous)
-      ? promptSet.spontaneous
-      : JSON.parse(promptSet.spontaneous || '[]'),
+  const [visibilityPrompts, setVisibilityPrompts] = useState<string[]>(
+    Array.isArray(promptSet.visibility)
+      ? promptSet.visibility
+      : JSON.parse(promptSet.visibility || '[]'),
   );
-  const [comparisonPrompts, setComparisonPrompts] = useState<string[]>(
-    Array.isArray(promptSet.comparison)
-      ? promptSet.comparison
-      : JSON.parse(promptSet.comparison || '[]'),
+  const [competitionPrompts, setCompetitionPrompts] = useState<string[]>(
+    Array.isArray(promptSet.competition)
+      ? promptSet.competition
+      : JSON.parse(promptSet.competition || '[]'),
   );
-  const [accuracyPrompts, setAccuracyPrompts] = useState<string[]>(
-    Array.isArray(promptSet.accuracy) ? promptSet.accuracy : JSON.parse(promptSet.accuracy || '[]'),
+  const [alignmentPrompts, setAlignmentPrompts] = useState<string[]>(
+    Array.isArray(promptSet.alignment) ? promptSet.alignment : JSON.parse(promptSet.alignment || '[]'),
   );
 
   const [brandBattlePrompts, setBrandBattlePrompts] = useState<string[]>(
@@ -87,8 +87,16 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
       if (templateDialogOpen && !promptTemplates) {
         try {
           setIsLoadingTemplates(true);
-          const templates = await getPromptTemplates(promptSet.projectId);
-          setPromptTemplates(templates);
+          const templates: any = await getPromptTemplates(promptSet.projectId);
+          // Map old field names to new field names if needed
+          const mappedTemplates: PromptTemplates = {
+            visibility: templates.spontaneous || templates.visibility,
+            sentiment: templates.direct || templates.sentiment,
+            competition: templates.comparison || templates.competition,
+            alignment: templates.accuracy || templates.alignment,
+            brandBattle: templates.brandBattle,
+          };
+          setPromptTemplates(mappedTemplates);
         } catch (error) {
           console.error('Failed to fetch prompt templates:', error);
         } finally {
@@ -122,21 +130,21 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
       setRegeneratedPromptSet(result);
 
       // Update local state with new prompts
-      setDirectPrompts(
-        Array.isArray(result.direct) ? result.direct : JSON.parse(result.direct || '[]'),
+      setSentimentPrompts(
+        Array.isArray(result.sentiment) ? result.sentiment : JSON.parse(result.sentiment || '[]'),
       );
-      setSpontaneousPrompts(
-        Array.isArray(result.spontaneous)
-          ? result.spontaneous
-          : JSON.parse(result.spontaneous || '[]'),
+      setVisibilityPrompts(
+        Array.isArray(result.visibility)
+          ? result.visibility
+          : JSON.parse(result.visibility || '[]'),
       );
-      setComparisonPrompts(
-        Array.isArray(result.comparison)
-          ? result.comparison
-          : JSON.parse(result.comparison || '[]'),
+      setCompetitionPrompts(
+        Array.isArray(result.competition)
+          ? result.competition
+          : JSON.parse(result.competition || '[]'),
       );
-      setAccuracyPrompts(
-        Array.isArray(result.accuracy) ? result.accuracy : JSON.parse(result.accuracy || '[]'),
+      setAlignmentPrompts(
+        Array.isArray(result.alignment) ? result.alignment : JSON.parse(result.alignment || '[]'),
       );
 
       setBrandBattlePrompts(
@@ -167,14 +175,14 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
     if (!promptTemplates) return null;
 
     switch (currentTab) {
-      case PromptTabValue.DIRECT:
-        return promptTemplates.direct;
-      case PromptTabValue.SPONTANEOUS:
-        return promptTemplates.spontaneous;
-      case PromptTabValue.COMPARISON:
-        return promptTemplates.comparison;
-      case PromptTabValue.ACCURACY:
-        return promptTemplates.accuracy;
+      case PromptTabValue.SENTIMENT:
+        return promptTemplates.sentiment;
+      case PromptTabValue.VISIBILITY:
+        return promptTemplates.visibility;
+      case PromptTabValue.COMPETITION:
+        return promptTemplates.competition;
+      case PromptTabValue.ALIGNMENT:
+        return promptTemplates.alignment;
       case PromptTabValue.BRAND_BATTLE:
         return promptTemplates.brandBattle;
       default:
@@ -467,37 +475,37 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
                 icon={<QuestionAnswerIcon sx={{ fontSize: '1.1rem' }} />}
                 label={
                   <Typography sx={{ fontSize: '0.85rem', ml: 0.5 }}>
-                    Tone ({spontaneousPrompts.length})
+                    Visibility ({visibilityPrompts.length})
                   </Typography>
                 }
-                value={PromptTabValue.SPONTANEOUS}
+                value={PromptTabValue.VISIBILITY}
                 sx={{ minWidth: '80px' }}
               />
               <Tab
                 icon={<ChatBubbleOutlineIcon sx={{ fontSize: '1.1rem' }} />}
                 label={
                   <Typography sx={{ fontSize: '0.85rem', ml: 0.5 }}>
-                    Sentiment ({directPrompts.length})
+                    Sentiment ({sentimentPrompts.length})
                   </Typography>
                 }
-                value={PromptTabValue.DIRECT}
+                value={PromptTabValue.SENTIMENT}
                 sx={{ minWidth: '80px' }}
               />
               <Tab
                 icon={<FactCheckIcon sx={{ fontSize: '1.1rem' }} />}
                 label={
                   <Typography sx={{ fontSize: '0.85rem', ml: 0.5 }}>
-                    Accord ({accuracyPrompts.length})
+                    Alignment ({alignmentPrompts.length})
                   </Typography>
                 }
-                value={PromptTabValue.ACCURACY}
+                value={PromptTabValue.ALIGNMENT}
                 sx={{ minWidth: '80px' }}
               />
               <Tab
                 icon={<SportsMmaIcon sx={{ fontSize: '1.1rem' }} />}
                 label={
                   <Typography sx={{ fontSize: '0.85rem', ml: 0.5 }}>
-                    Brand Battle ({brandBattlePrompts.length})
+                    Competition ({brandBattlePrompts.length})
                   </Typography>
                 }
                 value={PromptTabValue.BRAND_BATTLE}
@@ -533,51 +541,51 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
           }}
         >
           <CardContent sx={{ p: 3 }}>
-            {currentTab === PromptTabValue.DIRECT && (
+            {currentTab === PromptTabValue.SENTIMENT && (
               <EditablePrompts
                 projectId={promptSet.projectId}
                 title="Direct Sentiment Prompts"
                 icon={<ChatBubbleOutlineIcon color="primary" sx={{ mr: 1 }} />}
-                prompts={directPrompts}
-                promptType="direct"
+                prompts={sentimentPrompts}
+                promptType="sentiment"
                 description="These prompts directly ask about the company to analyze sentiment."
-                onUpdate={setDirectPrompts}
+                onUpdate={setSentimentPrompts}
               />
             )}
 
-            {currentTab === PromptTabValue.SPONTANEOUS && (
+            {currentTab === PromptTabValue.VISIBILITY && (
               <EditablePrompts
                 projectId={promptSet.projectId}
-                title="Spontaneous Mention Prompts"
+                title="Visibility Prompts"
                 icon={<QuestionAnswerIcon color="primary" sx={{ mr: 1 }} />}
-                prompts={spontaneousPrompts}
-                promptType="spontaneous"
+                prompts={visibilityPrompts}
+                promptType="visibility"
                 description="These prompts check if the company is mentioned spontaneously."
-                onUpdate={setSpontaneousPrompts}
+                onUpdate={setVisibilityPrompts}
               />
             )}
 
-            {currentTab === PromptTabValue.COMPARISON && (
+            {currentTab === PromptTabValue.COMPETITION && (
               <EditablePrompts
                 projectId={promptSet.projectId}
-                title="Competitor Comparison Prompts"
+                title="Competition Prompts"
                 icon={<CompareArrowsIcon color="primary" sx={{ mr: 1 }} />}
-                prompts={comparisonPrompts}
-                promptType="comparison"
+                prompts={competitionPrompts}
+                promptType="competition"
                 description="These prompts compare the company with its competitors."
-                onUpdate={setComparisonPrompts}
+                onUpdate={setCompetitionPrompts}
               />
             )}
 
-            {currentTab === PromptTabValue.ACCURACY && (
+            {currentTab === PromptTabValue.ALIGNMENT && (
               <EditablePrompts
                 projectId={promptSet.projectId}
-                title="Accuracy Evaluation Prompts"
+                title="Alignment Prompts"
                 icon={<FactCheckIcon color="primary" sx={{ mr: 1 }} />}
-                prompts={accuracyPrompts}
-                promptType="accuracy"
-                description="These prompts evaluate the factual accuracy of information about the company."
-                onUpdate={setAccuracyPrompts}
+                prompts={alignmentPrompts}
+                promptType="alignment"
+                description="These prompts evaluate the alignment of information about the company."
+                onUpdate={setAlignmentPrompts}
               />
             )}
 

@@ -28,35 +28,30 @@ export class PromptSet {
     required: true, 
     default: [] 
   })
-  spontaneous: string[];
+  visibility: string[];
 
   @Prop({ 
     type: [String], 
     required: true, 
     default: [] 
   })
-  direct: string[];
+  sentiment: string[];
 
   @Prop({ 
     type: [String], 
     required: true, 
     default: [] 
   })
-  comparison: string[];
+  competition: string[];
 
   @Prop({ 
     type: [String], 
     required: false, 
     default: [] 
   })
-  accuracy: string[];
+  alignment: string[];
   
-  @Prop({ 
-    type: [String], 
-    required: false, 
-    default: [] 
-  })
-  brandBattle: string[];
+  // brandBattle field removed - merged into competition
   
   @Prop({ type: Date })
   createdAt: Date;

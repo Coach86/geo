@@ -51,14 +51,14 @@ export class SentimentPipelineService extends BasePipelineService {
 
     try {
       // Get the prompts for this pipeline
-      const prompts = context.promptSet?.direct || [];
+      const prompts = context.promptSet?.sentiment || [];
 
       if (!prompts.length) {
         throw new Error('No direct brand prompts found for this company');
       }
 
       // Format the prompts to include the company name
-      const formattedPrompts = prompts.map((prompt) =>
+      const formattedPrompts = prompts.map((prompt: string) =>
         (prompt || '').replace(/{COMPANY}/g, context.brandName || ''),
       );
 

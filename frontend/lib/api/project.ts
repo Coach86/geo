@@ -224,11 +224,10 @@ export async function getPromptSet(
 export async function updatePromptSet(
   projectId: string,
   data: {
-    spontaneous?: string[];
-    direct?: string[];
-    comparison?: string[];
-    accuracy?: string[];
-    brandBattle?: string[];
+    visibility?: string[];
+    sentiment?: string[];
+    alignment?: string[];
+    competition?: string[];
   },
   token: string
 ): Promise<PromptSet> {

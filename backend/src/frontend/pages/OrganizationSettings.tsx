@@ -46,7 +46,7 @@ import EmailIcon from '@mui/icons-material/Email';
 import FolderIcon from '@mui/icons-material/Folder';
 import ModelTrainingIcon from '@mui/icons-material/ModelTraining';
 import FilterListIcon from '@mui/icons-material/FilterList';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   getAllOrganizations,
   getOrganization,
@@ -96,6 +96,11 @@ const OrganizationSettings: React.FC = () => {
   const [isCreateOrgOpen, setIsCreateOrgOpen] = useState(false);
   const [newUser, setNewUser] = useState({ email: '', language: 'en', phoneNumber: '' });
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Get filter from URL parameters
+  const urlParams = new URLSearchParams(location.search);
+  const filterOrgId = urlParams.get('filter');
 
   useEffect(() => {
     loadOrganizations();
@@ -113,8 +118,14 @@ const OrganizationSettings: React.FC = () => {
       const orgsData = await getAllOrganizations();
       setOrganizations(orgsData);
 
-      // Select first organization by default if none selected
-      if (orgsData.length > 0 && !selectedOrganization) {
+      // If filter is provided, select that organization
+      if (filterOrgId) {
+        const filteredOrg = orgsData.find((org: Organization) => org.id === filterOrgId);
+        if (filteredOrg) {
+          setSelectedOrganization(filteredOrg);
+        }
+      } else if (orgsData.length > 0 && !selectedOrganization) {
+        // Select first organization by default if none selected
         setSelectedOrganization(orgsData[0]);
       }
     } catch (err) {

@@ -9,11 +9,10 @@
 export interface PromptSetType {
   id?: string;
   projectId?: string;
-  spontaneous: string[];
-  direct?: string[];
-  comparison: string[];
-  accuracy?: string[];
-  brandBattle?: string[];
+  visibility: string[];
+  sentiment?: string[];
+  competition: string[];
+  alignment?: string[];
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -32,9 +31,9 @@ export interface ProjectBatchContext {
 }
 
 /**
- * Spontaneous Pipeline Interfaces
+ * Visibility Pipeline Interfaces
  */
-export interface SpontaneousPipelineResult {
+export interface VisibilityPipelineResult {
   llmProvider: string;
   llmModel: string;
   promptIndex: number;
@@ -82,8 +81,8 @@ export interface MentionCount {
   count: number;
 }
 
-export interface SpontaneousResults {
-  results: SpontaneousPipelineResult[];
+export interface VisibilityResults {
+  results: VisibilityPipelineResult[];
   summary: {
     mentionRate: number;
     topMentions: string[];
@@ -130,19 +129,19 @@ export interface SentimentResults {
 }
 
 /**
- * Accuracy Pipeline Interfaces
+ * Alignment Pipeline Interfaces
  */
-export interface AttributeAccuracyScore {
+export interface AttributeAlignmentScore {
   attribute: string;
   score: number;
   evaluation: string;
 }
 
-export interface AccuracyPipelineResult {
+export interface AlignmentPipelineResult {
   llmProvider: string;
   llmModel: string;
   promptIndex: number;
-  attributeScores: AttributeAccuracyScore[];
+  attributeScores: AttributeAlignmentScore[];
   originalPrompt?: string;
   llmResponse?: string;
   error?: string;
@@ -152,8 +151,8 @@ export interface AccuracyPipelineResult {
   toolUsage?: any[];
 }
 
-export interface AccuracyResults {
-  results: AccuracyPipelineResult[];
+export interface AlignmentResults {
+  results: AlignmentPipelineResult[];
   summary: {
     averageAttributeScores: Record<string, number>;
   };
@@ -161,14 +160,14 @@ export interface AccuracyResults {
 }
 
 /**
- * Comparison Pipeline Interfaces
+ * Competition Pipeline Interfaces
  */
-export interface ComparisonAnalysisResult {
+export interface CompetitionAnalysisResult {
   winner: string;
   differentiators: any[]; // Data from LLM can be initially varied
 }
 
-export interface ComparisonPipelineResult {
+export interface CompetitionPipelineResult {
   llmProvider: string;
   llmModel: string;
   promptIndex: number;
@@ -184,8 +183,8 @@ export interface ComparisonPipelineResult {
   toolUsage?: any[];
 }
 
-export interface ComparisonResults {
-  results: ComparisonPipelineResult[];
+export interface CompetitionResults {
+  results: CompetitionPipelineResult[];
   summary: {
     competitorAnalyses: BrandBattleAnalysis[];
     commonStrengths: string[];
@@ -203,11 +202,11 @@ export interface BrandBattleAnalysis {
   brandWeaknesses: string[]; // Weaknesses of the brand vs this competitor
 }
 
-// Alias for backward compatibility, using the same structure as ComparisonPipelineResult
-export type BrandBattlePipelineResult = ComparisonPipelineResult;
+// Alias for backward compatibility, using the same structure as CompetitionPipelineResult
+export type BrandBattlePipelineResult = CompetitionPipelineResult;
 
-// Alias for backward compatibility, using the same structure as ComparisonResults
-export type BrandBattleResults = ComparisonResults;
+// Alias for backward compatibility, using the same structure as CompetitionResults
+export type BrandBattleResults = CompetitionResults;
 
 /**
  * Weekly Report Interface
@@ -215,11 +214,19 @@ export type BrandBattleResults = ComparisonResults;
 export interface WeeklyBrandReport {
   projectId: string;
   date: Date; // Monday 00-00-00Z
-  spontaneous: SpontaneousResults;
-  sentimentAccuracy: SentimentResults;
-  accuracy?: AccuracyResults; // New field for accuracy results
-  comparison: ComparisonResults; // Now contains the brand battle data
-  // Note: brandBattle field removed as it's now integrated into comparison
+  visibility: VisibilityResults;
+  sentiment: SentimentResults;
+  alignment?: AlignmentResults; // New field for alignment results
+  competition: CompetitionResults; // Now contains the brand battle data
+  // Note: brandBattle field removed as it's now integrated into competition
   llmVersions: Record<string, string>; // model identifiers
   generatedAt: Date;
 }
+
+// Export aliases for backward compatibility
+export type SpontaneousResults = VisibilityResults;
+export type SpontaneousPipelineResult = VisibilityPipelineResult;
+export type AccuracyResults = AlignmentResults;
+export type AccuracyPipelineResult = AlignmentPipelineResult;
+export type ComparisonResults = CompetitionResults;
+export type ComparisonPipelineResult = CompetitionPipelineResult;
