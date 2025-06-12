@@ -74,8 +74,8 @@ export default function PricingPage({
     setSelectedPlan(planName.toLowerCase() as any);
     setIsSubmitting(true);
 
-    // Handle contact sales for Enterprise/Agencies
-    if (planName === "Enterprise" || planName === "Agencies") {
+    // Handle contact sales for Enterprise & Agencies plan
+    if (planName === "For Enterprise & Agencies" || planName === "Custom" || planName === "Enterprise" || planName === "Agencies") {
       setContactPlanName(planName);
       setContactSalesOpen(true);
       setIsSubmitting(false);
@@ -131,8 +131,8 @@ export default function PricingPage({
       badge: plan.isMostPopular ? "Most Popular" : null,
       badgeColor: plan.isMostPopular ? "#6366f1" : "",
       tagline: plan.tag,
-      tagBgColor: index === 0 ? "bg-gray-100" : "bg-accent-100",
-      tagTextColor: index === 0 ? "text-gray-600" : "text-accent-700",
+      tagBgColor: index === 0 ? "bg-gray-100" : index === 1 ? "bg-accent-100" : "bg-blue-100",
+      tagTextColor: index === 0 ? "text-gray-600" : index === 1 ? "text-accent-700" : "text-blue-700",
       description: plan.subtitle,
       price: `€${currentPrice}`,
       pricePeriod: "/mo",
@@ -145,9 +145,11 @@ export default function PricingPage({
       ctaColor:
         index === 0
           ? "bg-gray-800 hover:bg-gray-900"
-          : "bg-accent-500 hover:bg-accent-600",
-      checkColor: index === 0 ? "text-green-500" : "text-accent-500",
-      plusColor: index === 0 ? "" : "text-accent-500",
+          : index === 1
+          ? "bg-accent-500 hover:bg-accent-600"
+          : "bg-blue-600 hover:bg-blue-700",
+      checkColor: index === 0 ? "text-green-500" : index === 1 ? "text-accent-500" : "text-blue-500",
+      plusColor: index === 0 ? "" : index === 1 ? "text-accent-500" : "text-blue-500",
       isPopular: plan.isMostPopular,
       isRecommended: plan.isRecommended,
     };
