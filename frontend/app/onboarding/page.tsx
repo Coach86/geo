@@ -7,11 +7,12 @@ import { useAuth } from "@/providers/auth-provider";
 import { getUserProjects } from "@/lib/auth-api";
 import { getStepComponent, StepId } from "./steps.config";
 import { getOnboardingData } from "@/lib/onboarding-storage";
+import { Globe } from "lucide-react";
 
 export default function OnboardingPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { currentStep, setCurrentStepData } = useOnboarding();
+  const { currentStep, setCurrentStepData, isTransitioning } = useOnboarding();
   const [isLoading, setIsLoading] = useState(false);
   const { token, isAuthenticated } = useAuth();
 
@@ -59,6 +60,32 @@ export default function OnboardingPage() {
 
   // Render the current step
   const renderStep = () => {
+    // Show full-page loader when transitioning from PROJECT to BRAND
+    if (isTransitioning && currentStep === StepId.PROJECT) {
+      return (
+        <div className="flex flex-col items-center justify-center py-20 animate-fade-in">
+          <div className="w-16 h-16 mb-8 relative">
+            <div className="absolute inset-0 rounded-full border-4 border-t-accent-500 border-r-accent-300 border-b-accent-200 border-l-accent-100 animate-spin"></div>
+            <Globe className="h-8 w-8 text-accent-500 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
+          </div>
+          <h2 className="text-xl font-semibold mb-3 text-mono-900">
+            Analyzing your website...
+          </h2>
+          <p className="text-mono-600 text-center max-w-md">
+            We're extracting key information about your brand, including attributes and competitors. This will help us create targeted prompts for your brand analysis.
+          </p>
+          <div className="mt-6 flex flex-col items-center">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="h-2 w-2 rounded-full bg-accent-500 animate-pulse"></div>
+              <div className="h-2 w-2 rounded-full bg-accent-500 animate-pulse delay-100"></div>
+              <div className="h-2 w-2 rounded-full bg-accent-500 animate-pulse delay-200"></div>
+            </div>
+            <p className="text-sm text-mono-500">This may take a few seconds</p>
+          </div>
+        </div>
+      );
+    }
+    
     if (isLoading) {
       return (
         <div className="flex justify-center items-center py-20">
@@ -86,6 +113,7 @@ export default function OnboardingPage() {
         
       case StepId.BRAND:
         initialData = {
+          project: existingData.project,
           attributes: existingData.brand?.attributes || [],
           competitors: existingData.brand?.competitors || [],
           analyzedData: existingData.brand?.analyzedData,

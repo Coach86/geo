@@ -57,7 +57,9 @@ export interface LLMModel {
 export interface PromptData {
   visibilityPrompts: Prompt[];
   perceptionPrompts: Prompt[];
-  comparisonPrompts: Prompt[];
+  comparisonPrompts: string[];
+  accuracyPrompts?: string[];
+  brandBattlePrompts?: string[];
   llmModels: LLMModel[];
 }
 
@@ -97,7 +99,7 @@ export const DEFAULT_PROJECT_DATA: ProjectData = {
 };
 
 export const DEFAULT_BRAND_DATA: BrandData = {
-  markets: [{ country: "United States", languages: ["English"] }],
+  markets: [],
   attributes: [],
   competitors: [],
 };
@@ -106,6 +108,8 @@ export const DEFAULT_PROMPT_DATA: PromptData = {
   visibilityPrompts: [],
   perceptionPrompts: [],
   comparisonPrompts: [],
+  accuracyPrompts: [],
+  brandBattlePrompts: [],
   llmModels: [],
 };
 

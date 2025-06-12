@@ -20,7 +20,7 @@ const inconsolata = Inconsolata({
 });
 
 export const metadata: Metadata = {
-  title: "Mint - AI Brand Perception Analysis",
+  title: "Mint",
   description:
     "Discover what AI models tell about your brand. Get actionable insights on how AI perceives your brand.",
 };

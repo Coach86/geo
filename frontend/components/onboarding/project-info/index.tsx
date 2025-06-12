@@ -1,13 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAuth } from "@/providers/auth-provider";
 import { Building } from "lucide-react";
 import { WebsiteAnalyzer } from "./WebsiteAnalyzer";
 import { MarketSelector } from "./MarketSelector";
-import { ProjectInfoFields } from "./ProjectInfoFields";
 import { calculatePlanImpact } from "./utils";
-import type { ProjectInfoProps, PlanType } from "./types";
+import type { PlanType } from "./types";
 import type { Market } from "@/app/onboarding/types/form-data";
 
 interface ProjectInfoComponentProps {
@@ -46,24 +44,15 @@ interface ProjectInfoComponentProps {
 }
 
 export default function ProjectInfo({ initialData, onDataReady }: ProjectInfoComponentProps) {
-  const { token, isAuthenticated, isLoading: authLoading } = useAuth();
-  
   // Local state - no localStorage updates
   const [website, setWebsite] = useState(initialData?.project?.website || "");
-  const [brandName, setBrandName] = useState(initialData?.project?.brandName || "");
-  const [description, setDescription] = useState(initialData?.project?.description || "");
-  const [industry, setIndustry] = useState(initialData?.project?.industry || "");
   const [markets, setMarkets] = useState<Market[]>(
-    initialData?.brand?.markets || [{ country: "United States", languages: ["English"] }]
+    initialData?.brand?.markets || []
   );
-  const [analyzedData, setAnalyzedData] = useState(initialData?.brand?.analyzedData);
-  
+
   // UI state
-  const [isLoading, setIsLoading] = useState(false);
-  const [isScraped, setIsScraped] = useState(false);
   const [planImpact, setPlanImpact] = useState<PlanType>("Starter");
   const [showPricingDialog, setShowPricingDialog] = useState(false);
-  const [analysisError, setAnalysisError] = useState(false);
 
   // Calculate plan impact whenever markets change
   useEffect(() => {
@@ -78,32 +67,18 @@ export default function ProjectInfo({ initialData, onDataReady }: ProjectInfoCom
       onDataReady({
         project: {
           website,
-          brandName,
-          description,
-          industry,
+          brandName: "",
+          description: "",
+          industry: "",
         },
         brand: {
           markets,
-          analyzedData,
+          analyzedData: undefined,
         },
       });
     }
-  }, [website, brandName, description, industry, markets, analyzedData, onDataReady]);
+  }, [website, markets, onDataReady]);
 
-  const handleAnalysisComplete = (data?: {
-    brandName: string;
-    description: string;
-    industry: string;
-    analyzedData: any;
-  }) => {
-    setIsScraped(true);
-    if (data) {
-      setBrandName(data.brandName);
-      setDescription(data.description);
-      setIndustry(data.industry);
-      setAnalyzedData(data.analyzedData);
-    }
-  };
 
   const handleMarketsChange = (newMarkets: Market[]) => {
     setMarkets(newMarkets);
@@ -116,10 +91,10 @@ export default function ProjectInfo({ initialData, onDataReady }: ProjectInfoCom
           <Building className="h-8 w-8" />
         </div>
         <h1 className="text-3xl font-bold mb-2 text-mono-900">
-          Let's identify your brand
+          Let’s build your first monitoring project
         </h1>
         <p className="text-gray-600 max-w-md mx-auto">
-          We'll analyze your website to understand your brand better
+          Enter your website URL and select your target markets
         </p>
       </div>
 
@@ -128,15 +103,9 @@ export default function ProjectInfo({ initialData, onDataReady }: ProjectInfoCom
         <WebsiteAnalyzer
           website={website}
           onWebsiteChange={setWebsite}
-          markets={markets}
-          token={token}
-          isAuthenticated={isAuthenticated}
-          authLoading={authLoading}
-          onAnalysisComplete={handleAnalysisComplete}
-          onError={setAnalysisError}
         />
 
-        {/* Market Selection */}
+        {/* Market Selection - always visible */}
         <MarketSelector
           markets={markets}
           onMarketsChange={handleMarketsChange}
@@ -144,18 +113,7 @@ export default function ProjectInfo({ initialData, onDataReady }: ProjectInfoCom
           onShowPricingDialog={() => setShowPricingDialog(true)}
         />
 
-        {/* Project Info Fields */}
-        <ProjectInfoFields
-          isLoading={isLoading}
-          isScraped={isScraped}
-          hasError={analysisError}
-          brandName={brandName}
-          description={description}
-          industry={industry}
-          onBrandNameChange={setBrandName}
-          onDescriptionChange={setDescription}
-          onIndustryChange={setIndustry}
-        />
+        {/* Project Info Fields - moved to separate step */}
       </div>
     </div>
   );

@@ -355,6 +355,8 @@ export class SentimentPipelineService extends BasePipelineService {
       overallSentimentPercentage += sentiment === 'positive' ? 1 : sentiment === 'neutral' ? 0 : -1;
     }
     overallSentimentPercentage = overallSentimentPercentage / validResults.length;
+    // Convert from [-1, 1] range to [0, 100] percentage
+    overallSentimentPercentage = Math.round((overallSentimentPercentage + 1) * 50);
     this.logger.log(`Overall sentiment percentage: ${overallSentimentPercentage}`);
     // Determine overall sentiment
     let overallSentiment: 'positive' | 'neutral' | 'negative';

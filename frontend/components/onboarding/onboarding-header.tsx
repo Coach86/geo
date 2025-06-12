@@ -32,9 +32,6 @@ export default function OnboardingHeader() {
                 </Badge>
               </div>
             )}
-            <div className="text-sm text-mono-600">
-              AI Brand Perception Analysis
-            </div>
           </div>
         </div>
       </div>

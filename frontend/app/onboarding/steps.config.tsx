@@ -1,5 +1,6 @@
 import {
   Building,
+  Globe,
   Users,
   MessageSquare,
   CheckCircle,
@@ -35,16 +36,13 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   {
     id: StepId.PROJECT,
     name: "Project",
-    icon: Building,
+    icon: Globe,
     component: ProjectInfo,
     path: "/onboarding",
     canNavigate: (formData) => {
       return !!(
         formData.project?.website &&
-        formData.project?.brandName &&
-        formData.project?.description &&
-        formData.project?.industry &&
-        formData.brand?.analyzedData // Ensure website has been analyzed
+        formData.brand?.markets?.length > 0 // Ensure at least one market is selected
       );
     },
   },
@@ -56,10 +54,11 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
     path: "/onboarding",
     canNavigate: (formData) => {
       return !!(
-        formData.brand?.markets &&
-        formData.brand?.markets.length > 0 &&
-        formData.brand?.analyzedData?.keyBrandAttributes?.length > 0 &&
-        formData.brand?.analyzedData?.competitors?.length > 0
+        formData.project?.brandName &&
+        formData.project?.description &&
+        formData.project?.industry &&
+        formData.brand?.attributes?.length > 0 &&
+        formData.brand?.competitors?.filter((c: any) => c.selected).length > 0
       );
     },
   },
@@ -70,11 +69,9 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
     component: PromptSelection,
     path: "/onboarding",
     canNavigate: (formData) => {
-      // Check if at least some prompts are selected in each category
+      // Check if at least some visibility prompts are selected
       const hasVisibilityPrompts = formData.prompts?.visibilityPrompts?.some((p: any) => p.selected);
-      const hasPerceptionPrompts = formData.prompts?.perceptionPrompts?.some((p: any) => p.selected);
-      // Since the form has prefilled prompts, we should allow navigation if we have any selected prompts
-      return !!(hasVisibilityPrompts && hasPerceptionPrompts);
+      return !!hasVisibilityPrompts;
     },
   },
   {
@@ -130,9 +127,6 @@ export const getNextButtonText = (currentId: StepId, canNavigate: boolean): stri
   const step = getStepById(currentId);
   if (step?.nextButtonText) {
     return step.nextButtonText;
-  }
-  if (currentId === StepId.PROJECT && !canNavigate) {
-    return "Analyze website first";
   }
   return "Next";
 };

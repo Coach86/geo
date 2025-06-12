@@ -32,7 +32,7 @@ export function getOnboardingData(): FormData {
         ...DEFAULT_BRAND_DATA,
         ...parsed.brand,
         // Ensure markets is always an array
-        markets: Array.isArray(parsed.brand?.markets) && parsed.brand.markets.length > 0
+        markets: Array.isArray(parsed.brand?.markets)
           ? parsed.brand.markets
           : DEFAULT_BRAND_DATA.markets,
       },
@@ -43,6 +43,8 @@ export function getOnboardingData(): FormData {
         visibilityPrompts: parsed.prompts?.visibilityPrompts || DEFAULT_PROMPT_DATA.visibilityPrompts,
         perceptionPrompts: parsed.prompts?.perceptionPrompts || DEFAULT_PROMPT_DATA.perceptionPrompts,
         comparisonPrompts: parsed.prompts?.comparisonPrompts || DEFAULT_PROMPT_DATA.comparisonPrompts,
+        accuracyPrompts: parsed.prompts?.accuracyPrompts || DEFAULT_PROMPT_DATA.accuracyPrompts,
+        brandBattlePrompts: parsed.prompts?.brandBattlePrompts || DEFAULT_PROMPT_DATA.brandBattlePrompts,
         llmModels: parsed.prompts?.llmModels || DEFAULT_PROMPT_DATA.llmModels,
       },
       contact: {

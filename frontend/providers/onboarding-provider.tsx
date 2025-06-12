@@ -28,6 +28,8 @@ type OnboardingContextType = {
   canNavigateFromStep: (stepNumber: StepId) => boolean;
   currentStepData: any;
   setCurrentStepData: (data: any) => void;
+  isTransitioning: boolean;
+  setIsTransitioning: (loading: boolean) => void;
 };
 
 
@@ -40,6 +42,8 @@ const OnboardingContext = createContext<OnboardingContextType>({
   canNavigateFromStep: () => true,
   currentStepData: null,
   setCurrentStepData: () => {},
+  isTransitioning: false,
+  setIsTransitioning: () => {},
 });
 
 // Create a provider component
@@ -47,6 +51,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   // Initialize state for navigation only
   const [currentStep, setCurrentStepState] = useState(StepId.PROJECT);
   const [currentStepData, setCurrentStepData] = useState<any>(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   
   // Navigation confirmation dialog state
   const [confirmationDialog, setConfirmationDialog] = useState<{
@@ -149,6 +154,8 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
           visibilityPrompts: [],
           perceptionPrompts: [],
           comparisonPrompts: [],
+          accuracyPrompts: [],
+          brandBattlePrompts: [],
           llmModels: []
         }
       });
@@ -229,6 +236,8 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
         canNavigateFromStep,
         currentStepData,
         setCurrentStepData,
+        isTransitioning,
+        setIsTransitioning,
       }}
     >
       {children}

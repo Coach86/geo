@@ -11,8 +11,9 @@ import { getStepById, isLastStep, PRICING_STEP, StepId, getNextButtonText } from
 import OnboardingHeader from "@/components/onboarding/onboarding-header"
 import { useAuth } from "@/providers/auth-provider"
 import { useEffect, useState, useRef } from "react"
-import { createProject, type CreateFullProjectRequest } from "@/lib/auth-api"
+import { createProject, analyzeWebsite, type CreateFullProjectRequest } from "@/lib/auth-api"
 import { getOnboardingData, updateOnboardingData, clearOnboardingData } from "@/lib/onboarding-storage"
+import { Loader2 } from "lucide-react"
 
 export default function OnboardingLayout({ children }: { children: ReactNode }) {
   return (
@@ -64,7 +65,7 @@ function ProtectedOnboarding({ children }: { children: ReactNode }) {
 }
 
 function NavigationButtons() {
-  const { currentStep, navigateNext, navigatePrevious, currentStepData, setCurrentStepData } = useOnboarding()
+  const { currentStep, navigateNext, navigatePrevious, currentStepData, setCurrentStepData, setIsTransitioning } = useOnboarding()
   const router = useRouter()
   const { token, isAuthenticated, isLoading: authLoading } = useAuth()
   const [isGenerating, setIsGenerating] = useState(false)
@@ -79,6 +80,66 @@ function NavigationButtons() {
   }
 
   const handleNext = async () => {
+    // Handle website analysis when moving from PROJECT to BRAND
+    if (currentStep === StepId.PROJECT && currentStepData) {
+      const website = currentStepData.project?.website;
+      const markets = currentStepData.brand?.markets || [];
+      
+      if (website && markets.length > 0 && token) {
+        setIsGenerating(true);
+        setIsTransitioning(true);
+        setGenerationError(null);
+        
+        try {
+          // Get the primary market and language for analysis
+          const primaryMarket = markets[0]?.country || "United States";
+          const primaryLanguage = markets[0]?.languages?.[0] || "English";
+          
+          const identityCard = await analyzeWebsite(
+            {
+              url: website,
+              market: primaryMarket,
+              language: primaryLanguage,
+            },
+            token
+          );
+          
+          // Update storage with analyzed data
+          const existingData = getOnboardingData();
+          updateOnboardingData({
+            project: {
+              ...existingData.project,
+              website: website,
+              brandName: identityCard.brandName || "",
+              description: identityCard.shortDescription || "",
+              industry: identityCard.industry || "",
+            },
+            brand: {
+              ...existingData.brand,
+              markets: markets,
+              analyzedData: {
+                keyBrandAttributes: identityCard.keyBrandAttributes || [],
+                competitors: identityCard.competitors || [],
+                fullDescription: identityCard.fullDescription || identityCard.longDescription || "",
+              },
+            }
+          });
+          
+          setIsGenerating(false);
+          setIsTransitioning(false);
+          navigateNext();
+          return;
+        } catch (error) {
+          setIsGenerating(false);
+          setIsTransitioning(false);
+          setGenerationError(
+            error instanceof Error ? error.message : "Failed to analyze website"
+          );
+          return;
+        }
+      }
+    }
+    
     // Save current step data to localStorage before navigating
     if (currentStepData) {
       const existingData = getOnboardingData();
@@ -97,6 +158,12 @@ function NavigationButtons() {
           
         case StepId.BRAND:
           updateOnboardingData({
+            project: {
+              ...existingData.project,
+              brandName: currentStepData.project?.brandName || existingData.project.brandName,
+              description: currentStepData.project?.description || existingData.project.description,
+              industry: currentStepData.project?.industry || existingData.project.industry,
+            },
             brand: {
               ...existingData.brand,
               attributes: currentStepData.attributes || [],
@@ -111,6 +178,9 @@ function NavigationButtons() {
               ...existingData.prompts,
               visibilityPrompts: currentStepData.visibilityPrompts || [],
               perceptionPrompts: currentStepData.perceptionPrompts || [],
+              comparisonPrompts: currentStepData.comparisonPrompts || [],
+              accuracyPrompts: currentStepData.accuracyPrompts || [],
+              brandBattlePrompts: currentStepData.brandBattlePrompts || [],
             }
           });
           break;
@@ -183,10 +253,9 @@ function NavigationButtons() {
           identityCardRequest.prompts = {
             spontaneous: selectedVisibilityPrompts || [],
             direct: selectedPerceptionPrompts || [],
-            // Initialize other prompt types as empty arrays
-            comparison: [],
-            accuracy: [],
-            brandBattle: []
+            comparison: formData.prompts.comparisonPrompts || [],
+            accuracy: formData.prompts.accuracyPrompts || [],
+            brandBattle: formData.prompts.brandBattlePrompts || []
           };
         }
       }
@@ -225,20 +294,19 @@ function NavigationButtons() {
       case StepId.PROJECT:
         return !!(
           currentStepData.project?.website &&
-          currentStepData.project?.brandName &&
-          currentStepData.project?.description &&
-          currentStepData.project?.industry &&
-          currentStepData.brand?.analyzedData
+          currentStepData.brand?.markets?.length > 0
         );
       case StepId.BRAND:
         return !!(
+          currentStepData.project?.brandName &&
+          currentStepData.project?.description &&
+          currentStepData.project?.industry &&
           currentStepData.attributes?.length > 0 &&
-          currentStepData.competitors?.length > 0
+          currentStepData.competitors?.filter((c: any) => c.selected).length > 0
         );
       case StepId.PROMPTS:
         return !!(
-          currentStepData.visibilityPrompts?.some((p: any) => p.selected) &&
-          currentStepData.perceptionPrompts?.some((p: any) => p.selected)
+          currentStepData.visibilityPrompts?.some((p: any) => p.selected)
         );
       case StepId.CONTACT:
         return !!currentStepData.phoneNumber;
@@ -267,7 +335,8 @@ function NavigationButtons() {
         >
           {isGenerating ? (
             <>
-              <span>Generating report...</span>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <span>{currentStep === StepId.PROJECT ? "Analyzing website..." : "Generating report..."}</span>
             </>
           ) : (
             <>

@@ -3,10 +3,8 @@
 import type React from "react";
 
 import { useState, useEffect } from "react";
-import { useAuth } from "@/providers/auth-provider";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -14,10 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Phone, Shield, CheckCircle, Loader2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { updatePhoneNumber } from "@/lib/auth-api";
-import { toast } from "sonner";
+import { Phone, Shield } from "lucide-react";
 
 // Liste des pays avec leurs indicatifs téléphoniques
 const countryCodes = [
@@ -142,13 +137,9 @@ interface PhoneVerificationProps {
 }
 
 export default function PhoneVerification({ initialData, onDataReady }: PhoneVerificationProps) {
-  const { token, isAuthenticated } = useAuth();
-  
   // Local state - no localStorage updates
   const [phoneNumber, setPhoneNumber] = useState(initialData?.phoneNumber || "");
   const [phoneCountry, setPhoneCountry] = useState(initialData?.phoneCountry || "US");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
 
   // Notify parent when data changes (for validation purposes)
   useEffect(() => {
@@ -181,38 +172,6 @@ export default function PhoneVerification({ initialData, onDataReady }: PhoneVer
     return country ? country.dial_code : "+1";
   };
 
-  // Soumettre le numéro de téléphone
-  const handleSubmitPhone = async () => {
-    if (!token || !isAuthenticated) {
-      toast.error("Authentication required. Please login again.");
-      return;
-    }
-
-    if (!phoneNumber) {
-      toast.error("Please enter your phone number");
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      // Format the phone number with country code
-      const dialCode = getDialCode();
-      const fullPhoneNumber = `${dialCode}${phoneNumber}`;
-
-      await updatePhoneNumber({ phoneNumber: fullPhoneNumber }, token);
-
-      setIsSubmitted(true);
-      toast.success("Phone number saved successfully!");
-    } catch (error) {
-      console.error("Phone update error:", error);
-      toast.error(
-        error instanceof Error ? error.message : "Failed to save phone number"
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   return (
     <div className="py-8 animate-fade-in">
@@ -296,31 +255,9 @@ export default function PhoneVerification({ initialData, onDataReady }: PhoneVer
             </div>
           </div>
 
-          {/* Submit button */}
-          <div className="pt-4">
-            <Button
-              onClick={handleSubmitPhone}
-              disabled={!phoneNumber || isSubmitting || isSubmitted}
-              className="w-full h-10"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : isSubmitted ? (
-                <>
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Phone Number Saved
-                </>
-              ) : (
-                "Save Phone Number"
-              )}
-            </Button>
-          </div>
 
           {/* Note de confidentialité */}
-          <div className="flex items-start pt-4 border-t border-gray-200">
+          <div className="flex items-start mt-4">
             <Shield className="h-4 w-4 text-gray-400 mt-0.5 mr-2 flex-shrink-0" />
             <p className="text-xs text-gray-500">
               Your phone number will be used for important notifications and
