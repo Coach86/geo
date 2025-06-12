@@ -67,7 +67,7 @@
           "value": "https://app.getmint.ai"
         },
         {
-          "name": "POSTHOG_KEY",
+          "name": "POSTHOG_API_KEY",
           "value": "phc_iNSRIwgW553mS6cI4rBvjMX0pisqkBeXGYvkm4kraft"
         },
         {
