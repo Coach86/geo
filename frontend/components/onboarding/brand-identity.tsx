@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { X, Plus, Check, Users, Tag } from "lucide-react"
+import { X, Plus, Check, Users, Tag, LineChart } from "lucide-react"
 
 interface AttributeItem {
   id: string;
@@ -25,6 +26,11 @@ interface Competitor {
 
 interface BrandIdentityProps {
   initialData?: {
+    project?: {
+      brandName: string;
+      description: string;
+      industry: string;
+    };
     attributes: string[];
     competitors: Competitor[];
     analyzedData?: {
@@ -32,7 +38,15 @@ interface BrandIdentityProps {
       competitors: string[];
     };
   };
-  onDataReady?: (data: { attributes: string[]; competitors: Competitor[] }) => void;
+  onDataReady?: (data: { 
+    project: {
+      brandName: string;
+      description: string;
+      industry: string;
+    };
+    attributes: string[]; 
+    competitors: Competitor[] 
+  }) => void;
 }
 
 export default function BrandIdentity({ initialData, onDataReady }: BrandIdentityProps) {
@@ -42,52 +56,52 @@ export default function BrandIdentity({ initialData, onDataReady }: BrandIdentit
   // Initialize attributes with selection state and IDs
   const initializeAttributes = (): AttributeItem[] => {
     const allAttributes: AttributeItem[] = [];
-    
+
     // If we have analyzed attributes
     if (initialData?.analyzedData?.keyBrandAttributes) {
       // If no initial attributes passed, select first 5 analyzed ones
       const shouldSelectAll = !initialData?.attributes || initialData.attributes.length === 0;
-      
+
       initialData.analyzedData.keyBrandAttributes.forEach((attr, idx) => {
-        const isSelected = shouldSelectAll 
+        const isSelected = shouldSelectAll
           ? idx < 5  // Select first 5 if no initial data
           : initialData.attributes?.includes(attr) || false;
-        allAttributes.push({ 
+        allAttributes.push({
           id: generateId(),
-          value: attr, 
-          selected: isSelected 
+          value: attr,
+          selected: isSelected
         });
       });
     }
-    
+
     // Add any manual attributes that aren't in analyzed data
     if (initialData?.attributes) {
       initialData.attributes.forEach(attr => {
         if (!allAttributes.some(item => item.value === attr)) {
-          allAttributes.push({ 
+          allAttributes.push({
             id: generateId(),
-            value: attr, 
-            selected: true 
+            value: attr,
+            selected: true
           });
         }
       });
     }
-    
+
     return allAttributes;
   };
 
   // Initialize competitors including analyzed data with IDs
   const initializeCompetitors = (): CompetitorItem[] => {
     const allCompetitors: CompetitorItem[] = [];
-    
+
     // If we have analyzed competitors and no initial competitors passed
     if (initialData?.analyzedData?.competitors && !initialData?.competitors?.length) {
       // Select all analyzed competitors by default (up to 5)
       initialData.analyzedData.competitors.forEach((comp, index) => {
-        allCompetitors.push({ 
+        allCompetitors.push({
           id: generateId(),
-          name: comp, 
-          selected: index < 5 
+          name: comp,
+          selected: index < 5
         });
       });
     } else {
@@ -97,14 +111,14 @@ export default function BrandIdentity({ initialData, onDataReady }: BrandIdentit
         initialData.analyzedData.competitors.forEach(comp => {
           // Check if this competitor is in the initial selected list
           const isSelected = initialData?.competitors?.some(c => c.name === comp) || false;
-          allCompetitors.push({ 
+          allCompetitors.push({
             id: generateId(),
-            name: comp, 
-            selected: isSelected 
+            name: comp,
+            selected: isSelected
           });
         });
       }
-      
+
       // Add any manual competitors that aren't in analyzed data
       if (initialData?.competitors) {
         initialData.competitors.forEach(comp => {
@@ -117,20 +131,25 @@ export default function BrandIdentity({ initialData, onDataReady }: BrandIdentit
         });
       }
     }
-    
+
     return allCompetitors;
   };
 
-  // Local state
+  // Local state - brand profile
+  const [brandName, setBrandName] = useState(initialData?.project?.brandName || "");
+  const [description, setDescription] = useState(initialData?.project?.description || "");
+  const [industry, setIndustry] = useState(initialData?.project?.industry || "");
+
+  // Local state - attributes and competitors
   const [attributeItems, setAttributeItems] = useState<AttributeItem[]>(initializeAttributes());
   const [competitorItems, setCompetitorItems] = useState<CompetitorItem[]>(initializeCompetitors());
-  
+
   // UI state
   const [attributeInput, setAttributeInput] = useState("")
   const [competitorInput, setCompetitorInput] = useState("")
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editableValue, setEditableValue] = useState<string>("")
-  
+
   // Get analyzed data for reference
   const analyzedAttributes = initialData?.analyzedData?.keyBrandAttributes || []
   const analyzedCompetitors = initialData?.analyzedData?.competitors || []
@@ -142,16 +161,24 @@ export default function BrandIdentity({ initialData, onDataReady }: BrandIdentit
       const selectedAttributes = attributeItems
         .filter(item => item.selected)
         .map(item => item.value);
-      
+
       // Convert back to expected format for competitors
       const competitors = competitorItems.map(item => ({
         name: item.name,
         selected: item.selected
       }));
-      
-      onDataReady({ attributes: selectedAttributes, competitors });
+
+      onDataReady({ 
+        project: {
+          brandName,
+          description,
+          industry,
+        },
+        attributes: selectedAttributes, 
+        competitors 
+      });
     }
-  }, [attributeItems, competitorItems, onDataReady]);
+  }, [brandName, description, industry, attributeItems, competitorItems, onDataReady]);
 
   // Get count of selected attributes
   const selectedAttributesCount = attributeItems.filter(item => item.selected).length;
@@ -168,7 +195,7 @@ export default function BrandIdentity({ initialData, onDataReady }: BrandIdentit
     if (existing) {
       // If it exists but is not selected, select it
       if (!existing.selected) {
-        setAttributeItems(attributeItems.map(item => 
+        setAttributeItems(attributeItems.map(item =>
           item.id === existing.id ? { ...item, selected: true } : item
         ));
       }
@@ -176,10 +203,10 @@ export default function BrandIdentity({ initialData, onDataReady }: BrandIdentit
     }
 
     // Add as new attribute at the end
-    setAttributeItems([...attributeItems, { 
+    setAttributeItems([...attributeItems, {
       id: generateId(),
-      value: trimmed, 
-      selected: true 
+      value: trimmed,
+      selected: true
     }]);
     setAttributeInput("");
   }
@@ -188,13 +215,13 @@ export default function BrandIdentity({ initialData, onDataReady }: BrandIdentit
   const handleToggleAttribute = (id: string) => {
     const selectedCount = attributeItems.filter(item => item.selected).length;
     const targetItem = attributeItems.find(item => item.id === id);
-    
+
     // If trying to select and already have 5, return
     if (targetItem && !targetItem.selected && selectedCount >= 5) {
       return;
     }
-    
-    setAttributeItems(attributeItems.map(item => 
+
+    setAttributeItems(attributeItems.map(item =>
       item.id === id ? { ...item, selected: !item.selected } : item
     ));
   }
@@ -203,19 +230,19 @@ export default function BrandIdentity({ initialData, onDataReady }: BrandIdentit
   const handleEditAttribute = (id: string, newValue: string) => {
     const trimmed = newValue.trim()
     if (!trimmed) return
-    
+
     // Check for duplicates (excluding current item)
-    const isDuplicate = attributeItems.some(item => 
+    const isDuplicate = attributeItems.some(item =>
       item.id !== id && item.value === trimmed
     )
-    
+
     if (isDuplicate) {
       console.log('Brand Identity - Duplicate attribute detected:', trimmed)
       return
     }
-    
+
     // Update the attribute value
-    setAttributeItems(attributeItems.map(item => 
+    setAttributeItems(attributeItems.map(item =>
       item.id === id ? { ...item, value: trimmed } : item
     ));
   }
@@ -224,20 +251,20 @@ export default function BrandIdentity({ initialData, onDataReady }: BrandIdentit
   const handleAddCompetitor = (name: string) => {
     const trimmed = name.trim()
     if (!trimmed) return
-    
+
     // Check if already exists
     if (competitorItems.some(c => c.name === trimmed)) {
       return
     }
-    
+
     // Count selected
     const selectedCount = competitorItems.filter(c => c.selected).length
-    const newCompetitor = { 
+    const newCompetitor = {
       id: generateId(),
-      name: trimmed, 
-      selected: selectedCount < 5 
+      name: trimmed,
+      selected: selectedCount < 5
     }
-    
+
     setCompetitorItems([...competitorItems, newCompetitor]);
     setCompetitorInput("");
   }
@@ -246,13 +273,13 @@ export default function BrandIdentity({ initialData, onDataReady }: BrandIdentit
   const handleToggleCompetitor = (id: string) => {
     const selectedCount = competitorItems.filter(c => c.selected).length
     const targetCompetitor = competitorItems.find(c => c.id === id)
-    
+
     // If trying to select and already have 5, return
     if (targetCompetitor && !targetCompetitor.selected && selectedCount >= 5) {
       return
     }
-    
-    setCompetitorItems(competitorItems.map(c => 
+
+    setCompetitorItems(competitorItems.map(c =>
       c.id === id ? { ...c, selected: !c.selected } : c
     ));
   }
@@ -268,6 +295,66 @@ export default function BrandIdentity({ initialData, onDataReady }: BrandIdentit
       </div>
 
       <div className="space-y-10">
+        {/* Brand Profile */}
+        <Card className="border border-gray-200 shadow-sm">
+          <CardContent className="p-6 space-y-4">
+            <div className="mb-4">
+              <Badge className="bg-accent-100 text-accent-500 hover:bg-accent-200">
+                <LineChart className="h-3 w-3 mr-1" />
+                Brand profile
+              </Badge>
+            </div>
+
+            <div>
+              <label
+                htmlFor="brandName"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Your brand's name
+              </label>
+              <Input
+                id="brandName"
+                placeholder="Brand name"
+                className="h-10 input-focus"
+                value={brandName}
+                onChange={(e) => setBrandName(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="description"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Short description
+              </label>
+              <Textarea
+                id="description"
+                placeholder="Describe your project in a few sentences"
+                className="min-h-[80px] resize-none input-focus"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="industry"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Your industry/sector
+              </label>
+              <Input
+                id="industry"
+                placeholder="HR tech, Fintech, CRM..."
+                className="h-10 input-focus"
+                value={industry}
+                onChange={(e) => setIndustry(e.target.value)}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Brand Attributes */}
         <Card className="border border-gray-200 shadow-sm">
           <CardContent className="p-6">
@@ -275,15 +362,10 @@ export default function BrandIdentity({ initialData, onDataReady }: BrandIdentit
               <Tag className="h-5 w-5 text-accent-600" />
               <h2 className="text-xl font-semibold text-mono-900">Brand Attributes</h2>
               <Badge className="bg-accent-100 text-accent-700 ml-2">{selectedAttributesCount}/5</Badge>
-              {analyzedAttributes.length > 0 && (
-                <Badge className="bg-secondary-100 text-secondary-700 ml-1">
-                  AI Analyzed
-                </Badge>
-              )}
             </div>
             <p className="text-sm text-gray-500 mb-4">
-              {analyzedAttributes.length > 0 
-                ? "Based on your website analysis - feel free to edit or add more" 
+              {analyzedAttributes.length > 0
+                ? "Based on your website analysis - feel free to edit or add more"
                 : "Select up to 5 key brand attributes"
               }
             </p>
@@ -373,12 +455,12 @@ export default function BrandIdentity({ initialData, onDataReady }: BrandIdentit
                   ) : (
                     <div
                       className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
-                        item.selected 
-                          ? "border-accent-300 bg-accent-50" 
+                        item.selected
+                          ? "border-accent-300 bg-accent-50"
                           : "border-gray-200 hover:border-accent-200"
                       }`}
                     >
-                      <span 
+                      <span
                         className="text-sm text-mono-800 cursor-pointer hover:text-accent-600 flex-1"
                         onClick={() => {
                           if (item.selected) {
@@ -393,8 +475,8 @@ export default function BrandIdentity({ initialData, onDataReady }: BrandIdentit
                       </span>
                       <div
                         className={`w-5 h-5 rounded-sm border flex items-center justify-center cursor-pointer transition-colors ${
-                          item.selected 
-                            ? "bg-accent-500 border-accent-500 hover:bg-accent-600" 
+                          item.selected
+                            ? "bg-accent-500 border-accent-500 hover:bg-accent-600"
                             : "border-gray-300 hover:border-accent-400"
                         }`}
                         onClick={() => handleToggleAttribute(item.id)}
@@ -423,15 +505,10 @@ export default function BrandIdentity({ initialData, onDataReady }: BrandIdentit
               <Badge className="bg-accent-100 text-accent-700 ml-2">
                 {competitorItems.filter(c => c.selected).length}/5
               </Badge>
-              {analyzedCompetitors.length > 0 && (
-                <Badge className="bg-secondary-100 text-secondary-700 ml-1">
-                  AI Analyzed
-                </Badge>
-              )}
             </div>
             <p className="text-sm text-gray-500 mb-4">
-              {analyzedCompetitors.length > 0 
-                ? "Based on your website analysis - you can add, remove or modify these" 
+              {analyzedCompetitors.length > 0
+                ? "Based on your website analysis - you can add, remove or modify these"
                 : "Select up to 5 main competitors"
               }
             </p>
