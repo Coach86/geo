@@ -7,8 +7,8 @@ import {
   BrandVisibilitySummary,
   ProjectBatchContext,
   ModelBreakdown,
-  SpontaneousPipelineResult,
-  SpontaneousResults,
+  VisibilityPipelineResult,
+  VisibilityResults,
   WebSearchSummary,
 } from '../interfaces/batch.interfaces';
 import { AnalyzerConfig, LlmModelConfig, PipelineType, PromptType } from '../interfaces/llm.interfaces';
@@ -17,7 +17,7 @@ import { SystemPrompts, PromptTemplates, formatPrompt } from '../prompts/prompts
 import { LlmProvider } from 'src/modules/llm/interfaces/llm-provider.enum';
 
 @Injectable()
-export class SpontaneousPipelineService extends BasePipelineService {
+export class VisibilityPipelineService extends BasePipelineService {
   constructor(
     protected readonly configService: ConfigService,
     protected readonly llmService: LlmService,
@@ -26,8 +26,8 @@ export class SpontaneousPipelineService extends BasePipelineService {
     super(
       configService,
       llmService,
-      SpontaneousPipelineService.name,
-      PipelineType.SPONTANEOUS,
+      VisibilityPipelineService.name,
+      PipelineType.VISIBILITY,
       rawResponseService,
     );
   }
@@ -36,23 +36,23 @@ export class SpontaneousPipelineService extends BasePipelineService {
    * Get analyzer config for this specific pipeline
    */
   protected getAnalyzerConfig(): AnalyzerConfig {
-    return this.config.analyzerConfig.spontaneous;
+    return this.config.analyzerConfig.visibility;
   }
 
   /**
-   * Run the spontaneous pipeline for a company
+   * Run the visibility pipeline for a company
    * @param context Company batch context
    * @returns Pipeline results
    */
-  async run(context: ProjectBatchContext): Promise<SpontaneousResults> {
-    this.logger.log(`Running spontaneous pipeline for ${context.projectId} (${context.brandName})`);
+  async run(context: ProjectBatchContext): Promise<VisibilityResults> {
+    this.logger.log(`Running visibility pipeline for ${context.projectId} (${context.brandName})`);
 
     try {
       // Get the prompts for this pipeline
-      const prompts = context.promptSet?.spontaneous || [];
+      const prompts = context.promptSet?.visibility || [];
       
       if (!prompts.length) {
-        throw new Error('No spontaneous prompts found for this company');
+        throw new Error('No visibility prompts found for this company');
       }
 
       // Get the enabled LLM models from configuration
@@ -107,7 +107,7 @@ export class SpontaneousPipelineService extends BasePipelineService {
                   );
                 } catch (error) {
                   this.logger.error(
-                    `Error in spontaneous pipeline for ${context.brandName} with ${modelConfig.provider}/${modelConfig.model} on prompt ${i}, run ${runIndex + 1}: ${error.message}`,
+                    `Error in visibility pipeline for ${context.brandName} with ${modelConfig.provider}/${modelConfig.model} on prompt ${i}, run ${runIndex + 1}: ${error.message}`,
                     error.stack,
                   );
                   return {
@@ -131,7 +131,7 @@ export class SpontaneousPipelineService extends BasePipelineService {
       const results = await Promise.all(tasks);
 
       // Analyze and summarize results
-      const summary = this.analyzeSpontaneousResults(results);
+      const summary = this.analyzeVisibilityResults(results);
 
       // Generate web search summary
       const webSearchSummary = this.createWebSearchSummary(results);
@@ -140,7 +140,7 @@ export class SpontaneousPipelineService extends BasePipelineService {
       const brandVisibility = this.generateBrandVisibilitySummary(results);
 
       this.logger.log(
-        `Completed spontaneous pipeline for ${context.projectId} with ${results.length} results`,
+        `Completed visibility pipeline for ${context.projectId} with ${results.length} results`,
       );
 
       if (webSearchSummary.usedWebSearch) {
@@ -161,7 +161,7 @@ export class SpontaneousPipelineService extends BasePipelineService {
       };
     } catch (error) {
       this.logger.error(
-        `Failed to run spontaneous pipeline for ${context.projectId}: ${error.message}`,
+        `Failed to run visibility pipeline for ${context.projectId}: ${error.message}`,
         error.stack,
       );
       throw error;
@@ -185,9 +185,9 @@ export class SpontaneousPipelineService extends BasePipelineService {
     llmResponseObj: any, // Changed to accept the full response object
     promptIndex: number,
     runIndex: number = 0, // Default to 0 for backward compatibility
-  ): Promise<SpontaneousPipelineResult> {
+  ): Promise<VisibilityPipelineResult> {
     this.logger.log(
-      `Analyzing response from ${modelConfig.provider}/${modelConfig.model} for spontaneous mention of ${brandName}`,
+      `Analyzing response from ${modelConfig.provider}/${modelConfig.model} for visibility mention of ${brandName}`,
     );
 
     // Extract the text from the response object
@@ -211,7 +211,7 @@ export class SpontaneousPipelineService extends BasePipelineService {
     });
 
     // Format the user prompt using the template
-    const userPrompt = formatPrompt(PromptTemplates.SPONTANEOUS_ANALYSIS, {
+    const userPrompt = formatPrompt(PromptTemplates.VISIBILITY_ANALYSIS, {
       originalPrompt: prompt,
       brandName,
       llmResponse,
@@ -222,10 +222,10 @@ export class SpontaneousPipelineService extends BasePipelineService {
       const result = await this.getStructuredAnalysis(
         userPrompt,
         schema,
-        SystemPrompts.SPONTANEOUS_ANALYSIS,
+        SystemPrompts.VISIBILITY_ANALYSIS,
         llmResponseObj.batchExecutionId, // Pass the batch execution ID if available
         promptIndex, // Pass the prompt index
-        PromptType.SPONTANEOUS, // Pass the prompt type
+        PromptType.VISIBILITY, // Pass the prompt type
         prompt, // Pass the original prompt
         llmResponse, // Pass the original LLM response
         modelConfig.model, // Pass the original LLM model
@@ -259,13 +259,13 @@ export class SpontaneousPipelineService extends BasePipelineService {
         llmResponseObj: llmResponseObj,
       };
     } catch (error) {
-      this.logger.error(`All analyzers failed for spontaneous analysis: ${error.message}`);
+      this.logger.error(`All analyzers failed for visibility analysis: ${error.message}`);
       throw error;
     }
   }
 
   /**
-   * Analyze and summarize the results of the spontaneous pipeline
+   * Analyze and summarize the results of the visibility pipeline
    * @param results Array of pipeline results
    * @returns Summary statistics
    */
@@ -274,7 +274,7 @@ export class SpontaneousPipelineService extends BasePipelineService {
    * @param results Array of pipeline results
    * @returns Web search summary
    */
-  private createWebSearchSummary(results: SpontaneousPipelineResult[]): WebSearchSummary {
+  private createWebSearchSummary(results: VisibilityPipelineResult[]): WebSearchSummary {
     // Filter out results with errors
     const validResults = results.filter((r) => !r.error);
 
@@ -408,9 +408,9 @@ export class SpontaneousPipelineService extends BasePipelineService {
     };
   }
 
-  private analyzeSpontaneousResults(
-    results: SpontaneousPipelineResult[],
-  ): SpontaneousResults['summary'] {
+  private analyzeVisibilityResults(
+    results: VisibilityPipelineResult[],
+  ): VisibilityResults['summary'] {
     // Filter out results with errors
     const validResults = results.filter((r) => !r.error);
 
@@ -461,7 +461,7 @@ export class SpontaneousPipelineService extends BasePipelineService {
    * @returns Brand visibility summary with model breakdown
    */
   private generateBrandVisibilitySummary(
-    results: SpontaneousPipelineResult[],
+    results: VisibilityPipelineResult[],
   ): BrandVisibilitySummary {
     // Filter out results with errors
     const validResults = results.filter((r) => !r.error);
@@ -484,7 +484,7 @@ export class SpontaneousPipelineService extends BasePipelineService {
     const promptsTested = uniquePromptIndices.size;
 
     // Group results by LLM provider
-    const resultsByProvider: Record<string, SpontaneousPipelineResult[]> = {};
+    const resultsByProvider: Record<string, VisibilityPipelineResult[]> = {};
 
     for (const result of validResults) {
       // Extract provider name without model specifics (e.g., "Anthropic/claude-3-opus" -> "Anthropic")

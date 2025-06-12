@@ -46,6 +46,7 @@ import {
 } from "lucide-react";
 import { MultiSelectFilter } from "./MultiSelectFilter";
 import { getModelFriendlyName } from "@/utils/model-utils";
+import { getPromptTypeFriendlyName } from "@/utils/prompt-utils";
 
 // Types
 interface CitationRow {
@@ -416,11 +417,14 @@ export function CitationsTable({ citations, onExport, searchQueryFilter }: Citat
             </div>
           );
         },
-        cell: ({ getValue }) => (
-          <Badge variant="outline" className="text-xs">
-            {getValue() as string}
-          </Badge>
-        ),
+        cell: ({ getValue }) => {
+          const promptType = getValue() as string;
+          return (
+            <Badge variant="outline" className="text-xs">
+              {getPromptTypeFriendlyName(promptType)}
+            </Badge>
+          );
+        },
         filterFn: multiSelectFilter,
         enableSorting: true,
         enableColumnFilter: true,
@@ -670,7 +674,7 @@ export function CitationsTable({ citations, onExport, searchQueryFilter }: Citat
                       </td>
                       <td className={`px-4 py-3 border-b ${isLastInGroup ? 'border-gray-300' : 'border-gray-200'}`}>
                         <Badge variant="outline" className="text-xs">
-                          {row.original.promptType}
+                          {getPromptTypeFriendlyName(row.original.promptType)}
                         </Badge>
                       </td>
                       <td className={`px-4 py-3 border-b ${isLastInGroup ? 'border-gray-300' : 'border-gray-200'}`}>

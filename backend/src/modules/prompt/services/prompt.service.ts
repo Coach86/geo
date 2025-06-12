@@ -7,11 +7,10 @@ import { PromptSetRepository } from '../repositories/prompt-set.repository';
 import { ProjectCreatedEvent } from '../../project/events/project-created.event';
 import { LlmService } from '../../llm/services/llm.service';
 import { z } from 'zod';
-import { spontaneousSystemPrompt, spontaneousUserPrompt } from './spontaneous-prompts';
-import { directSystemPrompt, directUserPrompt } from './direct-prompts';
-import { comparisonSystemPrompt, comparisonUserPrompt } from './comparison-prompts';
-import { accuracySystemPrompt, accuracyUserPrompt } from './accuracy-prompts';
-import { brandBattleSystemPrompt, brandBattleUserPrompt } from './brand-battle-prompts';
+import { visibilitySystemPrompt, visibilityUserPrompt } from './visibility-prompts';
+import { sentimentSystemPrompt, sentimentUserPrompt } from './sentiment-prompts';
+import { competitionSystemPrompt, competitionUserPrompt } from './competition-prompts';
+import { alignmentSystemPrompt, alignmentUserPrompt } from './alignment-prompts';
 import { Project } from '../../project/entities/project.entity';
 import { PromptSet, PromptSetDocument } from '../schemas/prompt-set.schema';
 import { ProjectRepository } from '../../project/repositories/project.repository';
@@ -20,11 +19,10 @@ import { LlmProvider } from '@/modules/llm/interfaces/llm-provider.enum';
 @Injectable()
 export class PromptService implements OnModuleInit {
   private readonly logger = new Logger(PromptService.name);
-  private spontPromptCount: number;
-  private directPromptCount: number;
-  private comparisonPromptCount: number;
-  private accuracyPromptCount: number;
-  private brandBattlePromptCount: number;
+  private visibilityPromptCount: number;
+  private sentimentPromptCount: number;
+  private competitionPromptCount: number;
+  private alignmentPromptCount: number;
 
   constructor(
     private readonly promptSetRepository: PromptSetRepository,
@@ -35,16 +33,14 @@ export class PromptService implements OnModuleInit {
 
   onModuleInit() {
     // Load prompt counts from configuration
-    this.spontPromptCount = this.configService.get<number>('SPONT_PROMPTS', 15);
-    this.directPromptCount = this.configService.get<number>('DIRECT_PROMPTS', 3);
-    this.comparisonPromptCount = this.configService.get<number>('COMP_PROMPTS', 5);
-    this.accuracyPromptCount = this.configService.get<number>('ACCURACY_PROMPTS', 3);
-    this.brandBattlePromptCount = this.configService.get<number>('BRAND_BATTLE_PROMPTS', 1);
+    this.visibilityPromptCount = this.configService.get<number>('VISIBILITY_PROMPTS', 15);
+    this.sentimentPromptCount = this.configService.get<number>('SENTIMENT_PROMPTS', 3);
+    this.competitionPromptCount = this.configService.get<number>('COMPETITION_PROMPTS', 5);
+    this.alignmentPromptCount = this.configService.get<number>('ALIGNMENT_PROMPTS', 3);
 
     this.logger.log(
-      `Initialized with ${this.spontPromptCount} spontaneous prompts, ${this.directPromptCount} direct prompts, ` +
-        `${this.comparisonPromptCount} comparison prompts, ${this.accuracyPromptCount} accuracy prompts, ` +
-        `${this.brandBattlePromptCount} brand battle prompts`,
+      `Initialized with ${this.visibilityPromptCount} visibility prompts, ${this.sentimentPromptCount} sentiment prompts, ` +
+        `${this.competitionPromptCount} competition prompts, ${this.alignmentPromptCount} alignment prompts`,
     );
   }
 
@@ -114,11 +110,10 @@ export class PromptService implements OnModuleInit {
       await this.promptSetRepository.create({
         id: event.projectId,
         projectId: event.projectId,
-        spontaneous: promptSet.spontaneous,
-        direct: promptSet.direct,
-        comparison: promptSet.comparison,
-        accuracy: promptSet.accuracy,
-        brandBattle: promptSet.brandBattle,
+        visibility: promptSet.visibility,
+        sentiment: promptSet.sentiment,
+        competition: promptSet.competition,
+        alignment: promptSet.alignment,
       });
 
       this.logger.log(`Successfully generated prompts for project ${event.projectId}`);
@@ -144,52 +139,46 @@ export class PromptService implements OnModuleInit {
     const market = project.market;
     const language = project.language;
     // Generate all prompts using LLM
-    const [spontaneous, direct, comparison, accuracy, brandBattle] = await Promise.all([
-      this.generateSpontaneousPrompts(
+    const [visibility, sentiment, competition, alignment] = await Promise.all([
+      this.generateVisibilityPrompts(
         websiteUrl,
         industry,
         brandName,
         market,
         language,
-        this.spontPromptCount,
+        this.visibilityPromptCount,
         competitors,
       ),
-      this.generateDirectBrandPrompts(
+      this.generateSentimentPrompts(
         brandName,
         market,
         language,
-        this.directPromptCount,
+        this.sentimentPromptCount,
         websiteUrl,
       ),
-      this.generateComparisonPrompts(
+      this.generateCompetitionPrompts(
         brandName,
         competitors,
         industry,
         keyBrandAttributes,
         market,
         language,
-        this.comparisonPromptCount,
+        this.competitionPromptCount,
       ),
-      this.generateAccuracyPrompts(
+      this.generateAlignmentPrompts(
         brandName,
         market,
         language,
         keyBrandAttributes,
-        this.accuracyPromptCount,
+        this.alignmentPromptCount,
       ),
-      this.generateBrandBattlePrompts(
-        brandName,
-        competitors,
-        market,
-        language,
-        this.brandBattlePromptCount,
-      ),
+      // Brand battle prompts merged into competition
     ]);
 
-    return { spontaneous, direct, comparison, accuracy, brandBattle };
+    return { visibility, sentiment, competition, alignment };
   }
 
-  private async generateSpontaneousPrompts(
+  private async generateVisibilityPrompts(
     websiteUrl: string,
     industry: string,
     brandName: string,
@@ -206,7 +195,7 @@ export class PromptService implements OnModuleInit {
     // Call LLM with structured output processing
     const result = await this.llmService.getStructuredOutput(
       LlmProvider.OpenAI,
-      spontaneousUserPrompt({
+      visibilityUserPrompt({
         market,
         websiteUrl,
         industry,
@@ -216,13 +205,13 @@ export class PromptService implements OnModuleInit {
         language,
       }),
       promptsSchema,
-      { systemPrompt: spontaneousSystemPrompt },
+      { systemPrompt: visibilitySystemPrompt },
     );
 
     return result.prompts;
   }
 
-  private async generateDirectBrandPrompts(
+  private async generateSentimentPrompts(
     brandName: string,
     market: string,
     language: string,
@@ -237,15 +226,15 @@ export class PromptService implements OnModuleInit {
     // Call LLM with structured output processing
     const result = await this.llmService.getStructuredOutput(
       LlmProvider.OpenAI,
-      directUserPrompt({ market, brandName, count, websiteUrl, language }),
+      sentimentUserPrompt({ market, brandName, count, websiteUrl, language }),
       promptsSchema,
-      { systemPrompt: directSystemPrompt },
+      { systemPrompt: sentimentSystemPrompt },
     );
 
     return result.prompts;
   }
 
-  private async generateComparisonPrompts(
+  private async generateCompetitionPrompts(
     brandName: string,
     competitors: string[],
     industry: string,
@@ -266,7 +255,7 @@ export class PromptService implements OnModuleInit {
     // Call LLM with structured output processing
     const result = await this.llmService.getStructuredOutput(
       LlmProvider.OpenAI,
-      comparisonUserPrompt({
+      competitionUserPrompt({
         market,
         brandName,
         competitors: competitorList,
@@ -276,7 +265,7 @@ export class PromptService implements OnModuleInit {
         language,
       }),
       promptsSchema,
-      { systemPrompt: comparisonSystemPrompt },
+      { systemPrompt: competitionSystemPrompt },
     );
 
     return result.prompts;
@@ -289,7 +278,7 @@ export class PromptService implements OnModuleInit {
    * @param count Number of prompts to generate
    * @returns Array of accuracy evaluation prompts
    */
-  private async generateAccuracyPrompts(
+  private async generateAlignmentPrompts(
     brandName: string,
     market: string,
     language: string,
@@ -304,7 +293,7 @@ export class PromptService implements OnModuleInit {
     // Call LLM with structured output processing
     const result = await this.llmService.getStructuredOutput(
       LlmProvider.OpenAI,
-      accuracyUserPrompt({
+      alignmentUserPrompt({
         market,
         language,
         brandName,
@@ -312,52 +301,13 @@ export class PromptService implements OnModuleInit {
         count,
       }),
       promptsSchema,
-      { systemPrompt: accuracySystemPrompt },
+      { systemPrompt: alignmentSystemPrompt },
     );
 
     return result.prompts;
   }
 
-  /**
-   * Generate brand battle prompts for competitor-specific comparisons
-   * @param brandName Company brand name
-   * @param competitors List of competitors
-   * @param market Market where the company operates
-   * @param count Number of prompts to generate
-   * @returns Array of brand battle prompts
-   */
-  private async generateBrandBattlePrompts(
-    brandName: string,
-    competitors: string[],
-    market: string,
-    language: string,
-    count: number,
-  ): Promise<string[]> {
-    // Use default competitors if none provided
-    const competitorList =
-      competitors && competitors.length > 0 ? competitors : ['competitors in the industry'];
-
-    // Define our schema for the LLM output
-    const promptsSchema = z.object({
-      prompts: z.array(z.string()),
-    });
-
-    // Call LLM with structured output processing
-    const result = await this.llmService.getStructuredOutput(
-      LlmProvider.OpenAI,
-      brandBattleUserPrompt({
-        market,
-        brandName,
-        competitors: competitorList,
-        count,
-        language,
-      }),
-      promptsSchema,
-      { systemPrompt: brandBattleSystemPrompt },
-    );
-
-    return result.prompts;
-  }
+  // Brand battle method removed - merged into competition prompts
 
   /**
    * Create a new prompt set for a project
@@ -368,11 +318,10 @@ export class PromptService implements OnModuleInit {
   async createPromptSet(
     projectId: string,
     prompts: {
-      spontaneous?: string[];
-      direct?: string[];
-      comparison?: string[];
-      accuracy?: string[];
-      brandBattle?: string[];
+      visibility?: string[];
+      sentiment?: string[];
+      competition?: string[];
+      alignment?: string[];
     },
   ) {
     this.logger.log(`Creating prompt set for project: ${projectId}`);
@@ -389,11 +338,10 @@ export class PromptService implements OnModuleInit {
       // Create new prompt set
       const promptSetData = {
         projectId,
-        spontaneous: prompts.spontaneous || [],
-        direct: prompts.direct || [],
-        comparison: prompts.comparison || [],
-        accuracy: prompts.accuracy || [],
-        brandBattle: prompts.brandBattle || [],
+        visibility: prompts.visibility || [],
+        sentiment: prompts.sentiment || [],
+        competition: prompts.competition || [],
+        alignment: prompts.alignment || [],
       };
 
       const savedPromptSet = await this.promptSetRepository.create(promptSetData);
@@ -415,11 +363,10 @@ export class PromptService implements OnModuleInit {
   async updatePromptSet(
     projectId: string,
     updatedPrompts: {
-      spontaneous?: string[];
-      direct?: string[];
-      comparison?: string[];
-      accuracy?: string[];
-      brandBattle?: string[];
+      visibility?: string[];
+      sentiment?: string[];
+      competition?: string[];
+      alignment?: string[];
     },
   ) {
     this.logger.log(`Updating prompts for project: ${projectId}`);
@@ -436,24 +383,20 @@ export class PromptService implements OnModuleInit {
       // Prepare update data
       const updateData: any = {};
 
-      if (updatedPrompts.spontaneous !== undefined) {
-        updateData.spontaneous = updatedPrompts.spontaneous;
+      if (updatedPrompts.visibility !== undefined) {
+        updateData.visibility = updatedPrompts.visibility;
       }
 
-      if (updatedPrompts.direct !== undefined) {
-        updateData.direct = updatedPrompts.direct;
+      if (updatedPrompts.sentiment !== undefined) {
+        updateData.sentiment = updatedPrompts.sentiment;
       }
 
-      if (updatedPrompts.comparison !== undefined) {
-        updateData.comparison = updatedPrompts.comparison;
+      if (updatedPrompts.competition !== undefined) {
+        updateData.competition = updatedPrompts.competition;
       }
 
-      if (updatedPrompts.accuracy !== undefined) {
-        updateData.accuracy = updatedPrompts.accuracy;
-      }
-
-      if (updatedPrompts.brandBattle !== undefined) {
-        updateData.brandBattle = updatedPrompts.brandBattle;
+      if (updatedPrompts.alignment !== undefined) {
+        updateData.alignment = updatedPrompts.alignment;
       }
 
       // Only update if there are changes
@@ -461,11 +404,10 @@ export class PromptService implements OnModuleInit {
         return {
           id: existingPromptSet.id,
           projectId: existingPromptSet.projectId,
-          spontaneous: existingPromptSet.spontaneous,
-          direct: existingPromptSet.direct,
-          comparison: existingPromptSet.comparison,
-          accuracy: existingPromptSet.accuracy,
-          brandBattle: existingPromptSet.brandBattle,
+          visibility: existingPromptSet.visibility,
+          sentiment: existingPromptSet.sentiment,
+          competition: existingPromptSet.competition,
+          alignment: existingPromptSet.alignment,
           updatedAt:
             existingPromptSet.updatedAt instanceof Date ? existingPromptSet.updatedAt : new Date(),
           createdAt:
@@ -489,11 +431,10 @@ export class PromptService implements OnModuleInit {
       return {
         id: updatedPromptSet.id,
         projectId: updatedPromptSet.projectId,
-        spontaneous: updatedPromptSet.spontaneous,
-        direct: updatedPromptSet.direct,
-        comparison: updatedPromptSet.comparison,
-        accuracy: updatedPromptSet.accuracy,
-        brandBattle: updatedPromptSet.brandBattle,
+        visibility: updatedPromptSet.visibility,
+        sentiment: updatedPromptSet.sentiment,
+        competition: updatedPromptSet.competition,
+        alignment: updatedPromptSet.alignment,
         updatedAt:
           updatedPromptSet.updatedAt instanceof Date ? updatedPromptSet.updatedAt : new Date(),
         createdAt:
@@ -550,11 +491,10 @@ export class PromptService implements OnModuleInit {
       if (existingPromptSet) {
         // Update existing prompt set
         result = await this.promptSetRepository.updateByProjectId(projectId, {
-          spontaneous: promptSet.spontaneous,
-          direct: promptSet.direct,
-          comparison: promptSet.comparison,
-          accuracy: promptSet.accuracy,
-          brandBattle: promptSet.brandBattle,
+          visibility: promptSet.visibility,
+          sentiment: promptSet.sentiment,
+          competition: promptSet.competition,
+          alignment: promptSet.alignment,
         });
 
         if (!result) {
@@ -567,11 +507,10 @@ export class PromptService implements OnModuleInit {
         result = await this.promptSetRepository.create({
           id: projectId,
           projectId: projectId,
-          spontaneous: promptSet.spontaneous,
-          direct: promptSet.direct,
-          comparison: promptSet.comparison,
-          accuracy: promptSet.accuracy,
-          brandBattle: promptSet.brandBattle,
+          visibility: promptSet.visibility,
+          sentiment: promptSet.sentiment,
+          competition: promptSet.competition,
+          alignment: promptSet.alignment,
         });
       }
 
@@ -579,11 +518,10 @@ export class PromptService implements OnModuleInit {
       return {
         id: result.id,
         projectId: result.projectId,
-        spontaneous: result.spontaneous,
-        direct: result.direct,
-        comparison: result.comparison,
-        accuracy: result.accuracy,
-        brandBattle: result.brandBattle,
+        visibility: result.visibility,
+        sentiment: result.sentiment,
+        competition: result.competition,
+        alignment: result.alignment,
         updatedAt: result.updatedAt instanceof Date ? result.updatedAt : new Date(),
         createdAt: result.createdAt instanceof Date ? result.createdAt : new Date(),
       };

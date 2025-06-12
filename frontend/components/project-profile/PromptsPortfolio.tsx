@@ -59,11 +59,11 @@ export function PromptsPortfolio({
   const canAddMorePrompts = (type: string): boolean => {
     if (!userProfile) return false;
     
-    // Only limit spontaneous prompts
-    if (type === "spontaneous") {
-      const currentSpontaneousCount = promptSet.spontaneous.length;
-      const maxSpontaneousPrompts = userProfile.planSettings?.maxSpontaneousPrompts || 12;
-      return currentSpontaneousCount < maxSpontaneousPrompts;
+    // Only limit visibility prompts
+    if (type === "visibility") {
+      const currentVisibilityCount = promptSet.visibility.length;
+      const maxVisibilityPrompts = userProfile.planSettings?.maxVisibilityPrompts || 12;
+      return currentVisibilityCount < maxVisibilityPrompts;
     }
     
     // Other prompt types are not limited
@@ -72,8 +72,8 @@ export function PromptsPortfolio({
 
   // Handle adding a new prompt
   const handleAddPrompt = (type: string) => {
-    // Check if it's a spontaneous prompt and if limit would be exceeded
-    if (type === "spontaneous" && !canAddMorePrompts(type)) {
+    // Check if it's a visibility prompt and if limit would be exceeded
+    if (type === "visibility" && !canAddMorePrompts(type)) {
       // Redirect to upgrade plan
       router.push("/update-plan");
       return;
@@ -93,17 +93,17 @@ export function PromptsPortfolio({
     const promptsCopy = { ...promptSet };
 
     switch (type) {
-      case "spontaneous":
-        promptsCopy.spontaneous = [...promptsCopy.spontaneous, newPromptValue.trim()];
+      case "visibility":
+        promptsCopy.visibility = [...promptsCopy.visibility, newPromptValue.trim()];
         break;
-      case "direct":
-        promptsCopy.direct = [...promptsCopy.direct, newPromptValue.trim()];
+      case "sentiment":
+        promptsCopy.sentiment = [...promptsCopy.sentiment, newPromptValue.trim()];
         break;
-      case "accuracy":
-        promptsCopy.accuracy = [...promptsCopy.accuracy, newPromptValue.trim()];
+      case "alignment":
+        promptsCopy.alignment = [...promptsCopy.alignment, newPromptValue.trim()];
         break;
-      case "battle":
-        promptsCopy.brandBattle = [...promptsCopy.brandBattle, newPromptValue.trim()];
+      case "competition":
+        promptsCopy.competition = [...promptsCopy.competition, newPromptValue.trim()];
         break;
     }
 
@@ -118,11 +118,10 @@ export function PromptsPortfolio({
       await updatePromptSet(
         projectId,
         {
-          spontaneous: promptsCopy.spontaneous,
-          direct: promptsCopy.direct,
-          comparison: promptsCopy.comparison || [],
-          accuracy: promptsCopy.accuracy,
-          brandBattle: promptsCopy.brandBattle,
+          visibility: promptsCopy.visibility,
+          sentiment: promptsCopy.sentiment,
+          alignment: promptsCopy.alignment,
+          competition: promptsCopy.competition,
         },
         token
       );
@@ -144,17 +143,17 @@ export function PromptsPortfolio({
     const promptsCopy = { ...promptSet };
 
     switch (type) {
-      case "spontaneous":
-        promptsCopy.spontaneous[index] = newValue;
+      case "visibility":
+        promptsCopy.visibility[index] = newValue;
         break;
-      case "direct":
-        promptsCopy.direct[index] = newValue;
+      case "sentiment":
+        promptsCopy.sentiment[index] = newValue;
         break;
-      case "accuracy":
-        promptsCopy.accuracy[index] = newValue;
+      case "alignment":
+        promptsCopy.alignment[index] = newValue;
         break;
-      case "battle":
-        promptsCopy.brandBattle[index] = newValue;
+      case "competition":
+        promptsCopy.competition[index] = newValue;
         break;
     }
 
@@ -169,11 +168,10 @@ export function PromptsPortfolio({
       await updatePromptSet(
         projectId,
         {
-          spontaneous: promptsCopy.spontaneous,
-          direct: promptsCopy.direct,
-          comparison: promptsCopy.comparison || [],
-          accuracy: promptsCopy.accuracy,
-          brandBattle: promptsCopy.brandBattle,
+          visibility: promptsCopy.visibility,
+          sentiment: promptsCopy.sentiment,
+          alignment: promptsCopy.alignment,
+          competition: promptsCopy.competition,
         },
         token
       );
@@ -185,7 +183,7 @@ export function PromptsPortfolio({
 
   const renderPrompts = (prompts: string[], type: string) => {
     const canAdd = canAddMorePrompts(type);
-    const isAtLimit = type === "spontaneous" && !canAdd;
+    const isAtLimit = type === "visibility" && !canAdd;
     
     return (
       <div className="space-y-2">
@@ -220,8 +218,8 @@ export function PromptsPortfolio({
           </div>
         ))}
 
-        {/* Add new prompt section - ONLY for visibility/spontaneous prompts */}
-        {type === "spontaneous" && (
+        {/* Add new prompt section - ONLY for visibility prompts */}
+        {type === "visibility" && (
           <>
             {addingPromptType === type ? (
               <div className="p-3 bg-blue-50 border-2 border-blue-200 rounded-lg">
@@ -270,7 +268,7 @@ export function PromptsPortfolio({
                 
                 {userProfile && (
                   <div className="text-xs text-gray-500 text-center">
-                    {prompts.length} / {userProfile.planSettings?.maxSpontaneousPrompts || 12} visibility prompts used
+                    {prompts.length} / {userProfile.planSettings?.maxVisibilityPrompts || 12} visibility prompts used
                   </div>
                 )}
                 
@@ -306,52 +304,52 @@ export function PromptsPortfolio({
         </div>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="spontaneous" className="w-full">
+        <Tabs defaultValue="visibility" className="w-full">
           <TabsList className="grid w-full grid-cols-4 mb-4">
-            <TabsTrigger value="spontaneous" className="text-xs">
+            <TabsTrigger value="visibility" className="text-xs">
               <Eye className="h-3 w-3 mr-1" />
-              Visibility ({promptSet.spontaneous.length})
+              Visibility ({promptSet.visibility.length})
             </TabsTrigger>
-            <TabsTrigger value="direct" className="text-xs">
+            <TabsTrigger value="sentiment" className="text-xs">
               <MessageSquare className="h-3 w-3 mr-1" />
-              Sentiment ({promptSet.direct.length})
+              Sentiment ({promptSet.sentiment.length})
             </TabsTrigger>
-            <TabsTrigger value="accuracy" className="text-xs">
+            <TabsTrigger value="alignment" className="text-xs">
               <CheckCircle className="h-3 w-3 mr-1" />
-              Alignment ({promptSet.accuracy.length})
+              Alignment ({promptSet.alignment.length})
             </TabsTrigger>
-            <TabsTrigger value="battle" className="text-xs">
+            <TabsTrigger value="competition" className="text-xs">
               <Swords className="h-3 w-3 mr-1" />
-              Battle ({promptSet.brandBattle.length})
+              Competition ({promptSet.competition.length})
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="spontaneous" className="space-y-2 mt-4">
+          <TabsContent value="visibility" className="space-y-2 mt-4">
             <div className="text-sm font-medium text-gray-700 mb-2">
               Visibility Prompts
             </div>
-            {renderPrompts(promptSet.spontaneous, "spontaneous")}
+            {renderPrompts(promptSet.visibility, "visibility")}
           </TabsContent>
 
-          <TabsContent value="direct" className="space-y-2 mt-4">
+          <TabsContent value="sentiment" className="space-y-2 mt-4">
             <div className="text-sm font-medium text-gray-700 mb-2">
-              Direct Sentiment Prompts
+              Sentiment Prompts
             </div>
-            {renderPrompts(promptSet.direct, "direct")}
+            {renderPrompts(promptSet.sentiment, "sentiment")}
           </TabsContent>
 
-          <TabsContent value="accuracy" className="space-y-2 mt-4">
+          <TabsContent value="alignment" className="space-y-2 mt-4">
             <div className="text-sm font-medium text-gray-700 mb-2">
-              Compliance Evaluation Prompts
+              Alignment Evaluation Prompts
             </div>
-            {renderPrompts(promptSet.accuracy, "accuracy")}
+            {renderPrompts(promptSet.alignment, "alignment")}
           </TabsContent>
 
-          <TabsContent value="battle" className="space-y-2 mt-4">
+          <TabsContent value="competition" className="space-y-2 mt-4">
             <div className="text-sm font-medium text-gray-700 mb-2">
-              Brand Battle Prompts
+              Competition Prompts
             </div>
-            {renderPrompts(promptSet.brandBattle, "battle")}
+            {renderPrompts(promptSet.competition, "competition")}
           </TabsContent>
         </Tabs>
       </CardContent>

@@ -3,52 +3,44 @@ import { IsArray, IsOptional, IsString } from 'class-validator';
 
 export class UpdatePromptSetDto {
   @ApiProperty({ 
-    description: 'Spontaneous mention prompts',
+    description: 'Visibility mention prompts',
     example: ['What companies in {industry} can you name?'],
     required: false
   })
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
-  spontaneous?: string[];
+  visibility?: string[];
 
   @ApiProperty({ 
-    description: 'Direct sentiment prompts',
+    description: 'Sentiment analysis prompts',
     example: ['What do you think about {COMPANY}?'],
     required: false
   })
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
-  direct?: string[];
+  sentiment?: string[];
 
   @ApiProperty({ 
-    description: 'Competitor comparison prompts',
+    description: 'Competition analysis prompts',
     example: ['Compare {COMPANY} with {COMPETITORS}'],
     required: false
   })
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
-  comparison?: string[];
+  competition?: string[];
 
   @ApiProperty({ 
-    description: 'Accuracy evaluation prompts',
+    description: 'Alignment evaluation prompts',
     example: ['What are the key products or services of {COMPANY}?'],
     required: false
   })
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
-  accuracy?: string[];
+  alignment?: string[];
   
-  @ApiProperty({ 
-    description: 'Brand battle prompts for competitor-specific comparisons',
-    example: ['Can you tell me the strengths and weaknesses of {COMPANY} compared to {COMPETITOR}?'],
-    required: false
-  })
-  @IsArray()
-  @IsString({ each: true })
-  @IsOptional()
-  brandBattle?: string[];
+  // Brand battle field removed - merged into competition
 }

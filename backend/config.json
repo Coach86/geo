@@ -156,7 +156,7 @@
     }
   ],
   "analyzerConfig": {
-    "spontaneous": {
+    "visibility": {
       "runsPerModel": 1,
       "fallback": {
         "provider": "Anthropic",
@@ -177,7 +177,17 @@
         "model": "gpt-4o"
       }
     },
-    "comparison": {
+    "alignment": {
+      "fallback": {
+        "provider": "Anthropic",
+        "model": "claude-3-7-sonnet-20250219"
+      },
+      "primary": {
+        "provider": "OpenAI",
+        "model": "gpt-4o"
+      }
+    },
+    "competition": {
       "fallback": {
         "provider": "Anthropic",
         "model": "claude-3-7-sonnet-20250219"
@@ -190,9 +200,10 @@
   },
   "concurrencyLimit": 100,
   "pipelineLimits": {
-    "spontaneous": 150,
+    "visibility": 150,
     "sentiment": 100,
-    "comparison": 80
+    "alignment": 80,
+    "competition": 80
   },
   "retryConfig": {
     "maxRetries": 3,

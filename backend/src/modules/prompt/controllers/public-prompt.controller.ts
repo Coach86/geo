@@ -39,11 +39,10 @@ export interface GeneratePromptsRequest {
 }
 
 export interface GeneratePromptsResponse {
-  spontaneous: string[];
-  direct: string[];
-  comparison: string[];
-  accuracy: string[];
-  brandBattle: string[];
+  visibility: string[];
+  sentiment: string[];
+  alignment: string[];
+  competition: string[];
 }
 
 @ApiTags('public-prompts')
@@ -71,11 +70,10 @@ export class PublicPromptController {
       properties: {
         id: { type: 'string' },
         projectId: { type: 'string' },
-        spontaneous: { type: 'array', items: { type: 'string' } },
-        direct: { type: 'array', items: { type: 'string' } },
-        comparison: { type: 'array', items: { type: 'string' } },
-        accuracy: { type: 'array', items: { type: 'string' } },
-        brandBattle: { type: 'array', items: { type: 'string' } },
+        visibility: { type: 'array', items: { type: 'string' } },
+        sentiment: { type: 'array', items: { type: 'string' } },
+        alignment: { type: 'array', items: { type: 'string' } },
+        competition: { type: 'array', items: { type: 'string' } },
         updatedAt: { type: 'string', format: 'date-time' },
         createdAt: { type: 'string', format: 'date-time' },
       },
@@ -119,11 +117,10 @@ export class PublicPromptController {
       return {
         id: promptSet._id?.toString() || promptSet.id,
         projectId: promptSet.projectId,
-        spontaneous: promptSet.spontaneous,
-        direct: promptSet.direct,
-        comparison: promptSet.comparison,
-        accuracy: promptSet.accuracy,
-        brandBattle: promptSet.brandBattle,
+        visibility: promptSet.visibility || [],
+        sentiment: promptSet.sentiment || [],
+        alignment: promptSet.alignment || [],
+        competition: promptSet.competition || [],
         updatedAt: promptSet.updatedAt instanceof Date ? promptSet.updatedAt : new Date(),
         createdAt: promptSet.createdAt instanceof Date ? promptSet.createdAt : new Date(),
       };
@@ -170,11 +167,10 @@ export class PublicPromptController {
     schema: {
       type: 'object',
       properties: {
-        spontaneous: { type: 'array', items: { type: 'string' } },
-        direct: { type: 'array', items: { type: 'string' } },
-        comparison: { type: 'array', items: { type: 'string' } },
-        accuracy: { type: 'array', items: { type: 'string' } },
-        brandBattle: { type: 'array', items: { type: 'string' } },
+        visibility: { type: 'array', items: { type: 'string' } },
+        sentiment: { type: 'array', items: { type: 'string' } },
+        alignment: { type: 'array', items: { type: 'string' } },
+        competition: { type: 'array', items: { type: 'string' } },
       },
     },
   })
@@ -240,11 +236,10 @@ export class PublicPromptController {
       this.logger.log(`Prompts generated successfully for brand: ${body.brandName}`);
 
       return {
-        spontaneous: promptSet.spontaneous || [],
-        direct: promptSet.direct || [],
-        comparison: promptSet.comparison || [],
-        accuracy: promptSet.accuracy || [],
-        brandBattle: promptSet.brandBattle || [],
+        visibility: promptSet.visibility || [],
+        sentiment: promptSet.sentiment || [],
+        alignment: promptSet.alignment || [],
+        competition: promptSet.competition || [],
       };
     } catch (error) {
       if (error instanceof BadRequestException || error instanceof UnauthorizedException) {

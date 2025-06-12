@@ -47,13 +47,13 @@ export class BatchExecutionService {
   /**
    * Save a batch result
    * @param batchExecutionId The ID of the batch execution
-   * @param resultType The type of result ('spontaneous', 'sentiment', 'comparison', 'accuracy')
+   * @param resultType The type of result ('visibility', 'sentiment', 'competition', 'alignment')
    * @param result The result to save
    * @returns The created batch result
    */
   async saveBatchResult(
     batchExecutionId: string,
-    resultType: 'spontaneous' | 'sentiment' | 'comparison' | 'accuracy',
+    resultType: 'visibility' | 'sentiment' | 'competition' | 'alignment',
     result: any,
   ): Promise<any> {
     try {

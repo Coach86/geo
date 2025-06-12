@@ -178,9 +178,8 @@ function NavigationButtons() {
               ...existingData.prompts,
               visibilityPrompts: currentStepData.visibilityPrompts || [],
               perceptionPrompts: currentStepData.perceptionPrompts || [],
-              comparisonPrompts: currentStepData.comparisonPrompts || [],
-              accuracyPrompts: currentStepData.accuracyPrompts || [],
-              brandBattlePrompts: currentStepData.brandBattlePrompts || [],
+              alignmentPrompts: currentStepData.alignmentPrompts || [],
+              competitionPrompts: currentStepData.competitionPrompts || [],
             }
           });
           break;
@@ -251,11 +250,10 @@ function NavigationButtons() {
 
         if (selectedVisibilityPrompts?.length > 0 || selectedPerceptionPrompts?.length > 0) {
           identityCardRequest.prompts = {
-            spontaneous: selectedVisibilityPrompts || [],
-            direct: selectedPerceptionPrompts || [],
-            comparison: formData.prompts.comparisonPrompts || [],
-            accuracy: formData.prompts.accuracyPrompts || [],
-            brandBattle: formData.prompts.brandBattlePrompts || []
+            visibility: selectedVisibilityPrompts || [],
+            sentiment: selectedPerceptionPrompts || [],
+            alignment: formData.prompts.alignmentPrompts || [],
+            competition: formData.prompts.competitionPrompts || []
           };
         }
       }
