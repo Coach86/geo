@@ -135,12 +135,18 @@ export default function ExplorerPage() {
       return null;
     }
 
+    // Map old prompt types to new ones for backward compatibility
     const promptTypeMap: Record<string, string[]> = {
-      spontaneous: promptSet.spontaneous,
-      direct: promptSet.direct,
-      comparison: promptSet.comparison,
-      accuracy: promptSet.accuracy,
-      brandBattle: promptSet.brandBattle,
+      // New names
+      visibility: promptSet.visibility || [],
+      sentiment: promptSet.sentiment || [],
+      alignment: promptSet.alignment || [],
+      competition: promptSet.competition || [],
+      // Old names for backward compatibility
+      spontaneous: promptSet.visibility || [],
+      direct: promptSet.sentiment || [],
+      accuracy: promptSet.alignment || [],
+      brandBattle: promptSet.competition || [],
     };
 
     const prompts = promptTypeMap[promptType];

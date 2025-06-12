@@ -168,7 +168,7 @@ export interface ReportResponse {
   };
 
   // Competition section
-  brandBattle: CompetitionData;
+  competition: CompetitionData;
 
   // Trace section
   trace: {
@@ -183,9 +183,8 @@ export interface ReportResponse {
 
   // Raw data for debugging
   rawData?: {
-    spontaneous?: any;
+    visibility?: any;
     sentiment?: any;
-    comparison?: any;
     accord?: any;
   };
 }
@@ -237,7 +236,7 @@ export interface SentimentProcessedReport extends BaseProcessedReport {
 
 export interface CompetitionProcessedReport extends BaseProcessedReport {
   competitors: string[];
-  brandBattle?: CompetitionData;
+  competition?: CompetitionData;
 }
 
 export interface CitationsProcessedReport extends BaseProcessedReport {

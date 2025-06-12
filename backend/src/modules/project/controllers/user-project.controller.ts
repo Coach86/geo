@@ -481,11 +481,10 @@ export class UserProjectController {
         prompts: {
           type: 'object',
           properties: {
-            spontaneous: { type: 'array', items: { type: 'string' } },
-            direct: { type: 'array', items: { type: 'string' } },
-            comparison: { type: 'array', items: { type: 'string' } },
-            accuracy: { type: 'array', items: { type: 'string' } },
-            brandBattle: { type: 'array', items: { type: 'string' } },
+            visibility: { type: 'array', items: { type: 'string' } },
+            sentiment: { type: 'array', items: { type: 'string' } },
+            alignment: { type: 'array', items: { type: 'string' } },
+            competition: { type: 'array', items: { type: 'string' } },
           },
         },
       },
@@ -513,11 +512,10 @@ export class UserProjectController {
       keyBrandAttributes?: string[];
       competitors?: string[];
       prompts?: {
-        spontaneous?: string[];
-        direct?: string[];
-        comparison?: string[];
-        accuracy?: string[];
-        brandBattle?: string[];
+        visibility?: string[];
+        sentiment?: string[];
+        alignment?: string[];
+        competition?: string[];
       };
     },
   ): Promise<ProjectResponseDto> {
@@ -576,16 +574,15 @@ export class UserProjectController {
       const savedProject = await this.projectRepository.save(projectData);
 
       // Handle custom prompts if provided
-      if (body.prompts && ((body.prompts.spontaneous?.length ?? 0) > 0 || (body.prompts.direct?.length ?? 0) > 0)) {
+      if (body.prompts && ((body.prompts.visibility?.length ?? 0) > 0 || (body.prompts.sentiment?.length ?? 0) > 0)) {
         this.logger.log(`Saving custom prompts for project ${projectId}`);
         
         try {
           await this.promptService.createPromptSet(projectId, {
-            spontaneous: body.prompts.spontaneous || [],
-            direct: body.prompts.direct || [],
-            comparison: body.prompts.comparison || [],
-            accuracy: body.prompts.accuracy || [],
-            brandBattle: body.prompts.brandBattle || [],
+            visibility: body.prompts.visibility || [],
+            sentiment: body.prompts.sentiment || [],
+            competition: body.prompts.competition || [],
+            alignment: body.prompts.alignment || [],
           });
           this.logger.log(`Custom prompts saved successfully for project ${projectId}`);
         } catch (promptError) {

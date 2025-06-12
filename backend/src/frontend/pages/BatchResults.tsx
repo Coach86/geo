@@ -215,6 +215,21 @@ const BatchResults: React.FC = () => {
     return date.toLocaleString();
   };
 
+  const getPromptTypeDisplayName = (type: string) => {
+    switch (type) {
+      case 'spontaneous':
+        return 'Visibility';
+      case 'direct':
+        return 'Sentiment';
+      case 'accuracy':
+        return 'Alignment';
+      case 'comparison':
+        return 'Competition';
+      default:
+        return type.charAt(0).toUpperCase() + type.slice(1);
+    }
+  };
+
   return (
     <>
       <Box sx={{ mb: 4 }}>
@@ -256,28 +271,28 @@ const BatchResults: React.FC = () => {
               iconPosition="start"
             />
             <Tab
-              label="Pulse"
+              label="Visibility"
               value={TabValue.SPONTANEOUS}
               icon={<QuestionAnswerIcon />}
               iconPosition="start"
               disabled={!spontaneousResults}
             />
             <Tab
-              label="Tone"
+              label="Sentiment"
               value={TabValue.SENTIMENT}
               icon={<ChatBubbleOutlineIcon />}
               iconPosition="start"
               disabled={!sentimentResults}
             />
             <Tab
-              label="Accord"
+              label="Alignment"
               value={TabValue.ACCURACY}
               icon={<FactCheckIcon />}
               iconPosition="start"
               disabled={!accuracyResults}
             />
             <Tab
-              label="Battle"
+              label="Competition"
               value={TabValue.COMPARISON}
               icon={<CompareArrowsIcon />}
               iconPosition="start"
@@ -316,7 +331,7 @@ const BatchResults: React.FC = () => {
                       {spontaneousResults && (
                         <ListItem>
                           <ListItemText
-                            primary="Spontaneous Mentions Analysis"
+                            primary="Visibility Analysis"
                             secondary={`Mention rate: ${(spontaneousResults.summary.mentionRate * 100).toFixed(1)}%`}
                           />
                         </ListItem>
@@ -332,7 +347,7 @@ const BatchResults: React.FC = () => {
                       {accuracyResults && (
                         <ListItem>
                           <ListItemText
-                            primary="Accuracy Analysis"
+                            primary="Alignment — Brand Compliance"
                             secondary={(() => {
                               const scores = Object.values(
                                 accuracyResults.summary.averageAttributeScores,
@@ -340,9 +355,9 @@ const BatchResults: React.FC = () => {
                               if (scores.length > 0) {
                                 const avg =
                                   scores.reduce((sum, score) => sum + score, 0) / scores.length;
-                                return `Average accuracy: ${(avg * 100).toFixed(1)}%`;
+                                return `Average alignment: ${(avg * 100).toFixed(1)}%`;
                               }
-                              return 'Attribute-based accuracy analysis';
+                              return 'Attribute-based alignment analysis';
                             })()}
                           />
                         </ListItem>
@@ -372,7 +387,7 @@ const BatchResults: React.FC = () => {
                       {Object.keys(groupedResponses).map((promptType) => (
                         <ListItem key={promptType}>
                           <ListItemText
-                            primary={`${promptType.charAt(0).toUpperCase() + promptType.slice(1)} Type`}
+                            primary={`${getPromptTypeDisplayName(promptType)} Type`}
                             secondary={`${groupedResponses[promptType].length} responses`}
                           />
                         </ListItem>
@@ -413,7 +428,7 @@ const BatchResults: React.FC = () => {
                       >
                         {getPromptTypeIcon(promptType)}
                         <Box component="span" sx={{ ml: 1 }}>
-                          {promptType.charAt(0).toUpperCase() + promptType.slice(1)} Responses
+                          {getPromptTypeDisplayName(promptType)} Responses
                         </Box>
                       </Typography>
                       <Divider sx={{ mb: 2 }} />

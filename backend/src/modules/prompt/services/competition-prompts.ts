@@ -1,7 +1,7 @@
-// System prompt for comparison prompts
-export const comparisonSystemPrompt = `You are a prompt engineering expert specializing in creating comparison questions for market research.`;
+// System prompt for competition prompts
+export const competitionSystemPrompt = `You are a prompt engineering expert specializing in creating comparison questions for market research.`;
 
-type ComparisonUserPromptParams = {
+type CompetitionUserPromptParams = {
   market: string;
   brandName: string;
   language: string;
@@ -10,7 +10,7 @@ type ComparisonUserPromptParams = {
   keyBrandAttributes: string[];
   count: number;
 };
-export function comparisonUserPrompt({
+export function competitionUserPrompt({
   market,
   brandName,
   language,
@@ -18,16 +18,16 @@ export function comparisonUserPrompt({
   industry,
   keyBrandAttributes,
   count,
-}: ComparisonUserPromptParams): string {
+}: CompetitionUserPromptParams): string {
   return `
       Generate ${count} different prompts to compare ${brandName} with its competitors in the ${industry} industry.
       
       ## Context:
       - Current date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
       - Company Key Brand Attributes:
-      ${keyBrandAttributes.map((f) => `- ${f}`).join('\n')}
+      ${keyBrandAttributes.map((f: string) => `- ${f}`).join('\n')}
       ### Competitors:
-      ${competitors.map((c) => `- ${c}`).join('\n')}
+      ${competitors.map((c: string) => `- ${c}`).join('\n')}
             
       ## IMPORTANT GUIDELINES:
       1. Each prompt should compare ${brandName} to one or more competitors

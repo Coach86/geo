@@ -41,7 +41,7 @@ interface LlmModel {
 }
 
 interface AnalyzerConfig {
-  spontaneous: {
+  visibility: {
     runsPerModel: number;
     primary: {
       provider: string;
@@ -62,7 +62,17 @@ interface AnalyzerConfig {
       model: string;
     };
   };
-  comparison: {
+  alignment: {
+    primary: {
+      provider: string;
+      model: string;
+    };
+    fallback: {
+      provider: string;
+      model: string;
+    };
+  };
+  competition: {
     primary: {
       provider: string;
       model: string;
@@ -75,9 +85,10 @@ interface AnalyzerConfig {
 }
 
 interface PipelineLimits {
-  spontaneous: number;
+  visibility: number;
   sentiment: number;
-  comparison: number;
+  alignment: number;
+  competition: number;
 }
 
 interface ConfigData {
@@ -287,17 +298,17 @@ const Config: React.FC = () => {
             <List>
               <ListItem divider>
                 <ListItemText
-                  primary="Spontaneous"
+                  primary="Visibility"
                   secondary={
                     <>
                       <Typography variant="body2">
-                        Runs Per Model: {configData.analyzerConfig.spontaneous.runsPerModel}
+                        Runs Per Model: {configData.analyzerConfig.visibility.runsPerModel}
                       </Typography>
                       <Typography variant="body2">
-                        Primary: {configData.analyzerConfig.spontaneous.primary.provider} - {configData.analyzerConfig.spontaneous.primary.model}
+                        Primary: {configData.analyzerConfig.visibility.primary.provider} - {configData.analyzerConfig.visibility.primary.model}
                       </Typography>
                       <Typography variant="body2">
-                        Fallback: {configData.analyzerConfig.spontaneous.fallback.provider} - {configData.analyzerConfig.spontaneous.fallback.model}
+                        Fallback: {configData.analyzerConfig.visibility.fallback.provider} - {configData.analyzerConfig.visibility.fallback.model}
                       </Typography>
                     </>
                   }
@@ -318,16 +329,31 @@ const Config: React.FC = () => {
                   }
                 />
               </ListItem>
-              <ListItem>
+              <ListItem divider>
                 <ListItemText
-                  primary="Comparison"
+                  primary="Alignment"
                   secondary={
                     <>
                       <Typography variant="body2">
-                        Primary: {configData.analyzerConfig.comparison.primary.provider} - {configData.analyzerConfig.comparison.primary.model}
+                        Primary: {configData.analyzerConfig.alignment.primary.provider} - {configData.analyzerConfig.alignment.primary.model}
                       </Typography>
                       <Typography variant="body2">
-                        Fallback: {configData.analyzerConfig.comparison.fallback.provider} - {configData.analyzerConfig.comparison.fallback.model}
+                        Fallback: {configData.analyzerConfig.alignment.fallback.provider} - {configData.analyzerConfig.alignment.fallback.model}
+                      </Typography>
+                    </>
+                  }
+                />
+              </ListItem>
+              <ListItem>
+                <ListItemText
+                  primary="Competition"
+                  secondary={
+                    <>
+                      <Typography variant="body2">
+                        Primary: {configData.analyzerConfig.competition.primary.provider} - {configData.analyzerConfig.competition.primary.model}
+                      </Typography>
+                      <Typography variant="body2">
+                        Fallback: {configData.analyzerConfig.competition.fallback.provider} - {configData.analyzerConfig.competition.fallback.model}
                       </Typography>
                     </>
                   }
@@ -351,8 +377,8 @@ const Config: React.FC = () => {
             <List>
               <ListItem divider>
                 <ListItemText
-                  primary="Spontaneous"
-                  secondary={`${configData.pipelineLimits.spontaneous} requests`}
+                  primary="Visibility"
+                  secondary={`${configData.pipelineLimits.visibility} requests`}
                 />
               </ListItem>
               <ListItem divider>
@@ -361,10 +387,16 @@ const Config: React.FC = () => {
                   secondary={`${configData.pipelineLimits.sentiment} requests`}
                 />
               </ListItem>
+              <ListItem divider>
+                <ListItemText
+                  primary="Alignment"
+                  secondary={`${configData.pipelineLimits.alignment} requests`}
+                />
+              </ListItem>
               <ListItem>
                 <ListItemText
-                  primary="Comparison"
-                  secondary={`${configData.pipelineLimits.comparison} requests`}
+                  primary="Competition"
+                  secondary={`${configData.pipelineLimits.competition} requests`}
                 />
               </ListItem>
             </List>
