@@ -247,3 +247,36 @@ export async function updatePromptSet(
     );
   }
 }
+
+/**
+ * Run manual analysis for a project (rate limited, requires token authentication)
+ */
+export async function runManualAnalysis(
+  projectId: string,
+  token: string
+): Promise<{
+  success: boolean;
+  message: string;
+  batchExecutionId: string;
+  estimatedDuration: string;
+}> {
+  try {
+    return await apiFetch<{
+      success: boolean;
+      message: string;
+      batchExecutionId: string;
+      estimatedDuration: string;
+    }>(
+      `/projects/${projectId}/run-analysis`,
+      {
+        method: 'POST',
+        token,
+      }
+    );
+  } catch (error) {
+    console.error('Run manual analysis error:', error);
+    throw new Error(
+      error instanceof Error ? error.message : 'Failed to run analysis'
+    );
+  }
+}

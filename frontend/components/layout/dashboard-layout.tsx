@@ -7,6 +7,7 @@ import Sidebar from "./sidebar";
 import { getUserProjects, ProjectResponse } from "@/lib/auth-api";
 import { Loader2 } from "lucide-react";
 import { NavigationProvider, useNavigation } from "@/providers/navigation-provider";
+import { Toaster } from "@/components/ui/toaster";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -98,6 +99,7 @@ function DashboardLayoutContent({ children }: DashboardLayoutProps) {
       <main className="flex-1 overflow-y-auto ml-60">
         <div className="p-8">{children}</div>
       </main>
+      <Toaster />
     </div>
   );
 }

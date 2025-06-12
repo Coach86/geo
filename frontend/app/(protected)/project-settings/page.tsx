@@ -11,12 +11,14 @@ import {
   PromptSet,
   getUserProfile,
   getUserProjects,
+  runManualAnalysis,
 } from "@/lib/auth-api";
 import { getMyOrganization } from "@/lib/organization-api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import BreadcrumbNav from "@/components/layout/breadcrumb-nav";
 import { useNavigation } from "@/providers/navigation-provider";
@@ -48,6 +50,9 @@ export default function Home() {
   const [editCompetitorsOpen, setEditCompetitorsOpen] = useState(false);
   const [editNameOpen, setEditNameOpen] = useState(false);
   const [editObjectivesOpen, setEditObjectivesOpen] = useState(false);
+
+  // Analysis states
+  const [runningAnalysis, setRunningAnalysis] = useState(false);
 
   // Fetch project details when selected project changes
   useEffect(() => {
@@ -154,6 +159,85 @@ export default function Home() {
       token
     );
     setProjectDetails(updatedCard);
+  };
+
+  const handleRunAnalysis = async () => {
+    if (!projectDetails || !token || runningAnalysis) return;
+
+    // Check if analysis is allowed before making the API call
+    if (!isAnalysisAllowed()) {
+      const reason = getAnalysisDisabledReason();
+      toast({
+        title: "Analysis Not Available",
+        description: reason || "Analysis is currently not available",
+        variant: "warning" as any,
+        duration: 6000,
+      });
+      return;
+    }
+
+    try {
+      setRunningAnalysis(true);
+      const result = await runManualAnalysis(projectDetails.id, token);
+      
+      toast({
+        title: "Analysis Started",
+        description: result.message,
+        duration: 6000,
+      });
+
+      // Refresh project details to get updated nextManualAnalysisAllowedAt
+      const updatedProject = await getProjectById(projectDetails.id, token);
+      setProjectDetails(updatedProject);
+      
+    } catch (error) {
+      console.error("Failed to run analysis:", error);
+      
+      // Check if it's a rate limit error (403)
+      const errorMessage = error instanceof Error ? error.message : "Failed to start analysis";
+      const isRateLimitError = errorMessage.includes("Analysis will be available");
+      
+      toast({
+        title: isRateLimitError ? "Analysis Not Available" : "Analysis Failed",
+        description: errorMessage,
+        variant: isRateLimitError ? ("warning" as any) : "destructive",
+        duration: 6000,
+      });
+    } finally {
+      setRunningAnalysis(false);
+    }
+  };
+
+  // Check if analysis is allowed based on rate limiting
+  const isAnalysisAllowed = () => {
+    if (!projectDetails?.nextManualAnalysisAllowedAt) return true;
+    const nextAllowedTime = new Date(projectDetails.nextManualAnalysisAllowedAt);
+    const now = new Date();
+    return now >= nextAllowedTime;
+  };
+
+  const getAnalysisDisabledReason = () => {
+    if (!projectDetails?.nextManualAnalysisAllowedAt) return undefined;
+    
+    const nextAllowedTime = new Date(projectDetails.nextManualAnalysisAllowedAt);
+    const now = new Date();
+    
+    if (now < nextAllowedTime) {
+      // Format the date and time when analysis will be available
+      const dateOptions: Intl.DateTimeFormatOptions = {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      };
+      const formattedTime = nextAllowedTime.toLocaleDateString('en-US', dateOptions);
+      
+      return `Analysis will be available ${formattedTime}`;
+    }
+    
+    return undefined;
   };
 
   return (
@@ -372,7 +456,13 @@ export default function Home() {
             )}
 
             {/* Project Metadata */}
-            <ProjectMetadata project={projectDetails} />
+            <ProjectMetadata 
+              project={projectDetails}
+              onRunAnalysis={handleRunAnalysis}
+              isAnalysisAllowed={isAnalysisAllowed() && !runningAnalysis}
+              analysisDisabledReason={runningAnalysis ? "Analysis in progress..." : getAnalysisDisabledReason()}
+              runningAnalysis={runningAnalysis}
+            />
           </div>
         )}
 

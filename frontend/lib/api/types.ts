@@ -122,6 +122,7 @@ export interface ProjectResponse {
   userId: string;
   userEmail: string;
   userLanguage?: string;
+  nextManualAnalysisAllowedAt?: string;
 }
 
 export interface CreateFullProjectRequest {

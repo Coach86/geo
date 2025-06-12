@@ -148,6 +148,7 @@ export class ProjectController {
     response.organizationId = project.organizationId;
     response.createdAt = project.updatedAt; // Using updatedAt as createdAt for now
     response.updatedAt = project.updatedAt;
+    response.nextManualAnalysisAllowedAt = project.nextManualAnalysisAllowedAt;
     return response;
   }
 }

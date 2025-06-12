@@ -37,6 +37,7 @@ export {
   generatePrompts,
   getPromptSet,
   updatePromptSet,
+  runManualAnalysis,
 } from './project';
 
 // Export report functions

@@ -442,4 +442,61 @@ export class ProjectService {
       throw error;
     }
   }
+
+  /**
+   * Update the next manual analysis allowed timestamp for rate limiting
+   */
+  async updateNextAnalysisTime(projectId: string, nextAllowedTime: Date): Promise<void> {
+    try {
+      // Check if the project exists
+      await this.projectRepository.findById(projectId);
+
+      // Update the nextManualAnalysisAllowedAt field
+      await this.projectRepository.updateAnalysisTime(projectId, nextAllowedTime);
+      this.logger.log(`Updated next analysis time for project ${projectId} to ${nextAllowedTime.toISOString()}`);
+    } catch (error) {
+      this.logger.error(`Failed to update next analysis time: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Check if manual analysis is allowed for a project based on rate limiting
+   */
+  async isManualAnalysisAllowed(projectId: string): Promise<{ allowed: boolean; nextAllowedTime?: Date; formattedTime?: string }> {
+    try {
+      const project = await this.projectRepository.findById(projectId);
+      
+      if (!project.nextManualAnalysisAllowedAt) {
+        return { allowed: true };
+      }
+
+      const now = new Date();
+      const nextAllowedTime = new Date(project.nextManualAnalysisAllowedAt);
+      
+      if (now >= nextAllowedTime) {
+        return { allowed: true };
+      }
+
+      // Format the time for user display
+      const dateOptions: Intl.DateTimeFormatOptions = {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      };
+      const formattedTime = nextAllowedTime.toLocaleDateString('en-US', dateOptions);
+
+      return { 
+        allowed: false, 
+        nextAllowedTime,
+        formattedTime: `Analysis will be available ${formattedTime}`
+      };
+    } catch (error) {
+      this.logger.error(`Failed to check manual analysis rate limit: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
 }

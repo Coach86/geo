@@ -61,4 +61,9 @@ export class ProjectResponseDto {
 
   @ApiProperty({ description: 'Last update timestamp' })
   updatedAt: Date;
+
+  @ApiPropertyOptional({ 
+    description: 'Next allowed timestamp for manual analysis trigger' 
+  })
+  nextManualAnalysisAllowedAt?: Date;
 }
