@@ -1,8 +1,8 @@
-// System prompt for spontaneous prompts
-export const spontaneousSystemPrompt = `You are a market-research assistant who writes ultra-realistic, keyword-driven questions that everyday people type into AI assistants or Google.`;
+// System prompt for visibility prompts
+export const visibilitySystemPrompt = `You are a market-research assistant who writes ultra-realistic, keyword-driven questions that everyday people type into AI assistants or Google.`;
 
-// User prompt for spontaneous prompts
-type SpontaneousUserPromptParams = {
+// User prompt for visibility prompts
+type VisibilityUserPromptParams = {
   market: string;
   language: string;
   websiteUrl: string;
@@ -11,7 +11,7 @@ type SpontaneousUserPromptParams = {
   count: number;
   competitors: string[];
 };
-export function spontaneousUserPrompt({
+export function visibilityUserPrompt({
   market,
   language,
   websiteUrl,
@@ -19,7 +19,7 @@ export function spontaneousUserPrompt({
   brandName,
   count,
   competitors,
-}: SpontaneousUserPromptParams): string {
+}: VisibilityUserPromptParams): string {
   return `
       ## USER
       ### Context:

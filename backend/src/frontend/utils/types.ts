@@ -81,10 +81,10 @@ export interface PlanResponseDto {
 export interface PromptSet {
   id: string;
   projectId: string;
-  direct: string[] | string; // Either direct string[] or for backward compatibility string JSON
-  comparison: string[] | string; // Either direct string[] or for backward compatibility string JSON
-  spontaneous: string[] | string; // Either direct string[] or for backward compatibility string JSON
-  accuracy?: string[] | string; // Either direct string[] or for backward compatibility string JSON
+  sentiment: string[] | string; // Either direct string[] or for backward compatibility string JSON
+  competition: string[] | string; // Either direct string[] or for backward compatibility string JSON
+  visibility: string[] | string; // Either direct string[] or for backward compatibility string JSON
+  alignment?: string[] | string; // Either direct string[] or for backward compatibility string JSON
   brandBattle?: string[] | string; // Either direct string[] or for backward compatibility string JSON
   createdAt: string;
   updatedAt: string;
@@ -97,10 +97,10 @@ export interface PromptTemplate {
 }
 
 export interface PromptTemplates {
-  spontaneous: PromptTemplate;
-  direct: PromptTemplate;
-  comparison: PromptTemplate;
-  accuracy: PromptTemplate;
+  visibility: PromptTemplate;
+  sentiment: PromptTemplate;
+  competition: PromptTemplate;
+  alignment: PromptTemplate;
   brandBattle?: PromptTemplate;
 }
 
@@ -116,8 +116,12 @@ export interface BatchExecution {
 
 // Batch type enum
 export enum BatchType {
-  SPONTANEOUS = 'spontaneous',
+  VISIBILITY = 'visibility',
   SENTIMENT = 'sentiment',
+  COMPETITION = 'competition',
+  ALIGNMENT = 'alignment',
+  // Legacy values for backward compatibility
+  SPONTANEOUS = 'spontaneous',
   COMPARISON = 'comparison',
   ACCURACY = 'accuracy',
 }

@@ -1,20 +1,20 @@
-// System prompt for direct brand prompts
-export const directSystemPrompt = `You are a prompt engineering expert specializing in creating questions about specific brands.`;
+// System prompt for sentiment prompts
+export const sentimentSystemPrompt = `You are a prompt engineering expert specializing in creating questions about specific brands.`;
 
-type DirectUserPromptParams = {
+type SentimentUserPromptParams = {
   market: string;
   language: string;
   brandName: string;
   count: number;
   websiteUrl: string;
 };
-export function directUserPrompt({
+export function sentimentUserPrompt({
   market,
   language,
   brandName,
   count,
   websiteUrl,
-}: DirectUserPromptParams): string {
+}: SentimentUserPromptParams): string {
   return `
       Translate the following prompts (${count}) to ${language}.
       Use a conversational, everyday language.

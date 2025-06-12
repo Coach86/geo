@@ -5,7 +5,7 @@ import { LlmService } from '../../llm/services/llm.service';
 import { RawResponseService } from './raw-response.service';
 import {
   ProjectBatchContext,
-  AccuracyPipelineResult,
+  AlignmentPipelineResult,
   WebSearchSummary,
 } from '../interfaces/batch.interfaces';
 import {
@@ -18,10 +18,10 @@ import { BasePipelineService } from './base-pipeline.service';
 import { SystemPrompts, PromptTemplates, formatPrompt } from '../prompts/prompts';
 
 /**
- * Results from the accuracy pipeline
+ * Results from the alignment pipeline
  */
-export interface AccuracyResults {
-  results: AccuracyPipelineResult[];
+export interface AlignmentResults {
+  results: AlignmentPipelineResult[];
   summary: {
     averageAttributeScores: Record<string, number>;
   };
@@ -29,7 +29,7 @@ export interface AccuracyResults {
 }
 
 @Injectable()
-export class AccuracyPipelineService extends BasePipelineService {
+export class AlignmentPipelineService extends BasePipelineService {
   constructor(
     protected readonly configService: ConfigService,
     protected readonly llmService: LlmService,
@@ -38,8 +38,8 @@ export class AccuracyPipelineService extends BasePipelineService {
     super(
       configService,
       llmService,
-      AccuracyPipelineService.name,
-      PipelineType.ACCURACY,
+      AlignmentPipelineService.name,
+      PipelineType.ALIGNMENT,
       rawResponseService,
     );
   }
@@ -48,25 +48,24 @@ export class AccuracyPipelineService extends BasePipelineService {
    * Get analyzer config for this specific pipeline
    */
   protected getAnalyzerConfig(): AnalyzerConfig {
-    // Initially use the sentiment analyzer config since that's what we're extending from
-    // Can be updated to use a dedicated config in the future
-    return this.config.analyzerConfig.sentiment;
+    // Use the alignment analyzer config
+    return this.config.analyzerConfig.alignment || this.config.analyzerConfig.sentiment;
   }
 
   /**
-   * Run the accuracy analysis pipeline for a company
+   * Run the alignment analysis pipeline for a company
    * @param context Company batch context
    * @returns Pipeline results
    */
-  async run(context: ProjectBatchContext): Promise<AccuracyResults> {
-    this.logger.log(`Running accuracy pipeline for ${context.projectId} (${context.brandName})`);
+  async run(context: ProjectBatchContext): Promise<AlignmentResults> {
+    this.logger.log(`Running alignment pipeline for ${context.projectId} (${context.brandName})`);
 
     try {
       // Get the prompts for this pipeline
-      const prompts = context.promptSet?.accuracy || [];
+      const prompts = context.promptSet?.alignment || [];
 
       if (!prompts.length) {
-        throw new Error('No accuracy prompts found for this company');
+        throw new Error('No alignment prompts found for this company');
       }
 
       // Format the prompts to include the company name
@@ -92,7 +91,7 @@ export class AccuracyPipelineService extends BasePipelineService {
       }
 
       this.logger.log(
-        `Using ${modelsToUse.length} models for accuracy pipeline: ${modelsToUse.map((m) => `${m.provider}/${m.model}`).join(', ')}`,
+        `Using ${modelsToUse.length} models for alignment pipeline: ${modelsToUse.map((m) => `${m.provider}/${m.model}`).join(', ')}`,
       );
 
       // Create tasks for each model and prompt
@@ -119,8 +118,8 @@ export class AccuracyPipelineService extends BasePipelineService {
                   i, // Pass prompt index
                 );
 
-                // Step 2: Analyze the accuracy of the response
-                return await this.analyzeAccuracy(
+                // Step 2: Analyze the alignment of the response
+                return await this.analyzeAlignment(
                   modelConfig,
                   context.brandName,
                   originalPrompt,
@@ -130,7 +129,7 @@ export class AccuracyPipelineService extends BasePipelineService {
                 );
               } catch (error) {
                 this.logger.error(
-                  `Error in accuracy pipeline for ${context.brandName} with ${modelConfig.provider}/${modelConfig.model} on prompt ${i}: ${error.message}`,
+                  `Error in alignment pipeline for ${context.brandName} with ${modelConfig.provider}/${modelConfig.model} on prompt ${i}: ${error.message}`,
                   error.stack,
                 );
                 return {
@@ -153,11 +152,11 @@ export class AccuracyPipelineService extends BasePipelineService {
       // Generate web search summary
       const webSearchSummary = this.createWebSearchSummary(results);
 
-      // Calculate average accuracy
-      const summary = this.analyzeAccuracyResults(results);
+      // Calculate average alignment
+      const summary = this.analyzeAlignmentResults(results);
 
       this.logger.log(
-        `Completed accuracy pipeline for ${context.projectId} with ${results.length} results`,
+        `Completed alignment pipeline for ${context.projectId} with ${results.length} results`,
       );
 
       if (webSearchSummary.usedWebSearch) {
@@ -173,7 +172,7 @@ export class AccuracyPipelineService extends BasePipelineService {
       };
     } catch (error) {
       this.logger.error(
-        `Failed to run accuracy pipeline for ${context.projectId}: ${error.message}`,
+        `Failed to run alignment pipeline for ${context.projectId}: ${error.message}`,
         error.stack,
       );
       throw error;
@@ -181,24 +180,24 @@ export class AccuracyPipelineService extends BasePipelineService {
   }
 
   /**
-   * Analyze the LLM response to determine accuracy of facts
+   * Analyze the LLM response to determine alignment of facts
    * @param modelName The LLM model that generated the response
    * @param brandName The company brand name
    * @param prompt The original prompt
    * @param llmResponse The response from the LLM
    * @param promptIndex The index of the prompt
-   * @returns Analysis of the LLM response accuracy
+   * @returns Analysis of the LLM response alignment
    */
-  private async analyzeAccuracy(
+  private async analyzeAlignment(
     modelConfig: LlmModelConfig,
     brandName: string,
     prompt: string,
     llmResponseObj: any,
     promptIndex: number,
     keyBrandAttributes?: string[],
-  ): Promise<AccuracyPipelineResult> {
+  ): Promise<AlignmentPipelineResult> {
     this.logger.log(
-      `Analyzing accuracy for ${modelConfig.provider}/${modelConfig.model} response for ${brandName}`,
+      `Analyzing alignment for ${modelConfig.provider}/${modelConfig.model} response for ${brandName}`,
     );
 
     // Extract the text from the response object
@@ -227,8 +226,8 @@ export class AccuracyPipelineService extends BasePipelineService {
       throw new Error('No key brand attributes found');
     }
 
-    // Format the user prompt using the template for accuracy analysis
-    const userPrompt = formatPrompt(PromptTemplates.ACCURACY_ANALYSIS, {
+    // Format the user prompt using the template for alignment analysis
+    const userPrompt = formatPrompt(PromptTemplates.ALIGNMENT_ANALYSIS, {
       originalPrompt: prompt,
       brandName,
       keyBrandAttributes: keyBrandAttributes.join(', '),
@@ -240,10 +239,10 @@ export class AccuracyPipelineService extends BasePipelineService {
       const result = await this.getStructuredAnalysis(
         userPrompt,
         schema,
-        SystemPrompts.ACCURACY_ANALYSIS,
+        SystemPrompts.ALIGNMENT_ANALYSIS,
         llmResponseObj.batchExecutionId, // Pass the batch execution ID if available
         promptIndex, // Pass the prompt index
-        PromptType.ACCURACY, // Pass the prompt type using enum
+        PromptType.ALIGNMENT, // Pass the prompt type using enum
         prompt, // Pass the original prompt
         llmResponse, // Pass the original LLM response
         modelConfig.model, // Pass the original LLM model
@@ -262,7 +261,7 @@ export class AccuracyPipelineService extends BasePipelineService {
         toolUsage: metadata.toolUsage || [],
       };
     } catch (error) {
-      this.logger.error(`All analyzers failed for accuracy analysis: ${error.message}`);
+      this.logger.error(`All analyzers failed for alignment analysis: ${error.message}`);
       throw error;
     }
   }
@@ -272,7 +271,7 @@ export class AccuracyPipelineService extends BasePipelineService {
    * @param results Array of pipeline results
    * @returns Web search summary
    */
-  private createWebSearchSummary(results: AccuracyPipelineResult[]): WebSearchSummary {
+  private createWebSearchSummary(results: AlignmentPipelineResult[]): WebSearchSummary {
     // Filter out results with errors
     const validResults = results.filter((r) => !r.error);
 
@@ -358,7 +357,7 @@ export class AccuracyPipelineService extends BasePipelineService {
    * @param results Array of pipeline results
    * @returns Summary with average attribute scores
    */
-  private analyzeAccuracyResults(results: AccuracyPipelineResult[]): AccuracyResults['summary'] {
+  private analyzeAlignmentResults(results: AlignmentPipelineResult[]): AlignmentResults['summary'] {
     // Filter out results with errors
     const validResults = results.filter((r) => !r.error);
 

@@ -1,16 +1,16 @@
 /**
- * Accuracy analysis prompt templates
+ * Alignment analysis prompt templates
  */
 
 /**
- * System prompt for generating accuracy analysis prompts
+ * System prompt for generating alignment analysis prompts
  */
-export const accuracySystemPrompt = `You are an impartial analyst specializing in brand auditing.`;
+export const alignmentSystemPrompt = `You are an impartial analyst specializing in brand auditing.`;
 
 /**
- * User prompt template for generating accuracy analysis prompts
+ * User prompt template for generating alignment analysis prompts
  */
-export const accuracyUserPrompt = ({
+export const alignmentUserPrompt = ({
   market,
   language,
   brandName,
@@ -24,7 +24,7 @@ export const accuracyUserPrompt = ({
   count: number;
 }) => `
 ## Your task:
-generate exactly ${count} factual questions in ${language} aimed at verifying the presence and accuracy of the publicly associated attributes of a company.
+generate exactly ${count} factual questions in ${language} aimed at verifying the presence and alignment of the publicly associated attributes of a company.
 
 ## PARAMETERS
 - Brand name: ${brandName}

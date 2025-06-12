@@ -8,7 +8,6 @@ export interface DisplayedConfig extends FormData {
 export interface ExpandedSections {
   visibility: boolean;
   perception: boolean;
-  comparison: boolean;
   models: boolean;
   urls: boolean;
 }

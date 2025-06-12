@@ -99,12 +99,11 @@ export function useSubmission({
 
           if (selectedVisibilityPrompts?.length > 0 || selectedPerceptionPrompts?.length > 0) {
             identityCardRequest.prompts = {
-              spontaneous: selectedVisibilityPrompts || [],
-              direct: selectedPerceptionPrompts || [],
+              visibility: selectedVisibilityPrompts || [],
+              sentiment: selectedPerceptionPrompts || [],
               // Initialize other prompt types as empty arrays
-              comparison: [],
-              accuracy: [],
-              brandBattle: []
+              alignment: [],
+              competition: []
             };
           }
         }

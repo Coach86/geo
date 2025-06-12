@@ -11,30 +11,25 @@ import {
 } from 'class-validator';
 
 export class PromptsDto {
-  @ApiPropertyOptional({ description: 'Spontaneous visibility prompts', type: [String] })
+  @ApiPropertyOptional({ description: 'Visibility prompts', type: [String] })
   @IsOptional()
   @IsArray()
-  spontaneous?: string[];
+  visibility?: string[];
 
-  @ApiPropertyOptional({ description: 'Direct perception prompts', type: [String] })
+  @ApiPropertyOptional({ description: 'Sentiment prompts', type: [String] })
   @IsOptional()
   @IsArray()
-  direct?: string[];
+  sentiment?: string[];
 
-  @ApiPropertyOptional({ description: 'Comparison prompts', type: [String] })
+  @ApiPropertyOptional({ description: 'Alignment prompts', type: [String] })
   @IsOptional()
   @IsArray()
-  comparison?: string[];
+  alignment?: string[];
 
-  @ApiPropertyOptional({ description: 'Accuracy prompts', type: [String] })
+  @ApiPropertyOptional({ description: 'Competition prompts', type: [String] })
   @IsOptional()
   @IsArray()
-  accuracy?: string[];
-
-  @ApiPropertyOptional({ description: 'Brand battle prompts', type: [String] })
-  @IsOptional()
-  @IsArray()
-  brandBattle?: string[];
+  competition?: string[];
 }
 
 export class ProjectDataDto {

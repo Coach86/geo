@@ -134,11 +134,10 @@ export interface CreateFullProjectRequest {
   keyBrandAttributes?: string[];
   competitors?: string[];
   prompts?: {
-    spontaneous?: string[];
-    direct?: string[];
-    comparison?: string[];
-    accuracy?: string[];
-    brandBattle?: string[];
+    visibility?: string[];
+    sentiment?: string[];
+    alignment?: string[];
+    competition?: string[];
   };
 }
 
@@ -170,21 +169,19 @@ export interface GeneratePromptsRequest {
 }
 
 export interface GeneratePromptsResponse {
-  spontaneous: string[];
-  direct: string[];
-  comparison: string[];
-  accuracy: string[];
-  brandBattle: string[];
+  visibility: string[];
+  sentiment: string[];
+  alignment: string[];
+  competition: string[];
 }
 
 export interface PromptSet {
   id: string;
   projectId: string;
-  spontaneous: string[];
-  direct: string[];
-  comparison: string[];
-  accuracy: string[];
-  brandBattle: string[];
+  visibility: string[];
+  sentiment: string[];
+  alignment: string[];
+  competition: string[];
   updatedAt: string;
   createdAt: string;
 }

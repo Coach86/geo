@@ -104,10 +104,10 @@ export class BrandReportOrchestratorService {
 
       // Run the four pipelines in parallel
       const pipelineResults = await Promise.all([
-        this.batchService.runSpontaneousPipeline(contextWithBatchExecId),
+        this.batchService.runVisibilityPipeline(contextWithBatchExecId),
         this.batchService.runSentimentPipeline(contextWithBatchExecId),
-        this.batchService.runAccuracyPipeline(contextWithBatchExecId),
-        this.batchService.runComparisonPipeline(contextWithBatchExecId),
+        this.batchService.runAlignmentPipeline(contextWithBatchExecId),
+        this.batchService.runCompetitionPipeline(contextWithBatchExecId),
       ]);
       
       const spontaneousResults = pipelineResults[0] as SpontaneousResults;
@@ -117,10 +117,10 @@ export class BrandReportOrchestratorService {
 
       // Save batch results
       await Promise.all([
-        this.batchExecutionService.saveBatchResult(batchExecutionId, 'spontaneous', spontaneousResults),
+        this.batchExecutionService.saveBatchResult(batchExecutionId, 'visibility', spontaneousResults),
         this.batchExecutionService.saveBatchResult(batchExecutionId, 'sentiment', sentimentResults),
-        this.batchExecutionService.saveBatchResult(batchExecutionId, 'accuracy', accuracyResults),
-        this.batchExecutionService.saveBatchResult(batchExecutionId, 'comparison', comparisonResults),
+        this.batchExecutionService.saveBatchResult(batchExecutionId, 'alignment', accuracyResults),
+        this.batchExecutionService.saveBatchResult(batchExecutionId, 'competition', comparisonResults),
       ]);
 
       // Create the new report structure
@@ -328,6 +328,7 @@ export class BrandReportOrchestratorService {
     // Count sentiment distribution
     const distribution = { positive: 0, neutral: 0, negative: 0, total: 0 };
     const modelSentiments: Record<string, any> = {};
+    const questionResults: Record<string, any[]> = {};
 
     sentimentResults.results.forEach(result => {
       distribution.total++;
@@ -356,6 +357,18 @@ export class BrandReportOrchestratorService {
       modelSentiments[result.llmModel].sentiments.push(result.sentiment);
       result.extractedPositiveKeywords?.forEach(k => modelSentiments[result.llmModel].positiveKeywords.add(k));
       result.extractedNegativeKeywords?.forEach(k => modelSentiments[result.llmModel].negativeKeywords.add(k));
+
+      // Group by question (originalPrompt)
+      const question = result.originalPrompt || `Question ${result.promptIndex + 1}`;
+      if (!questionResults[question]) {
+        questionResults[question] = [];
+      }
+      questionResults[question].push({
+        model: result.llmModel,
+        sentiment: result.sentiment,
+        status: result.sentiment === 'positive' ? 'green' : result.sentiment === 'negative' ? 'red' : 'yellow',
+        llmResponse: result.llmResponse,
+      });
     });
 
     // Calculate overall sentiment
@@ -383,12 +396,18 @@ export class BrandReportOrchestratorService {
       };
     });
 
+    // Build heatmap data from question results
+    const heatmapData = Object.entries(questionResults).map(([question, results]) => ({
+      question,
+      results: results as any[],
+    }));
+
     return {
       overallScore,
       overallSentiment,
       distribution,
       modelSentiments: modelSentimentsList,
-      heatmapData: [], // TODO: Implement question-based heatmap
+      heatmapData,
     };
   }
 

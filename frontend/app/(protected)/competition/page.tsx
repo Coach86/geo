@@ -16,7 +16,7 @@ import { ProcessingLoader } from "@/components/shared/ProcessingLoader";
 import { getReportCompetition } from "@/lib/api/report";
 
 interface ProcessedReport extends ReportResponse {
-  brandBattle: CompetitionTypeData;
+  competition: CompetitionTypeData;
   brandName: string;
   competitors: string[];
   reportDate: string;
@@ -70,7 +70,7 @@ export default function CompetitionPage() {
       createdAt: report.generatedAt,
       brandName: reportData.brand || (report.metadata as any)?.brand || project.brandName,
       competitors: project.competitors || [],
-      brandBattle: reportData.competition || reportData.brandBattle || {
+      competition: reportData.competition || reportData.brandBattle || {
         competitorAnalyses: [],
         commonStrengths: [],
         commonWeaknesses: []
@@ -165,7 +165,7 @@ export default function CompetitionPage() {
               createdAt: report.generatedAt,
               brandName: reportData.brand || (report.metadata as any)?.brand || projectDetails.brandName,
               competitors: projectDetails.competitors || [],
-              brandBattle: reportData.competition || reportData.brandBattle || {
+              competition: reportData.competition || reportData.brandBattle || {
                 competitorAnalyses: [],
                 commonStrengths: [],
                 commonWeaknesses: []
@@ -254,7 +254,7 @@ function CompetitionTable({
     <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
       <CardHeader className="pb-4">
         <CardTitle className="text-lg font-semibold text-mono-700">
-          Brand Battle vs Pre‑selected Competitors
+          Competition Analysis vs Pre‑selected Competitors
         </CardTitle>
         <p className="text-sm text-mono-400 mt-1">
           "Can you tell me the strengths and weaknesses of {brand} vs.
