@@ -360,7 +360,7 @@ export class BrandReportOrchestratorService {
 
     // Calculate overall sentiment
     const overallSentiment = sentimentResults.summary.overallSentiment;
-    const overallScore = Math.round(sentimentResults.summary.overallSentimentPercentage || 0);
+    const overallScore = sentimentResults.summary.overallSentimentPercentage || 0;
 
     // Transform model sentiments
     const modelSentimentsList = Object.values(modelSentiments).map((ms: any) => {
