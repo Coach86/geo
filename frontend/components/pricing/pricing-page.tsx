@@ -16,7 +16,7 @@ import { redirectToStripeCheckout } from "@/lib/stripe-utils";
 import { useAuth } from "@/providers/auth-provider";
 import { FaqSection } from "./faq-section";
 import { calculateSavings } from "./pricing-utils";
-import { 
+import {
   trustSafetyItems
 } from "./pricing-constants";
 import { staticPlans } from "./static-plans";
@@ -45,7 +45,7 @@ export default function PricingPage({
   useEffect(() => {
     // Get data from localStorage
     const formData = getOnboardingData();
-    
+
     // Check if we have data
     const hasData =
       (formData.brand?.markets?.length > 0) ||
@@ -118,7 +118,7 @@ export default function PricingPage({
   };
 
   // Dynamic pricing plans from API
-  const dynamicPlans = plans.slice(0, 2).map((plan, index) => {
+  const dynamicPlans = plans.map((plan, index) => {
     const monthlyPrice = plan.prices?.monthly || 0;
     const yearlyPrice = plan.prices?.yearly || 0;
     const currentPrice =
@@ -224,68 +224,37 @@ export default function PricingPage({
         </div>
       </section>
 
-      {/* Pricing Plan Cards - Nouvelle structure avec grille stricte */}
+      {/* Pricing Plan Cards - Dynamic grid structure */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 mb-16">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-stretch">
-          <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
-            {pricingPlans.slice(0, 3).map((plan, index) => (
-              <PricingCard
-                key={index}
-                name={plan.name}
-                tag={plan.tagline}
-                subtitle={plan.description}
-                features={plan.features}
-                included={plan.included}
-                price={plan.price}
-                pricePeriod={plan.pricePeriod}
-                billedAnnually={plan.billedAnnually}
-                savings={plan.savings}
-                isRecommended={false}
-                isMostPopular={plan.isPopular}
-                ctaText={plan.ctaText}
-                ctaAction={plan.ctaAction}
-                ctaColor={plan.ctaColor}
-                checkColor={plan.checkColor}
-                plusColor={plan.plusColor}
-                isSubmitting={isSubmitting}
-                selectedPlan={selectedPlan}
-                previousPlanName={
-                  index > 0 ? pricingPlans[index - 1].name : undefined
-                }
-                tagBgColor={plan.tagBgColor}
-                tagTextColor={plan.tagTextColor}
-              />
-            ))}
-          </div>
-
-          {/* Agencies Plan - Séparé et avec un fond différent */}
-          <div className="md:col-span-1 flex">
-            {pricingPlans[3] && (
-              <PricingCard
-                name={pricingPlans[3].name}
-                tag={pricingPlans[3].tagline}
-                subtitle={pricingPlans[3].description}
-                features={pricingPlans[3].features}
-                included={pricingPlans[3].included}
-                price={pricingPlans[3].price}
-                pricePeriod={pricingPlans[3].pricePeriod}
-                billedAnnually={pricingPlans[3].billedAnnually}
-                savings={pricingPlans[3].savings}
-                isRecommended={false}
-                isMostPopular={pricingPlans[3].isPopular}
-                ctaText={pricingPlans[3].ctaText}
-                ctaAction={pricingPlans[3].ctaAction}
-                ctaColor={pricingPlans[3].ctaColor}
-                checkColor={pricingPlans[3].checkColor}
-                plusColor={pricingPlans[3].plusColor}
-                isSubmitting={isSubmitting}
-                selectedPlan={selectedPlan}
-                previousPlanName="Growth"
-                tagBgColor={pricingPlans[3].tagBgColor}
-                tagTextColor={pricingPlans[3].tagTextColor}
-              />
-            )}
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-stretch">
+          {pricingPlans.map((plan, index) => (
+            <PricingCard
+              key={index}
+              name={plan.name}
+              tag={plan.tagline}
+              subtitle={plan.description}
+              features={plan.features}
+              included={plan.included}
+              price={plan.price}
+              pricePeriod={plan.pricePeriod}
+              billedAnnually={plan.billedAnnually}
+              savings={plan.savings}
+              isRecommended={plan.isRecommended || false}
+              isMostPopular={plan.isPopular}
+              ctaText={plan.ctaText}
+              ctaAction={plan.ctaAction}
+              ctaColor={plan.ctaColor}
+              checkColor={plan.checkColor}
+              plusColor={plan.plusColor}
+              isSubmitting={isSubmitting}
+              selectedPlan={selectedPlan}
+              previousPlanName={
+                index > 0 ? pricingPlans[index - 1].name : undefined
+              }
+              tagBgColor={plan.tagBgColor}
+              tagTextColor={plan.tagTextColor}
+            />
+          ))}
         </div>
       </section>
 
