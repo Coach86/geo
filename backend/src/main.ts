@@ -6,6 +6,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import * as express from 'express';
 import * as fs from 'fs';
+import { PostHogService } from './modules/analytics/services/posthog.service';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -88,6 +89,21 @@ async function bootstrap() {
 
   await app.listen(port);
   console.log(`Application is running on: http://localhost:${port}`);
+
+  // Graceful shutdown
+  const signals = ['SIGTERM', 'SIGINT'];
+  signals.forEach((signal) => {
+    process.on(signal, async () => {
+      console.log(`Received ${signal}, shutting down gracefully...`);
+      
+      // Shutdown PostHog to ensure all events are sent
+      const postHogService = app.get(PostHogService);
+      await postHogService.shutdown();
+      
+      await app.close();
+      process.exit(0);
+    });
+  });
 }
 
 bootstrap();

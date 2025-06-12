@@ -9,10 +9,12 @@ import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { sendMagicLink } from "@/lib/auth-api";
+import { useAnalytics } from "@/hooks/use-analytics";
 
 export default function AuthPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const analytics = useAnalytics();
   const urlParam = searchParams.get("url") || "";
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -31,8 +33,11 @@ export default function AuthPage() {
         setIsMagicLinkSent(true);
         // Store user ID for potential use later
         localStorage.setItem("pendingUserId", response.userId);
+        // Track signup/login attempt - we'll know which one when they click the magic link
+        analytics.track('magic_link_sent', { email });
       } else {
         setError(response.message || "Failed to send magic link");
+        analytics.trackError('magic_link_failed', response.message || "Failed to send magic link");
       }
     } catch (error) {
       console.error("Magic link error:", error);

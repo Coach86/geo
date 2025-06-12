@@ -5,6 +5,8 @@ import { ProjectController } from './controllers/project.controller';
 import { UserProjectController } from './controllers/user-project.controller';
 import { PublicProjectController } from './controllers/public-project.controller';
 import { ProjectService } from './services/project.service';
+import { FaviconService } from './services/favicon.service';
+import { ProjectCreatedListener } from './listeners/project-created.listener';
 import { ProjectRepository } from './repositories/project.repository';
 import { Project, ProjectSchema } from './schemas/project-base.schema';
 import { UserModule } from '../user/user.module';
@@ -32,6 +34,8 @@ import { BatchModule } from '../batch/batch.module';
   controllers: [ProjectController, UserProjectController, PublicProjectController],
   providers: [
     ProjectService, 
+    FaviconService,
+    ProjectCreatedListener,
     ProjectRepository, 
     TokenService,
     AccessTokenRepository

@@ -30,6 +30,7 @@ import {
   countryToLanguage,
   languageToCode,
 } from "@/constants/markets-languages";
+import { useAnalytics } from "@/hooks/use-analytics";
 
 interface AddProjectModalProps {
   isOpen: boolean;
@@ -51,6 +52,7 @@ export default function AddProjectModal({
 }: AddProjectModalProps) {
   const { token } = useAuth();
   const router = useRouter();
+  const analytics = useAnalytics();
   const [projectName, setProjectName] = useState("");
   const [selectedUrl, setSelectedUrl] = useState("");
   const [customUrl, setCustomUrl] = useState("");
@@ -185,6 +187,9 @@ export default function AddProjectModal({
         language: languageCode,
         name: projectName.trim(),
       });
+
+      // Track project creation
+      analytics.trackProjectCreated(result.id, projectName.trim(), showCustomUrlInput ? 'manual' : 'url');
 
       toast.success("Project created successfully!");
       onSuccess(result.id);

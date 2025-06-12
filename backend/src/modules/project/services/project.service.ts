@@ -168,6 +168,8 @@ export class ProjectService {
         competitors: project.competitors,
         language: project.language,
         data: {},
+        // Set nextManualAnalysisAllowedAt to 10 minutes from now
+        nextManualAnalysisAllowedAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes in milliseconds
       };
 
       // Add organizationId
@@ -177,6 +179,8 @@ export class ProjectService {
 
       // Store to database
       const saved = await this.projectRepository.save(dbData);
+
+      this.logger.log(`Created project ${saved.id} with nextManualAnalysisAllowedAt set to ${dbData.nextManualAnalysisAllowedAt.toISOString()}`);
 
       // Emit project created event
       this.eventEmitter.emit('project.created', new ProjectCreatedEvent(saved.id));

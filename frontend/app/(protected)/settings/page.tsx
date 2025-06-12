@@ -20,10 +20,12 @@ import { PlanSection } from "@/components/settings/PlanSection";
 import { ModelsSection } from "@/components/settings/ModelsSection";
 import { UserManagementSection } from "@/components/settings/UserManagementSection";
 import type { AIModel, UserProfile } from "@/components/settings/types";
+import { useAnalytics } from "@/hooks/use-analytics";
 
 export default function SettingsPage() {
   const { token, logout } = useAuth();
   const router = useRouter();
+  const analytics = useAnalytics();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [organizationUsers, setOrganizationUsers] = useState<OrganizationUser[]>([]);
@@ -100,6 +102,7 @@ export default function SettingsPage() {
   }, [token]);
 
   const handleLogout = () => {
+    analytics.trackLogout();
     logout();
     router.push("/auth/login");
   };

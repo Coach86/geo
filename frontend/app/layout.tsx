@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/providers/theme-provider";
 import { AuthProvider } from "@/providers/auth-provider";
 import { ModelsProvider } from "@/providers/models-provider";
 import { ReportProvider } from "@/providers/report-provider";
+import { PostHogProvider } from "@/providers/posthog-provider";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -32,22 +33,22 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${dmSans.variable} ${inconsolata.variable} font-sans`}
-      >
+      <body className={`${dmSans.variable} ${inconsolata.variable} font-sans`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
           enableSystem
           disableTransitionOnChange
         >
-          <AuthProvider>
-            <ModelsProvider>
-              <ReportProvider>
-                {children}
-              </ReportProvider>
-            </ModelsProvider>
-          </AuthProvider>
+          <PostHogProvider>
+            <AuthProvider>
+              <ModelsProvider>
+                <ReportProvider>
+                  {children}
+                </ReportProvider>
+              </ModelsProvider>
+            </AuthProvider>
+          </PostHogProvider>
         </ThemeProvider>
       </body>
     </html>

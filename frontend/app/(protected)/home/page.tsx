@@ -14,11 +14,13 @@ import { createProjectFromUrl, ProjectResponse, runManualAnalysis, getProjectByI
 import { getMyOrganization, Organization } from "@/lib/organization-api"
 import { useEffect } from "react"
 import { toast } from "@/hooks/use-toast"
+import { useAnalytics } from "@/hooks/use-analytics"
 
 export default function HomePage() {
   const { filteredProjects, allProjects, setSelectedProject } = useNavigation()
   const { token } = useAuth()
   const router = useRouter()
+  const analytics = useAnalytics()
   const [showAddProjectModal, setShowAddProjectModal] = useState(false)
   const [organization, setOrganization] = useState<Organization | null>(null)
   const [loading, setLoading] = useState(false)
@@ -39,6 +41,7 @@ export default function HomePage() {
   }, [token])
 
   const handleProjectClick = (project: ProjectResponse) => {
+    analytics.trackProjectViewed(project.id, project.brandName)
     setSelectedProject(project)
     router.push("/project-settings")
   }
@@ -60,9 +63,16 @@ export default function HomePage() {
     })
 
     if (currentProjectCount >= maxProjects) {
+      // Track upgrade intent
+      analytics.track('project_limit_reached', {
+        currentProjects: currentProjectCount,
+        maxProjects: maxProjects,
+        planName: organization.stripePlanId
+      })
       // Redirect to update plan page
       router.push("/update-plan")
     } else {
+      analytics.track('add_project_modal_opened')
       setShowAddProjectModal(true)
     }
   }
@@ -117,6 +127,8 @@ export default function HomePage() {
 
     try {
       setRunningAnalysis(prev => [...prev, project.id])
+      analytics.trackManualRefresh(project.id, project.brandName)
+      
       const result = await runManualAnalysis(project.id, token)
       
       toast({

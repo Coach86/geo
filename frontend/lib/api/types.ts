@@ -107,6 +107,7 @@ export interface ProjectResponse {
   name?: string;
   brandName: string;
   website: string;
+  favicon?: string;
   url: string;
   industry: string;
   market: string;
