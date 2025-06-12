@@ -62,7 +62,7 @@ export default function UpdatePlanPage() {
     try {
       // Track plan upgrade started
       analytics.trackPlanUpgradeStarted('current_plan', planName);
-      
+
       // Create checkout session with user context
       const success = await redirectToStripeCheckout({
         planId: planId,
@@ -83,13 +83,9 @@ export default function UpdatePlanPage() {
     }
   };
 
-  const getYearlyPrice = (monthlyPrice: number) => {
-    return Math.round(monthlyPrice * 0.8);
-  };
-
-  const calculateSavings = (monthlyPrice: number) => {
+  const calculateSavings = (yearlyPrice: number, monthlyPrice: number) => {
     const monthlyCost = monthlyPrice * 12;
-    const yearlyCost = getYearlyPrice(monthlyPrice) * 12;
+    const yearlyCost = yearlyPrice;
     const savings = monthlyCost - yearlyCost;
     return {
       amount: savings,
@@ -98,13 +94,13 @@ export default function UpdatePlanPage() {
   };
 
   // Dynamic pricing plans from API
-  const dynamicPlans = plans.slice(0, 2).map((plan, index) => {
+  const dynamicPlans = plans.map((plan, index) => {
     const monthlyPrice = plan.prices?.monthly || 0;
     const yearlyPrice = plan.prices?.yearly || 0;
     const currentPrice =
       billingPeriod === "monthly" ? monthlyPrice : yearlyPrice;
     const savingsAmount =
-      billingPeriod === "yearly" ? calculateSavings(monthlyPrice).amount : null;
+      billingPeriod === "yearly" ? calculateSavings(yearlyPrice, monthlyPrice).amount : null;
 
     return {
       name: plan.name,
