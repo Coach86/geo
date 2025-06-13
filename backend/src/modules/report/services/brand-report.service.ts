@@ -1,11 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { OnEvent } from '@nestjs/event-emitter';
 import { BrandReport, BrandReportDocument } from '../schemas/brand-report.schema';
 import { BrandReportResponseDto } from '../dto/brand-report-response.dto';
 
 @Injectable()
 export class BrandReportService {
+  private readonly logger = new Logger(BrandReportService.name);
+
   constructor(
     @InjectModel(BrandReport.name)
     private brandReportModel: Model<BrandReportDocument>,
@@ -99,6 +102,17 @@ export class BrandReportService {
     }
 
     return report.competition;
+  }
+
+  @OnEvent('project.deleted')
+  async handleProjectDeleted(event: { projectId: string }) {
+    const { projectId } = event;
+    try {
+      const result = await this.brandReportModel.deleteMany({ projectId });
+      this.logger.log(`Deleted ${result.deletedCount} brand reports for deleted project ${projectId}`);
+    } catch (error) {
+      this.logger.error(`Failed to delete brand reports for project ${projectId}: ${error.message}`, error.stack);
+    }
   }
 
   private mapToResponseDto(report: any): BrandReportResponseDto {

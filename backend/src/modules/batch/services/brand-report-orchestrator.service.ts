@@ -288,28 +288,24 @@ export class BrandReportOrchestratorService {
     }>();
 
     let totalCitations = 0;
-    const allCitations: any[] = [];
+    
+    // Build query-based structure
+    const webSearchResults: any[] = [];
+    const queryToCitationsMap = new Map<string, {
+      query: string;
+      timestamp?: string;
+      citations: any[];
+      models: Set<string>;
+      promptTypes: Set<string>;
+    }>();
 
     allCitationsData.forEach(({ modelId, modelProvider, promptIndex, promptType, citations, webSearchQueries }) => {
-      const queriesForThisModel = webSearchQueries.map((q: any) =>
-        typeof q === 'string' ? q : (q.query || q)
-      );
-
+      // Count all citations for statistics
       citations.forEach((citation: any) => {
         totalCitations++;
         const domain = this.extractDomain(citation.url || citation.source || '');
-
-        // Add to citations array for the response
-        allCitations.push({
-          website: domain,
-          link: citation.url,
-          model: modelId,
-          promptType,
-          promptIndex,
-          promptText: '', // Would need to be passed from result.originalPrompt
-          webSearchQueries: webSearchQueries,
-        });
-
+        
+        // Update source statistics
         if (domain) {
           if (!sourceMap.has(domain)) {
             sourceMap.set(domain, {
@@ -318,20 +314,64 @@ export class BrandReportOrchestratorService {
               associatedQueries: new Set(),
             });
           }
-
           const stats = sourceMap.get(domain)!;
           stats.totalMentions++;
           stats.citedByModels.add(modelId);
-
-          // Add all web search queries that led to this citation
-          queriesForThisModel.forEach((query: string) => {
-            if (query) {
-              stats.associatedQueries.add(query);
-            }
-          });
         }
       });
+      
+      // Only add to webSearchResults if we have web search queries
+      if (webSearchQueries.length > 0) {
+        // Process each web search query
+        webSearchQueries.forEach((queryObj: any) => {
+          const query = typeof queryObj === 'string' ? queryObj : (queryObj.query || queryObj);
+          const timestamp = typeof queryObj === 'object' ? queryObj.timestamp : undefined;
+          
+          if (!queryToCitationsMap.has(query)) {
+            queryToCitationsMap.set(query, {
+              query,
+              timestamp,
+              citations: [],
+              models: new Set(),
+              promptTypes: new Set(),
+            });
+          }
+          
+          const entry = queryToCitationsMap.get(query)!;
+          
+          // Add citations for this query
+          citations.forEach((citation: any) => {
+            const domain = this.extractDomain(citation.url || citation.source || '');
+            
+            entry.citations.push({
+              website: domain,
+              link: citation.url,
+              model: modelId,
+              promptType,
+              promptIndex,
+              source: citation.source || domain,
+            });
+            
+            entry.models.add(modelId);
+            entry.promptTypes.add(promptType);
+            
+            // Add query association to existing source stats
+            if (domain && sourceMap.has(domain)) {
+              sourceMap.get(domain)!.associatedQueries.add(query);
+            }
+          });
+        });
+      }
     });
+
+    // Convert map to array for webSearchResults
+    webSearchResults.push(...Array.from(queryToCitationsMap.values()).map(entry => ({
+      query: entry.query,
+      timestamp: entry.timestamp,
+      models: Array.from(entry.models),
+      promptTypes: Array.from(entry.promptTypes),
+      citations: entry.citations,
+    })));
 
     // Get top sources
     const topSources = Array.from(sourceMap.entries())
@@ -398,7 +438,7 @@ export class BrandReportOrchestratorService {
       topMentions,
       topKeywords,
       topSources,
-      citations: allCitations,
+      webSearchResults, // New structure: query -> citations
       webAccess: {
         totalResponses: totalPrompts,
         successfulQueries: promptsWithWebAccess,

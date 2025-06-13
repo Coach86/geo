@@ -242,7 +242,7 @@ export class GoogleAdapter implements LlmAdapter {
           toolUsage.push({
             type: 'web_search',
             input: {
-              query: '[Search queries not provided by API]',
+              query: 'unknown',
             },
             execution: {
               resultCount: groundingMetadata.groundingChunks.length,

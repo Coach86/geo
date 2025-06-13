@@ -14,6 +14,21 @@ export interface ReportMetadata {
   };
 }
 
+export interface WebSearchResult {
+  query: string;
+  timestamp?: string;
+  models: string[];
+  promptTypes: string[];
+  citations: {
+    website: string;
+    link?: string;
+    model: string;
+    promptType: string;
+    promptIndex: number;
+    source?: string;
+  }[];
+}
+
 export interface ExplorerData {
   summary: {
     totalPrompts: number;
@@ -48,6 +63,7 @@ export interface ExplorerData {
       timestamp?: string;
     }[];
   }[];
+  webSearchResults?: WebSearchResult[]; // New structure
   webAccess: {
     totalResponses: number;
     successfulQueries: number;

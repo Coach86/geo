@@ -123,18 +123,24 @@ export class PerplexityAdapter implements LlmAdapter {
           title: 'Web Source',
           text: 'No text available',
         });
+      });
 
-        // Also track as tool usage - with minimal required fields only
+      // Create a SINGLE tool usage entry for Perplexity with all URLs
+      // This prevents duplicate entries in webSearchResults
+      if (uniqueUrls.length > 0) {
         toolUsage.push({
           id: `perplexity-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
           type: 'web_search',
-          parameters: { query: 'automatic' },
+          parameters: { 
+            query: 'unknown'
+          },
           execution_details: {
             status: 'completed',
             timestamp: new Date().toISOString(),
+            urls: uniqueUrls, // Include all URLs in execution details
           },
         });
-      });
+      }
 
       // Check for additional metadata from the response
       const responseMetadata = (response as any)._raw || {};
@@ -154,7 +160,11 @@ export class PerplexityAdapter implements LlmAdapter {
           `Deduplicated ${citations.length - uniqueCitations.length} duplicate citations`,
         );
       }
-
+  this.logger.log(' Annotations ' + JSON.stringify(uniqueCitations));
+      this.logger.log(' webSearchResults ' + JSON.stringify(uniqueUrls.map((url) => ({
+        url,
+        title: url.split('/').slice(2).join('/').split('?')[0] || 'Web Source',
+      }))));
       return {
         text: text,
         modelVersion: model,

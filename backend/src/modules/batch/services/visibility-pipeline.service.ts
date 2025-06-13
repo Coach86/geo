@@ -207,7 +207,8 @@ export class VisibilityPipelineService extends BasePipelineService {
         .describe(
           'List of top-of-mind brands or companies mentioned, empty if no brand was mentioned',
         )
-        .optional(),
+        .nullable()
+        .default([]),
     });
 
     // Format the user prompt using the template

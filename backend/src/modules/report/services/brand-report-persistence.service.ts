@@ -55,4 +55,15 @@ export class BrandReportPersistenceService {
       throw error;
     }
   }
+
+  async deleteByProjectId(projectId: string): Promise<number> {
+    try {
+      const result = await this.brandReportModel.deleteMany({ projectId });
+      this.logger.log(`Deleted ${result.deletedCount} brand reports for project ${projectId}`);
+      return result.deletedCount;
+    } catch (error) {
+      this.logger.error(`Failed to delete brand reports for project ${projectId}: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
 }
