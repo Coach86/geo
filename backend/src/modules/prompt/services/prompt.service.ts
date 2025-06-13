@@ -447,6 +447,122 @@ export class PromptService implements OnModuleInit {
   }
 
   /**
+   * Regenerate specific prompt type for a project
+   * @param projectId - ID of the project
+   * @param promptType - Type of prompts to regenerate
+   * @param count - Optional number of prompts to generate
+   * @returns The regenerated prompts
+   */
+  async regeneratePromptType(
+    projectId: string,
+    promptType: 'visibility' | 'sentiment' | 'alignment' | 'competition',
+    count?: number,
+  ): Promise<string[]> {
+    this.logger.log(`Regenerating ${promptType} prompts for project: ${projectId}`);
+
+    try {
+      // Fetch the project details to create context-specific prompts
+      const projectRaw = await this.projectRepository.findById(projectId);
+
+      if (!projectRaw) {
+        this.logger.error(`Project ${projectId} not found when regenerating prompts`);
+        throw new NotFoundException(`Project ${projectId} not found`);
+      }
+
+      // Map raw DB result to Project
+      const project: Project = {
+        projectId: projectRaw.id,
+        brandName: projectRaw.brandName,
+        website: projectRaw.website,
+        industry: projectRaw.industry,
+        shortDescription: projectRaw.shortDescription,
+        fullDescription: projectRaw.fullDescription,
+        objectives: projectRaw.objectives,
+        keyBrandAttributes: projectRaw.keyBrandAttributes,
+        competitors: projectRaw.competitors,
+        updatedAt: projectRaw.updatedAt instanceof Date ? projectRaw.updatedAt : new Date(),
+        organizationId: projectRaw.organizationId,
+        market: projectRaw.market,
+        language: projectRaw.language,
+      };
+
+      // Generate prompts for the specific type
+      let regeneratedPrompts: string[];
+      const promptCount = count || this[`${promptType}PromptCount`];
+
+      switch (promptType) {
+        case 'visibility':
+          regeneratedPrompts = await this.generateVisibilityPrompts(
+            project.website,
+            project.industry,
+            project.brandName,
+            project.market,
+            project.language,
+            promptCount,
+            project.competitors,
+          );
+          break;
+        case 'sentiment':
+          regeneratedPrompts = await this.generateSentimentPrompts(
+            project.brandName,
+            project.market,
+            project.language,
+            promptCount,
+            project.website,
+          );
+          break;
+        case 'alignment':
+          regeneratedPrompts = await this.generateAlignmentPrompts(
+            project.brandName,
+            project.market,
+            project.language,
+            project.keyBrandAttributes,
+            promptCount,
+          );
+          break;
+        case 'competition':
+          regeneratedPrompts = await this.generateCompetitionPrompts(
+            project.brandName,
+            project.competitors,
+            project.industry,
+            project.keyBrandAttributes,
+            project.market,
+            project.language,
+            promptCount,
+          );
+          break;
+      }
+
+      // Update only the specific prompt type in the database
+      const existingPromptSet = await this.promptSetRepository.findByProjectId(projectId);
+
+      if (existingPromptSet) {
+        const updateData = {
+          [promptType]: regeneratedPrompts,
+        };
+
+        await this.promptSetRepository.updateByProjectId(projectId, updateData);
+      } else {
+        // Create new prompt set with only the regenerated type
+        await this.promptSetRepository.create({
+          id: projectId,
+          projectId: projectId,
+          visibility: promptType === 'visibility' ? regeneratedPrompts : [],
+          sentiment: promptType === 'sentiment' ? regeneratedPrompts : [],
+          competition: promptType === 'competition' ? regeneratedPrompts : [],
+          alignment: promptType === 'alignment' ? regeneratedPrompts : [],
+        });
+      }
+
+      this.logger.log(`Successfully regenerated ${regeneratedPrompts.length} ${promptType} prompts for project ${projectId}`);
+      return regeneratedPrompts;
+    } catch (error) {
+      this.logger.error(`Failed to regenerate ${promptType} prompts: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
    * Regenerate the prompt set for a project
    * @param projectId - ID of the project
    * @returns The regenerated prompt set

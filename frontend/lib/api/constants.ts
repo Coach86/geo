@@ -39,6 +39,8 @@ export const API_ENDPOINTS = {
   PROMPTS: {
     GENERATE: "/prompts/generate",
     BY_PROJECT: (projectId: string) => `/prompts/${projectId}`,
+    UPDATE: (projectId: string) => `/prompts/${projectId}`,
+    REGENERATE_TYPE: (projectId: string, promptType: string) => `/prompts/${projectId}/regenerate/${promptType}`,
   },
   
   // Brand Report endpoints

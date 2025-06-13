@@ -42,6 +42,7 @@ export default function Home() {
   const { filteredProjects, selectedProject, setSelectedProject } = useNavigation();
   const [projectDetails, setProjectDetails] = useState<ProjectResponse | null>(null);
   const [promptSet, setPromptSet] = useState<PromptSet | null>(null);
+  const [organization, setOrganization] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [loadingPrompts, setLoadingPrompts] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,8 +69,12 @@ export default function Home() {
 
       try {
         setLoading(true);
-        const projectData = await getProjectById(selectedProject.id, token);
+        const [projectData, orgData] = await Promise.all([
+          getProjectById(selectedProject.id, token),
+          getMyOrganization(token)
+        ]);
         setProjectDetails(projectData);
+        setOrganization(orgData);
         setError(null);
 
         // Fetch prompt set with retry logic
@@ -320,6 +325,7 @@ export default function Home() {
                       <PromptsDisplay
                         prompts={promptSet.visibility || []}
                         type="visibility"
+                        projectId={projectDetails.id}
                         onUpdate={async (updatedPrompts) => {
                           const updatedSet = { ...promptSet, visibility: updatedPrompts };
                           setPromptSet(updatedSet);
@@ -342,7 +348,19 @@ export default function Home() {
                         }}
                         canAdd={true}
                         maxPrompts={12} // TODO: Get from user profile
+                        maxSpontaneousPrompts={organization?.planSettings?.maxSpontaneousPrompts}
                         onAddClick={() => router.push("/update-plan")}
+                        onRegenerateComplete={async () => {
+                          // Refresh the prompt set after regeneration
+                          if (token) {
+                            try {
+                              const refreshedPrompts = await getPromptSet(projectDetails.id, token);
+                              setPromptSet(refreshedPrompts);
+                            } catch (error) {
+                              console.error("Failed to refresh prompts:", error);
+                            }
+                          }
+                        }}
                       />
                     )}
                   </div>
@@ -376,6 +394,7 @@ export default function Home() {
                       <PromptsDisplay
                         prompts={promptSet.alignment || []}
                         type="alignment"
+                        projectId={projectDetails.id}
                         onUpdate={async (updatedPrompts) => {
                           const updatedSet = { ...promptSet, alignment: updatedPrompts };
                           setPromptSet(updatedSet);
@@ -416,6 +435,7 @@ export default function Home() {
                       <PromptsDisplay
                         prompts={promptSet.sentiment || []}
                         type="sentiment"
+                        projectId={projectDetails.id}
                         onUpdate={async (updatedPrompts) => {
                           const updatedSet = { ...promptSet, sentiment: updatedPrompts };
                           setPromptSet(updatedSet);

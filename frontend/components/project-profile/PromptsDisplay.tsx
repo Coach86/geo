@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, Settings } from "lucide-react";
+import { ChevronRight, Settings, RefreshCw } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -9,25 +9,38 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { EditableList } from "./EditableList";
+import { RegeneratePromptsDialog } from "./RegeneratePromptsDialog";
+import { useAuth } from "@/providers/auth-provider";
+import { regeneratePromptType } from "@/lib/auth-api";
+import { toast } from "@/hooks/use-toast";
 
 interface PromptsDisplayProps {
   prompts: string[];
   type: "visibility" | "alignment" | "sentiment";
+  projectId: string;
   onUpdate?: (prompts: string[]) => void;
   canAdd?: boolean;
   maxPrompts?: number;
   onAddClick?: () => void;
+  onRegenerateComplete?: () => void;
+  maxSpontaneousPrompts?: number;
 }
 
 export function PromptsDisplay({
   prompts,
   type,
+  projectId,
   onUpdate,
   canAdd = false,
   maxPrompts,
   onAddClick,
+  onRegenerateComplete,
+  maxSpontaneousPrompts,
 }: PromptsDisplayProps) {
+  const { token } = useAuth();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isRegenerateDialogOpen, setIsRegenerateDialogOpen] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
   const isAtLimit = maxPrompts ? prompts.length >= maxPrompts : false;
   const displayThreshold = 5;
   const displayedPrompts = prompts.slice(0, displayThreshold);
@@ -56,6 +69,49 @@ export function PromptsDisplay({
     alignment: "gray",
     sentiment: "gray",
   } as const;
+
+  const handleRegenerate = async (count: number) => {
+    if (!token) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to regenerate prompts",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsRegenerating(true);
+    try {
+      const result = await regeneratePromptType(projectId, type, count, token);
+      
+      // Update the prompts immediately with the regenerated ones
+      if (onUpdate && result.prompts) {
+        onUpdate(result.prompts);
+      }
+      
+      toast({
+        title: "Prompts regenerated",
+        description: `Successfully regenerated ${result.prompts.length} ${type} prompts`,
+      });
+
+      // Call the onRegenerateComplete callback to refresh the entire prompt set
+      if (onRegenerateComplete) {
+        await onRegenerateComplete();
+      }
+
+      // Close the regenerate dialog
+      setIsRegenerateDialogOpen(false);
+    } catch (error) {
+      console.error("Failed to regenerate prompts:", error);
+      toast({
+        title: "Regeneration failed",
+        description: "Failed to regenerate prompts. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
 
   return (
     <>
@@ -113,7 +169,30 @@ export function PromptsDisplay({
             </SheetDescription>
           </SheetHeader>
           
-          <div className="mt-6">
+          <div className="mt-6 space-y-4">
+            {type === "visibility" && (
+              <div className="flex justify-center">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsRegenerateDialogOpen(true)}
+                  className="text-xs"
+                >
+                  <RefreshCw className="h-3 w-3 mr-1" />
+                  Regenerate Prompts
+                </Button>
+              </div>
+            )}
+            
+            <div className="relative">
+            {isRegenerating && (
+              <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
+                <div className="flex flex-col items-center gap-2">
+                  <RefreshCw className="h-6 w-6 animate-spin text-primary" />
+                  <span className="text-sm text-muted-foreground">Regenerating prompts...</span>
+                </div>
+              </div>
+            )}
             <EditableList
               title=""
               items={prompts}
@@ -130,9 +209,20 @@ export function PromptsDisplay({
               inputType="textarea"
               addButtonLabel={buttonLabels[type]}
             />
+            </div>
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Regenerate Dialog */}
+      <RegeneratePromptsDialog
+        open={isRegenerateDialogOpen}
+        onOpenChange={setIsRegenerateDialogOpen}
+        promptType={type}
+        onConfirm={handleRegenerate}
+        currentPromptCount={prompts.length}
+        maxSpontaneousPrompts={maxSpontaneousPrompts}
+      />
     </>
   );
 }

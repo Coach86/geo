@@ -233,7 +233,7 @@ export async function updatePromptSet(
 ): Promise<PromptSet> {
   try {
     return await apiFetch<PromptSet>(
-      API_ENDPOINTS.PROMPTS.BY_PROJECT(projectId),
+      API_ENDPOINTS.PROMPTS.UPDATE(projectId),
       {
         method: 'PATCH',
         body: JSON.stringify(data),
@@ -244,6 +244,32 @@ export async function updatePromptSet(
     console.error('Update prompt set error:', error);
     throw new Error(
       error instanceof Error ? error.message : 'Failed to update prompt set'
+    );
+  }
+}
+
+/**
+ * Regenerate specific prompt type for a project (requires token authentication)
+ */
+export async function regeneratePromptType(
+  projectId: string,
+  promptType: 'visibility' | 'sentiment' | 'alignment' | 'competition',
+  count?: number,
+  token: string
+): Promise<{ prompts: string[]; type: string }> {
+  try {
+    return await apiFetch<{ prompts: string[]; type: string }>(
+      API_ENDPOINTS.PROMPTS.REGENERATE_TYPE(projectId, promptType),
+      {
+        method: 'POST',
+        body: JSON.stringify({ count }),
+        token,
+      }
+    );
+  } catch (error) {
+    console.error('Regenerate prompt type error:', error);
+    throw new Error(
+      error instanceof Error ? error.message : 'Failed to regenerate prompts'
     );
   }
 }

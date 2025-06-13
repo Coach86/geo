@@ -37,6 +37,7 @@ export {
   generatePrompts,
   getPromptSet,
   updatePromptSet,
+  regeneratePromptType,
   runManualAnalysis,
 } from './project';
 
