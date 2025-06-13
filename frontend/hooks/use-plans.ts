@@ -13,7 +13,6 @@ export interface Plan {
   name: string;
   tag: string;
   subtitle: string;
-  features: string[];
   included: string[];
   stripeProductId: string;
   stripeCheckoutUrls?: {

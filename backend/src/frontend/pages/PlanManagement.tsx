@@ -30,7 +30,6 @@ interface PlanFormData {
   name: string;
   tag: string;
   subtitle: string;
-  features: string[];
   included: string[];
   stripeProductId: string;
   maxModels: number;
@@ -49,7 +48,6 @@ const defaultPlanData: PlanFormData = {
   name: '',
   tag: '',
   subtitle: '',
-  features: [],
   included: [],
   stripeProductId: '',
   maxModels: 5,
@@ -72,7 +70,6 @@ export default function PlanManagement() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<PlanResponseDto | null>(null);
   const [formData, setFormData] = useState<PlanFormData>(defaultPlanData);
-  const [featureInput, setFeatureInput] = useState('');
   const [includedInput, setIncludedInput] = useState('');
 
   useEffect(() => {
@@ -108,7 +105,6 @@ export default function PlanManagement() {
       name: plan.name,
       tag: plan.tag,
       subtitle: plan.subtitle,
-      features: plan.features,
       included: plan.included,
       stripeProductId: plan.stripeProductId,
       maxModels: plan.maxModels,
@@ -144,23 +140,6 @@ export default function PlanManagement() {
       setError('Failed to save plan');
       console.error(err);
     }
-  };
-
-  const addFeature = () => {
-    if (featureInput.trim()) {
-      setFormData({
-        ...formData,
-        features: [...formData.features, featureInput.trim()],
-      });
-      setFeatureInput('');
-    }
-  };
-
-  const removeFeature = (index: number) => {
-    setFormData({
-      ...formData,
-      features: formData.features.filter((_, i) => i !== index),
-    });
   };
 
   const addIncluded = () => {
@@ -366,28 +345,6 @@ export default function PlanManagement() {
                 value={formData.order}
                 onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) })}
               />
-            </Box>
-            <Box>
-              <Typography variant="subtitle2" gutterBottom>
-                Features
-              </Typography>
-              <Box display="flex" gap={1} mb={1}>
-                <TextField
-                  size="small"
-                  placeholder="Add feature"
-                  value={featureInput}
-                  onChange={(e) => setFeatureInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && addFeature()}
-                />
-                <Button onClick={addFeature} variant="outlined" size="small">
-                  Add
-                </Button>
-              </Box>
-              <Box display="flex" flexWrap="wrap" gap={1}>
-                {formData.features.map((feature, index) => (
-                  <Chip key={index} label={feature} onDelete={() => removeFeature(index)} />
-                ))}
-              </Box>
             </Box>
             <Box>
               <Typography variant="subtitle2" gutterBottom>

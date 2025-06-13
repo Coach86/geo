@@ -138,7 +138,6 @@ export default function PricingPage({
       pricePeriod: "/mo",
       billedAnnually: billingPeriod === "yearly",
       savings: savingsAmount,
-      features: plan.features,
       included: plan.included,
       ctaText: "Get Started",
       ctaAction: () => handleStartTrial(plan.id, plan.name),
@@ -235,7 +234,6 @@ export default function PricingPage({
               name={plan.name}
               tag={plan.tagline}
               subtitle={plan.description}
-              features={plan.features}
               included={plan.included}
               price={plan.price}
               pricePeriod={plan.pricePeriod}

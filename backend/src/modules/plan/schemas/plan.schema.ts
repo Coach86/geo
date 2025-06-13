@@ -15,9 +15,6 @@ export class Plan {
   subtitle: string;
 
   @Prop({ type: [String], default: [] })
-  features: string[];
-
-  @Prop({ type: [String], default: [] })
   included: string[];
 
   @Prop({ required: true })
