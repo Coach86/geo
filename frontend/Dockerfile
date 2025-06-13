@@ -9,6 +9,8 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_PUBLIC_API_URL=https://api.getmint.ai/api
+ENV NEXT_PUBLIC_POSTHOG_KEY=phc_iNSRIwgW553mS6cI4rBvjMX0pisqkBeXGYvkm4kraft
+ENV NEXT_PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com
 RUN npm install -g pnpm
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -21,8 +23,6 @@ RUN npm install -g pnpm
 
 ENV NODE_ENV=production
 ENV NEXT_PUBLIC_API_URL=https://api.getmint.ai/api
-ENV NEXT_PUBLIC_POSTHOG_KEY=phc_iNSRIwgW553mS6cI4rBvjMX0pisqkBeXGYvkm4kraft
-ENV NEXT_PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com
 
 # Copy only the necessary files for production
 COPY --from=builder /app/next.config.mjs ./
