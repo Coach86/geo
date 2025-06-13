@@ -92,16 +92,26 @@ export class OpenAiAdapter implements LlmAdapter {
       // We need to extract URLs from url_citation annotations in output_text content.
       let text = '';
       const annotations: SourceCitation[] = [];
+      let webSearchPerformed = false;
+      
       this.logger.log(`Extracting citations from OpenAI response: ${JSON.stringify(response.output, null, 2)}`);
       if (Array.isArray(response.output)) {
         for (const item of response.output) {
+          // Check if web search was performed
+          if (item.type === 'web_search_call' && item.status === 'completed') {
+            webSearchPerformed = true;
+          }
+          
           if (item.type === 'message' && Array.isArray(item.content)) {
             for (const contentItem of item.content) {
               if (contentItem.type === 'output_text' && Array.isArray(contentItem.annotations)) {
                 for (const annotation of contentItem.annotations) {
                   if (annotation.type === 'url_citation' && annotation.url) {
                     this.logger.debug(`Found citation: ${JSON.stringify(annotation)} for prompt ${requestParams?.input}`);
-                    annotations.push({ url: annotation.url });
+                    annotations.push({ 
+                      url: annotation.url,
+                      title: annotation.title || 'Web Source'
+                    });
                   }
                 }
                 // Optionally, get the text from the first output_text
@@ -133,12 +143,31 @@ export class OpenAiAdapter implements LlmAdapter {
         );
       }
 
+      // Create toolUsage array if web search was performed
+      const toolUsage = [];
+      if (webSearchPerformed && uniqueAnnotations.length > 0) {
+        toolUsage.push({
+          id: `openai-web-search-${Date.now()}`,
+          type: 'web_search',
+          parameters: {
+            query: 'unknown'
+          },
+          execution_details: {
+            status: 'completed',
+            timestamp: new Date().toISOString(),
+            citationCount: uniqueAnnotations.length,
+          },
+        });
+        this.logger.log(`Created toolUsage entry for OpenAI web search with ${uniqueAnnotations.length} citations`);
+      }
+
       return {
         text,
         modelVersion: modelName,
         tokenUsage: usage,
-        annotations: annotations.length > 0 ? this.deduplicateCitations(annotations) : undefined,
-        usedWebSearch: webAccess && annotations.length > 0,
+        annotations: uniqueAnnotations.length > 0 ? uniqueAnnotations : undefined,
+        toolUsage: toolUsage.length > 0 ? toolUsage : undefined,
+        usedWebSearch: webAccess && uniqueAnnotations.length > 0,
       };
     } catch (error) {
       this.logger.error(`Error calling OpenAI API: ${error.message}`);

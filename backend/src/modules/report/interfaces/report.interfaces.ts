@@ -36,18 +36,20 @@ export interface ExplorerData {
     count: number;
     percentage: number;
   }[];
-  citations: {
-    website: string;
-    link?: string;
-    model: string;
-    promptType: string;
-    promptIndex: number;
-    promptText?: string;
-    webSearchQueries?: {
-      query: string;
-      timestamp?: string;
+  webSearchResults?: {
+    query: string;
+    timestamp?: string;
+    models: string[];
+    promptTypes: string[];
+    citations: {
+      website: string;
+      link?: string;
+      model: string;
+      promptType: string;
+      promptIndex: number;
+      source?: string;
     }[];
-  }[];
+  }[]; // New structure: query -> citations
   webAccess: {
     totalResponses: number;
     successfulQueries: number;

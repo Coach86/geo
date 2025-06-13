@@ -113,10 +113,10 @@ The application includes built-in retry logic for handling rate limiting errors 
 Retry behavior can be configured via environment variables:
 
 ```env
-LLM_MAX_RETRIES=3           # Maximum number of retries (default: 3)
-LLM_BASE_DELAY_MS=1000      # Base delay in milliseconds (default: 1000)
-LLM_MAX_DELAY_MS=30000      # Maximum delay in milliseconds (default: 30000)
-LLM_BACKOFF_FACTOR=2.0      # Exponential backoff factor (default: 2.0)
+LLM_MAX_RETRIES=7           # Maximum number of retries (default: 7)
+LLM_BASE_DELAY_MS=3000      # Base delay in milliseconds (default: 3000)
+LLM_MAX_DELAY_MS=120000     # Maximum delay in milliseconds (default: 120000)
+LLM_BACKOFF_FACTOR=2.5      # Exponential backoff factor (default: 2.5)
 ```
 
 ### How It Works
@@ -127,10 +127,14 @@ LLM_BACKOFF_FACTOR=2.0      # Exponential backoff factor (default: 2.0)
    - Retry-After headers or retry delay information in error responses
 
 2. **Exponential Backoff**: Uses exponential backoff with jitter to spread out retry attempts:
-   - First retry: 1 second (+ jitter)
-   - Second retry: 2 seconds (+ jitter)
-   - Third retry: 4 seconds (+ jitter)
-   - Maximum delay: 30 seconds
+   - First retry: 3 seconds (+ jitter)
+   - Second retry: 7.5 seconds (+ jitter)
+   - Third retry: 18.75 seconds (+ jitter)
+   - Fourth retry: 46.88 seconds (+ jitter)
+   - Fifth retry: 117.19 seconds (+ jitter)
+   - Sixth retry: 120 seconds (capped at max)
+   - Seventh retry: 120 seconds (capped at max)
+   - Maximum delay: 120 seconds (2 minutes)
 
 3. **Provider-Specific Delays**: If the API provider specifies a retry delay in the error response, that delay is respected instead of the exponential backoff.
 

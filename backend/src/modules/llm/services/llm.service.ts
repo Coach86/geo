@@ -28,10 +28,10 @@ export class LlmService {
 
     // Configure retry options from environment variables
     this.retryOptions = {
-      maxRetries: parseInt(this.configService.get<string>('LLM_MAX_RETRIES', '3'), 10),
-      baseDelayMs: parseInt(this.configService.get<string>('LLM_BASE_DELAY_MS', '1000'), 10),
-      maxDelayMs: parseInt(this.configService.get<string>('LLM_MAX_DELAY_MS', '30000'), 10),
-      backoffFactor: parseFloat(this.configService.get<string>('LLM_BACKOFF_FACTOR', '2.0')),
+      maxRetries: parseInt(this.configService.get<string>('LLM_MAX_RETRIES', '7'), 10),
+      baseDelayMs: parseInt(this.configService.get<string>('LLM_BASE_DELAY_MS', '3000'), 10),
+      maxDelayMs: parseInt(this.configService.get<string>('LLM_MAX_DELAY_MS', '120000'), 10),
+      backoffFactor: parseFloat(this.configService.get<string>('LLM_BACKOFF_FACTOR', '2.5')),
       retryCondition: RetryUtil.isRateLimitError,
     };
 

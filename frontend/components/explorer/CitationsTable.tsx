@@ -61,13 +61,27 @@ interface CitationRow {
 }
 
 interface CitationsTableProps {
-  citations: Array<{
+  citations?: Array<{
     website: string;
     link?: string;
     model?: string;
     promptType?: string;
     promptText?: string | null;
     webSearchQueries?: Array<{ query: string }>;
+  }>;
+  webSearchResults?: Array<{
+    query: string;
+    timestamp?: string;
+    models: string[];
+    promptTypes: string[];
+    citations: Array<{
+      website: string;
+      link?: string;
+      model: string;
+      promptType: string;
+      promptIndex: number;
+      source?: string;
+    }>;
   }>;
   onExport: () => void;
   searchQueryFilter?: string;
@@ -119,7 +133,7 @@ const getDomain = (url: string) => {
   }
 };
 
-export function CitationsTable({ citations, onExport, searchQueryFilter }: CitationsTableProps) {
+export function CitationsTable({ citations, webSearchResults, onExport, searchQueryFilter }: CitationsTableProps) {
   const [globalFilter, setGlobalFilter] = React.useState("");
 
   // Transform citations data for table with grouping
@@ -128,10 +142,58 @@ export function CitationsTable({ citations, onExport, searchQueryFilter }: Citat
     const groups = new Map<string, CitationRow[]>();
     let idCounter = 0;
 
-    citations.forEach((citation) => {
-      if (citation.webSearchQueries && citation.webSearchQueries.length > 0) {
-        citation.webSearchQueries.forEach((queryObj) => {
-          const query = queryObj.query;
+    // Use new structure if available, otherwise fall back to old structure
+    if (webSearchResults && webSearchResults.length > 0) {
+      // New structure: process webSearchResults
+      webSearchResults.forEach((searchResult) => {
+        const query = searchResult.query;
+        
+        searchResult.citations.forEach((citation) => {
+          const row: CitationRow = {
+            id: `${idCounter++}`,
+            searchQuery: query,
+            source: citation.website,
+            link: citation.link || null,
+            model: citation.model,
+            promptType: citation.promptType,
+            promptText: null, // TODO: Add prompt text support
+            domain: citation.link ? getDomain(citation.link) : "No link",
+          };
+          
+          rows.push(row);
+          
+          if (!groups.has(query)) {
+            groups.set(query, []);
+          }
+          groups.get(query)!.push(row);
+        });
+      });
+    } else if (citations) {
+      // Fallback to old structure
+      citations.forEach((citation) => {
+        if (citation.webSearchQueries && citation.webSearchQueries.length > 0) {
+          citation.webSearchQueries.forEach((queryObj) => {
+            const query = queryObj.query;
+            const row: CitationRow = {
+              id: `${idCounter++}`,
+              searchQuery: query,
+              source: citation.website,
+              link: citation.link || null,
+              model: citation.model || "Unknown",
+              promptType: citation.promptType || "Unknown",
+              promptText: citation.promptText || null,
+              domain: citation.link ? getDomain(citation.link) : "No link",
+            };
+            
+            rows.push(row);
+            
+            if (!groups.has(query)) {
+              groups.set(query, []);
+            }
+            groups.get(query)!.push(row);
+          });
+        } else {
+          const query = "No search query";
           const row: CitationRow = {
             id: `${idCounter++}`,
             searchQuery: query,
@@ -149,31 +211,12 @@ export function CitationsTable({ citations, onExport, searchQueryFilter }: Citat
             groups.set(query, []);
           }
           groups.get(query)!.push(row);
-        });
-      } else {
-        const query = "No search query";
-        const row: CitationRow = {
-          id: `${idCounter++}`,
-          searchQuery: query,
-          source: citation.website,
-          link: citation.link || null,
-          model: citation.model || "Unknown",
-          promptType: citation.promptType || "Unknown",
-          promptText: citation.promptText || null,
-          domain: citation.link ? getDomain(citation.link) : "No link",
-        };
-        
-        rows.push(row);
-        
-        if (!groups.has(query)) {
-          groups.set(query, []);
         }
-        groups.get(query)!.push(row);
-      }
-    });
+      });
+    }
 
     return { data: rows, groupedData: groups };
-  }, [citations]);
+  }, [citations, webSearchResults]);
 
   // Column definitions
   const columnHelper = createColumnHelper<CitationRow>();

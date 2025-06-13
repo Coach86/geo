@@ -161,32 +161,29 @@ export default function ExplorerPage() {
   const citationsWithPromptText = useMemo(() => {
     if (!explorerData) return [];
     
-    return explorerData.citations.map(citation => ({
-      ...citation,
-      promptText: getPromptText(citation.promptType, citation.promptIndex)
-    }));
+    // Check if we have the old format with citations array
+    if (explorerData.citations) {
+      return explorerData.citations.map(citation => ({
+        ...citation,
+        promptText: getPromptText(citation.promptType, citation.promptIndex)
+      }));
+    }
+    
+    // For new format, return empty array as CitationsTable will use webSearchResults directly
+    return [];
   }, [explorerData, promptSet]);
 
-  // Calculate total unfiltered citations (how they would appear in the table)
-  const totalUnfilteredCitations = useMemo(() => {
+  // Calculate total unique citations (actual number of citation objects)
+  const totalUniqueCitations = useMemo(() => {
     if (!explorerData) return 0;
     
-    let count = 0;
-    explorerData.citations.forEach((citation) => {
-      if (citation.webSearchQueries && citation.webSearchQueries.length > 0) {
-        // This citation will appear once for each query
-        count += citation.webSearchQueries.length;
-      } else {
-        // This citation will appear once under "No search query"
-        count += 1;
-      }
-    });
-    return count;
+    // Use the totalCitations from summary which is calculated correctly in both formats
+    return explorerData.summary.totalCitations || 0;
   }, [explorerData]);
 
   // Export citations to CSV
   const exportToCSV = useCallback(() => {
-    if (!explorerData || explorerData.citations.length === 0) return;
+    if (!explorerData) return;
 
     // Use all data for export (not filtered)
     const headers = ["Search Query", "Source", "Link", "Model", "Prompt Category", "Prompt Detail"];
@@ -194,31 +191,48 @@ export default function ExplorerPage() {
     // Prepare CSV rows from all data
     const rows: string[][] = [];
     
-    citationsWithPromptText.forEach((citation) => {
-      const promptText = citation.promptText || "N/A";
-      
-      if (citation.webSearchQueries && citation.webSearchQueries.length > 0) {
-        citation.webSearchQueries.forEach((queryObj) => {
+    // Use new structure if available
+    if (explorerData.webSearchResults && explorerData.webSearchResults.length > 0) {
+      explorerData.webSearchResults.forEach((searchResult) => {
+        searchResult.citations.forEach((citation) => {
           rows.push([
-            queryObj.query,
+            searchResult.query,
+            citation.website,
+            citation.link || "No link",
+            citation.model,
+            citation.promptType,
+            "N/A", // TODO: Add prompt text support to new structure
+          ]);
+        });
+      });
+    } else {
+      // Fallback to old structure
+      citationsWithPromptText.forEach((citation) => {
+        const promptText = citation.promptText || "N/A";
+        
+        if (citation.webSearchQueries && citation.webSearchQueries.length > 0) {
+          citation.webSearchQueries.forEach((queryObj) => {
+            rows.push([
+              queryObj.query,
+              citation.website,
+              citation.link || "No link",
+              citation.model || "Unknown",
+              citation.promptType || "Unknown",
+              promptText,
+            ]);
+          });
+        } else {
+          rows.push([
+            "No search query",
             citation.website,
             citation.link || "No link",
             citation.model || "Unknown",
             citation.promptType || "Unknown",
             promptText,
           ]);
-        });
-      } else {
-        rows.push([
-          "No search query",
-          citation.website,
-          citation.link || "No link",
-          citation.model || "Unknown",
-          citation.promptType || "Unknown",
-          promptText,
-        ]);
-      }
-    });
+        }
+      });
+    }
 
     // Combine headers and rows
     const csvContent = [headers, ...rows]
@@ -362,7 +376,7 @@ export default function ExplorerPage() {
                 <CardContent>
                   <div className="space-y-2">
                     <div className="text-3xl font-bold text-blue-600">
-                      {totalUnfilteredCitations}
+                      {totalUniqueCitations}
                     </div>
                   </div>
                 </CardContent>
@@ -579,6 +593,7 @@ export default function ExplorerPage() {
               <CardContent>
                 <CitationsTable
                   citations={citationsWithPromptText}
+                  webSearchResults={explorerData.webSearchResults}
                   onExport={exportToCSV}
                   searchQueryFilter={keywordFilter}
                 />

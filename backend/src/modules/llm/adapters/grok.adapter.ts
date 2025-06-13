@@ -47,6 +47,7 @@ export class GrokAdapter implements LlmAdapter {
       const annotations: SourceCitation[] = [];
       const toolUsage = [];
       let usedWebSearch = false;
+      let webSearchQuery = '';
 
       // Extract sources from the generateText result
       // The AI SDK provides sources directly when web search is used
@@ -65,20 +66,9 @@ export class GrokAdapter implements LlmAdapter {
         
         // If we have sources, web search was likely used
         usedWebSearch = true;
-        
-        // Add web search to tool usage
-        toolUsage.push({
-          id: 'web_search_' + Date.now(),
-          type: TOOL_TYPES.WEB_SEARCH,
-          parameters: {},
-          execution_details: {
-            status: 'completed',
-            timestamp: new Date().toISOString(),
-          },
-        });
       }
 
-      // Check tool calls for web search usage
+      // Check tool calls for web search usage and extract query
       if (result.toolCalls && result.toolCalls.length > 0) {
         this.logger.log(`Found ${result.toolCalls.length} tool calls in Grok response`);
         
@@ -86,17 +76,28 @@ export class GrokAdapter implements LlmAdapter {
           if (toolCall.toolName === 'web_search' || toolCall.toolName === 'search') {
             usedWebSearch = true;
             
-            toolUsage.push({
-              id: toolCall.toolCallId || 'web_search_' + Date.now(),
-              type: TOOL_TYPES.WEB_SEARCH,
-              parameters: toolCall.args || {},
-              execution_details: {
-                status: 'completed',
-                timestamp: new Date().toISOString(),
-              },
-            });
+            // Extract the search query from tool call parameters
+            if (toolCall.args && (toolCall.args.query || toolCall.args.q || toolCall.args.search)) {
+              webSearchQuery = toolCall.args.query || toolCall.args.q || toolCall.args.search;
+            }
           }
         }
+      }
+
+      // Create a SINGLE tool usage entry if web search was used
+      if (usedWebSearch) {
+        toolUsage.push({
+          id: 'web_search_' + Date.now(),
+          type: TOOL_TYPES.WEB_SEARCH,
+          parameters: {
+            query: webSearchQuery || 'unknown'
+          },
+          execution_details: {
+            status: 'completed',
+            timestamp: new Date().toISOString(),
+            citationCount: annotations.length,
+          },
+        });
       }
 
       // Check for warnings that might indicate web search issues
