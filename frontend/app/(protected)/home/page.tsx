@@ -133,8 +133,13 @@ export default function HomePage() {
       
       toast({
         title: "Manual Refresh Started",
-        description: "This process usually takes 5-10 minutes to complete. Please check back later for results.",
-        duration: 6000,
+        description: (
+          <div className="flex items-center gap-2">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
+            <span>This process usually takes 5-10 minutes to complete. Please check back later for results.</span>
+          </div>
+        ),
+        duration: 8000,
       })
 
       // Refresh the project in the list to get updated nextManualAnalysisAllowedAt
