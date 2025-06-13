@@ -250,6 +250,94 @@ export class PublicPromptController {
     }
   }
 
+  @Post(':projectId/regenerate/:promptType')
+  @TokenRoute()
+  @ApiOperation({ summary: 'Regenerate specific prompt type for a project' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        count: { type: 'number', description: 'Number of prompts to generate', example: 15 },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Prompts regenerated successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        prompts: { type: 'array', items: { type: 'string' } },
+        type: { type: 'string' },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Token required' })
+  @ApiResponse({ status: 404, description: 'Project not found' })
+  async regeneratePromptType(
+    @Req() request: any,
+    @Param('projectId') projectId: string,
+    @Param('promptType') promptType: 'visibility' | 'sentiment' | 'alignment' | 'competition',
+    @Body() body: { count?: number },
+  ): Promise<{ prompts: string[]; type: string }> {
+    try {
+      this.logger.log(`Regenerating ${promptType} prompts for project ${projectId}`);
+      
+      // Validate user authentication
+      if (!request.userId) {
+        if (request.token) {
+          const validation = await this.tokenService.validateAccessToken(request.token);
+          if (validation.valid && validation.userId) {
+            request.userId = validation.userId;
+          } else {
+            throw new UnauthorizedException('Invalid or expired token');
+          }
+        } else {
+          throw new UnauthorizedException('User not authenticated');
+        }
+      }
+
+      // Check if the user owns this project
+      const project = await this.projectModel.findOne({ id: projectId }).exec();
+      if (!project) {
+        throw new NotFoundException(`Project ${projectId} not found`);
+      }
+      
+      // Get user to check organization
+      const user = await this.userService.findOne(request.userId);
+      if (!user) {
+        throw new BadRequestException('User not found');
+      }
+      
+      if (project.organizationId !== user.organizationId) {
+        this.logger.warn(`User ${request.userId} tried to regenerate prompts for project ${projectId} from different organization`);
+        throw new UnauthorizedException('You do not have permission to regenerate prompts for this project');
+      }
+
+      // Validate prompt type
+      const validTypes = ['visibility', 'sentiment', 'alignment', 'competition'];
+      if (!validTypes.includes(promptType)) {
+        throw new BadRequestException(`Invalid prompt type. Must be one of: ${validTypes.join(', ')}`);
+      }
+
+      // Regenerate prompts for the specific type
+      const regeneratedPrompts = await this.promptService.regeneratePromptType(projectId, promptType, body.count);
+      
+      this.logger.log(`Successfully regenerated ${regeneratedPrompts.length} ${promptType} prompts for project ${projectId}`);
+      
+      return {
+        prompts: regeneratedPrompts,
+        type: promptType,
+      };
+    } catch (error) {
+      if (error instanceof UnauthorizedException || error instanceof NotFoundException || error instanceof BadRequestException) {
+        throw error;
+      }
+      this.logger.error(`Failed to regenerate prompts: ${error.message}`, error.stack);
+      throw new BadRequestException(`Failed to regenerate prompts: ${error.message}`);
+    }
+  }
+
   @Patch(':projectId')
   @TokenRoute()
   @ApiOperation({ summary: 'Update prompt set for a project' })

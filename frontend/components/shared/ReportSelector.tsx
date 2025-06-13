@@ -52,6 +52,9 @@ export function ReportSelector({
   const projectReports = reports[projectId] || [];
   const selectedReportId = selectedReports[projectId];
   const isLoading = loadingReports[projectId] || isInitializing;
+  
+  // Find the most recent report (first one in the sorted list)
+  const latestReportId = projectReports.length > 0 ? projectReports[0].id : null;
 
   const handleReportChange = (reportId: string) => {
     selectReport(projectId, reportId);
@@ -83,15 +86,22 @@ export function ReportSelector({
         <div className="flex items-center gap-1 px-2 py-1">
           <CalendarIcon className="h-3 w-3 text-gray-500 flex-shrink-0" />
           <span className="text-sm font-medium text-gray-700 truncate" style={{ maxWidth: '200px' }}>
-            {selectedReportId
-              ? format(
+            {selectedReportId ? (
+              <>
+                {format(
                   new Date(
                     projectReports.find((r) => r.id === selectedReportId)
                       ?.generatedAt || ""
                   ),
                   "MMM d, yyyy"
-                )
-              : "Select report"}
+                )}
+                {selectedReportId === latestReportId && (
+                  <span className="ml-1">(latest)</span>
+                )}
+              </>
+            ) : (
+              "Select report"
+            )}
           </span>
           <ChevronDown className="h-3 w-3 text-gray-900 flex-shrink-0" />
         </div>
@@ -105,6 +115,9 @@ export function ReportSelector({
                 {format(
                   new Date(report.generatedAt),
                   "MMM d, yyyy 'at' h:mm a"
+                )}
+                {report.id === latestReportId && (
+                  <span className="ml-1">(latest)</span>
                 )}
               </span>
             </div>
