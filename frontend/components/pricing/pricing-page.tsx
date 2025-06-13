@@ -122,7 +122,7 @@ export default function PricingPage({
     const monthlyPrice = plan.prices?.monthly || 0;
     const yearlyPrice = plan.prices?.yearly || 0;
     const currentPrice =
-      billingPeriod === "monthly" ? monthlyPrice : yearlyPrice;
+      billingPeriod === "monthly" ? monthlyPrice : (yearlyPrice / 12).toFixed(2);
     const savingsAmount =
       billingPeriod === "yearly" ? calculateSavings(monthlyPrice).amount : null;
 
