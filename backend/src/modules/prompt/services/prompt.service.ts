@@ -33,7 +33,7 @@ export class PromptService implements OnModuleInit {
 
   onModuleInit() {
     // Load prompt counts from configuration
-    this.visibilityPromptCount = this.configService.get<number>('VISIBILITY_PROMPTS', 15);
+    this.visibilityPromptCount = this.configService.get<number>('VISIBILITY_PROMPTS', 12);
     this.sentimentPromptCount = this.configService.get<number>('SENTIMENT_PROMPTS', 3);
     this.competitionPromptCount = this.configService.get<number>('COMPETITION_PROMPTS', 5);
     this.alignmentPromptCount = this.configService.get<number>('ALIGNMENT_PROMPTS', 3);
