@@ -81,6 +81,7 @@ interface Organization {
   selectedModels: string[];
   currentUsers?: number;
   currentProjects?: number;
+  projects?: Array<{ id: string; brandName: string }>;
   createdAt: string;
   updatedAt: string;
 }
@@ -115,7 +116,7 @@ const OrganizationSettings: React.FC = () => {
   const loadOrganizations = async () => {
     try {
       setLoading(true);
-      const orgsData = await getAllOrganizations();
+      const orgsData = await getAllOrganizations(true); // Include projects
       setOrganizations(orgsData);
 
       // If filter is provided, select that organization
@@ -313,7 +314,18 @@ const OrganizationSettings: React.FC = () => {
                         }}
                       >
                         <ListItemText
-                          primary={org.id}
+                          primary={
+                            <Box>
+                              <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
+                                {org.id}
+                              </Typography>
+                              {org.projects && org.projects.length > 0 && (
+                                <Typography variant="body1" sx={{ mt: 0.5 }}>
+                                  {org.projects.map(p => p.brandName).join(', ')}
+                                </Typography>
+                              )}
+                            </Box>
+                          }
                           secondary={
                             <Box component="span" display="flex" gap={1} mt={0.5}>
                               <Chip
@@ -518,6 +530,71 @@ const OrganizationSettings: React.FC = () => {
                                       color="error"
                                     >
                                       <DeleteIcon />
+                                    </IconButton>
+                                  </Tooltip>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Projects */}
+                <Card>
+                  <CardContent>
+                    <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+                      <Box display="flex" alignItems="center">
+                        <FolderIcon sx={{ mr: 1, color: 'primary.main' }} />
+                        <Typography variant="h6">Projects</Typography>
+                      </Box>
+                    </Box>
+                    <Divider sx={{ mb: 2 }} />
+
+                    {!selectedOrganization.projects || selectedOrganization.projects.length === 0 ? (
+                      <Typography color="text.secondary">No projects in this organization yet.</Typography>
+                    ) : (
+                      <TableContainer>
+                        <Table>
+                          <TableHead>
+                            <TableRow>
+                              <TableCell>Brand Name</TableCell>
+                              <TableCell>Project ID</TableCell>
+                              <TableCell align="right">Actions</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {selectedOrganization.projects.map((project) => (
+                              <TableRow 
+                                key={project.id}
+                                hover
+                                sx={{ cursor: 'pointer' }}
+                                onClick={() => navigate(`/projects/${project.id}`)}
+                              >
+                                <TableCell>
+                                  <Box display="flex" alignItems="center">
+                                    <FolderIcon sx={{ mr: 1, fontSize: 18, color: 'text.secondary' }} />
+                                    {project.brandName}
+                                  </Box>
+                                </TableCell>
+                                <TableCell>
+                                  <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.875rem' }}>
+                                    {project.id}
+                                  </Typography>
+                                </TableCell>
+                                <TableCell align="right">
+                                  <Tooltip title="View Project">
+                                    <IconButton
+                                      size="small"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/projects/${project.id}`);
+                                      }}
+                                      color="primary"
+                                    >
+                                      <EditIcon />
                                     </IconButton>
                                   </Tooltip>
                                 </TableCell>

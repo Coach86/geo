@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { OrganizationService } from '../services/organization.service';
 import { CreateOrganizationDto } from '../dto/create-organization.dto';
@@ -40,8 +41,8 @@ export class OrganizationController {
     description: 'List of organizations',
     type: [OrganizationResponseDto],
   })
-  async findAll(): Promise<OrganizationResponseDto[]> {
-    return await this.organizationService.findAll();
+  async findAll(@Query('includeProjects') includeProjects?: string): Promise<OrganizationResponseDto[]> {
+    return await this.organizationService.findAll(includeProjects === 'true');
   }
 
   @Get(':id')

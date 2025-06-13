@@ -37,9 +37,11 @@ const createAuthAxios = () => {
 };
 
 // Organization endpoints
-export const getAllOrganizations = async () => {
+export const getAllOrganizations = async (includeProjects: boolean = false) => {
   const api = createAuthAxios();
-  const response = await api.get('/organizations');
+  const response = await api.get('/organizations', {
+    params: includeProjects ? { includeProjects: 'true' } : {}
+  });
   return response.data;
 };
 
