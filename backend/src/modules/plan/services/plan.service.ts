@@ -181,7 +181,6 @@ export class PlanService {
       name: plan.name,
       tag: plan.tag,
       subtitle: plan.subtitle,
-      features: plan.features,
       included: plan.included,
       stripeProductId: plan.stripeProductId,
       maxModels: plan.maxModels,

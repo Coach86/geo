@@ -9,7 +9,6 @@ export interface StaticPlan {
   price: string;
   pricePeriod: string;
   savings: number | null;
-  features: string[];
   included: string[];
   ctaText: string;
   ctaColor: string;
@@ -31,12 +30,10 @@ export const staticPlans: StaticPlan[] = [
     price: "Contact Us",
     pricePeriod: "",
     savings: null,
-    features: [
+    included: [
       "Monitor 15+ brands globally or unlimited for agencies",
       "Custom prompts, personas, and white-label options",
       "SSO, API access (beta), and dedicated support",
-    ],
-    included: [
       "All features from Pro",
       "Custom brand limits",
       "Enterprise features & support",

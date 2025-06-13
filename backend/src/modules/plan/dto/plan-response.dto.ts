@@ -9,7 +9,6 @@ export class PlanResponseDto {
   name: string;
   tag: string;
   subtitle: string;
-  features: string[];
   included: string[];
   stripeProductId: string;
   maxModels: number;

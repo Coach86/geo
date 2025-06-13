@@ -12,10 +12,6 @@ export class CreatePlanDto {
 
   @IsArray()
   @IsString({ each: true })
-  features: string[];
-
-  @IsArray()
-  @IsString({ each: true })
   included: string[];
 
   @IsString()

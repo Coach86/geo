@@ -13,7 +13,6 @@ interface PricingCardProps {
   name: string;
   tag: string;
   subtitle: string;
-  features: string[];
   included: string[];
   price: string;
   pricePeriod: string;
@@ -37,7 +36,6 @@ export function PricingCard({
   name,
   tag,
   subtitle,
-  features,
   included,
   price,
   pricePeriod,
@@ -133,7 +131,7 @@ export function PricingCard({
           </div>
         </div>
 
-        {/* Section 3: Features - Dynamic height, grows with content */}
+        {/* Section 3: What's included - Dynamic height, grows with content */}
         <div className="mb-4 flex-grow">
           <h4 className="text-sm font-medium mb-4">
             {showPlusIcon && previousPlanName && (
@@ -148,11 +146,11 @@ export function PricingCard({
               </span>
             )}
             {!showPlusIcon && (
-              <span className="text-mono-700">What you can do</span>
+              <span className="text-mono-700">What's included</span>
             )}
           </h4>
           <ul className="space-y-3">
-            {features.map((feature, i) => (
+            {included.map((item, i) => (
               <li key={i} className="flex items-start">
                 {!showPlusIcon ? (
                   <Check
@@ -163,23 +161,6 @@ export function PricingCard({
                     className={`h-4 w-4 ${plusColor} mr-2 mt-0.5 flex-shrink-0`}
                   />
                 )}
-                <span className="text-sm text-mono-600">{feature}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Section 4: What's included - Dynamic height */}
-        <div className="mb-4 py-4">
-          <h4 className="text-sm font-medium text-mono-700 mb-3">
-            What's included
-          </h4>
-          <ul className="space-y-2">
-            {included.map((item, i) => (
-              <li key={i} className="flex items-start">
-                <Check
-                  className={`h-4 w-4 ${checkColor} mr-2 mt-0.5 flex-shrink-0`}
-                />
                 <span className="text-sm text-mono-600">{item}</span>
               </li>
             ))}
