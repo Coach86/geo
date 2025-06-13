@@ -47,10 +47,10 @@ export class OrganizationService {
     }
   }
 
-  async findAll(): Promise<OrganizationResponseDto[]> {
+  async findAll(includeProjects: boolean = false): Promise<OrganizationResponseDto[]> {
     try {
       const organizations = await this.organizationRepository.findAll();
-      return Promise.all(organizations.map((org) => this.mapToResponseDto(org)));
+      return Promise.all(organizations.map((org) => this.mapToResponseDto(org, includeProjects)));
     } catch (error) {
       this.logger.error(`Failed to find organizations: ${error.message}`, error.stack);
       throw error;
@@ -220,12 +220,15 @@ export class OrganizationService {
     }
   }
 
-  private async mapToResponseDto(organization: OrganizationDocument): Promise<OrganizationResponseDto> {
+  private async mapToResponseDto(organization: OrganizationDocument, includeProjects: boolean = false): Promise<OrganizationResponseDto> {
     const entity = this.organizationRepository.mapToEntity(organization);
 
     // Get current usage counts
     const currentUsers = await this.organizationRepository.countUsersByOrganizationId(entity.id);
     const currentProjects = await this.organizationRepository.countProjectsByOrganizationId(entity.id);
+    
+    // Get project details if requested
+    const projects = includeProjects ? await this.organizationRepository.getProjectsByOrganizationId(entity.id) : undefined;
 
     return {
       id: entity.id,
@@ -240,6 +243,7 @@ export class OrganizationService {
       updatedAt: entity.updatedAt.toISOString(),
       currentUsers,
       currentProjects,
+      projects,
     };
   }
 }

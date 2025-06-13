@@ -18,4 +18,5 @@ export class OrganizationResponseDto {
   updatedAt: string;
   currentUsers?: number;
   currentProjects?: number;
+  projects?: Array<{ id: string; brandName: string }>;
 }

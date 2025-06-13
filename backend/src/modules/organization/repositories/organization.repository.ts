@@ -105,6 +105,19 @@ export class OrganizationRepository {
     }
   }
 
+  async getProjectsByOrganizationId(organizationId: string): Promise<Array<{ id: string; brandName: string }>> {
+    try {
+      const projects = await this.projectModel
+        .find({ organizationId })
+        .select('id brandName')
+        .exec();
+      return projects.map(p => ({ id: p.id, brandName: p.brandName }));
+    } catch (error) {
+      this.logger.error(`Failed to get projects for organization: ${organizationId}`, error);
+      throw error;
+    }
+  }
+
   mapToEntity(document: OrganizationDocument): OrganizationEntity {
     return {
       id: document.id,
