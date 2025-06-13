@@ -37,8 +37,8 @@ interface PromptSelectionProps {
       };
     };
   };
-  onDataReady?: (data: { 
-    visibilityPrompts: { text: string; selected: boolean }[]; 
+  onDataReady?: (data: {
+    visibilityPrompts: { text: string; selected: boolean }[];
     perceptionPrompts: { text: string; selected: boolean }[];
     alignmentPrompts?: string[];
     competitionPrompts?: string[];
@@ -48,10 +48,10 @@ interface PromptSelectionProps {
 export default function PromptSelection({ initialData, onDataReady }: PromptSelectionProps) {
   const { token, isAuthenticated, isLoading: authLoading } = useAuth()
   const router = useRouter()
-  
+
   // Helper to generate unique IDs
   const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-  
+
   // Initialize prompts with IDs
   const initializePrompts = (prompts: { text: string; selected: boolean }[]): PromptItem[] => {
     return prompts.map(prompt => ({
@@ -59,13 +59,13 @@ export default function PromptSelection({ initialData, onDataReady }: PromptSele
       ...prompt
     }));
   };
-  
+
   // Local state - no localStorage updates
   const [visibilityPrompts, setVisibilityPrompts] = useState<PromptItem[]>([]);
   const [perceptionPrompts, setPerceptionPrompts] = useState<PromptItem[]>([]);
   const [alignmentPrompts, setAlignmentPrompts] = useState<string[]>([]);
   const [competitionPrompts, setCompetitionPrompts] = useState<string[]>([]);
-  
+
   // UI state
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editableValue, setEditableValue] = useState("")
@@ -79,8 +79,8 @@ export default function PromptSelection({ initialData, onDataReady }: PromptSele
       // Convert back to expected format
       const visibilityPromptsData = visibilityPrompts.map(({ text, selected }) => ({ text, selected }));
       const perceptionPromptsData = perceptionPrompts.map(({ text }) => ({ text, selected: true }));
-      onDataReady({ 
-        visibilityPrompts: visibilityPromptsData, 
+      onDataReady({
+        visibilityPrompts: visibilityPromptsData,
         perceptionPrompts: perceptionPromptsData,
         alignmentPrompts,
         competitionPrompts
@@ -98,7 +98,7 @@ export default function PromptSelection({ initialData, onDataReady }: PromptSele
       const brandName = initialData?.projectData?.brandName;
       const website = initialData?.projectData?.website;
       const industry = initialData?.projectData?.industry;
-      
+
       if (!token || authLoading || !brandName || !website) {
         if (!token && !authLoading) {
           setIsLoading(false);
@@ -116,7 +116,7 @@ export default function PromptSelection({ initialData, onDataReady }: PromptSele
 
       // Create a unique cache key based on brand data
       const cacheKey = `prompts-${brandName}-${website}-${industry}`;
-      
+
       try {
         setIsLoading(true)
         setError(null)
@@ -129,7 +129,7 @@ export default function PromptSelection({ initialData, onDataReady }: PromptSele
             // Verify cache is recent (within 24 hours)
             const cacheAge = Date.now() - cached.timestamp
             const maxAge = 24 * 60 * 60 * 1000 // 24 hours
-            
+
             if (cacheAge < maxAge && cached.visibilityPrompts?.length > 0 && cached.perceptionPrompts?.length > 0) {
               // Use cached prompts
               setVisibilityPrompts(initializePrompts(cached.visibilityPrompts));
@@ -146,15 +146,15 @@ export default function PromptSelection({ initialData, onDataReady }: PromptSele
         }
 
         // Build the request from analyzed data or form data
-        const keyBrandAttributes = initialData?.brandData?.analyzedData?.keyBrandAttributes || 
-                                  initialData?.brandData?.attributes || 
+        const keyBrandAttributes = initialData?.brandData?.analyzedData?.keyBrandAttributes ||
+                                  initialData?.brandData?.attributes ||
                                   [];
-        
+
         // Get competitors and ensure they're strings
-        const competitorsList = initialData?.brandData?.analyzedData?.competitors || 
-                               initialData?.brandData?.competitors || 
+        const competitorsList = initialData?.brandData?.analyzedData?.competitors ||
+                               initialData?.brandData?.competitors ||
                                [];
-        
+
         // Convert competitor objects to strings if needed
         const competitors = competitorsList.map((c: any) => {
           if (typeof c === 'string') return c;
@@ -162,7 +162,7 @@ export default function PromptSelection({ initialData, onDataReady }: PromptSele
           if (c.name) return c.name;
           return null;
         }).filter((c: string | null): c is string => c !== null);
-        
+
         const request: GeneratePromptsRequest = {
           brandName: brandName,
           website: website,
@@ -172,7 +172,7 @@ export default function PromptSelection({ initialData, onDataReady }: PromptSele
           keyBrandAttributes: keyBrandAttributes,
           competitors: competitors,
           shortDescription: initialData?.projectData?.description || '',
-          fullDescription: initialData?.brandData?.analyzedData?.fullDescription || 
+          fullDescription: initialData?.brandData?.analyzedData?.fullDescription ||
                           initialData?.projectData?.description || ''
         }
 
@@ -315,7 +315,7 @@ export default function PromptSelection({ initialData, onDataReady }: PromptSele
   // Show missing brand data state
   const brandName = initialData?.projectData?.brandName;
   const website = initialData?.projectData?.website;
-  
+
   if (!brandName || !website) {
     return (
       <div className="flex flex-col items-center justify-center py-20 animate-fade-in">
@@ -383,11 +383,6 @@ export default function PromptSelection({ initialData, onDataReady }: PromptSele
                 </button>
               )}
             </div>
-            {visibilityPrompts.length >= 12 && (
-              <p className="text-xs text-amber-600 mt-1">
-                You have reached the maximum of 12 prompts. Remove one to add a new one.
-              </p>
-            )}
           </div>
 
           {/* List of prompts */}

@@ -49,7 +49,7 @@ export function buildProjectPrompt({
     3. A short description (1-2 sentences)
     4. A full description (2-3 paragraphs)
     5. The company's business objectives and goals (1-2 paragraphs describing their mission, vision, and strategic objectives)
-    6. 4-6 key brand attributes of the company
+    6. 4-5 key brand attributes of the company
 
     ## OUTPUT LANGUAGE:
     **Output language MUST BE ${language}**
@@ -124,7 +124,7 @@ export function buildCompetitorsPrompt({
  */
 export function getProjectSystemPrompt(): string {
   return `
-    You are a business analyst specializing in company analysis with access to web search capability. 
+    You are a business analyst specializing in company analysis with access to web search capability.
     Your primary task is to search the web for company information and then analyze it.
     Use the scraped website data as supplementary information only if needed.
   `;
