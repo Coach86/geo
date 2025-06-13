@@ -146,6 +146,7 @@ export abstract class BasePipelineService implements OnModuleInit {
       systemPrompt: modelConfig.parameters.systemPrompt,
       model: modelConfig.model, // Pass the specific model name
       webAccess: modelConfig.webAccess, // Pass the web access flag for this model
+      useRateLimiter: true, // Enable rate limiting for batch operations
     };
 
     // Call the LLM adapter using the LlmService
@@ -223,6 +224,7 @@ export abstract class BasePipelineService implements OnModuleInit {
           systemPrompt,
           model: this.analyzerConfig.primary.model,
           temperature: 0.2,
+          useRateLimiter: true, // Enable rate limiting for batch operations
         },
       );
       
@@ -248,6 +250,7 @@ export abstract class BasePipelineService implements OnModuleInit {
             systemPrompt,
             model: this.analyzerConfig.fallback.model,
             temperature: 0.2,
+            useRateLimiter: true, // Enable rate limiting for batch operations
           },
         );
         

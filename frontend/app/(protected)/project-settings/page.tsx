@@ -189,8 +189,13 @@ export default function Home() {
       
       toast({
         title: "Analysis Started",
-        description: result.message,
-        duration: 6000,
+        description: (
+          <div className="flex items-center gap-2">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
+            <span>{result.message}</span>
+          </div>
+        ),
+        duration: 8000,
       });
 
       // Refresh project details to get updated nextManualAnalysisAllowedAt

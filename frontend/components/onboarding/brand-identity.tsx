@@ -56,33 +56,38 @@ export default function BrandIdentity({ initialData, onDataReady }: BrandIdentit
   // Initialize attributes with selection state and IDs
   const initializeAttributes = (): AttributeItem[] => {
     const allAttributes: AttributeItem[] = [];
+    const addedAttributes = new Set<string>();
 
-    // If we have analyzed attributes
-    if (initialData?.analyzedData?.keyBrandAttributes) {
-      // If no initial attributes passed, select first 5 analyzed ones
-      const shouldSelectAll = !initialData?.attributes || initialData.attributes.length === 0;
+    // If we have analyzed attributes, show them
+    if (initialData?.analyzedData?.keyBrandAttributes && initialData.analyzedData.keyBrandAttributes.length > 0) {
+      // Check if we have any saved selections
+      const hasSavedSelections = initialData?.attributes && initialData.attributes.length > 0;
 
       initialData.analyzedData.keyBrandAttributes.forEach((attr, idx) => {
-        const isSelected = shouldSelectAll
-          ? idx < 5  // Select first 5 if no initial data
-          : initialData.attributes?.includes(attr) || false;
-        allAttributes.push({
-          id: generateId(),
-          value: attr,
-          selected: isSelected
-        });
+        if (!addedAttributes.has(attr)) {
+          const isSelected = hasSavedSelections
+            ? initialData.attributes?.includes(attr) || false
+            : idx < 5;  // Select first 5 by default if no saved selections
+          allAttributes.push({
+            id: generateId(),
+            value: attr,
+            selected: isSelected
+          });
+          addedAttributes.add(attr);
+        }
       });
     }
 
     // Add any manual attributes that aren't in analyzed data
-    if (initialData?.attributes) {
+    if (initialData?.attributes && initialData.attributes.length > 0) {
       initialData.attributes.forEach(attr => {
-        if (!allAttributes.some(item => item.value === attr)) {
+        if (!addedAttributes.has(attr)) {
           allAttributes.push({
             id: generateId(),
             value: attr,
             selected: true
           });
+          addedAttributes.add(attr);
         }
       });
     }
@@ -93,43 +98,46 @@ export default function BrandIdentity({ initialData, onDataReady }: BrandIdentit
   // Initialize competitors including analyzed data with IDs
   const initializeCompetitors = (): CompetitorItem[] => {
     const allCompetitors: CompetitorItem[] = [];
+    const addedCompetitors = new Set<string>();
 
-    // If we have analyzed competitors and no initial competitors passed
-    if (initialData?.analyzedData?.competitors && !initialData?.competitors?.length) {
-      // Select all analyzed competitors by default (up to 5)
+    // If we have analyzed competitors, show them
+    if (initialData?.analyzedData?.competitors && initialData.analyzedData.competitors.length > 0) {
+      // Check if we have any saved selections
+      const hasSavedSelections = initialData?.competitors && initialData.competitors.length > 0;
+
       initialData.analyzedData.competitors.forEach((comp, index) => {
-        allCompetitors.push({
-          id: generateId(),
-          name: comp,
-          selected: index < 5
-        });
-      });
-    } else {
-      // Otherwise use the existing logic
-      // Add analyzed competitors first
-      if (initialData?.analyzedData?.competitors) {
-        initialData.analyzedData.competitors.forEach(comp => {
-          // Check if this competitor is in the initial selected list
-          const isSelected = initialData?.competitors?.some(c => c.name === comp) || false;
+        if (!addedCompetitors.has(comp)) {
+          let isSelected: boolean;
+          
+          if (hasSavedSelections) {
+            // If we have saved selections, check if this competitor is selected
+            isSelected = initialData.competitors?.some(c => c.name === comp && c.selected) || false;
+          } else {
+            // If no saved selections, select first 5 by default
+            isSelected = index < 5;
+          }
+          
           allCompetitors.push({
             id: generateId(),
             name: comp,
             selected: isSelected
           });
-        });
-      }
+          addedCompetitors.add(comp);
+        }
+      });
+    }
 
-      // Add any manual competitors that aren't in analyzed data
-      if (initialData?.competitors) {
-        initialData.competitors.forEach(comp => {
-          if (!allCompetitors.some(c => c.name === comp.name)) {
-            allCompetitors.push({
-              id: generateId(),
-              ...comp
-            });
-          }
-        });
-      }
+    // Add any manual competitors that aren't in analyzed data
+    if (initialData?.competitors && initialData.competitors.length > 0) {
+      initialData.competitors.forEach(comp => {
+        if (!addedCompetitors.has(comp.name)) {
+          allCompetitors.push({
+            id: generateId(),
+            ...comp
+          });
+          addedCompetitors.add(comp.name);
+        }
+      });
     }
 
     return allCompetitors;

@@ -61,10 +61,13 @@ export class LlmService {
     this.logger.log(`Calling ${adapters.length} LLM providers with prompt`);
 
     const results: Record<string, LlmResponse> = {};
+    
+    // Default to false for useRateLimiter (no rate limiting for API calls)
+    const useRateLimiter = options?.useRateLimiter ?? false;
 
     // Use Promise.allSettled to handle potential failures from some providers
-    const promises = adapters.map((adapter) =>
-      this.limiter(async () => {
+    const promises = adapters.map((adapter) => {
+      const executeCall = async () => {
         try {
           const response = await RetryUtil.withRetry(
             () => adapter.call(prompt, options),
@@ -77,8 +80,10 @@ export class LlmService {
           this.logger.error(`Error calling ${adapter.name} after retries: ${error.message}`);
           return { adapter: adapter.name, success: false, error: error.message };
         }
-      }),
-    );
+      };
+
+      return useRateLimiter ? this.limiter(executeCall) : executeCall();
+    });
 
     await Promise.allSettled(promises);
 
@@ -94,13 +99,26 @@ export class LlmService {
     options?: LlmCallOptions,
   ): Promise<LlmResponse> {
     const adapter = this.getAdapter(provider);
-    return this.limiter(() => 
-      RetryUtil.withRetry(
+    
+    // Default to false for useRateLimiter (no rate limiting for API calls)
+    const useRateLimiter = options?.useRateLimiter ?? false;
+    
+    if (useRateLimiter) {
+      return this.limiter(() => 
+        RetryUtil.withRetry(
+          () => adapter.call(prompt, options),
+          this.retryOptions,
+          `${provider} API call`
+        )
+      );
+    } else {
+      // Direct call without rate limiting
+      return RetryUtil.withRetry(
         () => adapter.call(prompt, options),
         this.retryOptions,
         `${provider} API call`
-      )
-    );
+      );
+    }
   }
 
   /**
@@ -122,13 +140,25 @@ export class LlmService {
       throw new Error(`Provider '${provider}' does not support structured output`);
     }
 
-    return this.limiter(() => 
-      RetryUtil.withRetry(
+    // Default to false for useRateLimiter (no rate limiting for API calls)
+    const useRateLimiter = options?.useRateLimiter ?? false;
+
+    if (useRateLimiter) {
+      return this.limiter(() => 
+        RetryUtil.withRetry(
+          () => adapter.getStructuredOutput!(prompt, schema, options),
+          this.retryOptions,
+          `${provider} structured output call`
+        )
+      );
+    } else {
+      // Direct call without rate limiting
+      return RetryUtil.withRetry(
         () => adapter.getStructuredOutput!(prompt, schema, options),
         this.retryOptions,
         `${provider} structured output call`
-      )
-    );
+      );
+    }
   }
 
   /**

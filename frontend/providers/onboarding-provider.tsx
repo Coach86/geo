@@ -162,10 +162,14 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     
     // If going back from BRAND to PROJECT, clear analyzed data
     if (currentStep === StepId.BRAND && step === StepId.PROJECT) {
+      const currentData = getOnboardingData();
       updateOnboardingData({
         brand: {
-          ...getOnboardingData().brand,
-          analyzedData: undefined
+          ...currentData.brand,
+          analyzedData: undefined,
+          // Don't clear attributes and competitors arrays, just reset them
+          attributes: [],
+          competitors: []
         }
       });
     }
