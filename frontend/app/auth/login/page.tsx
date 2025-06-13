@@ -64,7 +64,7 @@ export default function AuthLoginPage() {
   }, [token, login]);
 
   const handleContinue = () => {
-    router.push(`/`);
+    router.push(`/home`);
   };
 
   const handleBackToAuth = () => {
