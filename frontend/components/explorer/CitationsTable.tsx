@@ -85,6 +85,12 @@ interface CitationsTableProps {
   }>;
   onExport: () => void;
   searchQueryFilter?: string;
+  promptSet?: {
+    visibility: string[];
+    sentiment: string[];
+    alignment: string[];
+    competition: string[];
+  };
 }
 
 // Custom filter functions
@@ -133,8 +139,36 @@ const getDomain = (url: string) => {
   }
 };
 
-export function CitationsTable({ citations, webSearchResults, onExport, searchQueryFilter }: CitationsTableProps) {
+export function CitationsTable({ citations, webSearchResults, onExport, searchQueryFilter, promptSet }: CitationsTableProps) {
   const [globalFilter, setGlobalFilter] = React.useState("");
+
+  // Get prompt text based on type and index
+  const getPromptText = (promptType?: string, promptIndex?: number): string | null => {
+    if (!promptSet || promptType === undefined || promptIndex === undefined) {
+      return null;
+    }
+
+    // Map old prompt types to new ones for backward compatibility
+    const promptTypeMap: Record<string, string[]> = {
+      // New names
+      visibility: promptSet.visibility || [],
+      sentiment: promptSet.sentiment || [],
+      alignment: promptSet.alignment || [],
+      competition: promptSet.competition || [],
+      // Old names for backward compatibility
+      spontaneous: promptSet.visibility || [],
+      direct: promptSet.sentiment || [],
+      accuracy: promptSet.alignment || [],
+      brandBattle: promptSet.competition || [],
+    };
+
+    const prompts = promptTypeMap[promptType];
+    if (prompts && promptIndex >= 0 && promptIndex < prompts.length) {
+      return prompts[promptIndex];
+    }
+
+    return null;
+  };
 
   // Transform citations data for table with grouping
   const { data, groupedData } = React.useMemo(() => {
@@ -156,7 +190,7 @@ export function CitationsTable({ citations, webSearchResults, onExport, searchQu
             link: citation.link || null,
             model: citation.model,
             promptType: citation.promptType,
-            promptText: null, // TODO: Add prompt text support
+            promptText: getPromptText(citation.promptType, citation.promptIndex),
             domain: citation.link ? getDomain(citation.link) : "No link",
           };
           
@@ -605,12 +639,12 @@ export function CitationsTable({ citations, webSearchResults, onExport, searchQu
       <div className="overflow-x-auto bg-white rounded-lg border border-gray-200">
         <table className="w-full min-w-[1200px] border-collapse table-fixed">
           <colgroup>
-            <col className="w-[25%]" />
             <col className="w-[20%]" />
-            <col className="w-[20%]" />
-            <col className="w-[10%]" />
+            <col className="w-[15%]" />
             <col className="w-[15%]" />
             <col className="w-[10%]" />
+            <col className="w-[15%]" />
+            <col className="w-[25%]" />
           </colgroup>
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
