@@ -195,13 +195,14 @@ export default function ExplorerPage() {
     if (explorerData.webSearchResults && explorerData.webSearchResults.length > 0) {
       explorerData.webSearchResults.forEach((searchResult) => {
         searchResult.citations.forEach((citation) => {
+          const promptText = getPromptText(citation.promptType, citation.promptIndex) || "N/A";
           rows.push([
             searchResult.query,
             citation.website,
             citation.link || "No link",
             citation.model,
             citation.promptType,
-            "N/A", // TODO: Add prompt text support to new structure
+            promptText,
           ]);
         });
       });
@@ -599,6 +600,7 @@ export default function ExplorerPage() {
                   webSearchResults={explorerData.webSearchResults}
                   onExport={exportToCSV}
                   searchQueryFilter={keywordFilter}
+                  promptSet={promptSet}
                 />
               </CardContent>
             </Card>
