@@ -11,7 +11,13 @@ export const useAnalytics = () => {
   const { user } = useAuth()
 
   const track = (event: string, properties?: Record<string, any>) => {
-    if (!posthog) return
+    // Skip tracking in development or if PostHog is not available
+    if (process.env.NODE_ENV === 'development' || !posthog) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Analytics] Event tracked (dev mode):', event, properties)
+      }
+      return
+    }
 
     // Add user context to all events
     const enrichedProperties = {

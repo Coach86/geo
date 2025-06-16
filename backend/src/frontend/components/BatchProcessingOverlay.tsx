@@ -46,7 +46,7 @@ const ProcessingCard = styled(Paper)(({ theme }) => ({
   textAlign: 'center',
   position: 'relative',
   overflow: 'hidden',
-  borderRadius: theme.shape.borderRadius * 2,
+  borderRadius: (theme.shape.borderRadius as number) * 2,
 }));
 
 const StageText = styled(Typography)(({ theme }) => ({
