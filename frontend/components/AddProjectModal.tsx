@@ -17,6 +17,8 @@ import { useAuth } from "@/providers/auth-provider";
 import { useAnalytics } from "@/hooks/use-analytics";
 import { analyzeWebsite, createProject, getUserUrlUsage, generatePrompts, type CreateFullProjectRequest, type UrlUsageResponse, type GeneratePromptsRequest } from "@/lib/auth-api";
 import { runManualAnalysis } from "@/lib/api/project";
+import { extractHostname } from "@/utils/url-utils";
+import { saveSelectedDomain, saveSelectedProject } from "@/lib/navigation-persistence";
 import { getMyOrganization, type Organization } from "@/lib/organization-api";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -403,6 +405,13 @@ export default function AddProjectModal({
       
       analytics.trackProjectCreated(result.id, brandName, 'wizard');
       toast.success("Project created successfully!");
+      
+      // Extract domain from the new project and switch to it
+      const newDomain = extractHostname(result.url);
+      if (newDomain) {
+        saveSelectedDomain(newDomain);
+        saveSelectedProject(result.id);
+      }
       
       // Trigger analysis for the new project
       try {
