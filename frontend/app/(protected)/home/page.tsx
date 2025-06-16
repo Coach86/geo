@@ -3,14 +3,14 @@
 import { useNavigation } from "@/providers/navigation-provider"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus, Calendar, BarChart3, Globe, RefreshCw } from "lucide-react"
+import { Plus, Calendar, BarChart3, Globe } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import AddProjectModal from "@/components/AddProjectModal"
 import { formatDistanceToNow } from "date-fns"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/providers/auth-provider"
-import { createProjectFromUrl, ProjectResponse, runManualAnalysis, getProjectById } from "@/lib/auth-api"
+import { createProjectFromUrl, ProjectResponse } from "@/lib/auth-api"
 import { getMyOrganization, Organization } from "@/lib/organization-api"
 import { useEffect } from "react"
 import { toast } from "@/hooks/use-toast"
@@ -24,7 +24,6 @@ export default function HomePage() {
   const [showAddProjectModal, setShowAddProjectModal] = useState(false)
   const [organization, setOrganization] = useState<Organization | null>(null)
   const [loading, setLoading] = useState(false)
-  const [runningAnalysis, setRunningAnalysis] = useState<string[]>([]) // Track which projects are running analysis
 
   // Fetch organization to check plan limits
   useEffect(() => {
@@ -77,92 +76,6 @@ export default function HomePage() {
     }
   }
 
-  // Check if analysis is allowed based on rate limiting
-  const isAnalysisAllowed = (project: ProjectResponse) => {
-    if (!project.nextManualAnalysisAllowedAt) return true
-    const nextAllowedTime = new Date(project.nextManualAnalysisAllowedAt)
-    const now = new Date()
-    return now >= nextAllowedTime
-  }
-
-  const getAnalysisDisabledReason = (project: ProjectResponse) => {
-    if (!project.nextManualAnalysisAllowedAt) return undefined
-    
-    const nextAllowedTime = new Date(project.nextManualAnalysisAllowedAt)
-    const now = new Date()
-    
-    if (now < nextAllowedTime) {
-      const dateOptions: Intl.DateTimeFormatOptions = {
-        weekday: 'long',
-        month: 'long',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      }
-      const formattedTime = nextAllowedTime.toLocaleDateString('en-US', dateOptions)
-      
-      return `Manual refresh will be available ${formattedTime}`
-    }
-    
-    return undefined
-  }
-
-  const handleRunAnalysis = async (e: React.MouseEvent, project: ProjectResponse) => {
-    e.stopPropagation() // Prevent card click navigation
-    
-    if (!token || runningAnalysis.includes(project.id)) return
-
-    // Check if analysis is allowed before making the API call
-    if (!isAnalysisAllowed(project)) {
-      const reason = getAnalysisDisabledReason(project)
-      toast({
-        title: "Manual Refresh Not Available",
-        description: reason || "Manual refresh is currently not available",
-        variant: "warning" as any,
-        duration: 6000,
-      })
-      return
-    }
-
-    try {
-      setRunningAnalysis(prev => [...prev, project.id])
-      analytics.trackManualRefresh(project.id, project.brandName)
-      
-      const result = await runManualAnalysis(project.id, token)
-      
-      toast({
-        title: "Manual Refresh Started",
-        description: (
-          <div className="flex items-center gap-2">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
-            <span>This process usually takes 5-10 minutes to complete. Please check back later for results.</span>
-          </div>
-        ),
-        duration: 8000,
-      })
-
-      // Refresh the project in the list to get updated nextManualAnalysisAllowedAt
-      const updatedProject = await getProjectById(project.id, token)
-      // Update the project in navigation context if possible
-      
-    } catch (error) {
-      console.error("Failed to run analysis:", error)
-      
-      // Check if it's a rate limit error
-      const errorMessage = error instanceof Error ? error.message : "Failed to start manual refresh"
-      const isRateLimitError = errorMessage.includes("will be available")
-      
-      toast({
-        title: isRateLimitError ? "Manual Refresh Not Available" : "Manual Refresh Failed",
-        description: errorMessage,
-        variant: isRateLimitError ? ("warning" as any) : "destructive",
-        duration: 6000,
-      })
-    } finally {
-      setRunningAnalysis(prev => prev.filter(id => id !== project.id))
-    }
-  }
 
   if (loading) {
     return (
@@ -240,18 +153,18 @@ export default function HomePage() {
                 )}
               </div>
 
-              {/* Run Analysis Button */}
+              {/* Go to Project Button */}
               <div className="flex justify-end">
                 <Button
-                  onClick={(e) => handleRunAnalysis(e, project)}
-                  disabled={!isAnalysisAllowed(project) || runningAnalysis.includes(project.id)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleProjectClick(project)
+                  }}
                   variant="default"
                   size="sm"
                   className="w-1/2 bg-blue-600 hover:bg-blue-700 text-white"
-                  title={runningAnalysis.includes(project.id) ? "Refresh in progress..." : getAnalysisDisabledReason(project)}
                 >
-                  <RefreshCw className="mr-2 h-3 w-3" />
-                  {runningAnalysis.includes(project.id) ? "Refreshing..." : "Manual Refresh"}
+                  Go to Project
                 </Button>
               </div>
             </CardContent>

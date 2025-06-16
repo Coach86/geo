@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/providers/auth-provider";
 import { useAnalytics } from "@/hooks/use-analytics";
 import { analyzeWebsite, createProject, getUserUrlUsage, generatePrompts, type CreateFullProjectRequest, type UrlUsageResponse, type GeneratePromptsRequest } from "@/lib/auth-api";
+import { runManualAnalysis } from "@/lib/api/project";
 import { getMyOrganization, type Organization } from "@/lib/organization-api";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -402,6 +403,17 @@ export default function AddProjectModal({
       
       analytics.trackProjectCreated(result.id, brandName, 'wizard');
       toast.success("Project created successfully!");
+      
+      // Trigger analysis for the new project
+      try {
+        await runManualAnalysis(result.id, token);
+        toast.success("Analysis started for your new project!");
+      } catch (analysisError) {
+        // Don't block project creation if analysis fails
+        console.warn("Failed to trigger analysis:", analysisError);
+        toast.info("Project created! You can manually trigger analysis from the project settings.");
+      }
+      
       onSuccess(result.id);
       onClose();
     } catch (err: any) {
