@@ -453,7 +453,10 @@ export default function ExplorerPage() {
                 <CardContent>
                   <div className="flex flex-wrap gap-2">
                     {explorerData.topKeywords && explorerData.topKeywords.length > 0 ? (
-                      explorerData.topKeywords.slice(0, 10).map((item, index) => {
+                      explorerData.topKeywords
+                        .filter(item => item.keyword.toLowerCase() !== 'unknown')
+                        .slice(0, 10)
+                        .map((item, index) => {
                         const isFiltering = filteringKeyword === item.keyword;
                         const isActive = keywordFilter === item.keyword;
                         return (
