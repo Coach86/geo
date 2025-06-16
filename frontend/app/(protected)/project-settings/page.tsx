@@ -17,7 +17,14 @@ import { getMyOrganization } from "@/lib/organization-api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { AlertCircle, RefreshCw } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import BreadcrumbNav from "@/components/layout/breadcrumb-nav";
@@ -246,7 +253,7 @@ export default function Home() {
       };
       const formattedTime = nextAllowedTime.toLocaleDateString('en-US', dateOptions);
       
-      return `Analysis will be available ${formattedTime}`;
+      return `Next manual refresh will be available ${formattedTime}`;
     }
     
     return undefined;
@@ -254,15 +261,47 @@ export default function Home() {
 
   return (
     <div className="space-y-6">
-        {/* Breadcrumb Navigation */}
+        {/* Breadcrumb Navigation and Manual Refresh Button */}
         {token && filteredProjects.length > 0 && (
-          <BreadcrumbNav
-            projects={filteredProjects}
-            selectedProject={selectedProject}
-            onProjectSelect={setSelectedProject}
-            currentPage="Profile"
-            showReportSelector={false}
-          />
+          <div className="flex items-center justify-between gap-4">
+            <BreadcrumbNav
+              projects={filteredProjects}
+              selectedProject={selectedProject}
+              onProjectSelect={setSelectedProject}
+              currentPage="Profile"
+              showReportSelector={false}
+            />
+            
+            {/* Manual Refresh Button */}
+            {projectDetails && (
+              <TooltipProvider delayDuration={0}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="inline-flex">
+                      <Button
+                        onClick={handleRunAnalysis}
+                        disabled={!isAnalysisAllowed() || runningAnalysis}
+                        variant="default"
+                        size="default"
+                        className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{ pointerEvents: 'auto' }}
+                      >
+                        <RefreshCw className={`mr-2 h-4 w-4 ${runningAnalysis ? 'animate-spin' : ''}`} />
+                        {runningAnalysis ? "Refreshing..." : "Manual Refresh"}
+                      </Button>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs">
+                    {(!isAnalysisAllowed() || runningAnalysis) ? (
+                      <p>{runningAnalysis ? "Analysis in progress..." : getAnalysisDisabledReason()}</p>
+                    ) : (
+                      <p>Click to run manual analysis</p>
+                    )}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
         )}
 
 
@@ -485,10 +524,6 @@ export default function Home() {
             {/* Project Metadata */}
             <ProjectMetadata 
               project={projectDetails}
-              onRunAnalysis={handleRunAnalysis}
-              isAnalysisAllowed={isAnalysisAllowed() && !runningAnalysis}
-              analysisDisabledReason={runningAnalysis ? "Analysis in progress..." : getAnalysisDisabledReason()}
-              runningAnalysis={runningAnalysis}
             />
           </div>
         )}
