@@ -122,7 +122,7 @@
       "model": "mistral-medium-2505",
       "name": "Mistral Medium 2025",
       "enabled": true,
-      "webAccess": false,
+      "webAccess": true,
       "parameters": {
         "temperature": 0.7,
         "maxTokens": 500,
@@ -135,7 +135,7 @@
       "model": "mistral-large-2411",
       "name": "Mistral Large",
       "enabled": false,
-      "webAccess": false,
+      "webAccess": true,
       "parameters": {
         "temperature": 0.7,
         "maxTokens": 500,

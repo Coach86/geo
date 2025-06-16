@@ -49,6 +49,7 @@
     "@langchain/langgraph": "^0.3.3",
     "@langchain/mistralai": "^0.2.1",
     "@langchain/openai": "^0.5.13",
+    "@mistralai/mistralai": "^1.7.2",
     "@mui/icons-material": "^7.1.1",
     "@mui/lab": "^7.0.0-beta.13",
     "@mui/material": "^7.1.1",
