@@ -63,8 +63,8 @@ export default function DomainSelector({
       <Select value={selectedDomain || ""} onValueChange={onDomainSelect}>
         <SelectTrigger className="w-full h-14 px-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors duration-200 border-0 shadow-sm [&>svg]:hidden">
           <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center flex-shrink-0">
                 <Favicon 
                   src={selectedDomain ? getFaviconForDomain(selectedDomain, projects) : undefined}
                   alt={`${selectedDomain} favicon`}
@@ -72,14 +72,14 @@ export default function DomainSelector({
                   fallbackClassName="w-5 h-5 text-gray-600"
                 />
               </div>
-              <div className="text-left">
+              <div className="text-left min-w-0 flex-1">
                 <p className="text-xs text-gray-500 font-medium">Domain</p>
-                <p className="text-sm font-semibold text-gray-900 truncate max-w-[180px]">
+                <p className="text-sm font-semibold text-gray-900 truncate">
                   {selectedDomain || "Select domain"}
                 </p>
               </div>
             </div>
-            <ArrowRightLeft className="w-5 h-5 text-gray-400" />
+            <ArrowRightLeft className="w-5 h-5 text-gray-400 flex-shrink-0 ml-2" />
           </div>
         </SelectTrigger>
         <SelectContent className="max-w-[250px]">
