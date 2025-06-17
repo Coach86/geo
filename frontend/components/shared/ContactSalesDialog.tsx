@@ -14,8 +14,7 @@ import { Label } from "@/components/ui/label"
 import { 
   Mail, 
   Copy, 
-  Check,
-  Calendar
+  Check
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
@@ -69,10 +68,6 @@ export function ContactSalesDialog({
     }, 1000)
   }
 
-  const handleScheduleCall = () => {
-    // This could open a Calendly link or similar
-    window.open("https://calendly.com/getmint-sales/30min", "_blank")
-  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -84,7 +79,7 @@ export function ContactSalesDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
+        <div className="py-4">
           {/* Email Option */}
           <div className="space-y-3">
             <Label className="text-base font-semibold flex items-center gap-2">
@@ -115,20 +110,6 @@ export function ContactSalesDialog({
               onClick={handleEmailClick}
             >
               Open Email Client
-            </Button>
-          </div>
-
-          {/* Schedule a Call Option */}
-          <div className="space-y-3">
-            <Label className="text-base font-semibold flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
-              Schedule a Call
-            </Label>
-            <Button 
-              className="w-full" 
-              onClick={handleScheduleCall}
-            >
-              Book a Meeting
             </Button>
           </div>
         </div>
