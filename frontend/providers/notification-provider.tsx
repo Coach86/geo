@@ -2,7 +2,6 @@
 
 import { createContext, useContext, ReactNode } from 'react';
 import { useNotifications } from '@/hooks/use-notifications';
-import { api } from '@/lib/api';
 
 interface NotificationContextType {
   isConnected: boolean;
@@ -17,25 +16,25 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
   const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-  
+
   console.log('[NotificationProvider] Initializing with token:', token ? 'present' : 'missing', 'userId:', userId);
-  
-  const notificationHooks = useNotifications({ 
-    userId: userId || undefined, 
+
+  const notificationHooks = useNotifications({
+    userId: userId || undefined,
     token: token || undefined,
     onNotification: (notification) => {
       // Additional logic when notification is received
       console.log('[NotificationProvider] Notification received:', notification);
-      
+
       // Refresh report data if we're on a report page
-      if (window.location.pathname.includes('/explorer') || 
+      if (window.location.pathname.includes('/explorer') ||
           window.location.pathname.includes('/visibility') ||
           window.location.pathname.includes('/sentiment') ||
           window.location.pathname.includes('/alignment') ||
           window.location.pathname.includes('/competition')) {
         // Trigger a refresh of the report data
-        window.dispatchEvent(new CustomEvent('report-updated', { 
-          detail: { projectId: notification.projectId } 
+        window.dispatchEvent(new CustomEvent('report-updated', {
+          detail: { projectId: notification.projectId }
         }));
       }
     }
