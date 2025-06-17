@@ -22,6 +22,7 @@ import { ConfigModule as AppConfigModule } from './modules/config/config.module'
 import { PlanModule } from './modules/plan/plan.module';
 import { OrganizationModule } from './modules/organization/organization.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { EmailModule } from './modules/email/email.module';
 import { getWinstonConfig } from './utils/logger.config';
 
 @Module({
@@ -78,6 +79,7 @@ import { getWinstonConfig } from './utils/logger.config';
     AppConfigModule,
     PlanModule,
     AnalyticsModule,
+    EmailModule,
   ],
   controllers: [AppController],
   providers: [

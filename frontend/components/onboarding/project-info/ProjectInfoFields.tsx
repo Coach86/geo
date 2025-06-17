@@ -4,7 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { LineChart, Loader2 } from "lucide-react";
+import { LineChart } from "lucide-react";
+import { SvgLoader } from "@/components/ui/svg-loader";
 
 interface ProjectInfoFieldsProps {
   isLoading: boolean;
@@ -43,7 +44,7 @@ export function ProjectInfoFields({
           <div className="absolute inset-0 bg-white bg-opacity-60 flex items-center justify-center z-10">
             <div className="w-full max-w-md mx-auto">
               <div className="flex items-center justify-center mb-4">
-                <Loader2 className="h-8 w-8 text-secondary-600 animate-spin" />
+                <SvgLoader className="text-secondary-600" size="md" />
               </div>
               <div className="h-2 w-full bg-gray-200 overflow-hidden rounded-md">
                 <div

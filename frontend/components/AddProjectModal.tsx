@@ -11,7 +11,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, Loader2, ArrowLeft, ArrowRight, Globe, Users, MessageSquare, Plus, Check, X as XIcon, TrendingUp } from "lucide-react";
+import { AlertCircle, ArrowLeft, ArrowRight, Globe, Users, MessageSquare, Plus, Check, X as XIcon, TrendingUp } from "lucide-react";
+import { SvgLoader } from "@/components/ui/svg-loader";
 import { toast } from "sonner";
 import { useAuth } from "@/providers/auth-provider";
 import { useAnalytics } from "@/hooks/use-analytics";
@@ -484,7 +485,7 @@ export default function AddProjectModal({
               <Label htmlFor="url">Website URL</Label>
               {isLoadingUsage ? (
                 <div className="flex items-center space-x-2 p-3 border rounded-md mt-1">
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <SvgLoader className="" size="sm" />
                   <span className="text-sm text-gray-600">Loading URLs...</span>
                 </div>
               ) : (
@@ -932,7 +933,7 @@ export default function AddProjectModal({
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <SvgLoader className="" size="sm" />
                     Creating Project...
                   </>
                 ) : currentStep === StepId.PROMPTS ? (

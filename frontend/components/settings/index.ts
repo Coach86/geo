@@ -1,4 +1,5 @@
 // Section components
+export { BillingSection } from "./BillingSection";
 export { OrganizationSection } from "./OrganizationSection";
 export { ProfileSection } from "./ProfileSection";
 export { PlanSection } from "./PlanSection";

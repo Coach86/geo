@@ -19,7 +19,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle } from "lucide-react";
+import { SvgLoader } from "@/components/ui/svg-loader";
 import { toast } from "sonner";
 import {
   countries,
@@ -217,7 +218,7 @@ export default function AddProjectModal({
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <SvgLoader className="mr-2" size="sm" />
                   Creating...
                 </>
               ) : (

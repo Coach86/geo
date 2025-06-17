@@ -142,7 +142,15 @@ export function UserManagementSection({
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
-              Organization Users
+              Users
+              {!canAddMoreUsers() && (
+                <Badge 
+                  variant="secondary" 
+                  className="ml-2 px-2 py-1 text-xs bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"
+                >
+                  Upgrade
+                </Badge>
+              )}
             </CardTitle>
             <Button
               onClick={() => {

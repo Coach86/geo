@@ -13,7 +13,7 @@ import { useAuth } from "@/providers/auth-provider"
 import { useEffect, useState, useRef } from "react"
 import { createProject, analyzeWebsite, type CreateFullProjectRequest } from "@/lib/auth-api"
 import { getOnboardingData, updateOnboardingData, clearOnboardingData } from "@/lib/onboarding-storage"
-import { Loader2 } from "lucide-react"
+import { SvgLoader } from "@/components/ui/svg-loader"
 
 export default function OnboardingLayout({ children }: { children: ReactNode }) {
   return (
@@ -333,7 +333,7 @@ function NavigationButtons() {
         >
           {isGenerating ? (
             <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <SvgLoader className="mr-2" size="sm" />
               <span>{currentStep === StepId.PROJECT ? "Analyzing website..." : "Generating report..."}</span>
             </>
           ) : (
