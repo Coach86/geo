@@ -20,6 +20,8 @@ import {
   trustSafetyItems
 } from "./pricing-constants";
 import { staticPlans } from "./static-plans";
+import { getUserProjects, runManualAnalysis } from "@/lib/auth-api";
+import { toast } from "@/hooks/use-toast";
 
 interface PricingPageProps {
   forcedRecommendedPlan?: string;
@@ -82,6 +84,55 @@ export default function PricingPage({
       return;
     }
 
+    // Handle free plan
+    if (planName.toLowerCase() === "free") {
+      // Get userId - if not authenticated, redirect to login
+      if (!user?.id) {
+        router.push("/auth/login");
+        return;
+      }
+      
+      // Check if user already has projects
+      try {
+        const projects = await getUserProjects(user.token!);
+        
+        if (projects && projects.length > 0) {
+          // User already has projects, trigger batch analysis for the first project
+          try {
+            const firstProject = projects[0];
+            await runManualAnalysis(firstProject.id, user.token!);
+            
+            // Show success message
+            toast({
+              title: "Free Plan Activated",
+              description: "Your visibility analysis has been started. You'll be redirected to your dashboard.",
+              variant: "success" as any,
+              duration: 5000,
+            });
+            
+            // Set celebration flag and redirect to home after a short delay
+            sessionStorage.setItem('celebrate_plan_activation', 'true');
+            setTimeout(() => {
+              router.push("/home?plan_activated=true");
+            }, 2000);
+          } catch (analysisError) {
+            console.error("Failed to trigger analysis:", analysisError);
+            // Still redirect to home even if analysis fails
+            router.push("/");
+          }
+        } else {
+          // No projects yet, redirect to onboarding
+          router.push("/onboarding");
+        }
+      } catch (error) {
+        console.error("Failed to check user projects:", error);
+        // Default to onboarding on error
+        router.push("/onboarding");
+      }
+      
+      return;
+    }
+
     if (!planId) {
       console.error("Plan ID is required for subscription plans");
       setIsSubmitting(false);
@@ -122,7 +173,7 @@ export default function PricingPage({
     const monthlyPrice = plan.prices?.monthly || 0;
     const yearlyPrice = plan.prices?.yearly || 0;
     const currentPrice =
-      billingPeriod === "monthly" ? monthlyPrice : (yearlyPrice / 12).toFixed(2);
+      billingPeriod === "monthly" ? Math.round(monthlyPrice) : Math.round(yearlyPrice / 12);
     const savingsAmount =
       billingPeriod === "yearly" ? calculateSavings(monthlyPrice).amount : null;
 
@@ -159,7 +210,16 @@ export default function PricingPage({
     ...plan,
     ctaAction: () => handleStartTrial(undefined, plan.name),
   }));
-  const pricingPlans = loading ? [] : [...dynamicPlans, ...staticPlansWithActions];
+  
+  // Separate plans
+  const freePlan = staticPlansWithActions.find(p => p.name.toLowerCase() === 'free');
+  const enterprisePlan = staticPlansWithActions.find(p => p.name.toLowerCase().includes('enterprise') || p.name.toLowerCase().includes('agencies'));
+  
+  // Regular pricing plans (excluding enterprise)
+  const pricingPlans = loading ? [] : [
+    ...(freePlan ? [freePlan] : []),
+    ...dynamicPlans
+  ];
 
   // Show loading state
   if (loading) {
@@ -226,8 +286,8 @@ export default function PricingPage({
       </section>
 
       {/* Pricing Plan Cards - Dynamic grid structure */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 mb-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-stretch">
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
           {pricingPlans.map((plan, index) => (
             <PricingCard
               key={index}
@@ -257,6 +317,42 @@ export default function PricingPage({
           ))}
         </div>
       </section>
+
+      {/* Enterprise Plan - Horizontal Card */}
+      {enterprisePlan && (
+        <section className="max-w-6xl mx-auto px-4 sm:px-6 mb-16">
+          <div className="bg-purple-50 rounded-2xl p-8 border border-purple-100">
+            <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
+              <div className="flex-1 text-center lg:text-left">
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                  {enterprisePlan.name}
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  {enterprisePlan.description}
+                </p>
+                <div className="flex flex-wrap gap-4 justify-center lg:justify-start text-sm text-gray-700">
+                  {enterprisePlan.included.slice(0, 3).map((feature, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-purple-600" />
+                      <span>{feature}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <Button
+                  onClick={enterprisePlan.ctaAction}
+                  size="lg"
+                  className={enterprisePlan.ctaColor}
+                  disabled={isSubmitting}
+                >
+                  {enterprisePlan.ctaText}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
 
       {/* Trust & Safety Section */}

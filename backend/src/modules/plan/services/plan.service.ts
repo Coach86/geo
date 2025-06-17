@@ -199,13 +199,15 @@ export class PlanService {
     };
   }
 
-  async findFreeTrailPlan(): Promise<PlanResponseDto | null> {
-    // Find the free plan by name or tag
+  async findFreePlan(): Promise<PlanResponseDto | null> {
+    // Find the free plan by name or tag or metadata
     const plans = await this.planRepository.findAll();
     const freePlan = plans.find(
-      plan => plan.name.toLowerCase().includes('free') || 
+      plan => plan.name.toLowerCase() === 'free' || 
               plan.tag?.toLowerCase() === 'free' ||
-              plan.metadata?.isFree === true
+              plan.metadata?.isFree === true ||
+              plan.stripeProductId === null || 
+              plan.stripeProductId === ''
     );
     
     if (!freePlan) {

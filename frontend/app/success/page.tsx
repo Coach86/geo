@@ -47,9 +47,10 @@ function SuccessContent() {
           setStatus("success")
           setMessage(data.message || "Payment successful! Your plan has been activated.")
           
-          // Redirect to dashboard after 3 seconds
+          // Set celebration flag and redirect to home after 3 seconds
+          sessionStorage.setItem('celebrate_plan_activation', 'true');
           setTimeout(() => {
-            router.push("/")
+            router.push("/home?from=checkout")
           }, 3000)
         } else {
           const errorData = await response.json()
@@ -67,7 +68,12 @@ function SuccessContent() {
   }, [sessionId, token, router, authLoading])
 
   const handleContinue = () => {
-    router.push("/")
+    if (status === "success") {
+      sessionStorage.setItem('celebrate_plan_activation', 'true');
+      router.push("/home?from=checkout")
+    } else {
+      router.push("/")
+    }
   }
 
   return (

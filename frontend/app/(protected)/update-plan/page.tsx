@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Zap } from "lucide-react";
+import { Zap, CheckCircle2 } from "lucide-react";
 import { PricingCard } from "@/components/pricing/pricing-card";
 import { ContactSalesDialog } from "@/components/shared/ContactSalesDialog";
 import { usePlans } from "@/hooks/use-plans";
@@ -12,12 +12,14 @@ import { useAuth } from "@/providers/auth-provider";
 import { toast } from "sonner";
 import { useAnalytics } from "@/hooks/use-analytics";
 import { useEffect } from "react";
+import { useFeatureAccess } from "@/hooks/use-feature-access";
 
 export default function UpdatePlanPage() {
   const router = useRouter();
   const { plans, loading, error } = usePlans();
   const { user } = useAuth();
   const analytics = useAnalytics();
+  const featureAccess = useFeatureAccess();
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">(
     "yearly"
   );
@@ -98,7 +100,7 @@ export default function UpdatePlanPage() {
     const monthlyPrice = plan.prices?.monthly || 0;
     const yearlyPrice = plan.prices?.yearly || 0;
     const currentPrice =
-      billingPeriod === "monthly" ? monthlyPrice : (yearlyPrice / 12).toFixed(2);
+      billingPeriod === "monthly" ? Math.round(monthlyPrice) : Math.round(yearlyPrice / 12);
     const savingsAmount =
       billingPeriod === "yearly" ? calculateSavings(yearlyPrice, monthlyPrice).amount : null;
 
@@ -159,8 +161,9 @@ export default function UpdatePlanPage() {
     },
   ];
 
-  // Combine dynamic and static plans
-  const allPlans = loading ? [] : [...dynamicPlans, ...staticPlans];
+  // Separate enterprise plan
+  const enterprisePlan = staticPlans[0];
+  const regularPlans = loading ? [] : dynamicPlans;
 
   // Show loading state
   if (loading) {
@@ -184,13 +187,15 @@ export default function UpdatePlanPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
-        <div className="text-center mb-12">
+        <div className="text-center mb-8">
           <h1 className="text-4xl font-bold mb-4">Upgrade Your Plan</h1>
           <p className="text-lg text-muted-foreground">
-            You've reached your current plan's brand limit. Choose a plan that
-            fits your needs.
+            {featureAccess.isFreePlan 
+              ? "Unlock advanced features with our premium plans"
+              : "You've reached your current plan's limit. Choose a plan that fits your needs."}
           </p>
         </div>
+
 
         {/* Billing Toggle */}
         <div className="flex justify-center mb-8">
@@ -221,8 +226,8 @@ export default function UpdatePlanPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {allPlans.map((plan, index) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          {regularPlans.map((plan, index) => (
             <PricingCard
               key={plan.name}
               name={plan.name}
@@ -244,13 +249,47 @@ export default function UpdatePlanPage() {
               isSubmitting={isSubmitting}
               selectedPlan={selectedPlan ?? undefined}
               previousPlanName={
-                index > 0 ? allPlans[index - 1].name : undefined
+                index > 0 ? regularPlans[index - 1].name : undefined
               }
               tagBgColor={plan.tagBgColor}
               tagTextColor={plan.tagTextColor}
             />
           ))}
         </div>
+
+        {/* Enterprise Plan - Horizontal Card */}
+        {enterprisePlan && (
+          <div className="bg-purple-50 rounded-2xl p-8 border border-purple-100 mb-8">
+            <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
+              <div className="flex-1 text-center lg:text-left">
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                  {enterprisePlan.name}
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  {enterprisePlan.subtitle}
+                </p>
+                <div className="flex flex-wrap gap-4 justify-center lg:justify-start text-sm text-gray-700">
+                  {enterprisePlan.included.slice(0, 3).map((feature, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-purple-600" />
+                      <span>{feature}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <Button
+                  onClick={enterprisePlan.ctaAction}
+                  size="lg"
+                  className={enterprisePlan.ctaColor}
+                  disabled={isSubmitting}
+                >
+                  {enterprisePlan.ctaText}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="mt-12 text-center">
           <p className="text-muted-foreground mb-4">

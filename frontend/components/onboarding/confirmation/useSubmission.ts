@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { StepId } from "@/app/onboarding/steps.config";
-import { createProject, type CreateFullProjectRequest } from "@/lib/auth-api";
+import { createProject, type CreateFullProjectRequest, runManualAnalysis } from "@/lib/auth-api";
 import { getOnboardingData } from "@/lib/onboarding-storage";
 import type { FormData } from "@/providers/onboarding-provider";
+import { getMyOrganization } from "@/lib/organization-api";
+import { usePlans } from "@/hooks/use-plans";
 
 interface UseSubmissionProps {
   token: string | null;
@@ -17,6 +19,7 @@ export function useSubmission({
   setCurrentStep,
 }: UseSubmissionProps) {
   const router = useRouter();
+  const { plans } = usePlans();
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
 
@@ -126,6 +129,33 @@ export function useSubmission({
           // If only one project was created, we can navigate directly to it
           localStorage.setItem('lastCreatedProjectId', identityCard.id);
         }
+        
+        // Check if user has a free plan and trigger batch analysis
+        try {
+          const org = await getMyOrganization(token);
+          if (org.stripePlanId) {
+            const userPlan = plans.find(plan => plan.id === org.stripePlanId);
+            const isFreePlan = 
+              userPlan?.metadata?.isFree === true || 
+              userPlan?.name.toLowerCase() === 'free' ||
+              userPlan?.stripeProductId === null ||
+              userPlan?.stripeProductId === '';
+            
+            if (isFreePlan) {
+              console.log("Free plan detected, triggering visibility analysis for project:", identityCard.id);
+              try {
+                await runManualAnalysis(identityCard.id, token);
+                console.log("Visibility analysis triggered successfully for free plan user");
+              } catch (analysisError) {
+                console.error("Failed to trigger visibility analysis:", analysisError);
+                // Don't fail the whole process if analysis fails
+              }
+            }
+          }
+        } catch (orgError) {
+          console.error("Failed to check organization plan:", orgError);
+          // Continue without triggering analysis
+        }
       }
 
       console.log("All configurations processed successfully");
@@ -135,9 +165,10 @@ export function useSubmission({
       localStorage.removeItem('onboardingStep');
       localStorage.removeItem('savedConfigs');
 
-      // Redirect to the home page
-      console.log("Redirecting to home page");
-      router.push("/home");
+      // Set celebration flag for free plan activation and redirect to home
+      console.log("Redirecting to home page with celebration");
+      sessionStorage.setItem('celebrate_plan_activation', 'true');
+      router.push("/home?plan_activated=true");
     } catch (error) {
       console.error("Error generating report:", error);
       setGenerationError(

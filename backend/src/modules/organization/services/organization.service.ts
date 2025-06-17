@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException, Inject, forwardRef } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import { CreateOrganizationDto } from '../dto/create-organization.dto';
 import { UpdateOrganizationDto } from '../dto/update-organization.dto';
@@ -8,6 +8,7 @@ import { OrganizationDocument } from '../schemas/organization.schema';
 import { Organization as OrganizationEntity } from '../entities/organization.entity';
 import { ORGANIZATION_DEFAULTS, UNLIMITED_VALUE } from '../constants/defaults';
 import { ConfigService } from '../../config/services/config.service';
+import { PlanService } from '../../plan/services/plan.service';
 
 @Injectable()
 export class OrganizationService {
@@ -16,6 +17,8 @@ export class OrganizationService {
   constructor(
     private organizationRepository: OrganizationRepository,
     private configService: ConfigService,
+    @Inject(forwardRef(() => PlanService))
+    private planService: PlanService,
   ) {}
 
   async create(createOrganizationDto: CreateOrganizationDto): Promise<OrganizationResponseDto> {
@@ -24,17 +27,47 @@ export class OrganizationService {
 
       // Get default models from config if selectedModels not provided
       const defaultModels = this.configService.getDefaultModels();
-      const selectedModels = createOrganizationDto.selectedModels || defaultModels;
+      let selectedModels = createOrganizationDto.selectedModels || defaultModels;
+      
+      // Try to find the free plan
+      let stripePlanId: string | undefined;
+      let planSettings = createOrganizationDto.planSettings;
+      
+      try {
+        const freePlan = await this.planService.findFreePlan();
+        if (freePlan && !createOrganizationDto.stripePlanId) {
+          // Use free plan settings if no plan is specified
+          stripePlanId = freePlan.id;
+          planSettings = {
+            maxProjects: freePlan.maxProjects,
+            maxAIModels: freePlan.maxModels,
+            maxSpontaneousPrompts: freePlan.maxSpontaneousPrompts,
+            maxUrls: freePlan.maxUrls,
+            maxUsers: freePlan.maxUsers,
+            maxCompetitors: freePlan.maxCompetitors,
+          };
+          
+          // Limit selected models to the free plan's limit
+          if (selectedModels.length > freePlan.maxModels) {
+            selectedModels = selectedModels.slice(0, freePlan.maxModels);
+          }
+          
+          this.logger.log(`Assigning free plan to new organization`);
+        }
+      } catch (error) {
+        this.logger.warn(`Could not find free plan: ${error.message}`);
+      }
 
       const organizationData = {
         id: uuidv4(),
+        stripePlanId: stripePlanId || createOrganizationDto.stripePlanId,
         planSettings: {
-          maxProjects: createOrganizationDto.planSettings?.maxProjects || ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_PROJECTS,
-          maxAIModels: createOrganizationDto.planSettings?.maxAIModels || ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_AI_MODELS,
-          maxSpontaneousPrompts: createOrganizationDto.planSettings?.maxSpontaneousPrompts || ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_SPONTANEOUS_PROMPTS,
-          maxUrls: createOrganizationDto.planSettings?.maxUrls || ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_URLS,
-          maxUsers: createOrganizationDto.planSettings?.maxUsers || ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_USERS,
-          maxCompetitors: createOrganizationDto.planSettings?.maxCompetitors || ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_COMPETITORS,
+          maxProjects: planSettings?.maxProjects || ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_PROJECTS,
+          maxAIModels: planSettings?.maxAIModels || ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_AI_MODELS,
+          maxSpontaneousPrompts: planSettings?.maxSpontaneousPrompts || ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_SPONTANEOUS_PROMPTS,
+          maxUrls: planSettings?.maxUrls || ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_URLS,
+          maxUsers: planSettings?.maxUsers || ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_USERS,
+          maxCompetitors: planSettings?.maxCompetitors || ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_COMPETITORS,
         },
         selectedModels,
       };

@@ -29,6 +29,7 @@ import { RawResponseRepository } from './repositories/raw-response.repository';
 import { BatchEventsGateway } from './gateways/batch-events.gateway';
 import { OrganizationModule } from '../organization/organization.module';
 import { ConfigModule } from '../config/config.module';
+import { PlanModule } from '../plan/plan.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { ConfigModule } from '../config/config.module';
     forwardRef(() => ReportModule),
     forwardRef(() => AuthModule),
     forwardRef(() => OrganizationModule),
+    forwardRef(() => PlanModule),
     ConfigModule,
   ],
   controllers: [

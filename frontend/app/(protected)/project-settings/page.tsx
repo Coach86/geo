@@ -227,8 +227,17 @@ export default function Home() {
     }
   };
 
-  // Check if analysis is allowed based on rate limiting
+  // Check if user is on free plan
+  const isFreePlan = () => {
+    if (!organization?.stripePlanId) return true; // Default to free if no plan info
+    return organization.stripePlanId === 'free' || organization.stripePlanId.includes('free');
+  };
+
+  // Check if analysis is allowed based on rate limiting and plan
   const isAnalysisAllowed = () => {
+    // Free plan users cannot run manual analysis
+    if (isFreePlan()) return false;
+    
     if (!projectDetails?.nextManualAnalysisAllowedAt) return true;
     const nextAllowedTime = new Date(projectDetails.nextManualAnalysisAllowedAt);
     const now = new Date();
@@ -236,6 +245,11 @@ export default function Home() {
   };
 
   const getAnalysisDisabledReason = () => {
+    // Check for free plan first
+    if (isFreePlan()) {
+      return "Manual refresh is only available for paid plans. Upgrade to unlock this feature.";
+    }
+    
     if (!projectDetails?.nextManualAnalysisAllowedAt) return undefined;
     
     const nextAllowedTime = new Date(projectDetails.nextManualAnalysisAllowedAt);
@@ -293,7 +307,19 @@ export default function Home() {
                   </TooltipTrigger>
                   <TooltipContent side="bottom" className="max-w-xs">
                     {(!isAnalysisAllowed() || runningAnalysis) ? (
-                      <p>{runningAnalysis ? "Analysis in progress..." : getAnalysisDisabledReason()}</p>
+                      <div>
+                        <p>{runningAnalysis ? "Analysis in progress..." : getAnalysisDisabledReason()}</p>
+                        {isFreePlan() && !runningAnalysis && (
+                          <Button 
+                            variant="link" 
+                            size="sm" 
+                            className="p-0 h-auto mt-1 text-blue-600"
+                            onClick={() => router.push('/update-plan')}
+                          >
+                            Upgrade Now →
+                          </Button>
+                        )}
+                      </div>
                     ) : (
                       <p>Click to run manual analysis</p>
                     )}

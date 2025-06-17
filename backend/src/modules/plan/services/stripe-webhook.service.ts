@@ -95,6 +95,29 @@ export class StripeWebhookService {
         maxCompetitors: plan.maxCompetitors,
       });
 
+      // If upgrading from free plan, automatically expand selected models to take advantage of higher limit
+      const currentOrg = await this.organizationService.findOne(organizationId);
+      if (currentOrg.selectedModels.length < plan.maxModels) {
+        // Get all available enabled models from config
+        const configService = new (await import('../../config/services/config.service')).ConfigService();
+        const availableModels = configService.getLlmModels()
+          .filter((model: any) => model.enabled)
+          .map((model: any) => model.id);
+        
+        // Take up to maxModels from available models, keeping existing selections
+        const currentModelsSet = new Set(currentOrg.selectedModels);
+        const additionalModels = availableModels
+          .filter((modelId: string) => !currentModelsSet.has(modelId))
+          .slice(0, plan.maxModels - currentOrg.selectedModels.length);
+        
+        const updatedModels = [...currentOrg.selectedModels, ...additionalModels];
+        
+        // Update the organization with expanded model selection
+        await this.organizationService.updateSelectedModels(organizationId, updatedModels);
+        
+        console.log(`Expanded selected models from ${currentOrg.selectedModels.length} to ${updatedModels.length} for organization ${organizationId}`);
+      }
+
       console.log(`Successfully updated organization ${organizationId} with plan ${plan.name}`);
 
       // Emit event to trigger batch analysis
@@ -273,7 +296,7 @@ export class StripeWebhookService {
     }
 
     // Reset to free plan when subscription is cancelled
-    const freePlan = await this.planService.findFreeTrailPlan();
+    const freePlan = await this.planService.findFreePlan();
     if (!freePlan) {
       console.error('Free plan not found');
       return;
@@ -296,6 +319,16 @@ export class StripeWebhookService {
       maxUsers: freePlan.maxUsers,
       maxCompetitors: freePlan.maxCompetitors,
     });
+
+    // If downgrading to free plan, reduce selected models to match the limit
+    const currentOrg = await this.organizationService.findOne(organization.id);
+    if (currentOrg.selectedModels.length > freePlan.maxModels) {
+      // Keep only the first maxModels models
+      const reducedModels = currentOrg.selectedModels.slice(0, freePlan.maxModels);
+      await this.organizationService.updateSelectedModels(organization.id, reducedModels);
+      
+      console.log(`Reduced selected models from ${currentOrg.selectedModels.length} to ${reducedModels.length} for organization ${organization.id}`);
+    }
 
     // Emit cancellation event
     this.eventEmitter.emit('subscription.cancelled', {
