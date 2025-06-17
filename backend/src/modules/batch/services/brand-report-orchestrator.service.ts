@@ -146,7 +146,7 @@ export class BrandReportOrchestratorService {
           },
         },
         explorer: this.buildExplorerData(spontaneousResults, sentimentResults, accuracyResults, comparisonResults),
-        visibility: this.buildVisibilityData(spontaneousResults, project.brandName, project.competitors || []),
+        visibility: this.batchService.buildVisibilityData(spontaneousResults, project.brandName, project.competitors || []),
         sentiment: this.buildSentimentData(sentimentResults),
         alignment: this.buildAlignmentData(accuracyResults),
         competition: this.buildCompetitionData(comparisonResults, project.brandName, project.competitors || []),
@@ -447,91 +447,6 @@ export class BrandReportOrchestratorService {
     };
   }
 
-  private buildVisibilityData(spontaneousResults: SpontaneousResults, brandName: string, competitors: string[] = []): VisibilityData {
-    // Calculate model visibility from spontaneous results
-    const modelMentions: Record<string, { mentioned: number; total: number }> = {};
-    
-    spontaneousResults.results.forEach(result => {
-      const model = result.llmModel;
-      if (!modelMentions[model]) {
-        modelMentions[model] = { mentioned: 0, total: 0 };
-      }
-      modelMentions[model].total++;
-      if (result.mentioned) {
-        modelMentions[model].mentioned++;
-      }
-    });
-
-    const modelVisibility = Object.entries(modelMentions).map(([model, stats]) => ({
-      model,
-      mentionRate: Math.round((stats.mentioned / stats.total) * 100),
-    }));
-
-    const overallMentionRate = Math.round(
-      (spontaneousResults.summary.mentionRate || 0) * 100
-    );
-
-    // Build arena metrics for configured competitors only
-    const competitorMentions: Record<string, Record<string, number>> = {};
-    const models: string[] = Array.from(new Set(spontaneousResults.results.map((r: any) => r.llmModel)));
-
-    // Initialize competitor mentions only for configured competitors
-    competitors.forEach(competitor => {
-      competitorMentions[competitor] = {};
-      models.forEach(model => {
-        competitorMentions[competitor][model] = 0;
-      });
-    });
-
-    // Count mentions of configured competitors only
-    spontaneousResults.results.forEach(result => {
-      if (result.topOfMind && Array.isArray(result.topOfMind)) {
-        result.topOfMind.forEach((brand: string) => {
-          // Only count if this brand is in the configured competitors list
-          const matchingCompetitor = competitors.find(comp => 
-            comp.toLowerCase() === brand.toLowerCase()
-          );
-          if (matchingCompetitor && competitorMentions[matchingCompetitor]) {
-            competitorMentions[matchingCompetitor][result.llmModel] = 
-              (competitorMentions[matchingCompetitor][result.llmModel] || 0) + 1;
-          }
-        });
-      }
-    });
-
-    // Build arena metrics from configured competitor mentions
-    const arenaMetrics = Object.entries(competitorMentions).map(([competitorName, modelMentionsData]) => {
-      const modelsMentionsRate = models.map(model => {
-        const modelResults = spontaneousResults.results.filter(r => r.llmModel === model);
-        const promptsTested = modelResults.length;
-        const mentions = modelMentionsData[model] || 0;
-        
-        return {
-          model,
-          mentionsRate: promptsTested > 0 ? Math.round((mentions / promptsTested) * 100) : 0,
-        };
-      });
-
-      // Calculate global mention rate
-      const totalMentions = Object.values(modelMentionsData).reduce((sum: number, count: number) => sum + count, 0);
-      const totalPrompts = spontaneousResults.results.length;
-      const globalRate = totalPrompts > 0 ? Math.round((totalMentions / totalPrompts) * 100) : 0;
-
-      return {
-        name: competitorName,
-        size: globalRate > 20 ? 'lg' : globalRate > 10 ? 'md' : 'sm' as 'lg' | 'md' | 'sm',
-        global: `${globalRate}%`,
-        modelsMentionsRate,
-      };
-    }).sort((a, b) => parseInt(b.global) - parseInt(a.global)); // Sort by global rate descending
-
-    return {
-      overallMentionRate,
-      promptsTested: spontaneousResults.results.length,
-      modelVisibility,
-      arenaMetrics,
-    };
-  }
 
   private buildSentimentData(sentimentResults: SentimentResults): SentimentData {
     // Count sentiment distribution

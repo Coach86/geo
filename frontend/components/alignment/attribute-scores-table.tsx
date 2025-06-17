@@ -60,9 +60,17 @@ export default function AttributeScoresByModelTable({
   }, [drawerOpen, currentResultIndex, selectedCellData]);
 
   const tableData = useMemo(() => {
-    if (!results || !results.detailedResults.length) return null;
+    if (!results || !results.detailedResults || !results.detailedResults.length) return null;
 
-    const { detailedResults, averageAttributeScores } = results;
+    const { detailedResults, summary } = results;
+    
+    // Check if summary exists and has averageAttributeScores
+    if (!summary || !summary.averageAttributeScores) {
+      console.error("Invalid alignment results structure:", results);
+      return null;
+    }
+    
+    const averageAttributeScores = summary.averageAttributeScores;
     const uniqueAttributes = Object.keys(averageAttributeScores).sort();
 
     // Get models that actually have data (same as AccuracyTab)
@@ -112,6 +120,15 @@ export default function AttributeScoresByModelTable({
     return (
       <p className="p-4 text-sm text-mono-400 italic">
         No attribute scores data available to display.
+      </p>
+    );
+  }
+  
+  // Additional safety check for results structure
+  if (!results.summary || !results.summary.averageAttributeScores) {
+    return (
+      <p className="p-4 text-sm text-mono-400 italic">
+        Invalid alignment data format.
       </p>
     );
   }
@@ -212,10 +229,10 @@ export default function AttributeScoresByModelTable({
                 <td className="px-4 py-3 border-b border-mono-200 text-center">
                   <span
                     className={`inline-block px-3 py-1.5 rounded-md text-sm font-semibold ${
-                      results.averageAttributeScores[attributeName] >=
+                      results.summary.averageAttributeScores[attributeName] >=
                       0.8
                         ? "bg-accent-50 text-accent-700 border border-accent-200"
-                        : results.averageAttributeScores[
+                        : results.summary.averageAttributeScores[
                             attributeName
                           ] >= 0.6
                         ? "bg-primary-50 text-primary-700 border border-primary-200"
@@ -223,7 +240,7 @@ export default function AttributeScoresByModelTable({
                     }`}
                   >
                     {(
-                      results.averageAttributeScores[attributeName] *
+                      results.summary.averageAttributeScores[attributeName] *
                       100
                     ).toFixed(0)}
                     %

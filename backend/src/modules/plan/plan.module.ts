@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Plan, PlanSchema } from './schemas/plan.schema';
 import { PlanRepository } from './repositories/plan.repository';
@@ -14,9 +14,9 @@ import { AuthModule } from '../auth/auth.module';
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Plan.name, schema: PlanSchema }]),
-    OrganizationModule,
-    UserModule,
-    AuthModule,
+    forwardRef(() => OrganizationModule),
+    forwardRef(() => UserModule),
+    forwardRef(() => AuthModule),
   ],
   controllers: [PlanController, PublicPlanController, StripeWebhookController],
   providers: [PlanService, PlanRepository, StripeWebhookService],

@@ -9,6 +9,7 @@ import { PublicOrganizationController } from './controllers/public-organization.
 import { UserModule } from '../user/user.module';
 import { AuthModule } from '../auth/auth.module';
 import { ConfigModule } from '../config/config.module';
+import { PlanModule } from '../plan/plan.module';
 import { User, UserSchema } from '../user/schemas/user.schema';
 import { Project, ProjectSchema } from '../project/schemas/project-base.schema';
 
@@ -21,6 +22,7 @@ import { Project, ProjectSchema } from '../project/schemas/project-base.schema';
     ]),
     forwardRef(() => UserModule),
     forwardRef(() => AuthModule),
+    forwardRef(() => PlanModule),
     ConfigModule,
   ],
   controllers: [OrganizationController, UserOrganizationController, PublicOrganizationController],

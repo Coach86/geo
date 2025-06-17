@@ -16,4 +16,8 @@ export class CreateOrganizationDto {
   @IsArray()
   @IsString({ each: true })
   selectedModels?: string[];
+
+  @IsOptional()
+  @IsString()
+  stripePlanId?: string;
 }

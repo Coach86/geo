@@ -20,6 +20,33 @@ export interface StaticPlan {
 
 export const staticPlans: StaticPlan[] = [
   {
+    name: "Free",
+    badge: null,
+    badgeColor: "",
+    tagline: "Get started",
+    tagBgColor: "bg-green-50",
+    tagTextColor: "text-green-700",
+    description: "Perfect for exploring AI brand insights",
+    price: "€0",
+    pricePeriod: "/mo",
+    savings: null,
+    included: [
+      "1 project",
+      "1 URL",
+      "1 market/language",
+      "Visibility insights only",
+      "3 AI models",
+      "Weekly reports",
+      "Community support",
+    ],
+    ctaText: "Start Free",
+    ctaColor: "bg-green-600 hover:bg-green-700",
+    checkColor: "text-green-500",
+    plusColor: "text-green-500",
+    isPopular: false,
+    billedAnnually: false,
+  },
+  {
     name: "For Enterprise & Agencies",
     badge: null,
     badgeColor: "",

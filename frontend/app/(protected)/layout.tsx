@@ -3,6 +3,7 @@
 import { useAuthGuard } from "@/hooks/use-auth-guard";
 import DashboardLayout from "@/components/layout/dashboard-layout";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FeatureAccessProvider } from "@/providers/feature-access-provider";
 
 export default function ProtectedLayout({
   children,
@@ -29,7 +30,11 @@ export default function ProtectedLayout({
 
   // Only render children if authenticated
   if (authState === "authenticated") {
-    return <DashboardLayout>{children}</DashboardLayout>;
+    return (
+      <FeatureAccessProvider>
+        <DashboardLayout>{children}</DashboardLayout>
+      </FeatureAccessProvider>
+    );
   }
 
   // Return null while redirecting

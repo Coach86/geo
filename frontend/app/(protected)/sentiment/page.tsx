@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/providers/auth-provider";
+import { useFeatureGate } from "@/hooks/use-feature-access";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -28,6 +29,8 @@ import { useReportData } from "@/hooks/use-report-data";
 import { ProcessingLoader } from "@/components/shared/ProcessingLoader";
 import { getReportSentiment } from "@/lib/api/report";
 import { getModelFriendlyName } from "@/utils/model-utils";
+import { FeatureLockedWrapper } from "@/components/shared/FeatureLockedWrapper";
+import { getMockSentimentData } from "@/lib/mock-data";
 
 interface ProcessedReport extends ReportResponse {
   reportDate: string;
@@ -86,6 +89,7 @@ interface SentimentData {
 
 export default function SentimentPage() {
   const { token } = useAuth();
+  const { hasAccess, isLoading: accessLoading, isFreePlan } = useFeatureGate("sentiment");
   const { filteredProjects, selectedProject, setSelectedProject } = useNavigation();
   const {
     selectedProjectId,
@@ -160,8 +164,41 @@ export default function SentimentPage() {
       setSentimentError(null);
 
       try {
-        const data = await getReportSentiment(selectedReport.id, token);
-        setSentimentData(data);
+        if (isFreePlan) {
+          // Use mock data for free plan users
+          const mockData = getMockSentimentData();
+          const sentimentData: SentimentData = {
+            overallScore: mockData.overallSentiment.positive,
+            overallSentiment: mockData.overallSentiment.positive >= 60 ? 'positive' : 
+                            mockData.overallSentiment.negative >= 40 ? 'negative' : 'neutral',
+            distribution: {
+              positive: mockData.overallSentiment.positive,
+              neutral: mockData.overallSentiment.neutral,
+              negative: mockData.overallSentiment.negative,
+              total: 100
+            },
+            modelSentiments: mockData.sentimentByModel.map(m => ({
+              model: m.model,
+              sentiment: m.positive >= 60 ? 'positive' : m.negative >= 40 ? 'negative' : 'neutral',
+              status: m.positive >= 60 ? 'green' : m.negative >= 40 ? 'red' : 'yellow',
+              positiveKeywords: ['innovative', 'reliable', 'quality'],
+              negativeKeywords: ['expensive', 'complex']
+            })),
+            heatmapData: mockData.keyThemes.map(theme => ({
+              question: `How is ${theme.theme} perceived?`,
+              results: mockData.sentimentByModel.map(m => ({
+                model: m.model,
+                sentiment: theme.sentiment as 'positive' | 'neutral' | 'negative',
+                status: theme.sentiment === 'positive' ? 'green' : theme.sentiment === 'negative' ? 'red' : 'yellow',
+                llmResponse: m.details
+              }))
+            }))
+          };
+          setSentimentData(sentimentData);
+        } else {
+          const data = await getReportSentiment(selectedReport.id, token);
+          setSentimentData(data);
+        }
       } catch (err) {
         console.error("Failed to fetch sentiment data:", err);
         setSentimentError("Failed to load sentiment data. Please try again later.");
@@ -171,7 +208,7 @@ export default function SentimentPage() {
     };
 
     fetchSentimentData();
-  }, [selectedReport, token]);
+  }, [selectedReport, token, isFreePlan]);
 
 
   // Format date for display
@@ -311,6 +348,16 @@ export default function SentimentPage() {
     }
   };
 
+  // Check feature access
+  if (accessLoading) {
+    return (
+      <div className="flex items-center justify-center h-[50vh]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-500"></div>
+      </div>
+    );
+  }
+
+
   if (!selectedProjectId) {
     return (
       <div className="flex items-center justify-center h-[50vh]">
@@ -396,24 +443,30 @@ export default function SentimentPage() {
 
         {/* Report Content */}
         {!loading && !loadingSentiment && selectedReport && sentimentData && (
-          <div className="space-y-6 fade-in-section is-visible">
-            {/* Overall Sentiment Score */}
-            <SentimentOverview
-              sentimentScore={sentimentData.overallScore}
-              totalResponses={sentimentData.distribution.total}
-            />
+          <FeatureLockedWrapper
+            isLocked={isFreePlan}
+            featureName="Sentiment Analysis"
+            description="Unlock sentiment analysis to understand how AI models perceive your brand's emotional tone and reputation."
+          >
+            <div className="space-y-6 fade-in-section is-visible">
+              {/* Overall Sentiment Score */}
+              <SentimentOverview
+                sentimentScore={sentimentData.overallScore}
+                totalResponses={sentimentData.distribution.total}
+              />
 
-            {/* Sentiment Distribution */}
-            <SentimentDistribution
-              sentimentCounts={sentimentData.distribution}
-            />
+              {/* Sentiment Distribution */}
+              <SentimentDistribution
+                sentimentCounts={sentimentData.distribution}
+              />
 
-            {/* Sentiment Heatmap */}
-            <SentimentHeatmap
-              sentimentHeatmap={sentimentData.heatmapData}
-              onCellClick={handleCellClick}
-            />
-          </div>
+              {/* Sentiment Heatmap */}
+              <SentimentHeatmap
+                sentimentHeatmap={sentimentData.heatmapData}
+                onCellClick={handleCellClick}
+              />
+            </div>
+          </FeatureLockedWrapper>
         )}
 
         {/* No Reports State */}

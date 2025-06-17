@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Eye,
   Compass,
@@ -17,19 +17,21 @@ import {
 } from "@/lib/auth-api";
 import DomainSelector from "./domain-selector";
 import { useNavigation } from "@/providers/navigation-provider";
+import { useFeatureAccess } from "@/hooks/use-feature-access";
 
 interface SidebarItem {
   label: string;
   icon: React.ElementType;
   href: string;
   badge?: string;
+  feature?: "visibility" | "sentiment" | "alignment" | "competition";
 }
 
 const insightsMenuItems: SidebarItem[] = [
-  { label: "Visibility", icon: Eye, href: "/visibility" },
-  { label: "Sentiment", icon: Heart, href: "/sentiment" },
-  { label: "Alignment", icon: Shield, href: "/alignment" },
-  { label: "Competition", icon: Swords, href: "/competition" },
+  { label: "Visibility", icon: Eye, href: "/visibility", feature: "visibility" },
+  { label: "Sentiment", icon: Heart, href: "/sentiment", feature: "sentiment" },
+  { label: "Alignment", icon: Shield, href: "/alignment", feature: "alignment" },
+  { label: "Competition", icon: Swords, href: "/competition", feature: "competition" },
   { label: "Explorer", icon: Compass, href: "/explorer" },
 ];
 
@@ -51,7 +53,9 @@ export default function Sidebar({
   variant = 'project',
 }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { selectedDomain, setSelectedDomain } = useNavigation();
+  const featureAccess = useFeatureAccess();
 
   return (
     <aside className="fixed left-0 top-0 z-30 flex h-full w-60 flex-col border-r bg-white shadow-sm">
@@ -101,15 +105,21 @@ export default function Sidebar({
             <ul className="space-y-1">
               {insightsMenuItems.map((item) => {
                 const isActive = pathname === item.href;
+                const hasAccess = !item.feature || featureAccess[item.feature];
+                const isLocked = item.feature && !hasAccess && featureAccess.isFreePlan;
+                
                 return (
                   <li key={item.label}>
                     <Link
                       href={item.href}
+                      onClick={undefined}
                       className={`
                         flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors
                         ${
                           isActive
                             ? "bg-accent-50 text-accent-700"
+                            : isLocked
+                            ? "text-dark-600 hover:bg-dark-50 cursor-pointer"
                             : "text-dark-600 hover:bg-dark-50"
                         }
                       `}

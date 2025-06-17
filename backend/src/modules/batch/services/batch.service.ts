@@ -17,10 +17,17 @@ import { AlignmentPipelineService } from './alignment-pipeline.service';
 import { CompetitionPipelineService } from './competition-pipeline.service';
 import { BatchExecutionService } from './batch-execution.service';
 import { BrandReportOrchestratorService } from './brand-report-orchestrator.service';
-import { ProjectBatchContext } from '../interfaces/batch.interfaces';
+import { 
+  ProjectBatchContext,
+  VisibilityResults,
+  SentimentResults,
+  AlignmentResults,
+  CompetitionResults
+} from '../interfaces/batch.interfaces';
 import { Project } from '../../project/entities/project.entity';
 import { OnEvent } from '@nestjs/event-emitter';
 import { OrganizationService } from '../../organization/services/organization.service';
+import { PlanService } from '../../plan/services/plan.service';
 import { BatchReportInput } from '../../report/interfaces/report-input.interfaces';
 import { BrandReportPersistenceService } from '../../report/services/brand-report-persistence.service';
 import {
@@ -55,6 +62,8 @@ export class BatchService {
     private readonly organizationService: OrganizationService,
     @Inject(forwardRef(() => ProjectService))
     private readonly projectService: ProjectService,
+    @Inject(forwardRef(() => PlanService))
+    private readonly planService: PlanService,
     @Inject(forwardRef(() => BrandReportPersistenceService))
     private readonly brandReportPersistenceService: BrandReportPersistenceService,
   ) {
@@ -272,8 +281,8 @@ export class BatchService {
    * @param context Project batch context
    * @returns Pipeline results
    */
-  async runVisibilityPipeline(context: ProjectBatchContext) {
-    return this.runPipeline('visibility', context);
+  async runVisibilityPipeline(context: ProjectBatchContext): Promise<VisibilityResults> {
+    return this.runPipeline('visibility', context) as Promise<VisibilityResults>;
   }
 
   /**
@@ -281,8 +290,8 @@ export class BatchService {
    * @param context Project batch context
    * @returns Pipeline results
    */
-  async runSentimentPipeline(context: ProjectBatchContext) {
-    return this.runPipeline('sentiment', context);
+  async runSentimentPipeline(context: ProjectBatchContext): Promise<SentimentResults> {
+    return this.runPipeline('sentiment', context) as Promise<SentimentResults>;
   }
 
   /**
@@ -290,8 +299,8 @@ export class BatchService {
    * @param context Project batch context
    * @returns Pipeline results
    */
-  async runAlignmentPipeline(context: ProjectBatchContext) {
-    return this.runPipeline('alignment', context);
+  async runAlignmentPipeline(context: ProjectBatchContext): Promise<AlignmentResults> {
+    return this.runPipeline('alignment', context) as Promise<AlignmentResults>;
   }
 
   /**
@@ -299,8 +308,8 @@ export class BatchService {
    * @param context Project batch context
    * @returns Pipeline results
    */
-  async runCompetitionPipeline(context: ProjectBatchContext) {
-    return this.runPipeline('competition', context);
+  async runCompetitionPipeline(context: ProjectBatchContext): Promise<CompetitionResults> {
+    return this.runPipeline('competition', context) as Promise<CompetitionResults>;
   }
 
   /**
@@ -334,14 +343,43 @@ export class BatchService {
       // Inject the batchExecutionId into the context
       const contextWithBatchExecId = { ...context, batchExecutionId };
 
-      // Run all four pipelines in parallel
-      const [visibilityResults, sentimentResults, alignmentResults, competitionResults] =
-        await Promise.all([
-          this.visibilityPipelineService.run(contextWithBatchExecId),
-          this.sentimentPipelineService.run(contextWithBatchExecId),
-          this.alignmentPipelineService.run(contextWithBatchExecId),
-          this.competitionPipelineService.run(contextWithBatchExecId),
-        ]);
+      // Check if organization has a free plan
+      let isFreePlan = false;
+      if (context.organizationId) {
+        try {
+          const organization = await this.organizationService.findOne(context.organizationId);
+          if (organization.stripePlanId) {
+            const plan = await this.planService.findById(organization.stripePlanId);
+            isFreePlan = plan.metadata?.isFree === true || 
+                        plan.name.toLowerCase() === 'free' || 
+                        plan.stripeProductId === null ||
+                        plan.stripeProductId === '';
+          }
+        } catch (error) {
+          this.logger.warn(`Could not check plan for organization ${context.organizationId}: ${error.message}`);
+        }
+      }
+
+      // Run pipelines based on plan type
+      let visibilityResults: any;
+      let sentimentResults: any = { results: [], summary: {} };
+      let alignmentResults: any = { results: [], summary: {} };
+      let competitionResults: any = { results: [], summary: {} };
+
+      if (isFreePlan) {
+        this.logger.log(`Organization has free plan - running visibility pipeline only`);
+        // For free plans, only run visibility pipeline
+        visibilityResults = await this.visibilityPipelineService.run(contextWithBatchExecId);
+      } else {
+        // For paid plans, run all four pipelines in parallel
+        [visibilityResults, sentimentResults, alignmentResults, competitionResults] =
+          await Promise.all([
+            this.visibilityPipelineService.run(contextWithBatchExecId),
+            this.sentimentPipelineService.run(contextWithBatchExecId),
+            this.alignmentPipelineService.run(contextWithBatchExecId),
+            this.competitionPipelineService.run(contextWithBatchExecId),
+          ]);
+      }
 
       // Get LLM versions
       const comparisonLlmResults = [];
@@ -799,11 +837,11 @@ export class BatchService {
     return count;
   }
 
-  private buildExplorerData(
-    visibilityResults: any,
-    sentimentResults: any,
-    alignmentResults: any,
-    competitionResults: any,
+  public buildExplorerData(
+    visibilityResults: VisibilityResults,
+    sentimentResults: SentimentResults,
+    alignmentResults: AlignmentResults,
+    competitionResults: CompetitionResults,
   ): ExplorerData {
     // Extract top mentions from visibility results
     const mentionCounts: Record<string, number> = {};
@@ -1072,7 +1110,8 @@ export class BatchService {
     return 'unknown';
   }
 
-  private buildVisibilityData(visibilityResults: any, brandName: string, competitors: string[] = []): VisibilityData {
+
+  public buildVisibilityData(visibilityResults: VisibilityResults, brandName: string, competitors: string[] = []): VisibilityData {
     // Calculate model visibility from visibility results
     const modelMentions: Record<string, { mentioned: number; total: number }> = {};
     
@@ -1158,7 +1197,7 @@ export class BatchService {
     };
   }
 
-  private buildSentimentData(sentimentResults: any): SentimentData {
+  private buildSentimentData(sentimentResults: SentimentResults): SentimentData {
     // Count sentiment distribution
     const distribution = { positive: 0, neutral: 0, negative: 0, total: 0 };
     const modelSentiments: Record<string, any> = {};
@@ -1249,7 +1288,7 @@ export class BatchService {
     };
   }
 
-  private buildAlignmentData(alignmentResults: any): AlignmentData {
+  private buildAlignmentData(alignmentResults: AlignmentResults): AlignmentData {
     // Extract attribute scores from results
     const attributeScores: Record<string, number[]> = {};
     const detailedResults: any[] = [];
@@ -1325,8 +1364,8 @@ export class BatchService {
     };
   }
 
-  private buildCompetitionData(
-    competitionResults: any,
+  public buildCompetitionData(
+    competitionResults: CompetitionResults,
     brandName: string,
     competitors: string[]
   ): CompetitionData {

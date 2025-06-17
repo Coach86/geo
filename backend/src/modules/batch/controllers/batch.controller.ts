@@ -1,10 +1,16 @@
-import { Controller, Post, Body, Param, NotFoundException } from '@nestjs/common';
+import { Controller, Post, Body, Param, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { IsOptional, IsString } from 'class-validator';
 import { BatchService } from '../services/batch.service';
 import { BatchTask } from '../tasks/batch.task';
 import { BrandReportOrchestratorService } from '../services/brand-report-orchestrator.service';
 import { BatchEventsGateway } from '../gateways/batch-events.gateway';
+import { OrganizationService } from '../../organization/services/organization.service';
+import { PlanService } from '../../plan/services/plan.service';
+import { ProjectService } from '../../project/services/project.service';
+import { BrandReportPersistenceService } from '../../report/services/brand-report-persistence.service';
+import { ReportStructure } from '../../report/interfaces/report.interfaces';
+import { SentimentResults, AlignmentResults, CompetitionResults } from '../interfaces/batch.interfaces';
 
 class BatchRunDto {
   @IsString()
@@ -20,6 +26,13 @@ export class BatchController {
     private readonly batchTask: BatchTask,
     private readonly batchOrchestratorService: BrandReportOrchestratorService,
     private readonly batchEventsGateway: BatchEventsGateway,
+    @Inject(forwardRef(() => OrganizationService))
+    private readonly organizationService: OrganizationService,
+    @Inject(forwardRef(() => PlanService))
+    private readonly planService: PlanService,
+    @Inject(forwardRef(() => ProjectService))
+    private readonly projectService: ProjectService,
+    private readonly brandReportPersistenceService: BrandReportPersistenceService,
   ) {}
 
   @Post('run')
@@ -63,42 +76,95 @@ export class BatchController {
       const batchExecution = await this.batchService.createBatchExecution(projectId);
       console.log(`[Batch] Created new batch execution ${batchExecution.id} for project ${projectId}`);
 
+      // Check if organization has a free plan
+      let batchType = 'full';
+      let isFreePlan = false;
+      if (projectContext.organizationId) {
+        try {
+          const organization = await this.organizationService.findOne(projectContext.organizationId);
+          if (organization.stripePlanId) {
+            const plan = await this.planService.findById(organization.stripePlanId);
+            isFreePlan = plan.metadata?.isFree === true || 
+                        plan.name.toLowerCase() === 'free' || 
+                        plan.stripeProductId === null ||
+                        plan.stripeProductId === '';
+            
+            if (isFreePlan) {
+              batchType = 'visibility';
+              console.log(`[Batch] Organization ${projectContext.organizationId} has free plan - will only process visibility`);
+            }
+          }
+        } catch (error) {
+          console.warn(`[Batch] Could not check plan for organization ${projectContext.organizationId}: ${error.message}`);
+        }
+      }
+
       // Emit batch started event
       this.batchEventsGateway.emitBatchStarted(
         batchExecution.id,
         projectId,
         projectContext.brandName,
-        'full'
+        batchType
       );
 
       // Start the batch processing in the background (don't await)
-      this.batchService
-        .processProject(projectId, batchExecution.id)
-        .then((result) => {
-          console.log(`[Batch] Completed batch execution ${batchExecution.id} for project ${projectId}`);
-          this.batchService.completeBatchExecution(batchExecution.id, result);
-          
-          // Emit batch completed event
-          this.batchEventsGateway.emitBatchCompleted(
-            batchExecution.id,
-            projectId,
-            projectContext.brandName,
-            'full'
-          );
-        })
-        .catch((error) => {
-          console.log(`[Batch] Failed batch execution ${batchExecution.id} for project ${projectId}: ${error.message}`);
-          this.batchService.failBatchExecution(batchExecution.id, error.message || 'Unknown error');
-          
-          // Emit batch failed event
-          this.batchEventsGateway.emitBatchFailed(
-            batchExecution.id,
-            projectId,
-            projectContext.brandName,
-            'full',
-            error.message || 'Unknown error'
-          );
-        });
+      if (isFreePlan) {
+        // For free plans, only run visibility pipeline
+        this.processVisibilityOnlyBatch(projectContext, batchExecution.id)
+          .then(() => {
+            console.log(`[Batch] Completed visibility-only batch execution ${batchExecution.id} for project ${projectId}`);
+            
+            // Emit batch completed event
+            this.batchEventsGateway.emitBatchCompleted(
+              batchExecution.id,
+              projectId,
+              projectContext.brandName,
+              'visibility'
+            );
+          })
+          .catch((error) => {
+            console.log(`[Batch] Failed visibility-only batch execution ${batchExecution.id} for project ${projectId}: ${error.message}`);
+            this.batchService.failBatchExecution(batchExecution.id, error.message || 'Unknown error');
+            
+            // Emit batch failed event
+            this.batchEventsGateway.emitBatchFailed(
+              batchExecution.id,
+              projectId,
+              projectContext.brandName,
+              'visibility',
+              error.message || 'Unknown error'
+            );
+          });
+      } else {
+        // For paid plans, run all pipelines
+        this.batchService
+          .processProject(projectId, batchExecution.id)
+          .then((result) => {
+            console.log(`[Batch] Completed batch execution ${batchExecution.id} for project ${projectId}`);
+            this.batchService.completeBatchExecution(batchExecution.id, result);
+            
+            // Emit batch completed event
+            this.batchEventsGateway.emitBatchCompleted(
+              batchExecution.id,
+              projectId,
+              projectContext.brandName,
+              'full'
+            );
+          })
+          .catch((error) => {
+            console.log(`[Batch] Failed batch execution ${batchExecution.id} for project ${projectId}: ${error.message}`);
+            this.batchService.failBatchExecution(batchExecution.id, error.message || 'Unknown error');
+            
+            // Emit batch failed event
+            this.batchEventsGateway.emitBatchFailed(
+              batchExecution.id,
+              projectId,
+              projectContext.brandName,
+              'full',
+              error.message || 'Unknown error'
+            );
+          });
+      }
 
       // Return immediately with the batch execution ID
       return {
@@ -171,6 +237,148 @@ export class BatchController {
       message: `Spontaneous pipeline for project ${projectId} started`,
       batchExecutionId,
     };
+  }
+
+  // Background processing method for visibility-only batch (free plan)
+  private async processVisibilityOnlyBatch(projectContext: any, batchExecutionId: string) {
+    // Add batch execution ID to context
+    const contextWithExecId = { ...projectContext, batchExecutionId };
+
+    try {
+      // Run only visibility pipeline
+      const visibilityResults = await this.batchService.runVisibilityPipeline(contextWithExecId);
+
+      // Create empty results for other pipelines with proper structure
+      const sentimentResults: SentimentResults = { 
+        results: [], 
+        summary: {
+          overallSentiment: 'neutral',
+          overallSentimentPercentage: 0
+        },
+        webSearchSummary: {
+          usedWebSearch: false,
+          webSearchCount: 0,
+          consultedWebsites: []
+        }
+      };
+      const alignmentResults: AlignmentResults = { 
+        results: [], 
+        summary: {
+          averageAttributeScores: {}
+        },
+        webSearchSummary: {
+          usedWebSearch: false,
+          webSearchCount: 0,
+          consultedWebsites: []
+        }
+      };
+      const competitionResults: CompetitionResults = { 
+        results: [], 
+        summary: {
+          competitorAnalyses: [],
+          commonStrengths: [],
+          commonWeaknesses: []
+        },
+        webSearchSummary: {
+          usedWebSearch: false,
+          webSearchCount: 0,
+          consultedWebsites: []
+        }
+      };
+
+      // Save all results
+      await Promise.all([
+        this.batchService.saveSinglePipelineResult(batchExecutionId, 'visibility', visibilityResults),
+        this.batchService.saveSinglePipelineResult(batchExecutionId, 'sentiment', sentimentResults),
+        this.batchService.saveSinglePipelineResult(batchExecutionId, 'alignment', alignmentResults),
+        this.batchService.saveSinglePipelineResult(batchExecutionId, 'competition', competitionResults),
+      ]);
+
+      // Get project details for report metadata
+      const project = await this.projectService.findById(projectContext.projectId);
+      if (!project) {
+        throw new Error(`Project ${projectContext.projectId} not found`);
+      }
+
+      // Create the brand report structure (similar to batch.service.ts)
+      const reportDate = new Date();
+      
+      // Extract models used from visibility results
+      const modelsUsed = new Set<string>();
+      if (visibilityResults?.results) {
+        visibilityResults.results.forEach((result: any) => {
+          if (result.model) modelsUsed.add(result.model);
+        });
+      }
+      
+      const brandReport: ReportStructure = {
+        id: batchExecutionId, // Use batch execution ID as report ID
+        projectId: project.projectId,
+        reportDate,
+        generatedAt: new Date(),
+        batchExecutionId,
+        brandName: project.brandName,
+        metadata: {
+          url: project.website || '',
+          market: project.market || '',
+          countryCode: project.market || 'US', // Default to US if not specified
+          competitors: project.competitors || [],
+          modelsUsed: Array.from(modelsUsed),
+          promptsExecuted: visibilityResults?.results?.length || 0,
+          executionContext: {
+            batchId: batchExecutionId,
+            pipeline: 'visibility-only',
+            version: '2.0.0',
+          },
+        },
+        // For free plans, build explorer data from visibility pipeline only
+        explorer: this.batchService.buildExplorerData(visibilityResults, sentimentResults, alignmentResults, competitionResults),
+        visibility: await this.batchService.buildVisibilityData(visibilityResults, project.brandName, project.competitors || []),
+        sentiment: {
+          overallScore: 0,
+          overallSentiment: 'neutral' as const,
+          distribution: {
+            positive: 0,
+            neutral: 0,
+            negative: 0,
+            total: 0,
+          },
+          modelSentiments: [],
+          heatmapData: [],
+        },
+        alignment: {
+          overallAlignmentScore: 0,
+          averageAttributeScores: {},
+          attributeAlignmentSummary: [],
+          detailedResults: [],
+        },
+        competition: {
+          brandName: project.brandName,
+          competitors: project.competitors || [],
+          competitorAnalyses: [],
+          competitorMetrics: [],
+          commonStrengths: [],
+          commonWeaknesses: [],
+        },
+      };
+
+      // Save the report
+      await this.brandReportPersistenceService.saveReport(brandReport);
+      console.log(`[Batch] Successfully saved brand report for project ${projectContext.projectId}`);
+
+      // Mark batch execution as completed
+      await this.batchService.completeBatchExecution(batchExecutionId, {
+        batchExecutionId,
+        results: {
+          visibility: visibilityResults,
+          sentiment: sentimentResults,
+          alignment: alignmentResults,
+          competition: competitionResults,
+        },
+      });
+    } catch (error) {
+      throw error;
+    }
   }
 
   // Background processing method for visibility pipeline
@@ -524,4 +732,5 @@ export class BatchController {
       );
     }
   }
+
 }

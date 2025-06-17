@@ -46,12 +46,8 @@ export function useAuthGuard(options: UseAuthGuardOptions = {}) {
           return;
         }
 
-        // Then check payment status - only after they have projects
-        if (!org.stripePlanId && options.requirePayment !== false) {
-          setAuthState("no-payment");
-          router.replace("/pricing");
-          return;
-        }
+        // Check payment status is no longer required for free plan users
+        // Free plan users can access the app with visibility feature only
 
         // All checks passed
         setAuthState("authenticated");

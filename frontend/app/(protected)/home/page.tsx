@@ -15,15 +15,29 @@ import { getMyOrganization, Organization } from "@/lib/organization-api"
 import { useEffect } from "react"
 import { toast } from "@/hooks/use-toast"
 import { useAnalytics } from "@/hooks/use-analytics"
+import { useCelebration } from "@/hooks/use-celebration"
+import { CelebrationConfetti } from "@/components/ui/celebration-confetti"
 
 export default function HomePage() {
   const { filteredProjects, allProjects, setSelectedProject } = useNavigation()
   const { token } = useAuth()
   const router = useRouter()
   const analytics = useAnalytics()
+  const shouldCelebrate = useCelebration()
   const [showAddProjectModal, setShowAddProjectModal] = useState(false)
   const [organization, setOrganization] = useState<Organization | null>(null)
   const [loading, setLoading] = useState(false)
+
+  // Show success toast when celebration is needed
+  useEffect(() => {
+    if (shouldCelebrate) {
+      toast({
+        title: "🎉 Congratulations!",
+        description: "Your plan has been successfully activated. Welcome aboard!",
+        duration: 10000,
+      })
+    }
+  }, [shouldCelebrate])
 
   // Fetch organization to check plan limits
   useEffect(() => {
@@ -111,8 +125,8 @@ export default function HomePage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Project Cards */}
         {filteredProjects.map((project) => (
-          <Card 
-            key={project.id} 
+          <Card
+            key={project.id}
             className="cursor-pointer hover:shadow-lg transition-shadow"
             onClick={() => handleProjectClick(project)}
           >
@@ -134,19 +148,19 @@ export default function HomePage() {
               <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
                 {project.shortDescription}
               </p>
-              
+
               <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
                 <div className="flex items-center gap-1">
                   <BarChart3 className="h-3 w-3" />
                   <span>{project.keyBrandAttributes?.length || 0} attributes</span>
                 </div>
-                
+
                 {project.generatedAt && (
                   <div className="flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
                     <span>
-                      {formatDistanceToNow(new Date(project.generatedAt), { 
-                        addSuffix: true 
+                      {formatDistanceToNow(new Date(project.generatedAt), {
+                        addSuffix: true
                       })}
                     </span>
                   </div>
@@ -172,7 +186,7 @@ export default function HomePage() {
         ))}
 
         {/* Add Project Card - at the end */}
-        <Card 
+        <Card
           className="border-dashed cursor-pointer hover:bg-accent/50 transition-colors flex items-center justify-center min-h-[200px]"
           onClick={handleAddProjectClick}
         >
@@ -198,8 +212,8 @@ export default function HomePage() {
         </div>
       )}
 
-      <AddProjectModal 
-        isOpen={showAddProjectModal} 
+      <AddProjectModal
+        isOpen={showAddProjectModal}
         onClose={() => setShowAddProjectModal(false)}
         onSuccess={(projectId) => {
           // Reload the page to refresh the project list
@@ -211,6 +225,9 @@ export default function HomePage() {
           return result
         }}
       />
+
+      {/* Celebration confetti */}
+      <CelebrationConfetti isActive={shouldCelebrate} />
     </div>
   )
 }

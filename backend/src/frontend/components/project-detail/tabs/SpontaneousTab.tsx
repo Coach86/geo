@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Typography,
   Box,
@@ -32,11 +32,33 @@ import { SpontaneousResults } from '../../../utils/types';
 
 interface SpontaneousTabProps {
   results: SpontaneousResults;
+  projectId?: string;
 }
 
-const SpontaneousTab: React.FC<SpontaneousTabProps> = ({ results }) => {
+const SpontaneousTab: React.FC<SpontaneousTabProps> = ({ results, projectId }) => {
   const { summary, results: detailedResults, webSearchSummary } = results;
-  
+
+  // Collect all citations from all results
+  const allCitations = useMemo(() => {
+    const citations: any[] = [];
+
+    detailedResults.forEach((result) => {
+      if (result.citations && result.citations.length > 0) {
+        result.citations.forEach((citation) => {
+          citations.push({
+            ...citation,
+            promptType: 'spontaneous',
+            promptIndex: result.promptIndex,
+            llmProvider: result.llmProvider,
+            originalPrompt: result.originalPrompt,
+          });
+        });
+      }
+    });
+
+    return citations;
+  }, [detailedResults]);
+
   return (
     <>
       <Box sx={{ mb: 3 }}>
@@ -88,7 +110,7 @@ const SpontaneousTab: React.FC<SpontaneousTabProps> = ({ results }) => {
                   <Typography variant="body2" color="text.secondary" paragraph>
                     Number of responses that used web search
                   </Typography>
-                  
+
                   <Divider sx={{ mt: 3, mb: 2 }} />
                   <Typography variant="subtitle2" gutterBottom>
                     Consulted Websites:
@@ -122,7 +144,7 @@ const SpontaneousTab: React.FC<SpontaneousTabProps> = ({ results }) => {
                             />
                           ))
                         )}
-                        
+
                         {/* Show a "+X more" chip if there are more than 5 websites */}
                         {webSearchSummary.consultedWebsites.length > 5 && (
                           <Chip
@@ -248,21 +270,21 @@ const SpontaneousTab: React.FC<SpontaneousTabProps> = ({ results }) => {
                     <Divider sx={{ my: 2 }} />
                   </>
                 )}
-                
+
                 <Typography variant="subtitle2" gutterBottom>
                   Question:
                 </Typography>
                 <Typography variant="body2" paragraph sx={{ mb: 2, whiteSpace: 'pre-wrap', maxHeight: 'none', overflow: 'visible' }}>
                   {result.originalPrompt || 'No original prompt available.'}
                 </Typography>
-                
+
                 <Typography variant="subtitle2" gutterBottom>
                   Answer:
                 </Typography>
                 <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', maxHeight: 'none', overflow: 'visible', mb: 2 }}>
                   {result.llmResponse || 'No response available.'}
                 </Typography>
-                
+
                 {/* Web Search Queries Section */}
                 {result.usedWebSearch && result.toolUsage && (
                   <Box sx={{ mt: 2 }}>
@@ -274,15 +296,15 @@ const SpontaneousTab: React.FC<SpontaneousTabProps> = ({ results }) => {
                       <List dense disablePadding>
                         {(() => {
                           try {
-                            const toolUsageData = Array.isArray(result.toolUsage) 
+                            const toolUsageData = Array.isArray(result.toolUsage)
                               ? result.toolUsage
                               : JSON.parse(typeof result.toolUsage === 'string' ? result.toolUsage : '[]');
-                            
-                            const webSearchTools = toolUsageData.filter((tool: any) => 
-                              tool.type === 'web_search' || 
-                              tool.type === 'search' || 
+
+                            const webSearchTools = toolUsageData.filter((tool: any) =>
+                              tool.type === 'web_search' ||
+                              tool.type === 'search' ||
                               tool.type?.includes('search'));
-                            
+
                             if (webSearchTools.length === 0) {
                               return (
                                 <ListItem>
@@ -290,7 +312,7 @@ const SpontaneousTab: React.FC<SpontaneousTabProps> = ({ results }) => {
                                 </ListItem>
                               );
                             }
-                            
+
                             return webSearchTools.map((tool: any, i: number) => (
                               <ListItem key={i} divider={i < webSearchTools.length - 1}>
                                 <ListItemText
@@ -312,7 +334,7 @@ const SpontaneousTab: React.FC<SpontaneousTabProps> = ({ results }) => {
                     </Card>
                   </Box>
                 )}
-                
+
                 {/* Citations Section */}
                 {result.usedWebSearch && result.citations && result.citations.length > 0 && (
                   <Box sx={{ mt: 2 }}>
@@ -350,7 +372,7 @@ const SpontaneousTab: React.FC<SpontaneousTabProps> = ({ results }) => {
                     </Card>
                   </Box>
                 )}
-                
+
                 {result.error && (
                   <>
                     <Typography variant="subtitle2" color="error" gutterBottom sx={{ mt: 2 }}>

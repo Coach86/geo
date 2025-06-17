@@ -17,6 +17,8 @@ import { AccessToken, AccessTokenSchema } from '../auth/schemas/access-token.sch
 import { OrganizationModule } from '../organization/organization.module';
 import { PromptModule } from '../prompt/prompt.module';
 import { BatchModule } from '../batch/batch.module';
+import { PlanModule } from '../plan/plan.module';
+import { ReportModule } from '../report/report.module';
 
 @Module({
   imports: [
@@ -30,6 +32,8 @@ import { BatchModule } from '../batch/batch.module';
     forwardRef(() => OrganizationModule),
     forwardRef(() => PromptModule),
     forwardRef(() => BatchModule),
+    forwardRef(() => PlanModule),
+    forwardRef(() => ReportModule),
   ],
   controllers: [ProjectController, UserProjectController, PublicProjectController],
   providers: [

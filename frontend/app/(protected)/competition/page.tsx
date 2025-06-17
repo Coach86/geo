@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/providers/auth-provider";
+import { useFeatureGate } from "@/hooks/use-feature-access";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
@@ -14,6 +15,8 @@ import BreadcrumbNav from "@/components/layout/breadcrumb-nav";
 import { useNavigation } from "@/providers/navigation-provider";
 import { ProcessingLoader } from "@/components/shared/ProcessingLoader";
 import { getReportCompetition } from "@/lib/api/report";
+import { FeatureLockedWrapper } from "@/components/shared/FeatureLockedWrapper";
+import { getMockCompetitionData } from "@/lib/mock-data";
 
 interface ProcessedReport extends ReportResponse {
   competition: CompetitionTypeData;
@@ -51,6 +54,7 @@ interface CompetitionData {
 
 export default function CompetitionPage() {
   const { token } = useAuth();
+  const { hasAccess, isLoading: accessLoading, isFreePlan } = useFeatureGate("competition");
   const { filteredProjects, selectedProject, setSelectedProject } = useNavigation();
   const {
     selectedProjectId,
@@ -94,8 +98,62 @@ export default function CompetitionPage() {
       setCompetitionError(null);
 
       try {
-        const data = await getReportCompetition(selectedReport.id, token);
-        setCompetitionData(data);
+        if (isFreePlan) {
+          // Use mock data for free plan users
+          const mockData = getMockCompetitionData();
+          // Use the project's configured competitors if available, otherwise use mock competitors
+          const projectCompetitors = projectDetails?.competitors || [];
+          const mockCompetitors = mockData.competitorAnalysis.slice(0, Math.max(3, projectCompetitors.length));
+          
+          const competitionData: CompetitionData = {
+            brandName: projectDetails?.brandName || "Your Brand",
+            competitors: projectCompetitors.length > 0 ? projectCompetitors : mockCompetitors.map(c => c.name),
+            competitorAnalyses: (projectCompetitors.length > 0 ? projectCompetitors : mockCompetitors.map(c => c.name))
+              .map((competitorName, idx) => {
+                const mockComp = mockCompetitors[idx % mockCompetitors.length];
+                return {
+                  competitor: competitorName,
+                  analysisByModel: [
+                    {
+                      model: "GPT-4",
+                      strengths: mockComp.strengths.slice(0, 3),
+                      weaknesses: mockComp.weaknesses.slice(0, 3)
+                    },
+                    {
+                      model: "Claude 3.5 Sonnet",
+                      strengths: [...mockComp.strengths.slice(1, 3), mockComp.strengths[0]],
+                      weaknesses: [...mockComp.weaknesses.slice(1, 3), mockComp.weaknesses[0]]
+                    },
+                    {
+                      model: "Gemini 1.5 Pro",
+                      strengths: [...mockComp.strengths.slice(2, 4), mockComp.strengths[1]],
+                      weaknesses: [...mockComp.weaknesses.slice(2, 4), mockComp.weaknesses[1]]
+                    }
+                  ]
+                };
+              }),
+            competitorMetrics: (projectCompetitors.length > 0 ? projectCompetitors : mockCompetitors.map(c => c.name))
+              .map((competitorName, idx) => {
+                const mockComp = mockCompetitors[idx % mockCompetitors.length];
+                return {
+                  competitor: competitorName,
+                  overallRank: idx + 1,
+                  mentionRate: mockComp.overallScore,
+                  modelMentions: [
+                    { model: "GPT-4", rank: idx + 1, mentionRate: mockComp.overallScore - 5 + idx },
+                    { model: "Claude 3.5 Sonnet", rank: idx + 1, mentionRate: mockComp.overallScore - 3 + idx },
+                    { model: "Gemini 1.5 Pro", rank: idx + 1, mentionRate: mockComp.overallScore - 7 + idx }
+                  ]
+                };
+              }),
+            commonStrengths: mockData.competitiveAdvantages,
+            commonWeaknesses: mockData.opportunities
+          };
+          setCompetitionData(competitionData);
+        } else {
+          const data = await getReportCompetition(selectedReport.id, token);
+          setCompetitionData(data);
+        }
       } catch (err) {
         console.error("Failed to fetch competition data:", err);
         setCompetitionError("Failed to load competition data. Please try again later.");
@@ -105,7 +163,7 @@ export default function CompetitionPage() {
     };
 
     fetchCompetitionData();
-  }, [selectedReport, token]);
+  }, [selectedReport, token, isFreePlan, projectDetails]);
 
   // All competitors are always selected
   const selectedCompetitors = projectDetails?.competitors || [];
@@ -121,6 +179,16 @@ export default function CompetitionPage() {
       commonWeaknesses: competitionData.commonWeaknesses || []
     };
   };
+
+  // Check feature access
+  if (accessLoading) {
+    return (
+      <div className="flex items-center justify-center h-[50vh]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-500"></div>
+      </div>
+    );
+  }
+
 
   if (!selectedProjectId) {
     return (
@@ -201,28 +269,34 @@ export default function CompetitionPage() {
 
       {/* Report Content */}
       {!loading && !loadingCompetition && selectedReport && competitionData && (
-        <div className="space-y-6">
-          {/* Competition Table */}
-          {getBattleData() &&
-          getBattleData()!.competitorAnalyses &&
-          getBattleData()!.competitorAnalyses.length > 0 ? (
-            <CompetitionTable
-              brand={competitionData.brandName || selectedReport.brandName}
-              data={getBattleData()!}
-            />
-          ) : (
-            <Card>
-              <CardContent className="pt-6">
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    No competition data available for this report.
-                  </AlertDescription>
-                </Alert>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+        <FeatureLockedWrapper
+          isLocked={isFreePlan}
+          featureName="Competition Analysis"
+          description="Unlock competition analysis to see how AI models compare your brand against competitors."
+        >
+          <div className="space-y-6">
+            {/* Competition Table */}
+            {getBattleData() &&
+            getBattleData()!.competitorAnalyses &&
+            getBattleData()!.competitorAnalyses.length > 0 ? (
+              <CompetitionTable
+                brand={competitionData.brandName || selectedReport.brandName}
+                data={getBattleData()!}
+              />
+            ) : (
+              <Card>
+                <CardContent className="pt-6">
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      No competition data available for this report.
+                    </AlertDescription>
+                  </Alert>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </FeatureLockedWrapper>
       )}
 
       {/* No Reports State */}
