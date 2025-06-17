@@ -1,4 +1,4 @@
-import { Loader2 } from "lucide-react";
+import { SvgLoader } from "@/components/ui/svg-loader";
 
 interface LoadingStatesProps {
   isGenerating: boolean;
@@ -18,7 +18,7 @@ export function LoadingStates({ isGenerating, message }: LoadingStatesProps) {
 export function LoadingButton({ isGenerating }: { isGenerating: boolean }) {
   return (
     <>
-      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+      <SvgLoader className="mr-2" size="sm" />
       Generating Report...
     </>
   );

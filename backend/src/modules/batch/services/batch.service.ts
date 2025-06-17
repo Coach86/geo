@@ -1,5 +1,6 @@
 import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { BatchExecutionRepository } from '../repositories/batch-execution.repository';
 import { BatchResultRepository } from '../repositories/batch-result.repository';
 import { RawResponseRepository } from '../repositories/raw-response.repository';
@@ -30,6 +31,7 @@ import { OrganizationService } from '../../organization/services/organization.se
 import { PlanService } from '../../plan/services/plan.service';
 import { BatchReportInput } from '../../report/interfaces/report-input.interfaces';
 import { BrandReportPersistenceService } from '../../report/services/brand-report-persistence.service';
+import { ReportCompletedEvent } from '../events/report-completed.event';
 import {
   ReportStructure,
   ExplorerData,
@@ -58,6 +60,7 @@ export class BatchService {
     private readonly alignmentPipelineService: AlignmentPipelineService,
     private readonly competitionPipelineService: CompetitionPipelineService,
     private readonly userService: UserService,
+    private readonly eventEmitter: EventEmitter2,
     @Inject(forwardRef(() => OrganizationService))
     private readonly organizationService: OrganizationService,
     @Inject(forwardRef(() => ProjectService))
@@ -455,6 +458,39 @@ export class BatchService {
 
       // Mark the batch execution as completed
       await this.batchExecutionService.updateBatchExecutionStatus(batchExecutionId, 'completed');
+
+      // Get user information for email notification
+      if (context.organizationId) {
+        try {
+          const organization = await this.organizationService.findOne(context.organizationId);
+          const users = await this.userService.findByOrganizationId(context.organizationId);
+          
+          // Determine trigger type based on context
+          let triggerType: 'manual' | 'cron' | 'new_project' = 'cron';
+          if (context.isManualRefresh) {
+            triggerType = 'manual';
+          } else if (context.isNewProject) {
+            triggerType = 'new_project';
+          }
+          
+          // Emit report completed event for each user in the organization
+          for (const user of users) {
+            this.eventEmitter.emit('report.completed', new ReportCompletedEvent(
+              context.projectId,
+              project.brandName,
+              batchExecutionId, // Use batch execution ID as report ID
+              batchExecutionId,
+              user.id,
+              user.email,
+              triggerType,
+            ));
+          }
+          
+          this.logger.log(`Emitted report.completed event for ${users.length} users in organization ${context.organizationId}`);
+        } catch (error) {
+          this.logger.warn(`Failed to emit report.completed event: ${error.message}`);
+        }
+      }
 
       this.logger.log(`Successfully processed project ${context.projectId}`);
 

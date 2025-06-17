@@ -31,6 +31,7 @@ import BreadcrumbNav from "@/components/layout/breadcrumb-nav";
 import { useNavigation } from "@/providers/navigation-provider";
 import { ProcessingLoader } from "@/components/shared/ProcessingLoader";
 import { toast } from "@/hooks/use-toast";
+import { useNotificationContext } from "@/providers/notification-provider";
 
 interface ProcessedReport extends ReportResponse {
   createdAt: string;
@@ -40,6 +41,7 @@ interface ProcessedReport extends ReportResponse {
 export default function ExplorerPage() {
   const { token } = useAuth();
   const { filteredProjects, selectedProject, setSelectedProject } = useNavigation();
+  const { subscribeToProject } = useNotificationContext();
   const {
     selectedProjectId,
     projectDetails,
@@ -54,6 +56,13 @@ export default function ExplorerPage() {
       createdAt: report.generatedAt,
     };
   });
+
+  // Subscribe to project notifications
+  useEffect(() => {
+    if (selectedProjectId) {
+      subscribeToProject(selectedProjectId);
+    }
+  }, [selectedProjectId, subscribeToProject]);
 
   const [explorerData, setExplorerData] = useState<ExplorerData | null>(null);
   const [loadingExplorer, setLoadingExplorer] = useState(false);

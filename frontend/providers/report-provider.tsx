@@ -88,6 +88,25 @@ export function ReportProvider({ children }: { children: React.ReactNode }) {
     return projectReports.find(r => r.id === selectedId) || null;
   }, [reports, selectedReports]);
 
+  // Listen for report update events
+  useEffect(() => {
+    const handleReportUpdated = (event: CustomEvent) => {
+      const { projectId } = event.detail;
+      const token = localStorage.getItem('authToken');
+      
+      if (projectId && token) {
+        // Refresh reports for the updated project
+        fetchReports(projectId, token);
+      }
+    };
+
+    window.addEventListener('report-updated', handleReportUpdated as EventListener);
+    
+    return () => {
+      window.removeEventListener('report-updated', handleReportUpdated as EventListener);
+    };
+  }, [fetchReports]);
+
   // Load saved selections on mount
   useEffect(() => {
     // This would ideally iterate through known projects, but for now

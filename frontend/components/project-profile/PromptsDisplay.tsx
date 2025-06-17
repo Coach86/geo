@@ -13,6 +13,7 @@ import { RegeneratePromptsDialog } from "./RegeneratePromptsDialog";
 import { useAuth } from "@/providers/auth-provider";
 import { regeneratePromptType } from "@/lib/auth-api";
 import { toast } from "@/hooks/use-toast";
+import { SvgLoader } from "@/components/ui/svg-loader";
 
 interface PromptsDisplayProps {
   prompts: string[];
@@ -188,7 +189,7 @@ export function PromptsDisplay({
             {isRegenerating && (
               <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
                 <div className="flex flex-col items-center gap-2">
-                  <RefreshCw className="h-6 w-6 animate-spin text-primary" />
+                  <SvgLoader size="md" />
                   <span className="text-sm text-muted-foreground">Regenerating prompts...</span>
                 </div>
               </div>

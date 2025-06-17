@@ -7,6 +7,7 @@ import { AuthProvider } from "@/providers/auth-provider";
 import { ModelsProvider } from "@/providers/models-provider";
 import { ReportProvider } from "@/providers/report-provider";
 import { PostHogProvider } from "@/providers/posthog-provider";
+import { NotificationProvider } from "@/providers/notification-provider";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -43,9 +44,11 @@ export default function RootLayout({
           <PostHogProvider>
             <AuthProvider>
               <ModelsProvider>
-                <ReportProvider>
-                  {children}
-                </ReportProvider>
+                <NotificationProvider>
+                  <ReportProvider>
+                    {children}
+                  </ReportProvider>
+                </NotificationProvider>
               </ModelsProvider>
             </AuthProvider>
           </PostHogProvider>

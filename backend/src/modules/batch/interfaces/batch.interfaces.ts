@@ -28,6 +28,8 @@ export interface ProjectBatchContext {
   batchExecutionId?: string; // Optional ID of associated batch execution for storing raw responses
   organizationId?: string; // Organization ID to get selected models
   selectedModels?: string[]; // Organization's selected AI models
+  isManualRefresh?: boolean; // Indicates if this was triggered by manual refresh
+  isNewProject?: boolean; // Indicates if this was triggered by new project creation
 }
 
 /**

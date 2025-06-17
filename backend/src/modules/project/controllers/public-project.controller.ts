@@ -67,14 +67,16 @@ export class PublicProjectController {
         try {
           const organization = await this.organizationService.findOne(project.organizationId);
           if (organization.stripePlanId) {
-            const plan = await this.planService.findById(organization.stripePlanId);
-            // Check if plan is free
-            const isFreePlan = plan?.metadata?.isFree === true || 
-                              plan?.name?.toLowerCase() === 'free' ||
-                              plan?.stripeProductId === null ||
-                              plan?.stripeProductId === '';
-            if (isFreePlan) {
-              throw new ForbiddenException('Manual analysis is only available for paid plans. Please upgrade to unlock this feature.');
+            if (organization.stripePlanId !== 'manual') {
+              const plan = await this.planService.findById(organization.stripePlanId);
+              // Check if plan is free
+              const isFreePlan = plan?.metadata?.isFree === true ||
+                plan?.name?.toLowerCase() === 'free' ||
+                plan?.stripeProductId === null ||
+                plan?.stripeProductId === '';
+              if (isFreePlan) {
+                throw new ForbiddenException('Manual analysis is only available for paid plans. Please upgrade to unlock this feature.');
+              }
             }
           } else {
             // No plan means free plan
@@ -94,12 +96,12 @@ export class PublicProjectController {
 
       // Check rate limiting using service method
       const rateLimit = await this.projectService.isManualAnalysisAllowed(projectId);
-      
+
       if (!rateLimit.allowed) {
         console.log(`[RateLimit] Analysis blocked for project ${projectId}. Next allowed: ${rateLimit.formattedTime}`);
         throw new ForbiddenException(rateLimit.formattedTime);
       }
-      
+
       console.log(`[RateLimit] Analysis allowed for project ${projectId}`);
 
       // Update the rate limiting field to next day at 8am
@@ -107,7 +109,7 @@ export class PublicProjectController {
       const nextAllowedTime = new Date(now);
       nextAllowedTime.setDate(nextAllowedTime.getDate() + 1); // Next day
       nextAllowedTime.setHours(8, 0, 0, 0); // Set to 8:00 AM
-      
+
       await this.projectService.updateNextAnalysisTime(projectId, nextAllowedTime);
 
       // Get project context for batch processing
@@ -115,6 +117,9 @@ export class PublicProjectController {
       if (!projectContext) {
         throw new NotFoundException(`Project context not found for ID: ${projectId}`);
       }
+
+      // Mark as manual refresh
+      projectContext.isManualRefresh = true;
 
       // At this point, we know it's a paid plan since free plans were blocked above
       const isFreePlan = false;
@@ -137,7 +142,7 @@ export class PublicProjectController {
         this.processVisibilityOnlyBatch(projectContext, batchExecution.id)
           .then(() => {
             console.log(`[Public] Completed visibility-only batch execution ${batchExecution.id} for project ${projectId}`);
-            
+
             // Emit batch completed event
             this.batchEventsGateway.emitBatchCompleted(
               batchExecution.id,
@@ -149,7 +154,7 @@ export class PublicProjectController {
           .catch((error) => {
             console.log(`[Public] Failed visibility-only batch execution ${batchExecution.id} for project ${projectId}: ${error.message}`);
             this.batchService.failBatchExecution(batchExecution.id, error.message || 'Unknown error');
-            
+
             // Emit batch failed event
             this.batchEventsGateway.emitBatchFailed(
               batchExecution.id,
@@ -166,7 +171,7 @@ export class PublicProjectController {
         .then((result) => {
           console.log(`[Public] Completed batch execution ${batchExecution.id} for project ${projectId}`);
           this.batchService.completeBatchExecution(batchExecution.id, result);
-          
+
           // Emit batch completed event
           this.batchEventsGateway.emitBatchCompleted(
             batchExecution.id,
@@ -178,7 +183,7 @@ export class PublicProjectController {
         .catch((error) => {
           console.log(`[Public] Failed batch execution ${batchExecution.id} for project ${projectId}: ${error.message}`);
           this.batchService.failBatchExecution(batchExecution.id, error.message || 'Unknown error');
-          
+
           // Emit batch failed event
           this.batchEventsGateway.emitBatchFailed(
             batchExecution.id,
@@ -201,7 +206,7 @@ export class PublicProjectController {
       if (error instanceof NotFoundException || error instanceof ForbiddenException) {
         throw error;
       }
-      
+
       throw new BadRequestException(
         `Failed to start analysis for project ${projectId}: ${error.message}`
       );
@@ -218,8 +223,8 @@ export class PublicProjectController {
       const visibilityResults = await this.batchService.runVisibilityPipeline(contextWithExecId);
 
       // Create empty results for other pipelines with proper structure
-      const sentimentResults: SentimentResults = { 
-        results: [], 
+      const sentimentResults: SentimentResults = {
+        results: [],
         summary: {
           overallSentiment: 'neutral',
           overallSentimentPercentage: 0
@@ -230,8 +235,8 @@ export class PublicProjectController {
           consultedWebsites: []
         }
       };
-      const alignmentResults: AlignmentResults = { 
-        results: [], 
+      const alignmentResults: AlignmentResults = {
+        results: [],
         summary: {
           averageAttributeScores: {}
         },
@@ -241,8 +246,8 @@ export class PublicProjectController {
           consultedWebsites: []
         }
       };
-      const competitionResults: CompetitionResults = { 
-        results: [], 
+      const competitionResults: CompetitionResults = {
+        results: [],
         summary: {
           competitorAnalyses: [],
           commonStrengths: [],
@@ -271,7 +276,7 @@ export class PublicProjectController {
 
       // Create the brand report structure (similar to batch.service.ts)
       const reportDate = new Date();
-      
+
       // Extract models used from visibility results
       const modelsUsed = new Set<string>();
       if (visibilityResults?.results) {
@@ -279,7 +284,7 @@ export class PublicProjectController {
           if (result.model) modelsUsed.add(result.model);
         });
       }
-      
+
       const brandReport: ReportStructure = {
         id: batchExecutionId, // Use batch execution ID as report ID
         projectId: project.projectId,
@@ -338,7 +343,7 @@ export class PublicProjectController {
           competition: competitionResults,
         },
       });
-      
+
       return {
         batchExecutionId,
         results: {

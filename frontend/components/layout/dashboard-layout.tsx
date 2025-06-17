@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/providers/auth-provider";
 import Sidebar from "./sidebar";
 import { getUserProjects, ProjectResponse } from "@/lib/auth-api";
-import { Loader2 } from "lucide-react";
+import { SvgLoader } from "@/components/ui/svg-loader";
 import { NavigationProvider, useNavigation } from "@/providers/navigation-provider";
 import { Toaster } from "@/components/ui/toaster";
 
@@ -76,7 +76,7 @@ function DashboardLayoutContent({ children }: DashboardLayoutProps) {
   if (authLoading || isLoadingCards) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+        <SvgLoader className="text-gray-500" size="md" />
       </div>
     );
   }

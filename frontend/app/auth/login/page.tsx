@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Sparkles, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { Sparkles, CheckCircle, XCircle } from "lucide-react";
+import { SvgLoader } from "@/components/ui/svg-loader";
 import { useAuth } from "@/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import { useAnalytics } from "@/hooks/use-analytics";
@@ -84,7 +85,7 @@ export default function AuthLoginPage() {
           <div className="text-center">
             {status === "verifying" && (
               <>
-                <Loader2 className="h-16 w-16 text-accent-500 mx-auto mb-4 animate-spin" />
+                <SvgLoader className="text-accent-500 mx-auto mb-4" size="lg" />
                 <h1 className="text-2xl font-bold text-mono-900 mb-2">
                   Signing you in...
                 </h1>

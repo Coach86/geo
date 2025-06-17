@@ -14,6 +14,7 @@ import {
   type Organization,
   type OrganizationUser
 } from "@/lib/organization-api";
+import { BillingSection } from "@/components/settings/BillingSection";
 import { OrganizationSection } from "@/components/settings/OrganizationSection";
 import { ProfileSection } from "@/components/settings/ProfileSection";
 import { PlanSection } from "@/components/settings/PlanSection";
@@ -175,18 +176,7 @@ export default function SettingsPage() {
       </div>
       
       <div className="space-y-6">
-        <OrganizationSection organization={organization} />
-        
-        <ProfileSection
-          profile={profile}
-          token={token}
-          onProfileUpdate={setProfile}
-        />
-        
-        <PlanSection
-          organization={organization}
-          selectedModelsCount={selectedModels.length}
-        />
+        <BillingSection organization={organization} />
         
         <UserManagementSection
           organization={organization}
@@ -204,6 +194,12 @@ export default function SettingsPage() {
           onSelectedModelsChange={setSelectedModels}
           modelsLoading={modelsLoading}
           token={token}
+        />
+        
+        <ProfileSection
+          profile={profile}
+          token={token}
+          onProfileUpdate={setProfile}
         />
       </div>
     </div>

@@ -1,6 +1,7 @@
 "use client"
 
-import { Loader2, BarChart3 } from "lucide-react"
+import { BarChart3 } from "lucide-react"
+import { SvgLoader } from "@/components/ui/svg-loader"
 
 export function ProcessingLoader() {
   return (
@@ -20,7 +21,7 @@ export function ProcessingLoader() {
         {/* Center icon */}
         <div className="relative flex items-center justify-center h-32 w-32">
           <div className="absolute inset-0 flex items-center justify-center">
-            <Loader2 className="h-8 w-8 text-accent-600 animate-spin" />
+            <SvgLoader className="text-accent-600" size="md" />
           </div>
         </div>
       </div>

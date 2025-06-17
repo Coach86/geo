@@ -3,7 +3,8 @@
 import { Suspense, useEffect, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { CheckCircle2, Loader2, XCircle } from "lucide-react"
+import { CheckCircle2, XCircle } from "lucide-react"
+import { SvgLoader } from "@/components/ui/svg-loader"
 import { useAuth } from "@/providers/auth-provider"
 
 function SuccessContent() {
@@ -82,7 +83,7 @@ function SuccessContent() {
         {status === "loading" && (
           <>
             <div className="flex justify-center mb-6">
-              <Loader2 className="h-16 w-16 text-accent-500 animate-spin" />
+              <SvgLoader className="text-accent-500" size="lg" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-4">
               Processing your payment...
@@ -156,7 +157,7 @@ export default function SuccessPage() {
         <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
           <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
             <div className="flex justify-center mb-6">
-              <Loader2 className="h-16 w-16 text-accent-500 animate-spin" />
+              <SvgLoader className="text-accent-500" size="lg" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-4">
               Loading...

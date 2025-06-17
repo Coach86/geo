@@ -1,4 +1,5 @@
-import { ArrowRight, Loader2 } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { SvgLoader } from "@/components/ui/svg-loader";
 import { Button } from "@/components/ui/button";
 import { LoadingStates } from "./LoadingStates";
 import type { ConfigStats } from "./types";
@@ -36,7 +37,7 @@ export function GenerateButton({
       >
         {isGenerating ? (
           <>
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            <SvgLoader className="mr-2" size="sm" />
             Generating Report...
           </>
         ) : (
