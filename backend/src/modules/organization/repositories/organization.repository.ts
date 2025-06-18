@@ -57,6 +57,15 @@ export class OrganizationRepository {
     }
   }
 
+  async findByShopDomain(shopDomain: string): Promise<OrganizationDocument[]> {
+    try {
+      return await this.organizationModel.find({ shopifyShopDomain: shopDomain }).exec();
+    } catch (error) {
+      this.logger.error(`Failed to find organization with shopDomain: ${shopDomain}`, error);
+      throw error;
+    }
+  }
+
   async update(id: string, updateData: Partial<OrganizationEntity>): Promise<OrganizationDocument | null> {
     try {
       return await this.organizationModel
@@ -121,6 +130,8 @@ export class OrganizationRepository {
   mapToEntity(document: OrganizationDocument): OrganizationEntity {
     return {
       id: document.id,
+      name: document.name,
+      shopifyShopDomain: document.shopifyShopDomain,
       stripeCustomerId: document.stripeCustomerId,
       stripePlanId: document.stripePlanId,
       stripeSubscriptionId: document.stripeSubscriptionId,

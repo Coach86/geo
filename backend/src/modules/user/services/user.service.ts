@@ -40,6 +40,7 @@ export class UserService {
         this.logger.log(`No organizationId provided, creating default organization for user: ${createUserDto.email}`);
         
         const newOrganization = await this.organizationService.create({
+          name: `Organization for ${createUserDto.email}`,
           // Plan settings will use the defaults from ORGANIZATION_DEFAULTS
         });
         
@@ -144,6 +145,28 @@ export class UserService {
   }
 
   /**
+   * Find a user by Shopify shop domain and email
+   * @param shopDomain - Shopify shop domain
+   * @param email - User email
+   * @returns User with the specified shop domain and email
+   */
+  async findByShopifyShop(shopDomain: string, email: string): Promise<UserResponseDto> {
+    try {
+      const user = await this.userRepository.findByShopifyShop(shopDomain, email);
+
+      if (!user) {
+        throw new NotFoundException(`User with email ${email} for shop ${shopDomain} not found`);
+      }
+
+      const userWithProjects = await this.userRepository.mapToEntityWithProjects(user);
+      return this.mapToEntityDto(userWithProjects);
+    } catch (error) {
+      this.logger.error(`Failed to find user by Shopify shop: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
    * Update a user
    * @param id - User ID
    * @param updateUserDto - User update data
@@ -167,6 +190,15 @@ export class UserService {
         }),
         ...(updateUserDto.organizationId !== undefined && {
           organizationId: updateUserDto.organizationId,
+        }),
+        ...(updateUserDto.shopifyShopDomain !== undefined && {
+          shopifyShopDomain: updateUserDto.shopifyShopDomain,
+        }),
+        ...(updateUserDto.shopifyShopId !== undefined && {
+          shopifyShopId: updateUserDto.shopifyShopId,
+        }),
+        ...(updateUserDto.authType !== undefined && {
+          authType: updateUserDto.authType,
         }),
       };
 
@@ -277,6 +309,9 @@ export class UserService {
       createdAt: entity.createdAt.toISOString(),
       updatedAt: entity.updatedAt.toISOString(),
       projectIds,
+      shopifyShopDomain: entity.shopifyShopDomain,
+      shopifyShopId: entity.shopifyShopId,
+      authType: entity.authType,
     };
   }
 

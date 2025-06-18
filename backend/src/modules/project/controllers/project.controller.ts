@@ -11,16 +11,19 @@ import {
   Query,
   BadRequestException,
   HttpCode,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { ProjectService } from '../services/project.service';
 import { CreateProjectDto } from '../dto/create-project.dto';
 import { UpdateProjectDto } from '../dto/update-project.dto';
 import { ProjectResponseDto } from '../dto/project-response.dto';
+import { AdminGuard } from '../../auth/guards/admin.guard';
 
 @ApiTags('projects')
 @Controller('admin/project')
 @UseInterceptors(ClassSerializerInterceptor)
+@UseGuards(AdminGuard)
 export class ProjectController {
   constructor(private readonly projectService: ProjectService) {}
 

@@ -9,7 +9,6 @@ import { AuthModule } from '../auth/auth.module';
 import { BatchModule } from '../batch/batch.module';
 import { BrandReportPersistenceService } from './services/brand-report-persistence.service';
 import { UserModule } from '../user/user.module';
-import { TokenAuthGuard } from '../auth/guards/token-auth.guard';
 import { ConfigModule } from '@nestjs/config';
 
 @Module({
@@ -27,7 +26,6 @@ import { ConfigModule } from '@nestjs/config';
   providers: [
     BrandReportService,
     BrandReportPersistenceService,
-    TokenAuthGuard,
   ],
   exports: [BrandReportService, BrandReportPersistenceService],
 })
