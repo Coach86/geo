@@ -14,11 +14,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
+    // Handle both admin JWT and Shopify JWT tokens
     return { 
       userId: payload.sub, 
       email: payload.email,
       organizationId: payload.organizationId,
-      isAdmin: payload.isAdmin 
+      isAdmin: payload.isAdmin,
+      authType: payload.authType, // 'shopify' or undefined
+      shopifyShopDomain: payload.shopifyShopDomain,
+      // For compatibility with existing code that expects 'id'
+      id: payload.sub
     };
   }
 }

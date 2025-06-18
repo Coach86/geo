@@ -10,4 +10,7 @@ export class User {
   projects?: Project[];
   createdAt: Date;
   updatedAt: Date;
+  shopifyShopDomain?: string;
+  shopifyShopId?: string;
+  authType?: string;
 }
