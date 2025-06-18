@@ -4,15 +4,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This repository contains a brand insights service that:
-1. Generates company identity cards from URLs or raw data
-2. Runs weekly batch jobs to analyze brand mentions, sentiment, and competitor positioning across multiple LLMs
-3. Stores and exposes these insights via a REST API
+Mint AI is a comprehensive brand intelligence platform that:
+1. Creates and manages company projects for brand analysis
+2. Runs automated weekly batch jobs analyzing brand perception across multiple LLMs
+3. Provides four types of analysis: Alignment, Competition, Sentiment, and Visibility
+4. Delivers insights through a modern dashboard with real-time updates
+5. Supports multi-tenant organizations with subscription-based access
 
 ## Technical Stack
 
 - **Runtime**: Node.js 20 LTS
-- **Framework**: NestJS 10
+- **Framework**: NestJS 11
 - **Database**: MongoDB
 - **Infrastructure**: AWS Fargate + ALB
 - **CI/CD**: GitHub Actions → ECR → ECS
@@ -20,43 +22,79 @@ This repository contains a brand insights service that:
 
 ## Architecture
 
-The service is designed as a single-container application that:
-- Exposes REST endpoints for identity card creation and report retrieval
-- Runs scheduled batch jobs using NestJS's built-in scheduler
-- Interfaces with multiple LLM providers through a common adapter interface
-- Uses a concurrency limiter to manage LLM API rate limits
-- Stores data in MongoDB
+The service is designed as a full-stack SaaS application with:
+- **Backend**: NestJS API server exposing REST endpoints and WebSocket connections
+- **Frontend**: Next.js 15 application with real-time updates
+- **Database**: MongoDB for data persistence
+- **Authentication**: JWT for admin, magic links for users
+- **Batch Processing**: Scheduled weekly analysis across multiple LLMs
+- **Multi-tenancy**: Organization-based architecture with role-based access
+- **Subscriptions**: Stripe integration for Pro/Enterprise plans
+- **Real-time**: Socket.IO for live batch processing updates
+- **Rate Limiting**: Intelligent retry logic for LLM API calls
 
 ## Key Files and Directories
 
+### Backend Structure (`backend/`)
 - `src/`: Main application code
   - `app.module.ts`: Main application module
   - `main.ts`: Application entry point
-  - `controllers/`: REST endpoint definitions
-  - `services/`: Business logic components
   - `modules/`: NestJS feature modules
-    - `identity-card/`: Identity card generation
-    - `llm/`: LLM providers adapter layer
-    - `prompt/`: Prompt generation and management
-    - `report/`: Report generation and retrieval
-    - `batch/`: Weekly batch job
+    - `ai-visibility/`: AI visibility analysis features
+    - `analytics/`: PostHog analytics integration
+    - `auth/`: Authentication (JWT, magic link, guards, decorators)
+    - `batch/`: Batch processing and analysis pipelines
+    - `config/`: Configuration module
+    - `email/`: Email service with React Email templates
     - `health/`: Health check endpoints
-  - `utils/`: Utility functions and helpers
-- `test-*.js`: Test scripts for different application features
+    - `llm/`: LLM provider adapters (OpenAI, Anthropic, Google, etc.)
+    - `organization/`: Multi-tenant organization management
+    - `plan/`: Subscription and billing (Stripe integration)
+    - `project/`: Project (company) management
+    - `prompt/`: Prompt generation and management
+    - `report/`: Report generation with email templates
+    - `user/`: User management and profiles
+  - `common/`: Constants (markets definition)
+  - `controllers/`: Root controller
+  - `frontend/`: Legacy React frontend (being migrated)
+  - `scripts/`: Database seed scripts
+  - `utils/`: Utilities (logger, retry logic, URL scraper)
+- `scripts/`: Build and migration scripts
+  - Database migrations
+  - Admin user creation
+  - Frontend build scripts
+- `test-*.js`: Integration test scripts
+
+### Frontend Structure (`frontend/`)
+- `app/`: Next.js 15 App Router
+  - `(protected)/`: Authenticated routes
+  - `auth/`: Authentication pages  
+  - `onboarding/`: User onboarding flow
+- `components/`: React components
+- `hooks/`: Custom React hooks
+- `lib/`: API clients and utilities
+- `providers/`: Context providers
+- `types/`: TypeScript definitions
 
 ## Testing Scripts
 
-The repository includes automated test scripts that can run the server and tests in a single command:
+The backend includes several test scripts for manual testing:
 
 ```bash
-# Test which LLM adapters are available based on API keys
-npm run test:llm:auto
+# Run unit tests
+npm test
 
-# Test creating a company identity card
-npm run test:identity:auto
+# Run tests with coverage
+npm run test:cov
 
-# Test the batch processing functionality
-npm run test:batch:auto
+# Run e2e tests
+npm run test:e2e
+
+# Manual integration test scripts (in backend directory)
+node test-free-plan.js          # Test free plan functionality
+node test-project-deletion.js   # Test project deletion
+node test-mistral-websearch.js  # Test Mistral web search
+node test-google-grounding.js   # Test Google grounding
 ```
 
 ## Development Commands
@@ -155,23 +193,27 @@ The retry logic works with all LLM providers and automatically handles rate limi
 The implementation has completed the following milestones:
 
 1. ✅ Repository Skeleton
-2. ✅ Core Domain Models
-3. ✅ Identity-Card Endpoint
+2. ✅ Core Domain Models  
+3. ✅ Project Management Endpoints
 4. ✅ Async Prompt-Generation Worker
 5. ✅ LLM Adapter Layer
-6. ✅ Weekly Cron Batch (Implemented but needs testing)
-7. ✅ Report Retrieval Endpoint
-8. ✅ Logging & Health
+6. ✅ Weekly Cron Batch
+7. ✅ Report Retrieval Endpoints
+8. ✅ Authentication (Admin & Magic Link)
+9. ✅ Multi-tenant Organizations
+10. ✅ Subscription Management
+11. ✅ Real-time Updates (WebSocket)
+12. ✅ Logging & Health
 
 ## Port Configuration
 
 The application uses the `PORT` environment variable to determine which port to listen on. The default is 3000.
 
-When running tests, we use specific ports to avoid conflicts:
-- Main development server: 3000
-- LLM test: 3001
-- Identity card test: 3002
-- Batch test: 3003
+The application uses the `PORT` environment variable to determine which port to listen on. The default is 3000. When running multiple instances, you can specify different ports:
+
+```bash
+PORT=3001 npm run start:dev
+```
 
 ## Documentation
 
