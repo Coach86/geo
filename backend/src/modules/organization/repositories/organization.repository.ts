@@ -137,6 +137,11 @@ export class OrganizationRepository {
       selectedModels: document.selectedModels || [],
       createdAt: document.createdAt || new Date(),
       updatedAt: document.updatedAt || new Date(),
+      trialStartDate: document.trialStartDate,
+      trialEndDate: document.trialEndDate,
+      isOnTrial: document.isOnTrial,
+      trialPlanId: document.trialPlanId,
+      promoCode: document.promoCode,
     };
   }
 

@@ -37,6 +37,12 @@ import {
   ChevronsRight,
   Database,
 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { MultiSelectFilter } from "@/components/explorer/MultiSelectFilter";
 import { ModelDisplay } from "@/components/shared/ModelDisplay";
 import { getModelFriendlyName } from "@/utils/model-utils";
@@ -45,12 +51,24 @@ interface CitationItem {
   domain: string;
   url: string;
   title?: string;
-  prompt: string;
-  sentiment?: string;
-  score?: number;
+  prompts: string[];
+  sentiments?: string[];
+  scores?: number[];
+  models: string[];
   count: number;
-  model?: string;
   text?: string;
+}
+
+// Aggregated citation that combines multiple citations for the same URL
+interface AggregatedCitation {
+  domain: string;
+  url: string;
+  title?: string;
+  prompts: string[];
+  sentiments?: string[];
+  scores?: number[];
+  models: string[];
+  totalCount: number;
 }
 
 interface SourcesWatchtowerProps {
@@ -73,15 +91,24 @@ const fuzzyFilter: FilterFn<CitationItem> = (row, columnId, value) => {
   return searchValue.includes(searchTerm);
 };
 
-// Multi-select filter function
-const multiSelectFilter: FilterFn<CitationItem> = (row, columnId, value) => {
+// Multi-select filter function that handles both single values and arrays
+const multiSelectFilter: FilterFn<AggregatedCitation> = (row, columnId, value) => {
   if (!value || !Array.isArray(value) || value.length === 0) return true;
-  const rowValue = row.getValue(columnId) as string;
-  return value.includes(rowValue);
+  
+  const rowValue = row.getValue(columnId);
+  
+  // Handle array values (like prompts, sentiments, models)
+  if (Array.isArray(rowValue)) {
+    // Check if any of the row values match any of the filter values
+    return rowValue.some(rv => value.includes(rv));
+  }
+  
+  // Handle single values
+  return value.includes(rowValue as string);
 };
 
 // Numeric comparison filter function
-const numericFilter: FilterFn<CitationItem> = (row, columnId, value) => {
+const numericFilter: FilterFn<AggregatedCitation> = (row, columnId, value) => {
   if (!value || typeof value !== 'object') return true;
   
   const { operator, value: filterValue } = value as { operator: string; value: number };
@@ -116,7 +143,9 @@ function NumericFilter({ column, label }: NumericFilterProps) {
 
   React.useEffect(() => {
     if (value) {
-      column.setFilterValue({ operator, value: parseFloat(value) });
+      // Convert percentage to decimal for comparison
+      const numValue = parseFloat(value) / 100;
+      column.setFilterValue({ operator, value: numValue });
     } else {
       column.setFilterValue(undefined);
     }
@@ -142,6 +171,8 @@ function NumericFilter({ column, label }: NumericFilterProps) {
         value={value}
         onChange={(e) => setValue(e.target.value)}
         className="h-8 text-xs w-20"
+        min="0"
+        max="100"
       />
     </div>
   );
@@ -150,25 +181,27 @@ function NumericFilter({ column, label }: NumericFilterProps) {
 export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowerProps) {
   const [globalFilter, setGlobalFilter] = React.useState("");
 
-  // Transform citations data for table
+  // Transform citations data for table (backend now provides aggregated data)
   const data = React.useMemo(() => {
     if (!citations) return [];
-    return citations.items;
+    
+    // Convert backend CitationItem to AggregatedCitation format
+    return citations.items.map(item => ({
+      domain: item.domain,
+      url: item.url,
+      title: item.title,
+      prompts: item.prompts,
+      sentiments: item.sentiments,
+      scores: item.scores,
+      models: item.models,
+      totalCount: item.count
+    }));
   }, [citations]);
 
-  // Get unique prompts and models for filters
-  const uniquePrompts = React.useMemo(() => {
-    return Array.from(new Set(data.map(item => item.prompt))).sort();
-  }, [data]);
-
-  const uniqueModels = React.useMemo(() => {
-    return Array.from(new Set(data.filter(item => item.model).map(item => item.model!))).sort();
-  }, [data]);
-
   // Column definitions
-  const columnHelper = createColumnHelper<CitationItem>();
+  const columnHelper = createColumnHelper<AggregatedCitation>();
 
-  const columns = React.useMemo<ColumnDef<CitationItem, any>[]>(
+  const columns = React.useMemo<ColumnDef<AggregatedCitation, any>[]>(
     () => [
       columnHelper.accessor("domain", {
         header: ({ column }) => (
@@ -198,11 +231,11 @@ export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowe
         ),
         cell: ({ getValue, row }) => {
           const domain = getValue() as string;
-          const count = row.original.count;
+          const totalCount = row.original.totalCount;
           return (
             <div className="flex items-center gap-2">
               <span className="font-medium">{domain}</span>
-              <Badge variant="secondary" className="text-xs">{count}</Badge>
+              <Badge variant="secondary" className="text-xs">{totalCount}</Badge>
             </div>
           );
         },
@@ -211,36 +244,63 @@ export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowe
       }),
 
       type === 'sentiment' 
-        ? columnHelper.accessor("sentiment", {
-            header: ({ column }) => (
-              <div className="space-y-2">
-                <span className="font-semibold text-gray-700">Sentiment</span>
-                <MultiSelectFilter
-                  title="Sentiment"
-                  options={['positive', 'neutral', 'negative']}
-                  selectedValues={(column.getFilterValue() as string[]) || []}
-                  onSelectionChange={(values) => column.setFilterValue(values.length > 0 ? values : undefined)}
-                  placeholder="Filter sentiment..."
-                />
-              </div>
-            ),
+        ? columnHelper.accessor("sentiments", {
+            header: ({ column }) => {
+              const sortedUniqueValues = React.useMemo(
+                () => {
+                  const uniqueValues = new Set<string>();
+                  table.getPreFilteredRowModel().rows.forEach(row => {
+                    const sentiments = row.getValue("sentiments") as string[];
+                    if (sentiments && Array.isArray(sentiments)) {
+                      sentiments.forEach(sentiment => {
+                        if (sentiment) uniqueValues.add(sentiment);
+                      });
+                    }
+                  });
+                  return Array.from(uniqueValues).sort();
+                },
+                [table.getPreFilteredRowModel().rows]
+              );
+
+              return (
+                <div className="space-y-2">
+                  <span className="font-semibold text-gray-700">Sentiment</span>
+                  <MultiSelectFilter
+                    title="Sentiment"
+                    options={sortedUniqueValues}
+                    selectedValues={(column.getFilterValue() as string[]) || []}
+                    onSelectionChange={(values) => column.setFilterValue(values.length > 0 ? values : undefined)}
+                    placeholder={`Filter sentiment... (${sortedUniqueValues.length})`}
+                  />
+                </div>
+              );
+            },
             cell: ({ getValue }) => {
-              const sentiment = getValue() as string;
-              switch (sentiment) {
-                case 'positive':
-                  return <Badge className="bg-accent-50 text-accent-700 border border-accent-200">Positive</Badge>;
-                case 'neutral':
-                  return <Badge className="bg-primary-50 text-primary-700 border border-primary-200">Neutral</Badge>;
-                case 'negative':
-                  return <Badge className="bg-destructive-50 text-destructive-700 border border-destructive-200">Negative</Badge>;
-                default:
-                  return <Badge variant="outline">Unknown</Badge>;
-              }
+              const sentiments = getValue() as string[] | undefined;
+              if (!sentiments || sentiments.length === 0) return null;
+              
+              return (
+                <div className="flex flex-wrap gap-1">
+                  {[...new Set(sentiments)].map((sentiment, idx) => {
+                    switch (sentiment) {
+                      case 'positive':
+                        return <Badge key={idx} className="bg-accent-50 text-accent-700 border border-accent-200 text-xs">Positive</Badge>;
+                      case 'neutral':
+                        return <Badge key={idx} className="bg-primary-50 text-primary-700 border border-primary-200 text-xs">Neutral</Badge>;
+                      case 'negative':
+                        return <Badge key={idx} className="bg-destructive-50 text-destructive-700 border border-destructive-200 text-xs">Negative</Badge>;
+                      default:
+                        return <Badge key={idx} variant="outline" className="text-xs">Unknown</Badge>;
+                    }
+                  })}
+                </div>
+              );
             },
             filterFn: multiSelectFilter,
             enableSorting: true,
+            enableColumnFilter: true,
           })
-        : columnHelper.accessor("score", {
+        : columnHelper.accessor("scores", {
             header: ({ column }) => (
               <div className="space-y-2">
                 <Button
@@ -262,17 +322,27 @@ export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowe
               </div>
             ),
             cell: ({ getValue }) => {
-              const score = getValue() as number;
-              if (score === undefined) return null;
+              const scores = getValue() as number[] | undefined;
+              if (!scores || scores.length === 0) return null;
               
-              const percentage = Math.round(score * 100);
-              if (score >= 0.8) {
-                return <Badge className="bg-accent-50 text-accent-700 border border-accent-200">{percentage}%</Badge>;
-              } else if (score >= 0.6) {
-                return <Badge className="bg-primary-50 text-primary-700 border border-primary-200">{percentage}%</Badge>;
-              } else {
-                return <Badge className="bg-destructive-50 text-destructive-700 border border-destructive-200">{percentage}%</Badge>;
-              }
+              // Calculate average score
+              const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
+              const percentage = Math.round(avgScore * 100);
+              
+              return (
+                <div className="flex items-center gap-1">
+                  {avgScore >= 0.8 ? (
+                    <Badge className="bg-accent-50 text-accent-700 border border-accent-200 text-xs">{percentage}%</Badge>
+                  ) : avgScore >= 0.6 ? (
+                    <Badge className="bg-primary-50 text-primary-700 border border-primary-200 text-xs">{percentage}%</Badge>
+                  ) : (
+                    <Badge className="bg-destructive-50 text-destructive-700 border border-destructive-200 text-xs">{percentage}%</Badge>
+                  )}
+                  {scores.length > 1 && (
+                    <span className="text-xs text-gray-500">({scores.length})</span>
+                  )}
+                </div>
+              );
             },
             filterFn: numericFilter,
             enableSorting: true,
@@ -311,55 +381,149 @@ export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowe
         enableSorting: true,
       }),
 
-      columnHelper.accessor("prompt", {
-        header: ({ column }) => (
-          <div className="space-y-2">
-            <span className="font-semibold text-gray-700">Prompt</span>
-            <MultiSelectFilter
-              title="Prompt"
-              options={uniquePrompts}
-              selectedValues={(column.getFilterValue() as string[]) || []}
-              onSelectionChange={(values) => column.setFilterValue(values.length > 0 ? values : undefined)}
-              placeholder={`Filter prompts... (${uniquePrompts.length})`}
-            />
-          </div>
-        ),
-        cell: ({ getValue }) => {
-          const prompt = getValue() as string;
+      columnHelper.accessor("prompts", {
+        header: ({ column }) => {
+          const sortedUniqueValues = React.useMemo(
+            () => {
+              const uniqueValues = new Set<string>();
+              table.getPreFilteredRowModel().rows.forEach(row => {
+                const prompts = row.getValue("prompts") as string[];
+                if (prompts && Array.isArray(prompts)) {
+                  prompts.forEach(prompt => {
+                    if (prompt) uniqueValues.add(prompt);
+                  });
+                }
+              });
+              return Array.from(uniqueValues).sort();
+            },
+            [table.getPreFilteredRowModel().rows]
+          );
+
           return (
-            <p className="text-sm text-gray-700 max-w-md" title={prompt}>
-              {prompt.length > 100 
-                ? `${prompt.substring(0, 100)}...` 
-                : prompt}
-            </p>
+            <div className="space-y-2">
+              <span className="font-semibold text-gray-700">Prompt</span>
+              <MultiSelectFilter
+                title="Prompt"
+                options={sortedUniqueValues}
+                selectedValues={(column.getFilterValue() as string[]) || []}
+                onSelectionChange={(values) => column.setFilterValue(values.length > 0 ? values : undefined)}
+                placeholder={`Filter prompts... (${sortedUniqueValues.length})`}
+              />
+            </div>
+          );
+        },
+        cell: ({ getValue }) => {
+          const prompts = getValue() as string[];
+          if (!prompts || prompts.length === 0) return null;
+          
+          const uniquePrompts = [...new Set(prompts)];
+          
+          return (
+            <div className="space-y-1">
+              {uniquePrompts.slice(0, 2).map((prompt, idx) => (
+                <p key={idx} className="text-sm text-gray-700" title={prompt}>
+                  {prompt.length > 80 
+                    ? `${prompt.substring(0, 80)}...` 
+                    : prompt}
+                </p>
+              ))}
+              {uniquePrompts.length > 2 && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <p className="text-xs text-gray-500 cursor-help underline decoration-dotted">
+                        +{uniquePrompts.length - 2} more prompt{uniquePrompts.length - 2 > 1 ? 's' : ''}
+                      </p>
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="max-w-md">
+                      <div className="space-y-2">
+                        {uniquePrompts.slice(2).map((prompt, idx) => (
+                          <p key={idx} className="text-sm whitespace-pre-wrap">
+                            {prompt}
+                          </p>
+                        ))}
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
           );
         },
         filterFn: multiSelectFilter,
         enableSorting: true,
+        enableColumnFilter: true,
       }),
 
-      columnHelper.accessor("model", {
-        header: ({ column }) => (
-          <div className="space-y-2">
-            <span className="font-semibold text-gray-700">Model</span>
-            <MultiSelectFilter
-              title="Model"
-              options={uniqueModels}
-              selectedValues={(column.getFilterValue() as string[]) || []}
-              onSelectionChange={(values) => column.setFilterValue(values.length > 0 ? values : undefined)}
-              placeholder={`Filter models... (${uniqueModels.length})`}
-            />
-          </div>
-        ),
+      columnHelper.accessor("models", {
+        header: ({ column }) => {
+          const sortedUniqueValues = React.useMemo(
+            () => {
+              const uniqueValues = new Set<string>();
+              table.getPreFilteredRowModel().rows.forEach(row => {
+                const models = row.getValue("models") as string[];
+                if (models && Array.isArray(models)) {
+                  models.forEach(model => {
+                    if (model) uniqueValues.add(model);
+                  });
+                }
+              });
+              return Array.from(uniqueValues).sort();
+            },
+            [table.getPreFilteredRowModel().rows]
+          );
+
+          return (
+            <div className="space-y-2">
+              <span className="font-semibold text-gray-700">Model</span>
+              <MultiSelectFilter
+                title="Model"
+                options={sortedUniqueValues}
+                selectedValues={(column.getFilterValue() as string[]) || []}
+                onSelectionChange={(values) => column.setFilterValue(values.length > 0 ? values : undefined)}
+                placeholder={`Filter models... (${sortedUniqueValues.length})`}
+              />
+            </div>
+          );
+        },
         cell: ({ getValue }) => {
-          const model = getValue() as string;
-          return model ? <ModelDisplay model={model} size="xs" /> : null;
+          const models = getValue() as string[];
+          if (!models || models.length === 0) return null;
+          
+          const uniqueModels = [...new Set(models)];
+          
+          return (
+            <div className="flex flex-wrap gap-1">
+              {uniqueModels.slice(0, 2).map((model, idx) => (
+                <ModelDisplay key={idx} model={model} size="xs" />
+              ))}
+              {uniqueModels.length > 2 && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-xs text-gray-500 cursor-help underline decoration-dotted">
+                        +{uniqueModels.length - 2} more
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="max-w-md">
+                      <div className="flex flex-wrap gap-1">
+                        {uniqueModels.slice(2).map((model, idx) => (
+                          <ModelDisplay key={idx} model={model} size="xs" />
+                        ))}
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
+          );
         },
         filterFn: multiSelectFilter,
         enableSorting: true,
+        enableColumnFilter: true,
       }),
     ],
-    [type, uniquePrompts, uniqueModels]
+    [type]
   );
 
   // Initialize table
@@ -384,6 +548,22 @@ export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowe
     },
   });
 
+  // Group data by domain for rowspan rendering - must be called before conditional returns
+  const groupedData = React.useMemo(() => {
+    const paginatedRows = table.getRowModel().rows;
+    const groups = new Map<string, typeof paginatedRows>();
+    
+    paginatedRows.forEach((row) => {
+      const domain = row.original.domain;
+      if (!groups.has(domain)) {
+        groups.set(domain, []);
+      }
+      groups.get(domain)!.push(row);
+    });
+    
+    return groups;
+  }, [table.getRowModel().rows]);
+
   if (loading) {
     return (
       <Card className="border-0 shadow-sm">
@@ -404,7 +584,7 @@ export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowe
     );
   }
 
-  if (!citations || citations.items.length === 0) {
+  if (!citations || !citations.items || citations.items.length === 0) {
     return (
       <Card className="border-0 shadow-sm">
         <CardHeader>
@@ -418,28 +598,17 @@ export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowe
         </CardHeader>
         <CardContent>
           <p className="text-sm text-gray-400 italic text-center py-8">
-            No sources found for the selected period
+            {!citations ? 'Loading citations...' : 'No sources found for the selected period'}
           </p>
+          {citations && (
+            <p className="text-xs text-gray-300 mt-2">
+              Debug: {citations.uniqueDomains || 0} domains, {citations.totalCitations || 0} citations
+            </p>
+          )}
         </CardContent>
       </Card>
     );
   }
-
-  // Group data by domain for rowspan rendering
-  const groupedData = React.useMemo(() => {
-    const filtered = table.getFilteredRowModel().rows;
-    const groups = new Map<string, typeof filtered>();
-    
-    filtered.forEach((row) => {
-      const domain = row.original.domain;
-      if (!groups.has(domain)) {
-        groups.set(domain, []);
-      }
-      groups.get(domain)!.push(row);
-    });
-    
-    return groups;
-  }, [table.getFilteredRowModel().rows]);
 
   return (
     <Card className="border-0 shadow-sm">
@@ -503,7 +672,7 @@ export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowe
                   const renderedRows: JSX.Element[] = [];
                   
                   groupedData.forEach((rows, domain) => {
-                    const totalCount = rows.reduce((sum, r) => sum + r.original.count, 0);
+                    const totalCount = rows.reduce((sum, r) => sum + r.original.totalCount, 0);
                     
                     rows.forEach((row, index) => {
                       const isFirstInGroup = index === 0;

@@ -29,9 +29,11 @@ interface UseVisibilityReportsReturn {
 }
 
 export function useVisibilityReports(
-  reports: ReportResponse[],
+  projectId: string | null,
   selectedModels: string[],
-  token: string | null
+  token: string | null,
+  isAllTime: boolean = false,
+  dateRange?: { startDate: Date; endDate: Date }
 ): UseVisibilityReportsReturn {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,21 +42,34 @@ export function useVisibilityReports(
   // Fetch aggregated visibility data
   useEffect(() => {
     const fetchAggregatedData = async () => {
-      if (!token || reports.length === 0) {
+      console.log('[useVisibilityReports] Effect triggered with:', {
+        hasToken: !!token,
+        hasDateRange: !!dateRange,
+        hasProjectId: !!projectId,
+        dateRange: dateRange ? {
+          start: dateRange.startDate.toISOString(),
+          end: dateRange.endDate.toISOString()
+        } : null,
+        selectedModels: selectedModels.length,
+        isAllTime
+      });
+      
+      if (!token || !dateRange || !projectId) {
+        console.log('[useVisibilityReports] Missing required data, skipping fetch');
         setAggregatedData(null);
         return;
       }
+      
+      const startDate = dateRange.startDate.toISOString();
+      const endDate = dateRange.endDate.toISOString();
 
-      // Get project ID from the first report
-      const projectId = reports[0].projectId;
-      
-      // Sort reports to get date range
-      const sortedReports = [...reports].sort(
-        (a, b) => new Date(a.generatedAt).getTime() - new Date(b.generatedAt).getTime()
-      );
-      
-      const startDate = sortedReports[0].generatedAt;
-      const endDate = sortedReports[sortedReports.length - 1].generatedAt;
+      console.log('[useVisibilityReports] Making API call with:', {
+        projectId,
+        startDate,
+        endDate,
+        models: selectedModels,
+        includeVariation: !isAllTime
+      });
 
       setLoading(true);
       setError(null);
@@ -64,7 +79,7 @@ export function useVisibilityReports(
           startDate,
           endDate,
           models: selectedModels, // Send the array as-is (empty array means all models)
-          includeVariation: true,
+          includeVariation: !isAllTime, // Don't calculate variations for "All time"
         });
         
         setAggregatedData(data);
@@ -77,7 +92,7 @@ export function useVisibilityReports(
     };
 
     fetchAggregatedData();
-  }, [reports, selectedModels, token]);
+  }, [dateRange, selectedModels, token, isAllTime, projectId]);
 
   // Process the aggregated data
   const processData = useCallback((): UseVisibilityReportsReturn => {

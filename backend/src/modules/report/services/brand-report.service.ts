@@ -5,7 +5,7 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { BrandReport, BrandReportDocument } from '../schemas/brand-report.schema';
 import { BrandReportResponseDto } from '../dto/brand-report-response.dto';
 import { AggregatedReportQueryDto } from '../dto/aggregated-report-query.dto';
-import { AggregatedVisibilityResponseDto, VisibilityChartDataDto } from '../dto/aggregated-visibility-response.dto';
+import { AggregatedVisibilityResponseDto, VisibilityChartDataDto, CompetitorDataDto } from '../dto/aggregated-visibility-response.dto';
 import { AggregatedAlignmentResponseDto, AlignmentChartDataDto, AttributeScoreDto } from '../dto/aggregated-alignment-response.dto';
 import { AggregatedSentimentResponseDto, SentimentChartDataDto } from '../dto/aggregated-sentiment-response.dto';
 import { AggregatedExplorerResponseDto, ExplorerItemDto } from '../dto/aggregated-explorer-response.dto';
@@ -217,7 +217,10 @@ export class BrandReportService {
         dateFilter.reportDate.$gte = new Date(query.startDate);
       }
       if (query.endDate) {
-        dateFilter.reportDate.$lte = new Date(query.endDate);
+        // For end date, include the entire day by using the start of the next day
+        const endDate = new Date(query.endDate);
+        endDate.setDate(endDate.getDate() + 1);
+        dateFilter.reportDate.$lt = endDate;
       }
     }
 
@@ -319,12 +322,14 @@ export class BrandReportService {
 
     // Calculate variation if requested
     let scoreVariation = 0;
-    if (query.includeVariation && reports.length >= 2) {
+    if (query.includeVariation) {
       scoreVariation = await this.calculateVariation(
         projectId,
         dateFilter,
         selectedModels,
-        'visibility'
+        'visibility',
+        query.startDate,
+        query.endDate
       );
     }
 
@@ -336,29 +341,28 @@ export class BrandReportService {
     }));
 
     // Process competitors
-    const competitors = Object.entries(competitorMap).map(([name, data]) => {
+    const competitors: CompetitorDataDto[] = [];
+    for (const [name, data] of Object.entries(competitorMap)) {
       const avgScore = data.scores.reduce((sum, s) => sum + s, 0) / data.scores.length;
       
       // Calculate competitor variation
       let variation = 0;
-      if (data.scores.length >= 2) {
-        const midPoint = Math.floor(data.scores.length / 2);
-        const firstHalf = data.scores.slice(0, midPoint);
-        const secondHalf = data.scores.slice(midPoint);
-        const firstAvg = firstHalf.reduce((sum, s) => sum + s, 0) / firstHalf.length;
-        const secondAvg = secondHalf.reduce((sum, s) => sum + s, 0) / secondHalf.length;
-        
-        if (firstAvg > 0) {
-          variation = Math.round(((secondAvg - firstAvg) / firstAvg) * 100);
-        }
+      if (query.includeVariation) {
+        variation = await this.calculateCompetitorVariation(
+          projectId,
+          dateFilter,
+          name,
+          query.startDate,
+          query.endDate
+        );
       }
 
-      return {
+      competitors.push({
         name,
         averageScore: Math.round(avgScore),
         variation
-      };
-    });
+      });
+    }
 
     return {
       averageScore,
@@ -375,6 +379,75 @@ export class BrandReportService {
     };
   }
 
+  /**
+   * Helper function to properly aggregate citations with deduplication
+   */
+  private aggregateCitation(
+    citationMap: Map<string, CitationItemDto>,
+    citation: any,
+    domain: string,
+    url: string,
+    prompt?: string,
+    sentiment?: string,
+    score?: number,
+    model?: string,
+    title?: string,
+    text?: string
+  ): void {
+    const key = `${domain}_${url}`;
+    const existing = citationMap.get(key);
+    
+    if (existing) {
+      // Increment count
+      existing.count++;
+      
+      // Aggregate prompts array with deduplication
+      if (prompt && !existing.prompts.includes(prompt)) {
+        existing.prompts.push(prompt);
+      }
+      
+      // Aggregate sentiments array with deduplication
+      if (sentiment) {
+        if (!existing.sentiments) {
+          existing.sentiments = [];
+        }
+        if (!existing.sentiments.includes(sentiment)) {
+          existing.sentiments.push(sentiment);
+        }
+      }
+      
+      // Aggregate scores array with deduplication
+      if (score !== undefined) {
+        if (!existing.scores) {
+          existing.scores = [];
+        }
+        if (!existing.scores.includes(score)) {
+          existing.scores.push(score);
+        }
+      }
+      
+      // Aggregate models array with deduplication
+      if (model && !existing.models.includes(model)) {
+        existing.models.push(model);
+      }
+    } else {
+      // Create new citation entry using array-based structure
+      const newCitation: CitationItemDto = {
+        domain,
+        url,
+        title: title || '',
+        prompts: prompt ? [prompt] : [],
+        sentiments: sentiment ? [sentiment] : undefined,
+        scores: score !== undefined ? [score] : undefined,
+        count: 1,
+        models: model ? [model] : [],
+        text
+      };
+      
+      citationMap.set(key, newCitation);
+    }
+  }
+
   async getAggregatedAlignment(
     projectId: string,
     query: AggregatedReportQueryDto
@@ -387,7 +460,10 @@ export class BrandReportService {
         dateFilter.reportDate.$gte = new Date(query.startDate);
       }
       if (query.endDate) {
-        dateFilter.reportDate.$lte = new Date(query.endDate);
+        // For end date, include the entire day by using the start of the next day
+        const endDate = new Date(query.endDate);
+        endDate.setDate(endDate.getDate() + 1);
+        dateFilter.reportDate.$lt = endDate;
       }
     }
 
@@ -468,23 +544,18 @@ export class BrandReportService {
                   const urlObj = new URL(citation.url);
                   const domain = urlObj.hostname;
                   
-                  const key = `${domain}_${citation.url}`;
-                  const existing = citationMap.get(key);
-                  
-                  if (existing) {
-                    existing.count++;
-                  } else {
-                    citationMap.set(key, {
-                      domain,
-                      url: citation.url,
-                      title: citation.title,
-                      prompt: result.originalPrompt || '',
-                      score: avgScore,
-                      count: 1,
-                      model: result.model,
-                      text: citation.text
-                    });
-                  }
+                  this.aggregateCitation(
+                    citationMap,
+                    citation,
+                    domain,
+                    citation.url,
+                    result.originalPrompt || '',
+                    undefined, // no sentiment for alignment
+                    avgScore,
+                    result.model,
+                    citation.title,
+                    citation.text
+                  );
                 } catch (e) {
                   // Invalid URL, skip
                 }
@@ -511,12 +582,14 @@ export class BrandReportService {
 
     // Calculate variation
     let scoreVariation = 0;
-    if (query.includeVariation && reports.length >= 2) {
+    if (query.includeVariation) {
       scoreVariation = await this.calculateVariation(
         projectId,
         dateFilter,
         selectedModels,
-        'alignment'
+        'alignment',
+        query.startDate,
+        query.endDate
       );
     }
 
@@ -572,7 +645,10 @@ export class BrandReportService {
         dateFilter.reportDate.$gte = new Date(query.startDate);
       }
       if (query.endDate) {
-        dateFilter.reportDate.$lte = new Date(query.endDate);
+        // For end date, include the entire day by using the start of the next day
+        const endDate = new Date(query.endDate);
+        endDate.setDate(endDate.getDate() + 1);
+        dateFilter.reportDate.$lt = endDate;
       }
     }
 
@@ -614,7 +690,15 @@ export class BrandReportService {
 
     reports.forEach(report => {
       const sentData = report.sentiment;
-      if (!sentData?.distribution) return;
+      if (!sentData?.distribution) {
+        this.logger.log(`Skipping report ${report.id} - no sentiment distribution`);
+        return;
+      }
+
+      // Log report info for debugging
+      this.logger.log(`Processing sentiment report ${report.id} with date ${report.reportDate}`);
+      this.logger.log(`Report has explorer data: ${!!report.explorer}`);
+      this.logger.log(`Report has sentiment detailedResults: ${!!(sentData.detailedResults && sentData.detailedResults.length > 0)}`);
 
       // Use overall distribution data for each report
       // Check if we have detailedResults for model-specific data
@@ -647,23 +731,18 @@ export class BrandReportService {
                     const urlObj = new URL(citation.url);
                     const domain = urlObj.hostname;
                     
-                    const key = `${domain}_${citation.url}`;
-                    const existing = citationMap.get(key);
-                    
-                    if (existing) {
-                      existing.count++;
-                    } else {
-                      citationMap.set(key, {
-                        domain,
-                        url: citation.url,
-                        title: citation.title,
-                        prompt: result.originalPrompt || '',
-                        sentiment: result.overallSentiment || 'neutral',
-                        count: 1,
-                        model: result.model,
-                        text: citation.text
-                      });
-                    }
+                    this.aggregateCitation(
+                      citationMap,
+                      citation,
+                      domain,
+                      citation.url,
+                      result.originalPrompt || '',
+                      result.overallSentiment || 'neutral',
+                      undefined, // no score for sentiment
+                      result.model,
+                      citation.title,
+                      citation.text
+                    );
                   } catch (e) {
                     // Invalid URL, skip
                   }
@@ -712,38 +791,95 @@ export class BrandReportService {
         }
       }
       
+      // Check heatmapData for citations (sentiment stores details here instead of detailedResults)
+      if (sentData.heatmapData && Array.isArray(sentData.heatmapData)) {
+        this.logger.log(`Found ${sentData.heatmapData.length} heatmap entries for sentiment report`);
+        
+        sentData.heatmapData.forEach((heatmapEntry: any) => {
+          if (heatmapEntry.results && Array.isArray(heatmapEntry.results)) {
+            heatmapEntry.results.forEach((result: any) => {
+              // Check if model is selected
+              const isModelSelected = selectedModels.length === 0 || selectedModels.includes(result.model);
+              
+              if (isModelSelected && result.citations && Array.isArray(result.citations)) {
+                this.logger.log(`Found ${result.citations.length} citations for model ${result.model}`);
+                
+                result.citations.forEach((citation: any) => {
+                  if (citation.url) {
+                    try {
+                      const urlObj = new URL(citation.url);
+                      const domain = urlObj.hostname;
+                      
+                      this.aggregateCitation(
+                        citationMap,
+                        citation,
+                        domain,
+                        citation.url,
+                        heatmapEntry.question || '',
+                        result.sentiment || 'neutral',
+                        undefined, // no score for sentiment heatmap
+                        result.model,
+                        citation.title || '',
+                        citation.text
+                      );
+                    } catch (e) {
+                      this.logger.warn(`Invalid URL in heatmap citation: ${citation.url}`);
+                    }
+                  }
+                });
+              }
+            });
+          }
+        });
+      }
+      
       // Also check explorer citations for sentiment reports
+      this.logger.log(`About to check explorer citations. Has explorer: ${!!report.explorer}, Has citations: ${!!(report.explorer?.citations)}`);
       if (report.explorer?.citations) {
+        this.logger.log(`Checking explorer citations for sentiment report, found ${report.explorer.citations.length} citations`);
+        
+        // Log first few citations to see their structure
+        if (report.explorer.citations.length > 0) {
+          this.logger.log(`Sample citation: ${JSON.stringify(report.explorer.citations[0])}`);
+        }
+        
         report.explorer.citations.forEach((citation: any) => {
-          // Only include sentiment-related citations
-          if (citation.promptType?.toLowerCase().includes('sentiment') && citation.link) {
+          // Log all prompt types to debug
+          if (citation.promptType) {
+            this.logger.log(`Citation promptType: ${citation.promptType}`);
+          }
+          
+          // Include ALL citations for debugging - we'll filter later
+          // Just check if the model is in selected models
+          const isModelSelected = selectedModels.length === 0 || selectedModels.includes(citation.model);
+          
+          // For now, include all citations with links for debugging
+          if (isModelSelected && citation.link) {
             try {
               const urlObj = new URL(citation.link);
               const domain = urlObj.hostname;
               
-              const key = `${domain}_${citation.link}`;
-              const existing = citationMap.get(key);
+              // Get prompt text - it might be stored directly or need to be inferred
+              const promptText = citation.promptText || `${citation.promptType} prompt` || '';
               
-              if (existing) {
-                existing.count++;
-              } else {
-                // Try to determine sentiment from the prompt or use neutral as default
-                citationMap.set(key, {
-                  domain,
-                  url: citation.link,
-                  title: citation.website || '',
-                  prompt: citation.promptText || '',
-                  sentiment: 'neutral', // Default to neutral for explorer citations
-                  count: 1,
-                  model: citation.model,
-                  text: undefined
-                });
-              }
+              this.aggregateCitation(
+                citationMap,
+                citation,
+                domain,
+                citation.link,
+                promptText,
+                'neutral', // Default to neutral for explorer citations
+                undefined, // no score for explorer citations
+                citation.model,
+                citation.website || '',
+                undefined
+              );
             } catch (e) {
-              // Invalid URL, skip
+              this.logger.warn(`Invalid URL in citation: ${citation.link}`);
             }
           }
         });
+        this.logger.log(`Added ${citationMap.size} citations from explorer data`);
       }
     });
 
@@ -753,11 +889,13 @@ export class BrandReportService {
 
     // Calculate variations
     let sentimentVariation = { positive: 0, neutral: 0, negative: 0 };
-    if (query.includeVariation && reports.length >= 2) {
+    if (query.includeVariation) {
       sentimentVariation = await this.calculateSentimentVariation(
         projectId,
         dateFilter,
-        selectedModels
+        selectedModels,
+        query.startDate,
+        query.endDate
       );
     }
 
@@ -772,7 +910,13 @@ export class BrandReportService {
     const uniqueDomains = new Set(citationItems.map(c => c.domain)).size;
     const totalCitations = citationItems.reduce((sum, c) => sum + c.count, 0);
 
-    return {
+    // Log citation summary
+    this.logger.log(`Citation summary: ${citationItems.length} items, ${uniqueDomains} domains, ${totalCitations} total`);
+    if (citationItems.length > 0) {
+      this.logger.log(`First citation: ${JSON.stringify(citationItems[0])}`);
+    }
+
+    const result = {
       positivePercentage,
       neutralPercentage,
       negativePercentage,
@@ -791,32 +935,109 @@ export class BrandReportService {
         totalCitations
       } : undefined
     };
+
+    this.logger.log(`Returning sentiment response with citations: ${result.citations ? 'YES' : 'NO'}`);
+    
+    return result;
   }
 
   private async calculateVariation(
     projectId: string,
     dateFilter: any,
     selectedModels: string[],
-    type: 'visibility' | 'alignment'
+    type: 'visibility' | 'alignment',
+    queryStartDate?: string,
+    queryEndDate?: string
   ): Promise<number> {
-    // Get all reports to calculate period length
+    this.logger.log(`[calculateVariation] Starting for type: ${type}, projectId: ${projectId}, selectedModels: ${selectedModels.join(',')}`);
+    this.logger.log(`[calculateVariation] dateFilter: ${JSON.stringify(dateFilter)}`);
+    this.logger.log(`[calculateVariation] Query dates: ${queryStartDate} to ${queryEndDate}`);
+
+    // Get all reports within the date filter
     const allReports = await this.brandReportModel
       .find(dateFilter)
-      .select('reportDate')
+      .select(`reportDate ${type}`)
       .sort({ reportDate: 1 })
       .lean();
 
-    if (allReports.length < 2) return 0;
+    this.logger.log(`[calculateVariation] Found ${allReports.length} reports in date range`);
+    if (allReports.length > 0) {
+      this.logger.log(`[calculateVariation] First report date: ${allReports[0].reportDate}, Last report date: ${allReports[allReports.length - 1].reportDate}`);
+    }
 
-    // Calculate period length
-    const startDate = allReports[0].reportDate;
-    const endDate = allReports[allReports.length - 1].reportDate;
-    const periodLength = endDate.getTime() - startDate.getTime();
+    if (allReports.length === 0) return 0;
+
+    let periodLength: number;
+    let previousStartDate: Date;
+    let previousEndDate: Date;
+
+    // Use query date range if provided, otherwise fall back to report dates
+    if (queryStartDate && queryEndDate) {
+      const queryStart = new Date(queryStartDate);
+      const queryEnd = new Date(queryEndDate);
+      periodLength = queryEnd.getTime() - queryStart.getTime();
+      
+      this.logger.log(`[calculateVariation] Using query date range: ${queryStartDate} to ${queryEndDate}`);
+      this.logger.log(`[calculateVariation] Period length: ${periodLength}ms (${periodLength / (1000 * 60 * 60 * 24)} days)`);
+
+      // Calculate previous period of same length
+      if (periodLength === 0) {
+        this.logger.log(`[calculateVariation] Single point in time - looking for previous report before ${queryStart}`);
+        // Single point in time - find the most recent previous report
+        const previousReport = await this.brandReportModel
+          .findOne({
+            projectId,
+            reportDate: { $lt: queryStart }
+          })
+          .select(`reportDate ${type}`)
+          .sort({ reportDate: -1 })
+          .lean();
+
+        this.logger.log(`[calculateVariation] Previous report found: ${!!previousReport}`);
+        if (previousReport) {
+          this.logger.log(`[calculateVariation] Previous report date: ${previousReport.reportDate}`);
+          return this.calculateSinglePointVariation(allReports, [previousReport], selectedModels, type);
+        } else {
+          this.logger.log(`[calculateVariation] No previous report found for single point query`);
+          return 0;
+        }
+      } else {
+        // Time range - get previous period of same length
+        previousEndDate = queryStart;
+        previousStartDate = new Date(queryStart.getTime() - periodLength);
+        this.logger.log(`[calculateVariation] Time range - looking for reports between ${previousStartDate.toISOString()} and ${previousEndDate.toISOString()}`);
+      }
+    } else {
+      // Fall back to report dates (legacy behavior)
+      const startDate = allReports[0].reportDate;
+      const endDate = allReports[allReports.length - 1].reportDate;
+      periodLength = endDate.getTime() - startDate.getTime();
+
+      this.logger.log(`[calculateVariation] Using report dates: ${startDate} to ${endDate}`);
+      this.logger.log(`[calculateVariation] Period length: ${periodLength}ms (${periodLength / (1000 * 60 * 60 * 24)} days)`);
+
+      if (periodLength === 0) {
+        this.logger.log(`[calculateVariation] Single point in time - looking for previous report before ${startDate}`);
+        const previousReport = await this.brandReportModel
+          .findOne({
+            projectId,
+            reportDate: { $lt: startDate }
+          })
+          .select(`reportDate ${type}`)
+          .sort({ reportDate: -1 })
+          .lean();
+
+        if (previousReport) {
+          return this.calculateSinglePointVariation(allReports, [previousReport], selectedModels, type);
+        }
+        return 0;
+      } else {
+        previousEndDate = startDate;
+        previousStartDate = new Date(startDate.getTime() - periodLength);
+      }
+    }
 
     // Get previous period reports
-    const previousStartDate = new Date(startDate.getTime() - periodLength);
-    const previousEndDate = startDate;
-
     const previousReports = await this.brandReportModel
       .find({
         projectId,
@@ -828,15 +1049,238 @@ export class BrandReportService {
       .select(`reportDate ${type}`)
       .lean();
 
-    if (previousReports.length === 0) return 0;
+    this.logger.log(`[calculateVariation] Found ${previousReports.length} previous reports`);
+    if (previousReports.length > 0) {
+      previousReports.forEach((report, idx) => {
+        this.logger.log(`[calculateVariation] Previous report ${idx + 1}: ${report.reportDate.toISOString()}`);
+      });
+    }
+
+    if (previousReports.length === 0) {
+      this.logger.log(`[calculateVariation] No previous reports found, returning 0`);
+      return 0;
+    }
 
     // Calculate scores for both periods
     const currentScore = this.calculatePeriodScore(allReports, selectedModels, type);
     const previousScore = this.calculatePeriodScore(previousReports, selectedModels, type);
 
-    if (previousScore === 0) return 0;
+    this.logger.log(`[calculateVariation] Current score: ${currentScore}, Previous score: ${previousScore}`);
 
-    return Math.round(((currentScore - previousScore) / previousScore) * 100);
+    if (previousScore === 0) {
+      this.logger.log(`[calculateVariation] Previous score is 0, returning 0`);
+      return 0;
+    }
+
+    const variation = Math.round(((currentScore - previousScore) / previousScore) * 100);
+    this.logger.log(`[calculateVariation] Calculated variation: ${variation}%`);
+
+    return variation;
+  }
+
+  private calculateSinglePointVariation(
+    currentReports: any[],
+    previousReports: any[],
+    selectedModels: string[],
+    type: 'visibility' | 'alignment'
+  ): number {
+    const currentScore = this.calculatePeriodScore(currentReports, selectedModels, type);
+    const previousScore = this.calculatePeriodScore(previousReports, selectedModels, type);
+
+    this.logger.log(`[calculateSinglePointVariation] Current score: ${currentScore}, Previous score: ${previousScore}`);
+
+    if (previousScore === 0) {
+      this.logger.log(`[calculateSinglePointVariation] Previous score is 0, returning 0`);
+      return 0;
+    }
+
+    const variation = Math.round(((currentScore - previousScore) / previousScore) * 100);
+    this.logger.log(`[calculateSinglePointVariation] Calculated variation: ${variation}%`);
+
+    return variation;
+  }
+
+  private async calculateCompetitorVariation(
+    projectId: string,
+    dateFilter: any,
+    competitorName: string,
+    queryStartDate?: string,
+    queryEndDate?: string
+  ): Promise<number> {
+    this.logger.log(`[calculateCompetitorVariation] Starting for competitor: ${competitorName}, projectId: ${projectId}`);
+    this.logger.log(`[calculateCompetitorVariation] Query dates: ${queryStartDate} to ${queryEndDate}`);
+
+    // Get all reports within the date filter
+    const allReports = await this.brandReportModel
+      .find(dateFilter)
+      .select('reportDate visibility')
+      .sort({ reportDate: 1 })
+      .lean();
+
+    this.logger.log(`[calculateCompetitorVariation] Found ${allReports.length} reports in date range`);
+
+    if (allReports.length === 0) return 0;
+
+    let periodLength: number;
+    let previousStartDate: Date;
+    let previousEndDate: Date;
+
+    // Use query date range if provided, otherwise fall back to report dates
+    if (queryStartDate && queryEndDate) {
+      const queryStart = new Date(queryStartDate);
+      const queryEnd = new Date(queryEndDate);
+      periodLength = queryEnd.getTime() - queryStart.getTime();
+      
+      this.logger.log(`[calculateCompetitorVariation] Using query date range: ${queryStartDate} to ${queryEndDate}`);
+      this.logger.log(`[calculateCompetitorVariation] Period length: ${periodLength}ms (${periodLength / (1000 * 60 * 60 * 24)} days)`);
+
+      // Calculate previous period of same length
+      if (periodLength === 0) {
+        this.logger.log(`[calculateCompetitorVariation] Single point in time - looking for previous report before ${queryStart}`);
+        // Single point in time - find the most recent previous report
+        const previousReport = await this.brandReportModel
+          .findOne({
+            projectId,
+            reportDate: { $lt: queryStart }
+          })
+          .select('reportDate visibility')
+          .sort({ reportDate: -1 })
+          .lean();
+
+        this.logger.log(`[calculateCompetitorVariation] Previous report found: ${!!previousReport}`);
+        if (previousReport) {
+          const currentScore = this.calculateCompetitorPeriodScore(allReports, competitorName);
+          const previousScore = this.calculateCompetitorPeriodScore([previousReport], competitorName);
+          
+          if (previousScore === 0) return 0;
+          return Math.round(((currentScore - previousScore) / previousScore) * 100);
+        } else {
+          this.logger.log(`[calculateCompetitorVariation] No previous report found for single point query`);
+          return 0;
+        }
+      } else {
+        // Time range - get previous period of same length
+        previousEndDate = queryStart;
+        previousStartDate = new Date(queryStart.getTime() - periodLength);
+        this.logger.log(`[calculateCompetitorVariation] Time range - looking for reports between ${previousStartDate.toISOString()} and ${previousEndDate.toISOString()}`);
+      }
+    } else {
+      // Fall back to report dates (legacy behavior)
+      const startDate = allReports[0].reportDate;
+      const endDate = allReports[allReports.length - 1].reportDate;
+      periodLength = endDate.getTime() - startDate.getTime();
+
+      this.logger.log(`[calculateCompetitorVariation] Using report dates: ${startDate} to ${endDate}`);
+      this.logger.log(`[calculateCompetitorVariation] Period length: ${periodLength}ms`);
+
+      if (periodLength === 0) {
+        this.logger.log(`[calculateCompetitorVariation] Single point in time - looking for previous report before ${startDate}`);
+        const previousReport = await this.brandReportModel
+          .findOne({
+            projectId,
+            reportDate: { $lt: startDate }
+          })
+          .select('reportDate visibility')
+          .sort({ reportDate: -1 })
+          .lean();
+
+        if (previousReport) {
+          const currentScore = this.calculateCompetitorPeriodScore(allReports, competitorName);
+          const previousScore = this.calculateCompetitorPeriodScore([previousReport], competitorName);
+          
+          if (previousScore === 0) return 0;
+          return Math.round(((currentScore - previousScore) / previousScore) * 100);
+        }
+        return 0;
+      } else {
+        previousEndDate = startDate;
+        previousStartDate = new Date(startDate.getTime() - periodLength);
+      }
+    }
+
+    // Get previous period reports
+    const previousReports = await this.brandReportModel
+      .find({
+        projectId,
+        reportDate: {
+          $gte: previousStartDate,
+          $lt: previousEndDate
+        }
+      })
+      .select('reportDate visibility')
+      .lean();
+
+    this.logger.log(`[calculateCompetitorVariation] Found ${previousReports.length} previous reports`);
+    if (previousReports.length > 0) {
+      previousReports.forEach((report, idx) => {
+        this.logger.log(`[calculateCompetitorVariation] Previous report ${idx + 1}: ${report.reportDate.toISOString()}`);
+      });
+    }
+
+    if (previousReports.length === 0) {
+      this.logger.log(`[calculateCompetitorVariation] No previous reports found, returning 0`);
+      return 0;
+    }
+
+    // Calculate competitor scores for both periods
+    const currentScore = this.calculateCompetitorPeriodScore(allReports, competitorName);
+    const previousScore = this.calculateCompetitorPeriodScore(previousReports, competitorName);
+
+    this.logger.log(`[calculateCompetitorVariation] Current score: ${currentScore}, Previous score: ${previousScore}`);
+
+    if (previousScore === 0) {
+      this.logger.log(`[calculateCompetitorVariation] Previous score is 0, returning 0`);
+      return 0;
+    }
+
+    const variation = Math.round(((currentScore - previousScore) / previousScore) * 100);
+    this.logger.log(`[calculateCompetitorVariation] Calculated variation: ${variation}%`);
+
+    return variation;
+  }
+
+  private calculateCompetitorPeriodScore(
+    reports: any[],
+    competitorName: string
+  ): number {
+    let totalScore = 0;
+    let scoreCount = 0;
+
+    this.logger.log(`[calculateCompetitorPeriodScore] Processing ${reports.length} reports for competitor: ${competitorName}`);
+
+    reports.forEach((report, index) => {
+      this.logger.log(`[calculateCompetitorPeriodScore] Report ${index + 1}: ${report.reportDate}`);
+      
+      if (report.visibility?.arenaMetrics && Array.isArray(report.visibility.arenaMetrics)) {
+        this.logger.log(`[calculateCompetitorPeriodScore] Found ${report.visibility.arenaMetrics.length} arenaMetrics`);
+        
+        const competitor = report.visibility.arenaMetrics.find(
+          (metric: any) => metric.name === competitorName
+        );
+        
+        this.logger.log(`[calculateCompetitorPeriodScore] Competitor ${competitorName} found: ${!!competitor}`);
+        
+        if (competitor && competitor.global) {
+          const globalScore = parseInt(competitor.global.replace('%', ''), 10);
+          this.logger.log(`[calculateCompetitorPeriodScore] Raw global: "${competitor.global}", parsed score: ${globalScore}`);
+          
+          if (!isNaN(globalScore)) {
+            totalScore += globalScore;
+            scoreCount++;
+            this.logger.log(`[calculateCompetitorPeriodScore] Added score: ${globalScore}, running total: ${totalScore}, count: ${scoreCount}`);
+          }
+        } else {
+          this.logger.log(`[calculateCompetitorPeriodScore] Competitor data invalid - competitor: ${!!competitor}, global: ${competitor?.global}`);
+        }
+      } else {
+        this.logger.log(`[calculateCompetitorPeriodScore] No arenaMetrics found in report`);
+      }
+    });
+
+    const averageScore = scoreCount > 0 ? totalScore / scoreCount : 0;
+    this.logger.log(`[calculateCompetitorPeriodScore] Final result for ${competitorName}: ${averageScore} (total: ${totalScore}, count: ${scoreCount})`);
+
+    return averageScore;
   }
 
   private calculatePeriodScore(
@@ -882,12 +1326,229 @@ export class BrandReportService {
   private async calculateSentimentVariation(
     projectId: string,
     dateFilter: any,
-    selectedModels: string[]
+    selectedModels: string[],
+    queryStartDate?: string,
+    queryEndDate?: string
   ): Promise<{ positive: number; neutral: number; negative: number }> {
-    // Similar logic to calculateVariation but for sentiment
-    // Returns variation for each sentiment type
-    // Implementation simplified for brevity
-    return { positive: 0, neutral: 0, negative: 0 };
+    // Get all reports within the date filter
+    const allReports = await this.brandReportModel
+      .find(dateFilter)
+      .select('reportDate sentiment')
+      .sort({ reportDate: 1 })
+      .lean();
+
+    if (allReports.length === 0) {
+      return { positive: 0, neutral: 0, negative: 0 };
+    }
+
+    let periodLength: number;
+    let previousStartDate: Date;
+    let previousEndDate: Date;
+
+    // Use query date range if provided, otherwise fall back to report dates
+    if (queryStartDate && queryEndDate) {
+      const queryStart = new Date(queryStartDate);
+      const queryEnd = new Date(queryEndDate);
+      periodLength = queryEnd.getTime() - queryStart.getTime();
+      
+      this.logger.log(`[calculateSentimentVariation] Using query date range: ${queryStartDate} to ${queryEndDate}`);
+      this.logger.log(`[calculateSentimentVariation] Period length: ${periodLength}ms (${periodLength / (1000 * 60 * 60 * 24)} days)`);
+
+      // Calculate previous period of same length
+      if (periodLength === 0) {
+        // Single point in time - find the most recent previous report
+        const previousReport = await this.brandReportModel
+          .findOne({
+            projectId,
+            reportDate: { $lt: queryStart }
+          })
+          .select('reportDate sentiment')
+          .sort({ reportDate: -1 })
+          .lean();
+
+        if (previousReport) {
+          const currentSentiment = this.calculatePeriodSentiment(allReports, selectedModels);
+          const previousSentiment = this.calculatePeriodSentiment([previousReport], selectedModels);
+          
+          const calculateVariation = (current: number, previous: number) => {
+            if (previous === 0) return 0;
+            return Math.round(((current - previous) / previous) * 100);
+          };
+
+          return {
+            positive: calculateVariation(currentSentiment.positive, previousSentiment.positive),
+            neutral: calculateVariation(currentSentiment.neutral, previousSentiment.neutral),
+            negative: calculateVariation(currentSentiment.negative, previousSentiment.negative)
+          };
+        } else {
+          return { positive: 0, neutral: 0, negative: 0 };
+        }
+      } else {
+        // Time range - get previous period of same length
+        previousEndDate = queryStart;
+        previousStartDate = new Date(queryStart.getTime() - periodLength);
+        this.logger.log(`[calculateSentimentVariation] Time range - looking for reports between ${previousStartDate.toISOString()} and ${previousEndDate.toISOString()}`);
+      }
+    } else {
+      // Fall back to report dates (legacy behavior)
+      const startDate = allReports[0].reportDate;
+      const endDate = allReports[allReports.length - 1].reportDate;
+      periodLength = endDate.getTime() - startDate.getTime();
+
+      this.logger.log(`[calculateSentimentVariation] Using report dates: ${startDate} to ${endDate}`);
+      this.logger.log(`[calculateSentimentVariation] Period length: ${periodLength}ms`);
+
+      if (periodLength === 0) {
+        const previousReport = await this.brandReportModel
+          .findOne({
+            projectId,
+            reportDate: { $lt: startDate }
+          })
+          .select('reportDate sentiment')
+          .sort({ reportDate: -1 })
+          .lean();
+
+        if (previousReport) {
+          const currentSentiment = this.calculatePeriodSentiment(allReports, selectedModels);
+          const previousSentiment = this.calculatePeriodSentiment([previousReport], selectedModels);
+          
+          const calculateVariation = (current: number, previous: number) => {
+            if (previous === 0) return 0;
+            return Math.round(((current - previous) / previous) * 100);
+          };
+
+          return {
+            positive: calculateVariation(currentSentiment.positive, previousSentiment.positive),
+            neutral: calculateVariation(currentSentiment.neutral, previousSentiment.neutral),
+            negative: calculateVariation(currentSentiment.negative, previousSentiment.negative)
+          };
+        }
+        return { positive: 0, neutral: 0, negative: 0 };
+      } else {
+        previousEndDate = startDate;
+        previousStartDate = new Date(startDate.getTime() - periodLength);
+      }
+    }
+
+    // Get previous period reports
+    const previousReports = await this.brandReportModel
+      .find({
+        projectId,
+        reportDate: {
+          $gte: previousStartDate,
+          $lt: previousEndDate
+        }
+      })
+      .select('reportDate sentiment')
+      .lean();
+
+    this.logger.log(`[calculateSentimentVariation] Found ${previousReports.length} previous reports`);
+
+    if (previousReports.length === 0) {
+      return { positive: 0, neutral: 0, negative: 0 };
+    }
+
+    // Calculate sentiment percentages for both periods
+    const currentSentiment = this.calculatePeriodSentiment(allReports, selectedModels);
+    const previousSentiment = this.calculatePeriodSentiment(previousReports, selectedModels);
+
+    // Calculate variations
+    const calculateVariation = (current: number, previous: number) => {
+      if (previous === 0) return 0;
+      return Math.round(((current - previous) / previous) * 100);
+    };
+
+    return {
+      positive: calculateVariation(currentSentiment.positive, previousSentiment.positive),
+      neutral: calculateVariation(currentSentiment.neutral, previousSentiment.neutral),
+      negative: calculateVariation(currentSentiment.negative, previousSentiment.negative)
+    };
+  }
+
+  private calculatePeriodSentiment(
+    reports: any[],
+    selectedModels: string[]
+  ): { positive: number; neutral: number; negative: number } {
+    let totalPositive = 0;
+    let totalNeutral = 0;
+    let totalNegative = 0;
+    let sentimentCount = 0;
+
+    this.logger.log(`[calculatePeriodSentiment] Processing ${reports.length} reports with ${selectedModels.length} selected models`);
+
+    reports.forEach(report => {
+      const sentData = report.sentiment;
+      if (!sentData?.distribution) {
+        this.logger.log(`[calculatePeriodSentiment] Skipping report ${report.id} - no sentiment distribution`);
+        return;
+      }
+
+      // Use the same logic as the main aggregation method
+      // Check if we have detailedResults for model-specific data
+      if (sentData.detailedResults && sentData.detailedResults.length > 0) {
+        this.logger.log(`[calculatePeriodSentiment] Found ${sentData.detailedResults.length} detailed results for report ${report.id}`);
+        // Use detailed results if available
+        const filteredResults = sentData.detailedResults.filter((r: any) =>
+          selectedModels.includes(r.model)
+        );
+
+        if (filteredResults.length > 0) {
+          let reportPositive = 0;
+          let reportNeutral = 0;
+          let reportNegative = 0;
+          let modelCount = 0;
+
+          filteredResults.forEach((result: any) => {
+            if (result.sentimentBreakdown) {
+              reportPositive += result.sentimentBreakdown.positive || 0;
+              reportNeutral += result.sentimentBreakdown.neutral || 0;
+              reportNegative += result.sentimentBreakdown.negative || 0;
+              modelCount++;
+            }
+          });
+
+          if (modelCount > 0) {
+            const avgPositive = reportPositive / modelCount;
+            const avgNeutral = reportNeutral / modelCount;
+            const avgNegative = reportNegative / modelCount;
+
+            totalPositive += avgPositive;
+            totalNeutral += avgNeutral;
+            totalNegative += avgNegative;
+            sentimentCount++;
+
+            this.logger.log(`[calculatePeriodSentiment] Report ${report.id}: P:${avgPositive}, N:${avgNeutral}, Neg:${avgNegative}`);
+          }
+        }
+      } else {
+        // Fallback to overall distribution data if no detailed results
+        const distribution = sentData.distribution;
+        if (distribution.total > 0) {
+          const positivePercent = (distribution.positive / distribution.total) * 100;
+          const neutralPercent = (distribution.neutral / distribution.total) * 100;
+          const negativePercent = (distribution.negative / distribution.total) * 100;
+
+          totalPositive += positivePercent;
+          totalNeutral += neutralPercent;
+          totalNegative += negativePercent;
+          sentimentCount++;
+
+          this.logger.log(`[calculatePeriodSentiment] Report ${report.id} (fallback): P:${positivePercent}, N:${neutralPercent}, Neg:${negativePercent}`);
+        }
+      }
+    });
+
+    const positivePercentage = sentimentCount > 0 ? Math.round(totalPositive / sentimentCount) : 0;
+    const neutralPercentage = sentimentCount > 0 ? Math.round(totalNeutral / sentimentCount) : 0;
+    const negativePercentage = sentimentCount > 0 ? Math.round(totalNegative / sentimentCount) : 0;
+
+    this.logger.log(`[calculatePeriodSentiment] Final averages: P:${positivePercentage}, N:${neutralPercentage}, Neg:${negativePercentage} (from ${sentimentCount} reports)`);
+
+    return {
+      positive: positivePercentage,
+      neutral: neutralPercentage,
+      negative: negativePercentage
+    };
   }
 
   private createEmptyVisibilityResponse(projectId: string): AggregatedVisibilityResponseDto {
@@ -942,7 +1603,10 @@ export class BrandReportService {
         dateFilter.reportDate.$gte = new Date(query.startDate);
       }
       if (query.endDate) {
-        dateFilter.reportDate.$lte = new Date(query.endDate);
+        // For end date, include the entire day by using the start of the next day
+        const endDate = new Date(query.endDate);
+        endDate.setDate(endDate.getDate() + 1);
+        dateFilter.reportDate.$lt = endDate;
       }
     }
 

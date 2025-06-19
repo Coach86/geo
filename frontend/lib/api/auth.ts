@@ -42,11 +42,16 @@ export async function validateToken(
 /**
  * Send magic link using the new dedicated auth endpoint
  */
-export async function sendMagicLink(email: string): Promise<MagicLinkResponse> {
+export async function sendMagicLink(email: string, promoCode?: string): Promise<MagicLinkResponse> {
   try {
+    const body: any = { email };
+    if (promoCode) {
+      body.promoCode = promoCode;
+    }
+    
     return await apiFetch<MagicLinkResponse>(API_ENDPOINTS.AUTH.MAGIC_LINK, {
       method: 'POST',
-      body: JSON.stringify({ email }),
+      body: JSON.stringify(body),
     });
   } catch (error) {
     console.error('Magic link error:', error);

@@ -72,6 +72,10 @@ export class Organization {
 
   @Prop({ type: String })
   trialPlanId?: string;
+
+  // Promo code tracking
+  @Prop({ type: String })
+  promoCode?: string;
 }
 
 export const OrganizationSchema = SchemaFactory.createForClass(Organization);

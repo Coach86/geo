@@ -43,6 +43,8 @@ export default function AuthLoginPage() {
           setStatus("success");
           // Track successful login
           analytics.trackLogin('email');
+          // Clear promo code from localStorage after successful login
+          localStorage.removeItem("promoCode");
           // Redirect after a short delay to show success message
           setTimeout(() => {
             router.push(`/?url=${encodeURIComponent(urlParam)}`);

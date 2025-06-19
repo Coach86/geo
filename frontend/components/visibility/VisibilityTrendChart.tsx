@@ -117,6 +117,10 @@ export function VisibilityTrendChart({
                         stroke: '#fff'
                       }}
                       activeDot={{ r: 8 }}
+                      connectNulls={true}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      isAnimationActive={false}
                       onMouseEnter={() => onEntityHover?.(key)}
                       onMouseLeave={() => onEntityHover?.(null)}
                       style={{ 

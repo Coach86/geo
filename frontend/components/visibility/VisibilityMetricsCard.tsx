@@ -21,6 +21,7 @@ interface VisibilityMetricsCardProps {
   onCompetitorToggle?: (name: string, selected: boolean) => void;
   onEntityHover?: (entity: string | null) => void;
   hoveredEntity?: string | null;
+  isAllTime?: boolean;
 }
 
 export function VisibilityMetricsCard({
@@ -32,6 +33,7 @@ export function VisibilityMetricsCard({
   onCompetitorToggle,
   onEntityHover,
   hoveredEntity,
+  isAllTime = false,
 }: VisibilityMetricsCardProps) {
   const getVariationIcon = (variation: number) => {
     if (variation > 0) return <TrendingUp className="h-4 w-4" />;
@@ -91,25 +93,27 @@ export function VisibilityMetricsCard({
                 }`}>
                   {averageScore}%
                 </div>
-                <div className={`flex items-center gap-1 mt-2 ${getVariationColor(scoreVariation)}`}>
-                  {getVariationIcon(scoreVariation)}
-                  <span className="text-sm font-medium">
-                    {formatVariation(scoreVariation)}
-                  </span>
-                </div>
+                {!isAllTime && (
+                  <div className={`flex items-center gap-1 mt-2 ${getVariationColor(scoreVariation)}`}>
+                    {getVariationIcon(scoreVariation)}
+                    <span className="text-sm font-medium">
+                      {formatVariation(scoreVariation)}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
           {/* Competitors - Same simple text design but with more spacing */}
-          <div className="flex-1 space-y-4 overflow-y-auto">
+          <div className="flex-1 space-y-2 overflow-y-auto">
             {competitors.map(competitor => {
               const isAhead = competitor.averageScore > averageScore;
 
               return (
                 <div 
                   key={competitor.name} 
-                  className={`flex items-start justify-between py-2 px-2 -mx-2 rounded cursor-pointer transition-all duration-200 ${
+                  className={`flex items-start justify-between py-1 px-2 -mx-2 rounded cursor-pointer transition-all duration-200 ${
                     hoveredEntity === competitor.name 
                       ? 'bg-gray-50 shadow-sm' 
                       : 'hover:bg-gray-50'
@@ -131,12 +135,14 @@ export function VisibilityMetricsCard({
                     }`}>
                       {competitor.averageScore}%
                     </div>
-                    <div className={`flex items-center gap-1 mt-1 ${getVariationColor(competitor.variation)}`}>
-                      {getVariationIcon(competitor.variation)}
-                      <span className="text-sm">
-                        {formatVariation(competitor.variation)}
-                      </span>
-                    </div>
+                    {!isAllTime && (
+                      <div className={`flex items-center gap-1 mt-1 ${getVariationColor(competitor.variation)}`}>
+                        {getVariationIcon(competitor.variation)}
+                        <span className="text-sm">
+                          {formatVariation(competitor.variation)}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               );

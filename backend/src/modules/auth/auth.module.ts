@@ -39,6 +39,8 @@ import { AccessTokenRepository } from './repositories/access-token.repository';
     ]),
     forwardRef(() => ReportModule),
     forwardRef(() => UserModule),
+    forwardRef(() => OrganizationModule),
+    forwardRef(() => PromoModule),
   ],
   providers: [AuthService, TokenService, JwtTokenService, LocalStrategy, JwtStrategy, TokenAuthGuard, AdminRepository, AccessTokenRepository],
   controllers: [AuthController, PublicAuthController, TokenController],

@@ -277,12 +277,17 @@ export class OrganizationService {
       currentUsers,
       currentProjects,
       projects,
+      trialStartDate: entity.trialStartDate?.toISOString(),
+      trialEndDate: entity.trialEndDate?.toISOString(),
+      isOnTrial: entity.isOnTrial,
+      trialPlanId: entity.trialPlanId,
+      promoCode: entity.promoCode,
     };
   }
 
-  async activateTrial(organizationId: string, planId: string, trialDays: number): Promise<OrganizationResponseDto> {
+  async activateTrial(organizationId: string, planId: string, trialDays: number, promoCode?: string): Promise<OrganizationResponseDto> {
     try {
-      this.logger.log(`Activating trial for organization ${organizationId} - Plan: ${planId}, Days: ${trialDays}`);
+      this.logger.log(`Activating trial for organization ${organizationId} - Plan: ${planId}, Days: ${trialDays}, Promo: ${promoCode}`);
 
       // Get the plan details
       const plan = await this.planService.findById(planId);
@@ -296,7 +301,7 @@ export class OrganizationService {
       trialEndDate.setDate(trialEndDate.getDate() + trialDays);
 
       // Update organization with trial information
-      const updatedOrganization = await this.organizationRepository.update(organizationId, {
+      const updateData: any = {
         isOnTrial: true,
         trialStartDate,
         trialEndDate,
@@ -310,7 +315,14 @@ export class OrganizationService {
           maxUsers: plan.maxUsers,
           maxCompetitors: plan.maxCompetitors,
         },
-      });
+      };
+
+      // Add promo code if provided
+      if (promoCode) {
+        updateData.promoCode = promoCode;
+      }
+
+      const updatedOrganization = await this.organizationRepository.update(organizationId, updateData);
 
       if (!updatedOrganization) {
         throw new NotFoundException(`Organization with ID ${organizationId} not found`);

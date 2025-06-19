@@ -141,6 +141,10 @@ export function SentimentTrendChart({
                   stroke: '#fff'
                 }}
                 activeDot={{ r: 8 }}
+                connectNulls={true}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                isAnimationActive={false}
                 name="score"
                 onMouseEnter={() => onMetricHover?.('score')}
                 onMouseLeave={() => onMetricHover?.(null)}
@@ -167,6 +171,10 @@ export function SentimentTrendChart({
                   stroke: '#fff'
                 }}
                 activeDot={{ r: 8 }}
+                connectNulls={true}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                isAnimationActive={false}
                 name="positive"
                 onMouseEnter={() => onMetricHover?.('positive')}
                 onMouseLeave={() => onMetricHover?.(null)}
@@ -191,6 +199,10 @@ export function SentimentTrendChart({
                   stroke: '#fff'
                 }}
                 activeDot={{ r: 8 }}
+                connectNulls={true}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                isAnimationActive={false}
                 name="neutral"
                 onMouseEnter={() => onMetricHover?.('neutral')}
                 onMouseLeave={() => onMetricHover?.(null)}
@@ -215,6 +227,10 @@ export function SentimentTrendChart({
                   stroke: '#fff'
                 }}
                 activeDot={{ r: 8 }}
+                connectNulls={true}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                isAnimationActive={false}
                 name="negative"
                 onMouseEnter={() => onMetricHover?.('negative')}
                 onMouseLeave={() => onMetricHover?.(null)}
