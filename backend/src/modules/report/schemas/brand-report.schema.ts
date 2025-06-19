@@ -125,10 +125,9 @@ export class BrandReport {
       mentionRate: number;
     }[];
     arenaMetrics: {
-      model: string;
-      mentions: number;
-      score: number;
-      rank: number;
+      name: string;
+      size: string;
+      global: string;
     }[];
   };
 
@@ -161,6 +160,36 @@ export class BrandReport {
         llmResponse?: string;
       }[];
     }[];
+    detailedResults?: {
+      model: string;
+      promptIndex: number;
+      originalPrompt: string;
+      llmResponse: string;
+      sentimentBreakdown: {
+        positive: number;
+        neutral: number;
+        negative: number;
+      };
+      overallSentiment: 'positive' | 'neutral' | 'negative';
+      keywords: {
+        positive: string[];
+        negative: string[];
+      };
+      citations: {
+        url: string;
+        title?: string;
+        text?: string;
+      }[];
+      toolUsage: {
+        type: string;
+        parameters?: Record<string, unknown>;
+        execution_details?: {
+          status: string;
+          result?: unknown;
+          error?: string;
+        };
+      }[];
+    }[];
   };
 
   @Prop({
@@ -168,19 +197,38 @@ export class BrandReport {
     required: true,
   })
   alignment: {
-    overallAlignmentScore: number;
-    averageAttributeScores: Object;
-    attributeAlignmentSummary: {
-      name: string;
-      mentionRate: string;
-      alignment: string;
-    }[];
-    detailedResults: {
+    summary?: {
+      overallAlignmentScore: number;
+      averageAttributeScores: Record<string, number>;
+      attributeAlignmentSummary: {
+        name: string;
+        mentionRate: string;
+        alignment: string;
+      }[];
+    };
+    detailedResults?: {
       model: string;
+      promptIndex: number;
+      originalPrompt: string;
+      llmResponse: string;
       attributeScores: {
         attribute: string;
         score: number;
         evaluation: string;
+      }[];
+      citations: {
+        url: string;
+        title?: string;
+        text?: string;
+      }[];
+      toolUsage: {
+        type: string;
+        parameters?: Record<string, unknown>;
+        execution_details?: {
+          status: string;
+          result?: unknown;
+          error?: string;
+        };
       }[];
     }[];
   };

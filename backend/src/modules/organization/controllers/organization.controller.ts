@@ -12,8 +12,10 @@ import {
 import { OrganizationService } from '../services/organization.service';
 import { CreateOrganizationDto } from '../dto/create-organization.dto';
 import { UpdateOrganizationDto } from '../dto/update-organization.dto';
+import { UpdatePlanSettingsDto } from '../dto/update-plan-settings.dto';
+import { UpdateSelectedModelsDto } from '../dto/update-selected-models.dto';
 import { OrganizationResponseDto } from '../dto/organization-response.dto';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../../auth/guards/admin.guard';
 
@@ -25,6 +27,7 @@ export class OrganizationController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new organization' })
+  @ApiBody({ type: CreateOrganizationDto })
   @ApiResponse({
     status: 201,
     description: 'Organization successfully created',
@@ -83,6 +86,7 @@ export class OrganizationController {
   @Patch(':id/plan-settings')
   @ApiOperation({ summary: 'Update organization plan settings' })
   @ApiParam({ name: 'id', description: 'Organization ID' })
+  @ApiBody({ type: UpdatePlanSettingsDto })
   @ApiResponse({
     status: 200,
     description: 'Plan settings successfully updated',
@@ -90,13 +94,7 @@ export class OrganizationController {
   })
   async updatePlanSettings(
     @Param('id') id: string,
-    @Body() planSettings: {
-      maxProjects?: number;
-      maxAIModels?: number;
-      maxSpontaneousPrompts?: number;
-      maxUrls?: number;
-      maxUsers?: number;
-    },
+    @Body() planSettings: UpdatePlanSettingsDto,
   ): Promise<OrganizationResponseDto> {
     return await this.organizationService.updatePlanSettings(id, planSettings);
   }
@@ -104,6 +102,7 @@ export class OrganizationController {
   @Patch(':id/selected-models')
   @ApiOperation({ summary: 'Update organization selected AI models' })
   @ApiParam({ name: 'id', description: 'Organization ID' })
+  @ApiBody({ type: UpdateSelectedModelsDto })
   @ApiResponse({
     status: 200,
     description: 'Selected models successfully updated',
@@ -111,7 +110,7 @@ export class OrganizationController {
   })
   async updateSelectedModels(
     @Param('id') id: string,
-    @Body() body: { selectedModels: string[] },
+    @Body() body: UpdateSelectedModelsDto,
   ): Promise<OrganizationResponseDto> {
     return await this.organizationService.updateSelectedModels(id, body.selectedModels);
   }

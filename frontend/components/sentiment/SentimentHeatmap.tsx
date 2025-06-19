@@ -86,17 +86,17 @@ export function SentimentHeatmap({
     fetchSentimentData();
   }, [selectedReport, token]);
 
-  // Get color based on sentiment
+  // Get color based on sentiment - using sentiment value colors directly
   const getSentimentColor = (status: string) => {
     switch (status) {
       case "green":
-        return "rgb(16 185 129)"; // green-500
+        return "#039974"; // accent-600 (positive)
       case "yellow":
-        return "rgb(245 158 11)"; // amber-500
+        return "#A44703"; // primary-600 (neutral)
       case "red":
-        return "rgb(239 68 68)"; // red-500
+        return "#B91C1C"; // destructive-600 (negative)
       default:
-        return "rgb(156 163 175)"; // gray-400
+        return "#636366"; // mono-500 (default gray)
     }
   };
 

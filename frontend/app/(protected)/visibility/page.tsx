@@ -13,7 +13,7 @@ import { VisibilityTrendChart } from "@/components/visibility/VisibilityTrendCha
 import { MentionsListCard } from "@/components/visibility/MentionsListCard";
 import { TopSourcesCard } from "@/components/visibility/TopSourcesCard";
 import { useVisibilityReports } from "@/hooks/use-visibility-reports";
-import { useVisibilityExplorer } from "@/hooks/use-visibility-explorer";
+import { useAggregatedExplorer } from "@/hooks/use-aggregated-explorer";
 import { useReports } from "@/providers/report-provider";
 import BreadcrumbNav from "@/components/layout/breadcrumb-nav";
 import { useNavigation } from "@/providers/navigation-provider";
@@ -65,7 +65,7 @@ export default function VisibilityPage() {
     topMentions,
     topKeywords,
     topSources,
-  } = useVisibilityExplorer(selectedReports, token);
+  } = useAggregatedExplorer(selectedProjectId, selectedReports, token);
 
   // Show all competitors by default
   const selectedCompetitors = competitors.map(c => c.name);
@@ -217,7 +217,7 @@ export default function VisibilityPage() {
             {/* Top Mentions */}
             <div>
               <MentionsListCard
-                mentions={topMentions}
+                mentions={topMentions.map(item => ({ mention: item.name, count: item.count }))}
                 loading={loadingExplorer}
               />
             </div>
@@ -225,7 +225,7 @@ export default function VisibilityPage() {
             {/* Top Sources */}
             <div>
               <TopSourcesCard
-                sources={topSources}
+                sources={topSources.map(item => ({ domain: item.name, count: item.count }))}
                 loading={loadingExplorer}
               />
             </div>

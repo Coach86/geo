@@ -5,7 +5,7 @@ import { useFeatureGate } from "@/hooks/use-feature-access";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-import AttributeScoresByModelTable from "@/components/alignment/attribute-scores-table";
+import { AttributeScoresWithSelector } from "@/components/alignment/AttributeScoresWithSelector";
 import { useAuth } from "@/providers/auth-provider";
 import type { AlignmentResults } from "@/types/alignment";
 import type { ReportResponse } from "@/types/reports";
@@ -39,6 +39,7 @@ export default function AlignmentPage() {
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date } | null>(null);
+  const [selectedAttributeReport, setSelectedAttributeReport] = useState<ReportResponse | null>(null);
 
   // Fetch reports when project changes
   useEffect(() => {
@@ -216,30 +217,12 @@ export default function AlignmentPage() {
               
               {/* Attribute Scores by Model - Takes 2 columns */}
               <div className="md:col-span-2">
-                <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
-                  <CardHeader className="pb-4">
-                    <CardTitle className="text-lg font-semibold text-mono-700">
-                      Attribute Scores by Model
-                    </CardTitle>
-                    <p className="text-sm text-mono-400 mt-1">
-                      Detailed breakdown of alignment scores
-                    </p>
-                  </CardHeader>
-                  <CardContent>
-                    {detailedResults.length > 0 && (
-                      <AttributeScoresByModelTable
-                        results={{
-                          summary: {
-                            overallAlignmentScore: averageScore,
-                            averageAttributeScores: aggregatedAttributeScores,
-                            attributeAlignmentSummary: []
-                          },
-                          detailedResults: detailedResults.flatMap(r => r.detailedResults)
-                        }}
-                      />
-                    )}
-                  </CardContent>
-                </Card>
+                <AttributeScoresWithSelector
+                  reports={selectedReports}
+                  selectedReport={selectedAttributeReport}
+                  onReportSelect={setSelectedAttributeReport}
+                  token={token}
+                />
               </div>
             </div>
           </div>
