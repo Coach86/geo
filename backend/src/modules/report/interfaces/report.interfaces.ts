@@ -101,6 +101,8 @@ export interface SentimentData {
       sentiment: 'positive' | 'neutral' | 'negative';
       status: 'green' | 'yellow' | 'red';
       llmResponse?: string;
+      citations?: any[];
+      toolUsage?: any[];
     }[];
   }[];
 }
