@@ -163,12 +163,14 @@ export function ReportRangeSelector({
 
   // Trigger callback when model filter changes and save to localStorage
   useEffect(() => {
-    onModelFilterChange(selectedModels);
+    // Send empty array when all models are selected (backend will interpret as "all")
+    const modelsToSend = selectedModels.length === availableModels.length ? [] : selectedModels;
+    onModelFilterChange(modelsToSend);
     // Save to localStorage
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEY_MODELS, JSON.stringify(selectedModels));
     }
-  }, [selectedModels, onModelFilterChange]);
+  }, [selectedModels, availableModels, onModelFilterChange]);
   
   // Save selected range to localStorage when it changes
   useEffect(() => {
@@ -210,9 +212,6 @@ export function ReportRangeSelector({
     }
   };
 
-  const handleClearModels = () => {
-    setSelectedModels(availableModels.length > 0 ? [availableModels[0]] : []);
-  };
 
   return (
     <div className="flex items-center gap-2">
@@ -369,24 +368,14 @@ export function ReportRangeSelector({
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h4 className="text-sm font-semibold">Filter by Model</h4>
-              <div className="flex gap-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleSelectAllModels}
-                  className="text-xs h-6 px-2"
-                >
-                  All
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleClearModels}
-                  className="text-xs h-6 px-2"
-                >
-                  Clear
-                </Button>
-              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSelectAllModels}
+                className="text-xs h-6 px-2"
+              >
+                Select All
+              </Button>
             </div>
             <div className="space-y-2">
               {availableModels.map(model => (
