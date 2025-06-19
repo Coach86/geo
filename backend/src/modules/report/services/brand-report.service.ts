@@ -9,6 +9,7 @@ import { AggregatedVisibilityResponseDto, VisibilityChartDataDto } from '../dto/
 import { AggregatedAlignmentResponseDto, AlignmentChartDataDto, AttributeScoreDto } from '../dto/aggregated-alignment-response.dto';
 import { AggregatedSentimentResponseDto, SentimentChartDataDto } from '../dto/aggregated-sentiment-response.dto';
 import { AggregatedExplorerResponseDto, ExplorerItemDto } from '../dto/aggregated-explorer-response.dto';
+import { CitationItemDto, AggregatedCitationsDto } from '../dto/citation-item.dto';
 import {
   BrandReportVisibilitySelect,
   BrandReportAlignmentSelect,
@@ -426,6 +427,9 @@ export class BrandReportService {
     // Calculate aggregated scores
     let totalScore = 0;
     let scoreCount = 0;
+    
+    // For citation aggregation
+    const citationMap: Map<string, CitationItemDto> = new Map();
 
     reports.forEach(report => {
       const alignData = report.alignment;
@@ -451,6 +455,42 @@ export class BrandReportService {
             reportTotal += as.score;
             attributeCount++;
           });
+          
+          // Collect citations
+          if (result.citations && Array.isArray(result.citations)) {
+            const avgScore = result.attributeScores 
+              ? result.attributeScores.reduce((sum, as) => sum + as.score, 0) / result.attributeScores.length
+              : 0;
+              
+            result.citations.forEach((citation: any) => {
+              if (citation.url) {
+                try {
+                  const urlObj = new URL(citation.url);
+                  const domain = urlObj.hostname;
+                  
+                  const key = `${domain}_${citation.url}`;
+                  const existing = citationMap.get(key);
+                  
+                  if (existing) {
+                    existing.count++;
+                  } else {
+                    citationMap.set(key, {
+                      domain,
+                      url: citation.url,
+                      title: citation.title,
+                      prompt: result.originalPrompt || '',
+                      score: avgScore,
+                      count: 1,
+                      model: result.model,
+                      text: citation.text
+                    });
+                  }
+                } catch (e) {
+                  // Invalid URL, skip
+                }
+              }
+            });
+          }
         });
 
         if (attributeCount > 0) {
@@ -495,6 +535,11 @@ export class BrandReportService {
       });
     });
 
+    // Process citations
+    const citationItems = Array.from(citationMap.values()).sort((a, b) => b.count - a.count);
+    const uniqueDomains = new Set(citationItems.map(c => c.domain)).size;
+    const totalCitations = citationItems.reduce((sum, c) => sum + c.count, 0);
+
     return {
       averageScore,
       scoreVariation,
@@ -506,7 +551,12 @@ export class BrandReportService {
       dateRange: {
         start: reports[0].reportDate.toISOString(),
         end: reports[reports.length - 1].reportDate.toISOString()
-      }
+      },
+      citations: citationItems.length > 0 ? {
+        items: citationItems,
+        uniqueDomains,
+        totalCitations
+      } : undefined
     };
   }
 
@@ -526,12 +576,12 @@ export class BrandReportService {
       }
     }
 
-    // Fetch reports within date range
+    // Fetch reports within date range - include explorer for citations
     const reports = await this.brandReportModel
       .find(dateFilter)
-      .select('id reportDate generatedAt sentiment')
+      .select('id reportDate generatedAt sentiment explorer')
       .sort({ reportDate: 1 })
-      .lean() as BrandReportSentimentSelect[];
+      .lean() as any[];
 
     if (reports.length === 0) {
       return this.createEmptySentimentResponse(projectId);
@@ -541,7 +591,7 @@ export class BrandReportService {
     const allModels = new Set<string>();
     reports.forEach(report => {
       if (report.sentiment?.modelSentiments) {
-        report.sentiment.modelSentiments.forEach((ms) => {
+        report.sentiment.modelSentiments.forEach((ms: any) => {
           allModels.add(ms.model);
         });
       }
@@ -558,6 +608,9 @@ export class BrandReportService {
     let totalNegative = 0;
     let sentimentCount = 0;
     const chartData: SentimentChartDataDto[] = [];
+    
+    // For citation aggregation
+    const citationMap: Map<string, CitationItemDto> = new Map();
 
     reports.forEach(report => {
       const sentData = report.sentiment;
@@ -566,6 +619,7 @@ export class BrandReportService {
       // Use overall distribution data for each report
       // Check if we have detailedResults for model-specific data
       if (sentData.detailedResults && sentData.detailedResults.length > 0) {
+        this.logger.log(`Found ${sentData.detailedResults.length} detailed results for sentiment report`);
         // Use detailed results if available
         const filteredResults = sentData.detailedResults.filter((r: DetailedSentimentResult) =>
           selectedModels.includes(r.model)
@@ -583,6 +637,38 @@ export class BrandReportService {
               reportNeutral += result.sentimentBreakdown.neutral || 0;
               reportNegative += result.sentimentBreakdown.negative || 0;
               modelCount++;
+            }
+            
+            // Collect citations
+            if (result.citations && Array.isArray(result.citations)) {
+              result.citations.forEach((citation: any) => {
+                if (citation.url) {
+                  try {
+                    const urlObj = new URL(citation.url);
+                    const domain = urlObj.hostname;
+                    
+                    const key = `${domain}_${citation.url}`;
+                    const existing = citationMap.get(key);
+                    
+                    if (existing) {
+                      existing.count++;
+                    } else {
+                      citationMap.set(key, {
+                        domain,
+                        url: citation.url,
+                        title: citation.title,
+                        prompt: result.originalPrompt || '',
+                        sentiment: result.overallSentiment || 'neutral',
+                        count: 1,
+                        model: result.model,
+                        text: citation.text
+                      });
+                    }
+                  } catch (e) {
+                    // Invalid URL, skip
+                  }
+                }
+              });
             }
           });
 
@@ -625,6 +711,40 @@ export class BrandReportService {
           });
         }
       }
+      
+      // Also check explorer citations for sentiment reports
+      if (report.explorer?.citations) {
+        report.explorer.citations.forEach((citation: any) => {
+          // Only include sentiment-related citations
+          if (citation.promptType?.toLowerCase().includes('sentiment') && citation.link) {
+            try {
+              const urlObj = new URL(citation.link);
+              const domain = urlObj.hostname;
+              
+              const key = `${domain}_${citation.link}`;
+              const existing = citationMap.get(key);
+              
+              if (existing) {
+                existing.count++;
+              } else {
+                // Try to determine sentiment from the prompt or use neutral as default
+                citationMap.set(key, {
+                  domain,
+                  url: citation.link,
+                  title: citation.website || '',
+                  prompt: citation.promptText || '',
+                  sentiment: 'neutral', // Default to neutral for explorer citations
+                  count: 1,
+                  model: citation.model,
+                  text: undefined
+                });
+              }
+            } catch (e) {
+              // Invalid URL, skip
+            }
+          }
+        });
+      }
     });
 
     const positivePercentage = sentimentCount > 0 ? Math.round(totalPositive / sentimentCount) : 0;
@@ -647,6 +767,11 @@ export class BrandReportService {
       { type: 'negative', percentage: negativePercentage, variation: sentimentVariation.negative }
     ];
 
+    // Process citations
+    const citationItems = Array.from(citationMap.values()).sort((a, b) => b.count - a.count);
+    const uniqueDomains = new Set(citationItems.map(c => c.domain)).size;
+    const totalCitations = citationItems.reduce((sum, c) => sum + c.count, 0);
+
     return {
       positivePercentage,
       neutralPercentage,
@@ -659,7 +784,12 @@ export class BrandReportService {
       dateRange: {
         start: reports[0].reportDate.toISOString(),
         end: reports[reports.length - 1].reportDate.toISOString()
-      }
+      },
+      citations: citationItems.length > 0 ? {
+        items: citationItems,
+        uniqueDomains,
+        totalCitations
+      } : undefined
     };
   }
 

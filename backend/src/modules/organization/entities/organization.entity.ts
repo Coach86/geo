@@ -16,4 +16,10 @@ export class Organization {
   selectedModels: string[];
   createdAt: Date;
   updatedAt: Date;
+  
+  // Trial-related fields
+  trialStartDate?: Date;
+  trialEndDate?: Date;
+  isOnTrial?: boolean;
+  trialPlanId?: string;
 }

@@ -59,6 +59,19 @@ export class Organization {
 
   @Prop({ type: Date })
   updatedAt?: Date;
+
+  // Trial-related fields
+  @Prop({ type: Date })
+  trialStartDate?: Date;
+
+  @Prop({ type: Date })
+  trialEndDate?: Date;
+
+  @Prop({ type: Boolean, default: false })
+  isOnTrial?: boolean;
+
+  @Prop({ type: String })
+  trialPlanId?: string;
 }
 
 export const OrganizationSchema = SchemaFactory.createForClass(Organization);

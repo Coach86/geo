@@ -4,6 +4,24 @@ import type { ReportResponse } from "@/types/reports";
 import type { AlignmentResults, DetailedAlignmentResult } from "@/types/alignment";
 import { useFeatureGate } from "@/hooks/use-feature-access";
 
+interface CitationItem {
+  domain: string;
+  url: string;
+  title?: string;
+  prompt: string;
+  sentiment?: string;
+  score?: number;
+  count: number;
+  model?: string;
+  text?: string;
+}
+
+interface AggregatedCitations {
+  items: CitationItem[];
+  uniqueDomains: number;
+  totalCitations: number;
+}
+
 interface UseAlignmentReportsReturn {
   loading: boolean;
   error: string | null;
@@ -17,6 +35,7 @@ interface UseAlignmentReportsReturn {
   aggregatedAttributeScores: Record<string, number>;
   availableModels: string[];
   detailedResults: AlignmentResults[];
+  citations?: AggregatedCitations;
 }
 
 export function useAlignmentReports(
@@ -117,7 +136,8 @@ export function useAlignmentReports(
         chartData: [],
         aggregatedAttributeScores: {},
         availableModels: [],
-        detailedResults: []
+        detailedResults: [],
+        citations: undefined
       };
     }
 
@@ -129,7 +149,8 @@ export function useAlignmentReports(
       chartData: aggregatedData.chartData,
       aggregatedAttributeScores: aggregatedData.aggregatedAttributeScores || {},
       availableModels: aggregatedData.availableModels || [],
-      detailedResults: [] // No detailed results from aggregated endpoint
+      detailedResults: [], // No detailed results from aggregated endpoint
+      citations: aggregatedData.citations
     };
   }, [aggregatedData]);
 

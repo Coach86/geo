@@ -64,8 +64,8 @@ export class AuthService {
     };
   }
 
-  async sendMagicLink(email: string) {
-    this.logger.log(`Magic link request for email: ${email}`);
+  async sendMagicLink(email: string, trialDays?: number, planId?: string, promoCode?: string) {
+    this.logger.log(`Magic link request for email: ${email}, trial: ${trialDays} days, plan: ${planId}, promo: ${promoCode}`);
 
     try {
       if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -84,11 +84,22 @@ export class AuthService {
         this.logger.log(`Created new user: ${user.id}`);
       }
 
-      // Generate access token
-      const token = await this.tokenService.generateAccessToken(user.id);
+      // Generate access token with trial/plan/promo metadata
+      const tokenMetadata: any = { userId: user.id };
+      if (trialDays !== undefined) {
+        tokenMetadata.trialDays = trialDays;
+      }
+      if (planId !== undefined) {
+        tokenMetadata.planId = planId;
+      }
+      if (promoCode !== undefined) {
+        tokenMetadata.promoCode = promoCode;
+      }
+      
+      const token = await this.tokenService.generateAccessToken(user.id, tokenMetadata);
 
-      // Send magic link email
-      await this.sendMagicLinkEmail(email, token);
+      // Send magic link email with trial/plan/promo parameters
+      await this.sendMagicLinkEmail(email, token, trialDays, planId, promoCode);
 
       return {
         success: true,
@@ -104,7 +115,7 @@ export class AuthService {
     }
   }
 
-  private async sendMagicLinkEmail(email: string, token: string): Promise<void> {
+  private async sendMagicLinkEmail(email: string, token: string, trialDays?: number, planId?: string, promoCode?: string): Promise<void> {
     try {
       const resendApiKey = this.configService.get<string>('RESEND_API_KEY');
       if (!resendApiKey) {
@@ -113,7 +124,18 @@ export class AuthService {
       }
 
       const baseUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
-      const accessUrl = `${baseUrl}/auth/login?token=${token}`;
+      let accessUrl = `${baseUrl}/auth/login?token=${token}`;
+      
+      // Add trial and plan parameters if provided
+      if (trialDays !== undefined) {
+        accessUrl += `&t=${trialDays}`;
+      }
+      if (planId !== undefined) {
+        accessUrl += `&p=${planId}`;
+      }
+      if (promoCode !== undefined) {
+        accessUrl += `&promo=${encodeURIComponent(promoCode)}`;
+      }
 
       const resend = new Resend(resendApiKey);
 

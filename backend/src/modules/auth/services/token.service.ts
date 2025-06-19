@@ -20,7 +20,7 @@ export class TokenService {
   /**
    * Generate a secure access token for a user
    */
-  async generateAccessToken(userId: string): Promise<string> {
+  async generateAccessToken(userId: string, metadata?: any): Promise<string> {
     const token = randomBytes(32).toString('hex');
     const expiryHours = this.configService.get<number>('REPORT_TOKEN_EXPIRY_HOURS') || 24;
     const expiresAt = addDays(new Date(), expiryHours / 24); // Convert hours to days
@@ -29,15 +29,16 @@ export class TokenService {
       token,
       userId,
       expiresAt,
+      metadata,
     });
-    this.logger.log(`Generated new access token for user ${userId}`);
+    this.logger.log(`Generated new access token for user ${userId} with metadata: ${JSON.stringify(metadata)}`);
     return token;
   }
 
   /**
    * Validate an access token
    */
-  async validateAccessToken(token: string): Promise<{ valid: boolean; userId?: string }> {
+  async validateAccessToken(token: string): Promise<{ valid: boolean; userId?: string; metadata?: any }> {
     const accessToken = await this.accessTokenRepository.findByToken(token);
 
     if (!accessToken) {
@@ -68,6 +69,7 @@ export class TokenService {
     return {
       valid: true,
       userId: accessToken.userId,
+      metadata: accessToken.metadata,
     };
   }
 }

@@ -18,6 +18,7 @@ import BreadcrumbNav from "@/components/layout/breadcrumb-nav";
 import { useNavigation } from "@/providers/navigation-provider";
 import { ProcessingLoader } from "@/components/shared/ProcessingLoader";
 import { FeatureLockedWrapper } from "@/components/shared/FeatureLockedWrapper";
+import { SourcesWatchtower } from "@/components/shared/SourcesWatchtower";
 
 
 export default function AlignmentPage() {
@@ -58,6 +59,7 @@ export default function AlignmentPage() {
     aggregatedAttributeScores,
     availableModels: alignmentAvailableModels,
     detailedResults,
+    citations,
   } = useAlignmentReports(selectedReports, selectedModels, token);
 
   // Handle date range change
@@ -224,6 +226,15 @@ export default function AlignmentPage() {
                   token={token}
                 />
               </div>
+            </div>
+
+            {/* Sources Watchtower - Full width */}
+            <div className="mt-6">
+              <SourcesWatchtower
+                citations={citations}
+                type="alignment"
+                loading={loadingAlignment}
+              />
             </div>
           </div>
         </FeatureLockedWrapper>

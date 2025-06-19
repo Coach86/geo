@@ -32,6 +32,24 @@ interface SentimentData {
   }[];
 }
 
+interface CitationItem {
+  domain: string;
+  url: string;
+  title?: string;
+  prompt: string;
+  sentiment?: string;
+  score?: number;
+  count: number;
+  model?: string;
+  text?: string;
+}
+
+interface AggregatedCitations {
+  items: CitationItem[];
+  uniqueDomains: number;
+  totalCitations: number;
+}
+
 interface UseSentimentReportsReturn {
   loading: boolean;
   error: string | null;
@@ -56,6 +74,7 @@ interface UseSentimentReportsReturn {
   }>;
   aggregatedHeatmap: SentimentData['heatmapData'];
   availableModels: string[];
+  citations?: AggregatedCitations;
 }
 
 export function useSentimentReports(
@@ -121,6 +140,7 @@ export function useSentimentReports(
         chartData: [],
         aggregatedHeatmap: [],
         availableModels: [],
+        citations: undefined,
       };
     }
 
@@ -158,6 +178,7 @@ export function useSentimentReports(
         chartData,
         aggregatedHeatmap: [], // Not available in aggregated endpoint
         availableModels: aggregatedData.availableModels || [],
+        citations: aggregatedData.citations,
       };
     } catch (err) {
       console.error("Failed to process sentiment data:", err);
@@ -171,6 +192,7 @@ export function useSentimentReports(
         chartData: [],
         aggregatedHeatmap: [],
         availableModels: [],
+        citations: undefined,
       };
     }
   }, [aggregatedData, loading, error]);
