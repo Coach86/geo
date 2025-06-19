@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { AggregatedCitationsDto } from './citation-item.dto';
 
 export class AlignmentChartDataDto {
   @ApiProperty({ description: 'Date of the data point' })
@@ -62,4 +63,11 @@ export class AggregatedAlignmentResponseDto {
     start: string;
     end: string;
   };
+
+  @ApiProperty({ 
+    description: 'Aggregated citations from all reports',
+    type: AggregatedCitationsDto,
+    required: false
+  })
+  citations?: AggregatedCitationsDto;
 }

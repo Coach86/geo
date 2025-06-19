@@ -22,6 +22,7 @@ import { useSentimentReports } from "@/hooks/use-sentiment-reports";
 import { getModelFriendlyName } from "@/utils/model-utils";
 import { FeatureLockedWrapper } from "@/components/shared/FeatureLockedWrapper";
 import { getMockSentimentData } from "@/lib/mock-data";
+import { SourcesWatchtower } from "@/components/shared/SourcesWatchtower";
 
 export default function SentimentPage() {
   const { token } = useAuth();
@@ -71,6 +72,7 @@ export default function SentimentPage() {
     chartData,
     aggregatedHeatmap,
     availableModels: sentimentAvailableModels,
+    citations,
   } = useSentimentReports(selectedReports, selectedModels, token);
   
   // State for storing heatmap report sentiment data
@@ -431,6 +433,15 @@ export default function SentimentPage() {
                     onSentimentDataLoaded={setHeatmapSentimentData}
                   />
                 </div>
+              </div>
+
+              {/* Sources Watchtower - Full width */}
+              <div className="mt-6">
+                <SourcesWatchtower
+                  citations={citations}
+                  type="sentiment"
+                  loading={loadingSentiment}
+                />
               </div>
             </div>
           </FeatureLockedWrapper>

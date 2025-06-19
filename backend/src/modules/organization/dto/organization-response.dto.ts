@@ -19,4 +19,10 @@ export class OrganizationResponseDto {
   currentUsers?: number;
   currentProjects?: number;
   projects?: Array<{ id: string; brandName: string }>;
+  
+  // Trial-related fields
+  trialStartDate?: string;
+  trialEndDate?: string;
+  isOnTrial?: boolean;
+  trialPlanId?: string;
 }

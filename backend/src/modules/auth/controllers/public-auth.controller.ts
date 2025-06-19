@@ -18,6 +18,9 @@ export class PublicAuthController {
       type: 'object',
       properties: {
         email: { type: 'string', format: 'email', example: 'user@example.com' },
+        trialDays: { type: 'number', example: 7, description: 'Number of trial days (optional)' },
+        planId: { type: 'string', example: '1', description: 'Plan ID for trial (optional)' },
+        promoCode: { type: 'string', example: 'LAUNCH50', description: 'Promo code (optional)' },
       },
       required: ['email'],
     },
@@ -35,7 +38,7 @@ export class PublicAuthController {
     },
   })
   @ApiResponse({ status: 400, description: 'Invalid email or request' })
-  async sendMagicLink(@Body() body: { email: string }) {
-    return this.authService.sendMagicLink(body.email);
+  async sendMagicLink(@Body() body: { email: string; trialDays?: number; planId?: string; promoCode?: string }) {
+    return this.authService.sendMagicLink(body.email, body.trialDays, body.planId, body.promoCode);
   }
 }

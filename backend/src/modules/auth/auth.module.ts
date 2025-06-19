@@ -11,11 +11,14 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { AuthController } from './controllers/auth.controller';
 import { PublicAuthController } from './controllers/public-auth.controller';
 import { TokenController } from './controllers/token.controller';
+import { UserAuthController } from './controllers/user-auth.controller';
 import { TokenAuthGuard } from './guards/token-auth.guard';
 import { Admin, AdminSchema } from './schemas/admin.schema';
 import { AccessToken, AccessTokenSchema } from './schemas/access-token.schema';
 import { ReportModule } from '../report/report.module';
 import { UserModule } from '../user/user.module';
+import { OrganizationModule } from '../organization/organization.module';
+import { PromoModule } from '../promo/promo.module';
 import { AdminRepository } from './repositories/admin.repository';
 import { AccessTokenRepository } from './repositories/access-token.repository';
 
