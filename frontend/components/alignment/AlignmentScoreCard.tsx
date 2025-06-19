@@ -6,13 +6,15 @@ interface AlignmentScoreCardProps {
   averageScore: number;
   scoreVariation: number;
   loading?: boolean;
+  isAllTime?: boolean;
 }
 
 export function AlignmentScoreCard({
   brandName,
   averageScore,
   scoreVariation,
-  loading = false
+  loading = false,
+  isAllTime = false
 }: AlignmentScoreCardProps) {
   const getTrendIcon = () => {
     if (scoreVariation > 0) return <TrendingUp className="h-4 w-4 text-green-600" />;
@@ -52,7 +54,7 @@ export function AlignmentScoreCard({
           <p className="text-sm font-medium text-gray-600">Alignment Score</p>
           <div className="flex items-baseline gap-2">
             <h2 className="text-4xl font-bold text-primary-600">{averageScore}%</h2>
-            {scoreVariation !== 0 && (
+            {!isAllTime && scoreVariation !== 0 && (
               <div className={`flex items-center gap-1 ${getTrendColor()}`}>
                 {getTrendIcon()}
                 <span className="text-sm font-medium">{formatVariation(scoreVariation)}</span>

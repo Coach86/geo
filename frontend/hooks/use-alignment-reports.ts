@@ -8,12 +8,19 @@ interface CitationItem {
   domain: string;
   url: string;
   title?: string;
-  prompt: string;
+  // New array fields
+  prompts: string[];
+  sentiments?: string[];
+  scores?: number[];
+  models: string[];
+  count: number;
+  text?: string;
+  
+  // Legacy single-value fields for backwards compatibility
+  prompt?: string;
   sentiment?: string;
   score?: number;
-  count: number;
   model?: string;
-  text?: string;
 }
 
 interface AggregatedCitations {
@@ -39,9 +46,11 @@ interface UseAlignmentReportsReturn {
 }
 
 export function useAlignmentReports(
-  selectedReports: ReportResponse[],
+  projectId: string | null,
   selectedModels: string[],
-  token: string | null
+  token: string | null,
+  isAllTime: boolean = false,
+  dateRange?: { startDate: Date; endDate: Date }
 ): UseAlignmentReportsReturn {
   const { isFreePlan } = useFeatureGate("alignment");
   const [loading, setLoading] = useState(true);
@@ -50,12 +59,26 @@ export function useAlignmentReports(
 
   // Fetch aggregated alignment data
   useEffect(() => {
-    if (!token || selectedReports.length === 0) {
-      setLoading(false);
-      return;
-    }
-
     const fetchData = async () => {
+      console.log('[useAlignmentReports] Effect triggered with:', {
+        hasToken: !!token,
+        hasDateRange: !!dateRange,
+        hasProjectId: !!projectId,
+        dateRange: dateRange ? {
+          start: dateRange.startDate.toISOString(),
+          end: dateRange.endDate.toISOString()
+        } : null,
+        selectedModels: selectedModels.length,
+        isAllTime
+      });
+      
+      if (!token || !dateRange || !projectId) {
+        console.log('[useAlignmentReports] Missing required data, skipping fetch');
+        setAggregatedData(null);
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       setError(null);
 
@@ -72,16 +95,23 @@ export function useAlignmentReports(
           
           const models = ["ChatGPT", "Claude", "Gemini"];
           
-          // Create mock aggregated data
+          // Create mock aggregated data (using dateRange for chart data)
+          const daysDiff = Math.ceil((dateRange.endDate.getTime() - dateRange.startDate.getTime()) / (1000 * 60 * 60 * 24));
+          const mockChartData = [];
+          for (let i = 0; i <= Math.min(daysDiff, 10); i++) {
+            const date = new Date(dateRange.startDate.getTime() + (i * 24 * 60 * 60 * 1000 * (daysDiff / 10)));
+            mockChartData.push({
+              date: date.toISOString().split('T')[0],
+              score: 60 + Math.random() * 25 + i * 2,
+              reportId: `mock-${i}`
+            });
+          }
+          
           const mockAggregatedData = {
             averageScore: 65 + Math.random() * 20,
             scoreVariation: Math.random() > 0.5 ? Math.floor(Math.random() * 15) : -Math.floor(Math.random() * 10),
             availableModels: models,
-            chartData: selectedReports.map((report, index) => ({
-              date: new Date(report.generatedAt).toISOString().split('T')[0],
-              score: 60 + Math.random() * 25 + index * 2,
-              reportId: report.id
-            })),
+            chartData: mockChartData,
             aggregatedAttributeScores: Object.fromEntries(
               attributes.map(attr => [attr, 0.5 + Math.random() * 0.3])
             ),
@@ -94,22 +124,22 @@ export function useAlignmentReports(
           
           setAggregatedData(mockAggregatedData);
         } else {
-          // Get project ID from the first report
-          const projectId = selectedReports[0].projectId;
-          
-          // Sort reports to get date range
-          const sortedReports = [...selectedReports].sort(
-            (a, b) => new Date(a.generatedAt).getTime() - new Date(b.generatedAt).getTime()
-          );
-          
-          const startDate = sortedReports[0].generatedAt;
-          const endDate = sortedReports[sortedReports.length - 1].generatedAt;
+          const startDate = dateRange.startDate.toISOString();
+          const endDate = dateRange.endDate.toISOString();
+
+          console.log('[useAlignmentReports] Making API call with:', {
+            projectId,
+            startDate,
+            endDate,
+            models: selectedModels,
+            includeVariation: !isAllTime
+          });
 
           const data = await getAggregatedAlignment(projectId, token, {
             startDate,
             endDate,
             models: selectedModels, // Send the array as-is (empty array means all models)
-            includeVariation: true,
+            includeVariation: !isAllTime, // Don't calculate variations for "All time"
           });
           
           setAggregatedData(data);
@@ -123,7 +153,7 @@ export function useAlignmentReports(
     };
 
     fetchData();
-  }, [selectedReports, selectedModels, token, isFreePlan]);
+  }, [dateRange, selectedModels, token, isFreePlan, isAllTime, projectId]);
 
   // Process the data
   const result = useMemo(() => {

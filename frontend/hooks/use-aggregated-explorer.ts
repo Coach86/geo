@@ -27,8 +27,8 @@ interface UseAggregatedExplorerReturn {
 
 export function useAggregatedExplorer(
   projectId: string | null,
-  reports: ReportResponse[],
-  token: string | null
+  token: string | null,
+  dateRange?: { startDate: Date; endDate: Date }
 ): UseAggregatedExplorerReturn {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +49,7 @@ export function useAggregatedExplorer(
 
   useEffect(() => {
     const fetchAggregatedExplorer = async () => {
-      if (!token || !projectId || reports.length === 0) {
+      if (!token || !projectId || !dateRange) {
         setData({
           loading: false,
           error: null,
@@ -71,12 +71,9 @@ export function useAggregatedExplorer(
       setError(null);
 
       try {
-        // Get date range from reports
-        const sortedReports = [...reports].sort((a, b) => 
-          new Date(a.generatedAt).getTime() - new Date(b.generatedAt).getTime()
-        );
-        const startDate = sortedReports[0].generatedAt.split('T')[0];
-        const endDate = sortedReports[sortedReports.length - 1].generatedAt.split('T')[0];
+        // Use the provided date range
+        const startDate = dateRange.startDate.toISOString().split('T')[0];
+        const endDate = dateRange.endDate.toISOString().split('T')[0];
 
         const response = await getAggregatedExplorer(projectId, token, {
           startDate,
@@ -133,7 +130,7 @@ export function useAggregatedExplorer(
     };
 
     fetchAggregatedExplorer();
-  }, [projectId, reports, token]);
+  }, [projectId, dateRange, token]);
 
   return {
     loading,

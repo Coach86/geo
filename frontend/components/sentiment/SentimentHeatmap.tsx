@@ -86,15 +86,15 @@ export function SentimentHeatmap({
     fetchSentimentData();
   }, [selectedReport, token]);
 
-  // Get color based on sentiment - using sentiment value colors directly
+  // Get color based on sentiment - using same colors as Sentiment Trend Analysis
   const getSentimentColor = (status: string) => {
     switch (status) {
       case "green":
-        return "#039974"; // accent-600 (positive)
+        return "#10B981"; // Same green as trend chart (positive)
       case "yellow":
-        return "#A44703"; // primary-600 (neutral)
+        return "#F59E0B"; // Same amber/orange as trend chart (neutral)
       case "red":
-        return "#B91C1C"; // destructive-600 (negative)
+        return "#EF4444"; // Same red as trend chart (negative)
       default:
         return "#636366"; // mono-500 (default gray)
     }

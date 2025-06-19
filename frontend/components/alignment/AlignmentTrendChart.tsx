@@ -81,6 +81,10 @@ export function AlignmentTrendChart({ data, brandName }: AlignmentTrendChartProp
                 strokeWidth={2}
                 dot={{ fill: "#6B46C1", r: 4 }}
                 activeDot={{ r: 6 }}
+                connectNulls={true}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                isAnimationActive={false}
                 name="Alignment Score"
               />
             </LineChart>

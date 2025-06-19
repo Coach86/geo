@@ -10,27 +10,34 @@ export class CitationItemDto {
   @ApiProperty({ description: 'Title of the cited content', required: false })
   title?: string;
 
-  @ApiProperty({ description: 'The prompt/question that triggered this citation' })
-  prompt: string;
+  @ApiProperty({ 
+    description: 'The prompts/questions that triggered this citation',
+    type: [String]
+  })
+  prompts: string[];
 
   @ApiProperty({ 
-    description: 'Sentiment for this citation (for sentiment feature)', 
+    description: 'Sentiments for this citation (for sentiment feature)', 
     required: false,
-    enum: ['positive', 'neutral', 'negative']
+    type: [String]
   })
-  sentiment?: string;
+  sentiments?: string[];
 
   @ApiProperty({ 
-    description: 'Alignment score for this citation (for alignment feature)', 
-    required: false 
+    description: 'Alignment scores for this citation (for alignment feature)', 
+    required: false,
+    type: [Number]
   })
-  score?: number;
+  scores?: number[];
 
-  @ApiProperty({ description: 'Number of times this domain was cited' })
+  @ApiProperty({ description: 'Number of times this URL was cited' })
   count: number;
 
-  @ApiProperty({ description: 'Model that generated this citation', required: false })
-  model?: string;
+  @ApiProperty({ 
+    description: 'Models that generated citations for this URL',
+    type: [String]
+  })
+  models: string[];
 
   @ApiProperty({ description: 'Cited text snippet', required: false })
   text?: string;

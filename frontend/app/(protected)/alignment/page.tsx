@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useFeatureGate } from "@/hooks/use-feature-access";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -19,6 +19,7 @@ import { useNavigation } from "@/providers/navigation-provider";
 import { ProcessingLoader } from "@/components/shared/ProcessingLoader";
 import { FeatureLockedWrapper } from "@/components/shared/FeatureLockedWrapper";
 import { SourcesWatchtower } from "@/components/shared/SourcesWatchtower";
+import { SourcesAnalysis } from "@/components/shared/SourcesAnalysis";
 
 
 export default function AlignmentPage() {
@@ -40,7 +41,13 @@ export default function AlignmentPage() {
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date } | null>(null);
+  const [isAllTime, setIsAllTime] = useState<boolean>(false);
   const [selectedAttributeReport, setSelectedAttributeReport] = useState<ReportResponse | null>(null);
+
+  // Memoize the date range object to prevent infinite re-renders
+  const memoizedDateRange = useMemo(() => {
+    return dateRange ? { startDate: dateRange.start, endDate: dateRange.end } : undefined;
+  }, [dateRange?.start, dateRange?.end]);
 
   // Fetch reports when project changes
   useEffect(() => {
@@ -60,12 +67,28 @@ export default function AlignmentPage() {
     availableModels: alignmentAvailableModels,
     detailedResults,
     citations,
-  } = useAlignmentReports(selectedReports, selectedModels, token);
+  } = useAlignmentReports(selectedProjectId, selectedModels, token, isAllTime, memoizedDateRange);
 
   // Handle date range change
-  const handleRangeChange = useCallback((start: Date, end: Date, reports: ReportResponse[]) => {
-    setDateRange({ start, end });
+  const handleRangeChange = useCallback((start: Date, end: Date, reports: ReportResponse[], isAllTimeRange?: boolean) => {
+    console.log('[AlignmentPage] handleRangeChange called with:', {
+      start: start.toISOString(),
+      end: end.toISOString(),
+      reportsCount: reports.length,
+      isAllTimeRange
+    });
+    
+    setDateRange(prev => {
+      // Only update if dates actually changed
+      if (prev?.start.getTime() === start.getTime() && prev?.end.getTime() === end.getTime()) {
+        console.log('[AlignmentPage] Date range unchanged, skipping update');
+        return prev;
+      }
+      console.log('[AlignmentPage] Date range changed, updating');
+      return { start, end };
+    });
     setSelectedReports(reports);
+    setIsAllTime(isAllTimeRange || false);
   }, []);
 
   // Update available models when alignment data changes
@@ -185,6 +208,7 @@ export default function AlignmentPage() {
                   averageScore={averageScore}
                   scoreVariation={scoreVariation}
                   loading={loadingAlignment}
+                  isAllTime={isAllTime}
                 />
               </div>
 
@@ -199,22 +223,13 @@ export default function AlignmentPage() {
 
             {/* Second Row: 3 columns layout */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Coming Soon - 1 column */}
+              {/* Sources Analysis - 1 column */}
               <div>
-                <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
-                  <CardHeader className="pb-4">
-                    <CardTitle className="text-lg font-semibold text-gray-900">
-                      Coming Soon
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-48 flex items-center justify-center">
-                      <p className="text-sm text-gray-500 italic">
-                        New feature coming soon
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
+                <SourcesAnalysis
+                  citations={citations}
+                  type="alignment"
+                  loading={loadingAlignment}
+                />
               </div>
               
               {/* Attribute Scores by Model - Takes 2 columns */}

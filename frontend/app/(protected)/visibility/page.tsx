@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useAuth } from "@/providers/auth-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -38,6 +38,7 @@ export default function VisibilityPage() {
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date } | null>(null);
+  const [isAllTime, setIsAllTime] = useState<boolean>(false);
   const [hoveredEntity, setHoveredEntity] = useState<string | null>(null);
 
   // Fetch reports when project changes
@@ -46,6 +47,11 @@ export default function VisibilityPage() {
       fetchReports(selectedProjectId, token);
     }
   }, [selectedProjectId, token, fetchReports]);
+
+  // Memoize the date range object to prevent infinite re-renders
+  const memoizedDateRange = useMemo(() => {
+    return dateRange ? { startDate: dateRange.start, endDate: dateRange.end } : undefined;
+  }, [dateRange?.start, dateRange?.end]);
 
   // Hooks for visibility data
   const {
@@ -57,7 +63,7 @@ export default function VisibilityPage() {
     chartData,
     modelBreakdown,
     availableModels: visibilityAvailableModels,
-  } = useVisibilityReports(selectedReports, selectedModels, token);
+  } = useVisibilityReports(selectedProjectId, selectedModels, token, isAllTime, memoizedDateRange);
 
   const {
     loading: loadingExplorer,
@@ -65,15 +71,31 @@ export default function VisibilityPage() {
     topMentions,
     topKeywords,
     topSources,
-  } = useAggregatedExplorer(selectedProjectId, selectedReports, token);
+  } = useAggregatedExplorer(selectedProjectId, token, memoizedDateRange);
 
   // Show all competitors by default
   const selectedCompetitors = competitors.map(c => c.name);
 
   // Handle date range change
-  const handleRangeChange = useCallback((start: Date, end: Date, reports: ReportResponse[]) => {
-    setDateRange({ start, end });
+  const handleRangeChange = useCallback((start: Date, end: Date, reports: ReportResponse[], isAllTimeRange?: boolean) => {
+    console.log('[VisibilityPage] handleRangeChange called with:', {
+      start: start.toISOString(),
+      end: end.toISOString(),
+      reportsCount: reports.length,
+      isAllTimeRange
+    });
+    
+    setDateRange(prev => {
+      // Only update if dates actually changed
+      if (prev?.start.getTime() === start.getTime() && prev?.end.getTime() === end.getTime()) {
+        console.log('[VisibilityPage] Date range unchanged, skipping update');
+        return prev;
+      }
+      console.log('[VisibilityPage] Date range changed, updating');
+      return { start, end };
+    });
     setSelectedReports(reports);
+    setIsAllTime(isAllTimeRange || false);
   }, []);
 
   // Update available models when visibility data changes
@@ -197,6 +219,7 @@ export default function VisibilityPage() {
                 onCompetitorToggle={() => {}}
                 onEntityHover={setHoveredEntity}
                 hoveredEntity={hoveredEntity}
+                isAllTime={isAllTime}
               />
             </div>
 

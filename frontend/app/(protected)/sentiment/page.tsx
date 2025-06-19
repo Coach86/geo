@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useAuth } from "@/providers/auth-provider";
 import { useFeatureGate } from "@/hooks/use-feature-access";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +23,7 @@ import { getModelFriendlyName } from "@/utils/model-utils";
 import { FeatureLockedWrapper } from "@/components/shared/FeatureLockedWrapper";
 import { getMockSentimentData } from "@/lib/mock-data";
 import { SourcesWatchtower } from "@/components/shared/SourcesWatchtower";
+import { SourcesAnalysis } from "@/components/shared/SourcesAnalysis";
 
 export default function SentimentPage() {
   const { token } = useAuth();
@@ -43,6 +44,12 @@ export default function SentimentPage() {
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date } | null>(null);
+  const [isAllTime, setIsAllTime] = useState<boolean>(false);
+
+  // Memoize the date range object to prevent infinite re-renders
+  const memoizedDateRange = useMemo(() => {
+    return dateRange ? { startDate: dateRange.start, endDate: dateRange.end } : undefined;
+  }, [dateRange?.start, dateRange?.end]);
   const [hoveredMetric, setHoveredMetric] = useState<string | null>(null);
   const [selectedHeatmapReport, setSelectedHeatmapReport] = useState<ReportResponse | null>(null);
 
@@ -73,15 +80,36 @@ export default function SentimentPage() {
     aggregatedHeatmap,
     availableModels: sentimentAvailableModels,
     citations,
-  } = useSentimentReports(selectedReports, selectedModels, token);
+  } = useSentimentReports(selectedProjectId, selectedModels, token, isAllTime, memoizedDateRange);
+  
+  // Debug logging for citations
+  useEffect(() => {
+    console.log('SentimentPage - citations from hook:', citations);
+  }, [citations]);
   
   // State for storing heatmap report sentiment data
   const [heatmapSentimentData, setHeatmapSentimentData] = useState<any>(null);
 
   // Handle date range change
-  const handleRangeChange = useCallback((start: Date, end: Date, reports: ReportResponse[]) => {
-    setDateRange({ start, end });
+  const handleRangeChange = useCallback((start: Date, end: Date, reports: ReportResponse[], isAllTimeRange?: boolean) => {
+    console.log('[SentimentPage] handleRangeChange called with:', {
+      start: start.toISOString(),
+      end: end.toISOString(),
+      reportsCount: reports.length,
+      isAllTimeRange
+    });
+    
+    setDateRange(prev => {
+      // Only update if dates actually changed
+      if (prev?.start.getTime() === start.getTime() && prev?.end.getTime() === end.getTime()) {
+        console.log('[SentimentPage] Date range unchanged, skipping update');
+        return prev;
+      }
+      console.log('[SentimentPage] Date range changed, updating');
+      return { start, end };
+    });
     setSelectedReports(reports);
+    setIsAllTime(isAllTimeRange || false);
   }, []);
 
   // Update available models when sentiment data changes
@@ -388,6 +416,7 @@ export default function SentimentPage() {
                     distributionVariations={distributionVariations}
                     onMetricHover={setHoveredMetric}
                     hoveredMetric={hoveredMetric}
+                    isAllTime={isAllTime}
                   />
                 </div>
                 
@@ -404,22 +433,13 @@ export default function SentimentPage() {
 
               {/* Second Row: 3 columns with heatmap taking 2 */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Placeholder - 1 column */}
+                {/* Sources Analysis - 1 column */}
                 <div>
-                  <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
-                    <CardHeader className="pb-4">
-                      <CardTitle className="text-lg font-semibold text-gray-900">
-                        Coming Soon
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="h-32 flex items-center justify-center">
-                        <p className="text-sm text-gray-500 italic">
-                          New feature coming soon
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <SourcesAnalysis
+                    citations={citations}
+                    type="sentiment"
+                    loading={loadingSentiment}
+                  />
                 </div>
                 
                 {/* Sentiment Heatmap - Takes 2 columns */}

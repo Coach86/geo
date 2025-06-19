@@ -25,4 +25,7 @@ export class OrganizationResponseDto {
   trialEndDate?: string;
   isOnTrial?: boolean;
   trialPlanId?: string;
+
+  // Promo code tracking
+  promoCode?: string;
 }

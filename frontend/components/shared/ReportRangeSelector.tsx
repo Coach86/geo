@@ -26,7 +26,7 @@ interface ReportRangeSelectorProps {
   reports: ReportResponse[];
   projectId: string;
   availableModels: string[];
-  onRangeChange: (startDate: Date, endDate: Date, selectedReports: ReportResponse[]) => void;
+  onRangeChange: (startDate: Date, endDate: Date, selectedReports: ReportResponse[], isAllTime?: boolean) => void;
   onModelFilterChange: (models: string[]) => void;
 }
 
@@ -149,17 +149,54 @@ export function ReportRangeSelector({
     });
   }, [sortedReports, selectedRange, customDateRange]);
 
-  // Trigger callback when range or reports change
-  useEffect(() => {
-    if (filteredReports.length > 0) {
-      const startDate = new Date(filteredReports[filteredReports.length - 1].generatedAt);
-      const endDate = new Date(filteredReports[0].generatedAt);
-      onRangeChange(startDate, endDate, filteredReports);
+  // Calculate the actual date range (separate from filtered reports)
+  const actualDateRange = useMemo(() => {
+    const range = PREDEFINED_RANGES.find(r => r.label === selectedRange);
+    if (!range) return null;
+
+    if (range.days === 0) {
+      // Latest - use today
+      const today = new Date();
+      return { startDate: startOfDay(today), endDate: endOfDay(today) };
+    } else if (range.days === -1) {
+      // All time - use the full range of available reports
+      if (sortedReports.length > 0) {
+        const startDate = new Date(sortedReports[sortedReports.length - 1].generatedAt);
+        const endDate = new Date(sortedReports[0].generatedAt);
+        return { startDate: startOfDay(startDate), endDate: endOfDay(endDate) };
+      } else {
+        const today = new Date();
+        return { startDate: startOfDay(today), endDate: endOfDay(today) };
+      }
+    } else if (range.days === -2) {
+      // Custom range - use the selected custom dates
+      if (customDateRange.from && customDateRange.to) {
+        return {
+          startDate: startOfDay(customDateRange.from),
+          endDate: endOfDay(customDateRange.to)
+        };
+      }
+      return null;
     } else {
-      // Call with empty array when no reports match the filter
-      onRangeChange(new Date(), new Date(), []);
+      // Predefined ranges - use the actual time period
+      const endDate = endOfDay(new Date());
+      const startDate = startOfDay(subDays(endDate, range.days));
+      return { startDate, endDate };
     }
-  }, [filteredReports, onRangeChange]);
+  }, [selectedRange, customDateRange, sortedReports]);
+
+  // Trigger callback when date range changes
+  useEffect(() => {
+    if (actualDateRange) {
+      const isAllTime = selectedRange === "All time";
+      console.log(`[ReportRangeSelector] ${selectedRange} - Sending date range:`, {
+        startDate: actualDateRange.startDate.toISOString(),
+        endDate: actualDateRange.endDate.toISOString(),
+        filteredReportsCount: filteredReports.length
+      });
+      onRangeChange(actualDateRange.startDate, actualDateRange.endDate, filteredReports, isAllTime);
+    }
+  }, [actualDateRange, filteredReports, onRangeChange, selectedRange]);
 
   // Trigger callback when model filter changes and save to localStorage
   useEffect(() => {

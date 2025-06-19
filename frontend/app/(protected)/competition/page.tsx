@@ -17,6 +17,7 @@ import { ProcessingLoader } from "@/components/shared/ProcessingLoader";
 import { getReportCompetition } from "@/lib/api/report";
 import { FeatureLockedWrapper } from "@/components/shared/FeatureLockedWrapper";
 import { getMockCompetitionData } from "@/lib/mock-data";
+import { CompetitionWatchtower } from "@/components/competition/CompetitionWatchtower";
 
 interface ProcessedReport extends ReportResponse {
   competition: CompetitionTypeData;
@@ -279,10 +280,18 @@ export default function CompetitionPage() {
             {getBattleData() &&
             getBattleData()!.competitorAnalyses &&
             getBattleData()!.competitorAnalyses.length > 0 ? (
-              <CompetitionTable
-                brand={competitionData.brandName || selectedReport.brandName}
-                data={getBattleData()!}
-              />
+              <>
+                <CompetitionTable
+                  brand={competitionData.brandName || selectedReport.brandName}
+                  data={getBattleData()!}
+                />
+                
+                {/* Competition Watchtower */}
+                <CompetitionWatchtower
+                  citations={undefined} // Competition API doesn't return citations yet
+                  loading={loadingCompetition}
+                />
+              </>
             ) : (
               <Card>
                 <CardContent className="pt-6">

@@ -18,6 +18,7 @@ interface SentimentMetricsCardProps {
   };
   onMetricHover?: (metric: string | null) => void;
   hoveredMetric?: string | null;
+  isAllTime?: boolean;
 }
 
 export function SentimentMetricsCard({
@@ -27,6 +28,7 @@ export function SentimentMetricsCard({
   distributionVariations,
   onMetricHover,
   hoveredMetric,
+  isAllTime = false,
 }: SentimentMetricsCardProps) {
   const getVariationIcon = (variation: number | null | undefined) => {
     if (variation === null || variation === undefined || variation === 0) {
@@ -74,7 +76,7 @@ export function SentimentMetricsCard({
                   }`}>
                     {averageScore}%
                   </div>
-                  {scoreVariation !== null && (
+                  {!isAllTime && scoreVariation !== null && (
                     <div className={`flex items-center gap-1 text-sm ${getVariationColor(scoreVariation)}`}>
                       {getVariationIcon(scoreVariation)}
                       <span className="font-medium">
@@ -105,7 +107,7 @@ export function SentimentMetricsCard({
                         {distribution.positive}%
                       </div>
                     </div>
-                    {distributionVariations?.positive !== null && distributionVariations?.positive !== undefined && (
+                    {!isAllTime && distributionVariations?.positive !== null && distributionVariations?.positive !== undefined && (
                       <div className={`flex items-center gap-0.5 text-xs ${getVariationColor(distributionVariations.positive)}`}>
                         {getVariationIcon(distributionVariations.positive)}
                         <span>{formatVariation(distributionVariations.positive)}</span>
@@ -127,7 +129,7 @@ export function SentimentMetricsCard({
                         {distribution.neutral}%
                       </div>
                     </div>
-                    {distributionVariations?.neutral !== null && distributionVariations?.neutral !== undefined && (
+                    {!isAllTime && distributionVariations?.neutral !== null && distributionVariations?.neutral !== undefined && (
                       <div className={`flex items-center gap-0.5 text-xs ${getVariationColor(distributionVariations.neutral)}`}>
                         {getVariationIcon(distributionVariations.neutral)}
                         <span>{formatVariation(distributionVariations.neutral)}</span>
@@ -149,7 +151,7 @@ export function SentimentMetricsCard({
                         {distribution.negative}%
                       </div>
                     </div>
-                    {distributionVariations?.negative !== null && distributionVariations?.negative !== undefined && (
+                    {!isAllTime && distributionVariations?.negative !== null && distributionVariations?.negative !== undefined && (
                       <div className={`flex items-center gap-0.5 text-xs ${getVariationColor(distributionVariations.negative)}`}>
                         {getVariationIcon(distributionVariations.negative)}
                         <span>{formatVariation(distributionVariations.negative)}</span>

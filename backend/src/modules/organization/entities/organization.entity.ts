@@ -22,4 +22,7 @@ export class Organization {
   trialEndDate?: Date;
   isOnTrial?: boolean;
   trialPlanId?: string;
+
+  // Promo code tracking
+  promoCode?: string;
 }

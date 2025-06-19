@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, Inject, Logger } from '@nestjs/common';
+import { Injectable, BadRequestException, Inject, Logger, forwardRef } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
@@ -10,6 +10,9 @@ import { AdminRepository } from '../repositories/admin.repository';
 import { UserService } from '../../user/services/user.service';
 import { TokenService } from './token.service';
 import { MagicLinkEmail } from '../../report/email';
+import { PromoCodeService } from '../../promo/services/promo-code.service';
+import { OrganizationService } from '../../organization/services/organization.service';
+import { MagicLinkResponseDto } from '../dto/magic-link.dto';
 
 @Injectable()
 export class AuthService {
@@ -21,6 +24,8 @@ export class AuthService {
     private readonly configService: ConfigService,
     @Inject(UserService) private readonly userService: UserService,
     @Inject(TokenService) private readonly tokenService: TokenService,
+    @Inject(forwardRef(() => PromoCodeService)) private readonly promoCodeService: PromoCodeService,
+    @Inject(forwardRef(() => OrganizationService)) private readonly organizationService: OrganizationService,
   ) {}
 
   async validateAdmin(email: string, password: string): Promise<any> {
@@ -64,42 +69,73 @@ export class AuthService {
     };
   }
 
-  async sendMagicLink(email: string, trialDays?: number, planId?: string, promoCode?: string) {
-    this.logger.log(`Magic link request for email: ${email}, trial: ${trialDays} days, plan: ${planId}, promo: ${promoCode}`);
+  async sendMagicLink(email: string, promoCode?: string): Promise<MagicLinkResponseDto> {
+    this.logger.log(`Magic link request for email: ${email}, promo: ${promoCode}`);
 
     try {
       if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         throw new BadRequestException('Valid email address is required');
       }
 
+      // Validate promo code if provided
+      let promoValidation = null;
+      if (promoCode) {
+        promoValidation = await this.promoCodeService.validate({ code: promoCode });
+        if (!promoValidation.valid) {
+          this.logger.warn(`Invalid promo code ${promoCode}: ${promoValidation.reason}`);
+          // Don't throw error, just ignore invalid promo code
+          promoCode = undefined;
+        }
+      }
+
       // First, try to find existing user
       let user;
+      let isNewUser = false;
       try {
         user = await this.userService.findByEmail(email);
         this.logger.log(`Found existing user: ${user.id}`);
       } catch (error) {
         // User not found, create new one
+        isNewUser = true;
         this.logger.log(`User not found, creating new user for: ${email}`);
         user = await this.userService.create({ email });
         this.logger.log(`Created new user: ${user.id}`);
       }
 
-      // Generate access token with trial/plan/promo metadata
+      // Apply promo code only for new users
+      if (isNewUser && promoCode && promoValidation?.valid && promoValidation.promoCode) {
+        const promoDetails = promoValidation.promoCode;
+        
+        // Apply trial if promo code provides trial days
+        if (promoDetails.discountType === 'trial_days' && promoDetails.trialPlanId) {
+          await this.organizationService.activateTrial(
+            user.organizationId,
+            promoDetails.trialPlanId,
+            promoDetails.discountValue,
+            promoCode
+          );
+          
+          // Track promo code usage
+          await this.promoCodeService.apply(
+            promoCode,
+            user.id,
+            user.organizationId
+          );
+          
+          this.logger.log(`Applied promo code ${promoCode} with ${promoDetails.discountValue} trial days for user ${user.id}`);
+        }
+      }
+
+      // Generate access token with promo metadata
       const tokenMetadata: any = { userId: user.id };
-      if (trialDays !== undefined) {
-        tokenMetadata.trialDays = trialDays;
-      }
-      if (planId !== undefined) {
-        tokenMetadata.planId = planId;
-      }
-      if (promoCode !== undefined) {
+      if (promoCode !== undefined && promoValidation?.valid) {
         tokenMetadata.promoCode = promoCode;
       }
       
       const token = await this.tokenService.generateAccessToken(user.id, tokenMetadata);
 
-      // Send magic link email with trial/plan/promo parameters
-      await this.sendMagicLinkEmail(email, token, trialDays, planId, promoCode);
+      // Send magic link email with promo parameters
+      await this.sendMagicLinkEmail(email, token, promoCode);
 
       return {
         success: true,
@@ -115,7 +151,7 @@ export class AuthService {
     }
   }
 
-  private async sendMagicLinkEmail(email: string, token: string, trialDays?: number, planId?: string, promoCode?: string): Promise<void> {
+  private async sendMagicLinkEmail(email: string, token: string, promoCode?: string): Promise<void> {
     try {
       const resendApiKey = this.configService.get<string>('RESEND_API_KEY');
       if (!resendApiKey) {
@@ -126,13 +162,7 @@ export class AuthService {
       const baseUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
       let accessUrl = `${baseUrl}/auth/login?token=${token}`;
       
-      // Add trial and plan parameters if provided
-      if (trialDays !== undefined) {
-        accessUrl += `&t=${trialDays}`;
-      }
-      if (planId !== undefined) {
-        accessUrl += `&p=${planId}`;
-      }
+      // Add promo parameter if provided
       if (promoCode !== undefined) {
         accessUrl += `&promo=${encodeURIComponent(promoCode)}`;
       }
