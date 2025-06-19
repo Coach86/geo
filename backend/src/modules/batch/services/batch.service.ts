@@ -1284,6 +1284,8 @@ export class BatchService {
         sentiment: result.sentiment,
         status,
         llmResponse: result.llmResponse,
+        citations: result.citations,
+        toolUsage: result.toolUsage,
       });
     });
 

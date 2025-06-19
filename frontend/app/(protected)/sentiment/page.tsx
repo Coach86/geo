@@ -1,241 +1,159 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/providers/auth-provider";
 import { useFeatureGate } from "@/hooks/use-feature-access";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, X } from "lucide-react";
-import { getProjectReports } from "@/lib/auth-api";
 import type { ReportResponse } from "@/types/reports";
-import { saveSelectedReportId, getSelectedReportId } from "@/lib/report-selection";
-import { SentimentOverview } from "@/components/sentiment/SentimentOverview";
-import { SentimentDistribution } from "@/components/sentiment/SentimentDistribution";
+import { SentimentMetricsCard } from "@/components/sentiment/SentimentMetricsCard";
+import { SentimentTrendChart } from "@/components/sentiment/SentimentTrendChart";
 import { SentimentHeatmap } from "@/components/sentiment/SentimentHeatmap";
 import { Button } from "@/components/ui/button";
-import { ProjectHeader } from "@/components/project-profile/ProjectHeader";
-import { ProjectMetadata } from "@/components/project-profile/ProjectMetadata";
+import { Badge } from "@/components/ui/badge";
 import BreadcrumbNav from "@/components/layout/breadcrumb-nav";
 import { useNavigation } from "@/providers/navigation-provider";
-import { useReportData } from "@/hooks/use-report-data";
+import { useReports } from "@/providers/report-provider";
 import { ProcessingLoader } from "@/components/shared/ProcessingLoader";
-import { getReportSentiment } from "@/lib/api/report";
+import { ReportRangeSelector } from "@/components/shared/ReportRangeSelector";
+import { useSentimentReports } from "@/hooks/use-sentiment-reports";
 import { getModelFriendlyName } from "@/utils/model-utils";
 import { FeatureLockedWrapper } from "@/components/shared/FeatureLockedWrapper";
 import { getMockSentimentData } from "@/lib/mock-data";
-
-interface ProcessedReport extends ReportResponse {
-  reportDate: string;
-  createdAt: string;
-  sentimentScore: number;
-  sentimentCounts: {
-    positive: number;
-    neutral: number;
-    negative: number;
-    total: number;
-  };
-  sentimentHeatmap: {
-    question: string;
-    results: {
-      model: string;
-      sentiment: string;
-      status: string;
-    }[];
-  }[];
-  modelSentiments: {
-    model: string;
-    sentiment: string;
-    status: string;
-    positiveKeywords: string[];
-    negativeKeywords: string[];
-  }[];
-  brandName: string;
-}
-
-interface SentimentData {
-  overallScore: number;
-  overallSentiment: 'positive' | 'neutral' | 'negative';
-  distribution: {
-    positive: number;
-    neutral: number;
-    negative: number;
-    total: number;
-  };
-  modelSentiments: {
-    model: string;
-    sentiment: 'positive' | 'neutral' | 'negative';
-    status: 'green' | 'yellow' | 'red';
-    positiveKeywords: string[];
-    negativeKeywords: string[];
-  }[];
-  heatmapData: {
-    question: string;
-    results: {
-      model: string;
-      sentiment: 'positive' | 'neutral' | 'negative';
-      status: 'green' | 'yellow' | 'red';
-      llmResponse?: string;
-    }[];
-  }[];
-}
 
 export default function SentimentPage() {
   const { token } = useAuth();
   const { hasAccess, isLoading: accessLoading, isFreePlan } = useFeatureGate("sentiment");
   const { filteredProjects, selectedProject, setSelectedProject } = useNavigation();
-  const {
-    selectedProjectId,
-    projectDetails,
-    selectedReport,
-    setSelectedReport,
-    loading,
-    error
-  } = useReportData<ProcessedReport>((report, project) => {
-    // Process API response to match our interface
-    const reportData = report as any;
-    // Extract tone data
-    const toneData = reportData.tone || {};
-    const questions = toneData.questions || [];
+  const { reports, loadingReports, fetchReports } = useReports();
+  
+  // Get selected project from localStorage
+  const selectedProjectId = typeof window !== 'undefined' 
+    ? localStorage.getItem('selectedProjectId') 
+    : null;
 
-    // Calculate sentiment counts with error handling
-    const allResults = questions.flatMap((q: any) => q.results || []);
-    const sentimentCounts = allResults.length > 0 ? {
-      positive: allResults.filter((r: any) => r.status === "green")
-        .length,
-      neutral: allResults.filter((r: any) => r.status === "yellow")
-        .length,
-      negative: allResults.filter((r: any) => r.status === "red")
-        .length,
-      total: allResults.length,
-    } : {
-      positive: 0,
-      neutral: 0,
-      negative: 0,
-      total: 0,
-    };
+  const projectReports = selectedProjectId ? reports[selectedProjectId] || [] : [];
+  const brandName = selectedProject?.brandName || 'Brand';
 
-    // Extract sentiment score from KPI
-    const sentimentScore = parseInt(reportData.kpi?.tone?.value || "0");
+  // State for date range and model filters
+  const [selectedReports, setSelectedReports] = useState<ReportResponse[]>([]);
+  const [selectedModels, setSelectedModels] = useState<string[]>([]);
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
+  const [dateRange, setDateRange] = useState<{ start: Date; end: Date } | null>(null);
+  const [hoveredMetric, setHoveredMetric] = useState<string | null>(null);
+  const [selectedHeatmapReport, setSelectedHeatmapReport] = useState<ReportResponse | null>(null);
 
-    // Extract brand name
-    const brandName =
-      reportData.brand || (report.metadata as any)?.brand || project.brandName;
-
-    // Extract model sentiments
-    const modelSentiments = toneData.sentiments || [];
-
-    return {
-      ...report,
-      reportDate: report.metadata?.date || report.generatedAt,
-      createdAt: report.generatedAt,
-      sentimentScore,
-      sentimentCounts,
-      sentimentHeatmap: questions,
-      modelSentiments,
-      brandName,
-    };
-  });
+  // Drawer state for detailed model analysis
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [selectedQuestion, setSelectedQuestion] = useState<string | null>(null);
   const [selectedLlmResponse, setSelectedLlmResponse] = useState<string | null>(null);
+  const [selectedModelData, setSelectedModelData] = useState<any>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [sentimentData, setSentimentData] = useState<SentimentData | null>(null);
-  const [loadingSentiment, setLoadingSentiment] = useState(false);
-  const [sentimentError, setSentimentError] = useState<string | null>(null);
 
-  // Fetch sentiment data when selected report changes
+  // Fetch reports when project changes
   useEffect(() => {
-    const fetchSentimentData = async () => {
-      if (!selectedReport || !token) {
-        setSentimentData(null);
-        return;
-      }
+    if (selectedProjectId && token) {
+      fetchReports(selectedProjectId, token);
+    }
+  }, [selectedProjectId, token, fetchReports]);
 
-      setLoadingSentiment(true);
-      setSentimentError(null);
+  // Hooks for sentiment data
+  const {
+    loading: loadingSentiment,
+    error: sentimentError,
+    averageScore,
+    scoreVariation,
+    distribution,
+    distributionVariations,
+    chartData,
+    aggregatedHeatmap,
+    availableModels: sentimentAvailableModels,
+  } = useSentimentReports(selectedReports, selectedModels, token);
+  
+  // State for storing heatmap report sentiment data
+  const [heatmapSentimentData, setHeatmapSentimentData] = useState<any>(null);
 
-      try {
-        if (isFreePlan) {
-          // Use mock data for free plan users
-          const mockData = getMockSentimentData();
-          const sentimentData: SentimentData = {
-            overallScore: mockData.overallSentiment.positive,
-            overallSentiment: mockData.overallSentiment.positive >= 60 ? 'positive' : 
-                            mockData.overallSentiment.negative >= 40 ? 'negative' : 'neutral',
-            distribution: {
-              positive: mockData.overallSentiment.positive,
-              neutral: mockData.overallSentiment.neutral,
-              negative: mockData.overallSentiment.negative,
-              total: 100
-            },
-            modelSentiments: mockData.sentimentByModel.map(m => ({
-              model: m.model,
-              sentiment: m.positive >= 60 ? 'positive' : m.negative >= 40 ? 'negative' : 'neutral',
-              status: m.positive >= 60 ? 'green' : m.negative >= 40 ? 'red' : 'yellow',
-              positiveKeywords: ['innovative', 'reliable', 'quality'],
-              negativeKeywords: ['expensive', 'complex']
-            })),
-            heatmapData: mockData.keyThemes.map(theme => ({
-              question: `How is ${theme.theme} perceived?`,
-              results: mockData.sentimentByModel.map(m => ({
-                model: m.model,
-                sentiment: theme.sentiment as 'positive' | 'neutral' | 'negative',
-                status: theme.sentiment === 'positive' ? 'green' : theme.sentiment === 'negative' ? 'red' : 'yellow',
-                llmResponse: m.details
-              }))
-            }))
-          };
-          setSentimentData(sentimentData);
-        } else {
-          const data = await getReportSentiment(selectedReport.id, token);
-          setSentimentData(data);
+  // Handle date range change
+  const handleRangeChange = useCallback((start: Date, end: Date, reports: ReportResponse[]) => {
+    setDateRange({ start, end });
+    setSelectedReports(reports);
+  }, []);
+
+  // Update available models when sentiment data changes
+  useEffect(() => {
+    if (sentimentAvailableModels && sentimentAvailableModels.length > 0) {
+      // Only update if the models have actually changed
+      const modelsChanged = JSON.stringify(availableModels) !== JSON.stringify(sentimentAvailableModels);
+      if (modelsChanged) {
+        setAvailableModels(sentimentAvailableModels);
+        // Select all models by default when they become available for the first time
+        if (selectedModels.length === 0 && availableModels.length === 0) {
+          setSelectedModels(sentimentAvailableModels);
         }
-      } catch (err) {
-        console.error("Failed to fetch sentiment data:", err);
-        setSentimentError("Failed to load sentiment data. Please try again later.");
-      } finally {
-        setLoadingSentiment(false);
       }
-    };
+    }
+  }, [sentimentAvailableModels, selectedModels, availableModels]);
 
-    fetchSentimentData();
-  }, [selectedReport, token, isFreePlan]);
-
-
-  // Format date for display
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
+  // Handle model filter change
+  const handleModelFilterChange = useCallback((models: string[]) => {
+    setSelectedModels(models);
+  }, []);
 
   // Handle cell click from heatmap
-  const handleCellClick = (model: string, sentiment: string, status: string, question: string, llmResponse?: string) => {
+  const handleCellClick = (model: string, sentiment: string, status: string, question: string, llmResponse?: string, modelData?: any) => {
     setSelectedModel(model);
     setSelectedStatus(status);
     setSelectedQuestion(question);
     setSelectedLlmResponse(llmResponse || null);
+    
+    // Find the full result data from the heatmap sentiment data
+    const fullResult = heatmapSentimentData?.heatmapData?.find(
+      (item: any) => item.question === question
+    )?.results?.find((result: any) => result.model === model);
+    
+    // Find the model sentiment data that includes keywords
+    const modelSentimentData = heatmapSentimentData?.modelSentiments?.find(
+      (ms: any) => ms.model === model
+    );
+    
+    // Combine full result with model sentiment data for keywords
+    const combinedData = {
+      ...fullResult,
+      positiveKeywords: modelSentimentData?.positiveKeywords || [],
+      negativeKeywords: modelSentimentData?.negativeKeywords || [],
+    };
+    
+    setSelectedModelData(combinedData || modelData || null);
     setIsDrawerOpen(true);
   };
 
-  // Get model data
+  // Get model data for drawer
   const getModelData = () => {
-    if (!selectedModel || !sentimentData) return null;
-    return sentimentData.modelSentiments.find(
-      (s) => s.model === selectedModel
-    );
+    if (!selectedModel || !selectedModelData) {
+      // Fallback to empty data if no model data is available
+      return {
+        model: selectedModel || '',
+        sentiment: selectedStatus === "green" ? "positive" : selectedStatus === "red" ? "negative" : "neutral",
+        status: selectedStatus || "yellow",
+        positiveKeywords: [],
+        negativeKeywords: [],
+        toolUsage: [],
+        citations: [],
+      };
+    }
+    
+    return {
+      model: selectedModel,
+      sentiment: selectedStatus === "green" ? "positive" : selectedStatus === "red" ? "negative" : "neutral",
+      status: selectedStatus || "yellow",
+      positiveKeywords: selectedModelData.positiveKeywords || [],
+      negativeKeywords: selectedModelData.negativeKeywords || [],
+      toolUsage: selectedModelData.toolUsage || [],
+      citations: selectedModelData.citations || [],
+    };
   };
 
   // Helper function to get position based on status
@@ -249,6 +167,36 @@ export default function SentimentPage() {
         return 98; // Positive position (far right)
       default:
         return 49; // Default to neutral
+    }
+  };
+
+  // Helper function to get cell color
+  const getCellColor = (status: string) => {
+    switch (status) {
+      case "green":
+        return {
+          bg: "rgb(4 191 145 / 0.05)",
+          text: "rgb(4 191 145)",
+          border: "rgb(4 191 145 / 0.2)",
+        };
+      case "yellow":
+        return {
+          bg: "rgb(190 81 3 / 0.05)",
+          text: "rgb(190 81 3)",
+          border: "rgb(190 81 3 / 0.2)",
+        };
+      case "red":
+        return {
+          bg: "rgb(220 38 38 / 0.05)",
+          text: "rgb(220 38 38)",
+          border: "rgb(220 38 38 / 0.2)",
+        };
+      default:
+        return {
+          bg: "rgb(245 245 247)",
+          text: "rgb(72 72 74)",
+          border: "rgb(238 238 238)",
+        };
     }
   };
 
@@ -319,34 +267,8 @@ export default function SentimentPage() {
     return text;
   };
 
-  const getCellColor = (status: string) => {
-    switch (status) {
-      case "green":
-        return {
-          bg: "rgb(4 191 145 / 0.05)",
-          text: "rgb(4 191 145)",
-          border: "rgb(4 191 145 / 0.2)",
-        };
-      case "yellow":
-        return {
-          bg: "rgb(190 81 3 / 0.05)",
-          text: "rgb(190 81 3)",
-          border: "rgb(190 81 3 / 0.2)",
-        };
-      case "red":
-        return {
-          bg: "rgb(220 38 38 / 0.05)",
-          text: "rgb(220 38 38)",
-          border: "rgb(220 38 38 / 0.2)",
-        };
-      default:
-        return {
-          bg: "rgb(245 245 247)",
-          text: "rgb(72 72 74)",
-          border: "rgb(238 238 238)",
-        };
-    }
-  };
+  const loading = loadingReports[selectedProjectId || ''] || loadingSentiment;
+  const error = sentimentError;
 
   // Check feature access
   if (accessLoading) {
@@ -357,68 +279,68 @@ export default function SentimentPage() {
     );
   }
 
-
   if (!selectedProjectId) {
     return (
       <div className="flex items-center justify-center h-[50vh]">
-          <Card className="max-w-md w-full">
-            <CardContent className="pt-6">
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  Please select a project from the sidebar to view sentiment
-                  analysis.
-                </AlertDescription>
-              </Alert>
-            </CardContent>
-          </Card>
-        </div>
+        <Card className="max-w-md w-full">
+          <CardContent className="pt-6">
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Please select a project from the sidebar to view sentiment
+                analysis.
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   return (
     <>
       <div className="space-y-6">
-        {/* Breadcrumb Navigation */}
-        {token && filteredProjects.length > 0 && (
-          <BreadcrumbNav
-            projects={filteredProjects}
-            selectedProject={selectedProject}
-            onProjectSelect={setSelectedProject}
-            currentPage="Sentiment"
-            showReportSelector={true}
-            token={token}
-            onReportSelect={setSelectedReport}
-          />
-        )}
-
+        {/* Breadcrumb Navigation with new Report Range Selector */}
+        <div className="flex items-center justify-between">
+          {token && filteredProjects.length > 0 && (
+            <BreadcrumbNav
+              projects={filteredProjects}
+              selectedProject={selectedProject}
+              onProjectSelect={setSelectedProject}
+              currentPage="Sentiment"
+              showReportSelector={false}
+              token={token}
+            />
+          )}
+          {projectReports.length > 0 && selectedProjectId && (
+            <ReportRangeSelector
+              reports={projectReports}
+              projectId={selectedProjectId}
+              availableModels={availableModels}
+              onRangeChange={handleRangeChange}
+              onModelFilterChange={handleModelFilterChange}
+            />
+          )}
+        </div>
 
         {/* Error State */}
-        {(error || sentimentError) && (
+        {error && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error || sentimentError}</AlertDescription>
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 
         {/* Loading State */}
-        {(loading || loadingSentiment) && (
+        {loading && (
           <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <Skeleton className="h-6 w-48" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-32 w-full" />
-              </CardContent>
-            </Card>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
                   <Skeleton className="h-6 w-48" />
                 </CardHeader>
                 <CardContent>
-                  <Skeleton className="h-24 w-full" />
+                  <Skeleton className="h-32 w-full" />
                 </CardContent>
               </Card>
               <Card>
@@ -426,52 +348,121 @@ export default function SentimentPage() {
                   <Skeleton className="h-6 w-48" />
                 </CardHeader>
                 <CardContent>
-                  <Skeleton className="h-24 w-full" />
+                  <Skeleton className="h-32 w-full" />
                 </CardContent>
               </Card>
-              <Card>
-                <CardHeader>
-                  <Skeleton className="h-6 w-48" />
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-24 w-full" />
-                </CardContent>
-              </Card>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {[...Array(2)].map((_, i) => (
+                <Card key={i}>
+                  <CardHeader>
+                    <Skeleton className="h-6 w-48" />
+                  </CardHeader>
+                  <CardContent>
+                    <Skeleton className="h-48 w-full" />
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           </div>
         )}
 
-        {/* Report Content */}
-        {!loading && !loadingSentiment && selectedReport && sentimentData && (
+        {/* Main Content */}
+        {!loading && selectedReports.length > 0 && (
           <FeatureLockedWrapper
             isLocked={isFreePlan}
             featureName="Sentiment Analysis"
             description="Unlock sentiment analysis to understand how AI models perceive your brand's emotional tone and reputation."
           >
             <div className="space-y-6 fade-in-section is-visible">
-              {/* Overall Sentiment Score */}
-              <SentimentOverview
-                sentimentScore={sentimentData.overallScore}
-                totalResponses={sentimentData.distribution.total}
-              />
+              {/* First Row: Sentiment Metrics and Trend Chart */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Sentiment Metrics - 1 column */}
+                <div>
+                  <SentimentMetricsCard
+                    averageScore={averageScore}
+                    scoreVariation={scoreVariation}
+                    distribution={distribution}
+                    distributionVariations={distributionVariations}
+                    onMetricHover={setHoveredMetric}
+                    hoveredMetric={hoveredMetric}
+                  />
+                </div>
+                
+                {/* Sentiment Trend Chart - Takes 2 columns */}
+                <div className="md:col-span-2">
+                  <SentimentTrendChart
+                    data={chartData}
+                    brandName={brandName}
+                    hoveredMetric={hoveredMetric}
+                    onMetricHover={setHoveredMetric}
+                  />
+                </div>
+              </div>
 
-              {/* Sentiment Distribution */}
-              <SentimentDistribution
-                sentimentCounts={sentimentData.distribution}
-              />
-
-              {/* Sentiment Heatmap */}
-              <SentimentHeatmap
-                sentimentHeatmap={sentimentData.heatmapData}
-                onCellClick={handleCellClick}
-              />
+              {/* Second Row: 3 columns with heatmap taking 2 */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Placeholder - 1 column */}
+                <div>
+                  <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
+                    <CardHeader className="pb-4">
+                      <CardTitle className="text-lg font-semibold text-gray-900">
+                        Coming Soon
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-32 flex items-center justify-center">
+                        <p className="text-sm text-gray-500 italic">
+                          New feature coming soon
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+                
+                {/* Sentiment Heatmap - Takes 2 columns */}
+                <div className="md:col-span-2">
+                  <SentimentHeatmap
+                    reports={selectedReports}
+                    selectedReport={selectedHeatmapReport}
+                    onReportSelect={setSelectedHeatmapReport}
+                    token={token}
+                    onCellClick={handleCellClick}
+                    onSentimentDataLoaded={setHeatmapSentimentData}
+                  />
+                </div>
+              </div>
             </div>
           </FeatureLockedWrapper>
         )}
 
         {/* No Reports State */}
-        {!loading && !selectedReport && selectedProjectId && (
+        {!loading && projectReports.length === 0 && selectedProjectId && (
           <ProcessingLoader />
+        )}
+        
+        {/* No Selected Reports - Show empty state briefly while initial selection happens */}
+        {!loading && projectReports.length > 0 && selectedReports.length === 0 && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <Skeleton className="h-6 w-48" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-32 w-full" />
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <Skeleton className="h-6 w-48" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-32 w-full" />
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         )}
       </div>
 
@@ -588,51 +579,87 @@ export default function SentimentPage() {
                     </div>
                   )}
 
-                  {/* Positive Keywords */}
-                  <div>
-                    <div className="text-sm font-medium text-accent-700 mb-2">
-                      Main positive keywords (across all responses of {getModelFriendlyName(selectedModel || '')}):
+                  {/* Tool Usage Section */}
+                  {modelData.toolUsage && modelData.toolUsage.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold text-sm text-mono-700 mb-2">
+                        Tool Usage (Web Searches):
+                      </h4>
+                      <div className="space-y-2">
+                        {modelData.toolUsage.map((tool: any, idx: number) => (
+                          <div
+                            key={idx}
+                            className="text-sm bg-mono-100 p-3 rounded-md border border-mono-200"
+                          >
+                            <p>
+                              <strong>Query:</strong>{" "}
+                              {tool.parameters?.query || "N/A"}
+                            </p>
+                            <div>
+                              <strong>Status:</strong>{" "}
+                              <Badge
+                                variant={
+                                  tool.execution_details?.status === "success"
+                                    ? "secondary"
+                                    : "outline"
+                                }
+                              >
+                                {tool.execution_details?.status || "N/A"}
+                              </Badge>
+                            </div>
+                            {tool.execution_details?.result && (
+                              <p className="mt-1 italic">
+                                Result:{" "}
+                                {String(
+                                  tool.execution_details.result
+                                ).substring(0, 100)}
+                                ...
+                              </p>
+                            )}
+                            {tool.execution_details?.error && (
+                              <p className="mt-1 text-destructive-600">
+                                Error: {tool.execution_details.error}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div className="bg-accent-50 p-4 rounded-lg border border-accent-200">
-                      {modelData.positiveKeywords &&
-                      modelData.positiveKeywords.length > 0 ? (
-                        <ul className="list-disc pl-5 text-sm space-y-1">
-                          {modelData.positiveKeywords.map((item, i) => (
-                            <li key={i} className="text-accent-700">
-                              {item.trim().charAt(0).toUpperCase() + item.trim().slice(1)}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="text-sm italic text-accent-600">
-                          No positive keywords found
-                        </p>
-                      )}
-                    </div>
-                  </div>
+                  )}
 
-                  {/* Negative Keywords */}
-                  <div>
-                    <div className="text-sm font-medium text-destructive-700 mb-2">
-                      Main negative keywords (across all responses of {getModelFriendlyName(selectedModel || '')}):
+                  {/* Citations Section */}
+                  {modelData.citations && modelData.citations.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold text-sm text-mono-700 mb-2">Citations:</h4>
+                      <div className="space-y-2">
+                        {modelData.citations.map((citation: any, idx: number) => (
+                          <div
+                            key={idx}
+                            className="text-sm bg-mono-100 p-3 rounded-md border border-mono-200"
+                          >
+                            <p>
+                              <strong>Title:</strong>{" "}
+                              {citation.title || "N/A"}
+                            </p>
+                            <p>
+                              <strong>URL:</strong>{" "}
+                              <a
+                                href={citation.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-secondary-600 hover:text-secondary-700 hover:underline"
+                              >
+                                {citation.url}
+                              </a>
+                            </p>
+                            {citation.text && (
+                              <p className="mt-1 italic">"{citation.text}"</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div className="bg-destructive-50 p-4 rounded-lg border border-destructive-200">
-                      {modelData.negativeKeywords &&
-                      modelData.negativeKeywords.length > 0 ? (
-                        <ul className="list-disc pl-5 text-sm space-y-1">
-                          {modelData.negativeKeywords.map((item, i) => (
-                            <li key={i} className="text-destructive-700">
-                              {item.trim().charAt(0).toUpperCase() + item.trim().slice(1)}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="text-sm italic text-destructive-600">
-                          No negative keywords found
-                        </p>
-                      )}
-                    </div>
-                  </div>
+                  )}
                 </div>
               );
             })()}
