@@ -9,7 +9,6 @@ import {
   updatePromptSet,
   ProjectResponse,
   PromptSet,
-  getUserProfile,
   getUserProjects,
   runManualAnalysis,
 } from "@/lib/auth-api";
@@ -417,7 +416,7 @@ export default function Home() {
                           }
                         }}
                         canAdd={true}
-                        maxPrompts={12} // TODO: Get from user profile
+                        maxPrompts={organization?.planSettings?.maxSpontaneousPrompts || 12}
                         maxSpontaneousPrompts={organization?.planSettings?.maxSpontaneousPrompts}
                         onAddClick={() => router.push("/update-plan")}
                         onRegenerateComplete={async () => {
