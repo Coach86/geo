@@ -9,6 +9,7 @@ import { AggregatedVisibilityResponseDto, VisibilityChartDataDto, CompetitorData
 import { AggregatedAlignmentResponseDto, AlignmentChartDataDto, AttributeScoreDto } from '../dto/aggregated-alignment-response.dto';
 import { AggregatedSentimentResponseDto, SentimentChartDataDto } from '../dto/aggregated-sentiment-response.dto';
 import { AggregatedExplorerResponseDto, ExplorerItemDto } from '../dto/aggregated-explorer-response.dto';
+import { AggregatedCompetitionResponseDto, CompetitorInsightDto, CompetitionChartDataDto } from '../dto/aggregated-competition-response.dto';
 import { CitationItemDto, AggregatedCitationsDto } from '../dto/citation-item.dto';
 import {
   BrandReportVisibilitySelect,
@@ -941,6 +942,233 @@ export class BrandReportService {
     return result;
   }
 
+  async getAggregatedCompetition(
+    projectId: string,
+    query: AggregatedReportQueryDto
+  ): Promise<AggregatedCompetitionResponseDto> {
+    // Build date filter
+    const dateFilter: any = { projectId };
+    if (query.startDate || query.endDate) {
+      dateFilter.reportDate = {};
+      if (query.startDate) {
+        dateFilter.reportDate.$gte = new Date(query.startDate);
+      }
+      if (query.endDate) {
+        // For end date, include the entire day by using the start of the next day
+        const endDate = new Date(query.endDate);
+        endDate.setDate(endDate.getDate() + 1);
+        dateFilter.reportDate.$lt = endDate;
+      }
+    }
+
+    // Fetch reports within date range
+    const reports = await this.brandReportModel
+      .find(dateFilter)
+      .select('id reportDate generatedAt competition brandName')
+      .sort({ reportDate: 1 })
+      .lean();
+
+    if (reports.length === 0) {
+      return this.createEmptyCompetitionResponse(projectId);
+    }
+
+    // Extract brand name and competitors
+    const brandName = reports[0].brandName || 'Brand';
+    const allCompetitors = new Set<string>();
+    const allModels = new Set<string>();
+    const chartData: CompetitionChartDataDto[] = [];
+    const competitorStrengths: Record<string, string[]> = {};
+    const competitorWeaknesses: Record<string, string[]> = {};
+    const allStrengths: string[] = [];
+    const allWeaknesses: string[] = [];
+
+    // Aggregate citation data
+    const citationMap = new Map<string, CitationItemDto>();
+
+    reports.forEach(report => {
+      if (report.competition) {
+        // Extract competitors
+        if (report.competition.competitors) {
+          report.competition.competitors.forEach((comp: string) => allCompetitors.add(comp));
+        }
+
+        // Extract models and aggregate strengths/weaknesses
+        if (report.competition.detailedResults) {
+          report.competition.detailedResults.forEach((result: any) => {
+            allModels.add(result.model);
+
+            // Aggregate strengths and weaknesses by competitor
+            if (!competitorStrengths[result.competitor]) {
+              competitorStrengths[result.competitor] = [];
+              competitorWeaknesses[result.competitor] = [];
+            }
+
+            if (result.brandStrengths) {
+              competitorStrengths[result.competitor].push(...result.brandStrengths);
+              allStrengths.push(...result.brandStrengths);
+            }
+
+            if (result.brandWeaknesses) {
+              competitorWeaknesses[result.competitor].push(...result.brandWeaknesses);
+              allWeaknesses.push(...result.brandWeaknesses);
+            }
+
+            // Aggregate citations
+            if (result.citations && Array.isArray(result.citations)) {
+              result.citations.forEach((citation: any) => {
+                if (citation.url) {
+                  try {
+                    const urlObj = new URL(citation.url);
+                    const domain = urlObj.hostname;
+                    
+                    this.aggregateCitation(
+                      citationMap,
+                      citation,
+                      domain,
+                      citation.url,
+                      result.originalPrompt || '',
+                      undefined, // no sentiment for competition
+                      undefined, // no score for competition
+                      result.model,
+                      citation.title || '',
+                      citation.text
+                    );
+                  } catch (e) {
+                    this.logger.warn(`Invalid URL in competition citation: ${citation.url}`);
+                  }
+                }
+              });
+            }
+          });
+        }
+
+        // Build chart data
+        const competitorCounts: Record<string, { strengthsCount: number; weaknessesCount: number }> = {};
+        report.competition.competitorAnalyses?.forEach((analysis: any) => {
+          let strengthsCount = 0;
+          let weaknessesCount = 0;
+
+          analysis.analysisByModel?.forEach((modelAnalysis: any) => {
+            strengthsCount += modelAnalysis.strengths?.length || 0;
+            weaknessesCount += modelAnalysis.weaknesses?.length || 0;
+          });
+
+          competitorCounts[analysis.competitor] = { strengthsCount, weaknessesCount };
+        });
+
+        chartData.push({
+          date: report.reportDate.toISOString(),
+          competitors: competitorCounts,
+          reportId: report.id
+        });
+      }
+    });
+
+    const availableModels = Array.from(allModels).sort();
+    const selectedModels = query.models && query.models.length > 0 
+      ? query.models.filter(model => availableModels.includes(model))
+      : availableModels;
+
+    // Filter citations by selected models
+    const citationItems = Array.from(citationMap.values()).filter(citation => 
+      citation.models.some(model => selectedModels.includes(model))
+    );
+
+    const uniqueDomains = new Set(citationItems.map(c => c.domain)).size;
+    const totalCitations = citationItems.reduce((sum, c) => sum + c.count, 0);
+
+    // Build competitor insights
+    const competitorsList = Array.from(allCompetitors);
+    const competitorInsights: CompetitorInsightDto[] = competitorsList.map(competitor => {
+      const strengths = competitorStrengths[competitor] || [];
+      const weaknesses = competitorWeaknesses[competitor] || [];
+
+      // Count occurrences
+      const strengthCounts: Record<string, number> = {};
+      const weaknessCounts: Record<string, number> = {};
+
+      strengths.forEach(s => {
+        const normalized = s.toLowerCase();
+        strengthCounts[normalized] = (strengthCounts[normalized] || 0) + 1;
+      });
+
+      weaknesses.forEach(w => {
+        const normalized = w.toLowerCase();
+        weaknessCounts[normalized] = (weaknessCounts[normalized] || 0) + 1;
+      });
+
+      // Get top 5 of each
+      const topStrengths = Object.entries(strengthCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([s]) => s);
+
+      const topWeaknesses = Object.entries(weaknessCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([w]) => w);
+
+      return {
+        competitor,
+        strengthsCount: strengths.length,
+        weaknessesCount: weaknesses.length,
+        topStrengths,
+        topWeaknesses
+      };
+    });
+
+    // Find common strengths and weaknesses
+    const commonStrengths = this.findCommonItems(Object.values(competitorStrengths));
+    const commonWeaknesses = this.findCommonItems(Object.values(competitorWeaknesses));
+
+    return {
+      brandName,
+      competitors: competitorsList,
+      availableModels,
+      competitorInsights,
+      commonStrengths,
+      commonWeaknesses,
+      chartData,
+      reportCount: reports.length,
+      dateRange: {
+        start: reports[0].reportDate.toISOString(),
+        end: reports[reports.length - 1].reportDate.toISOString()
+      },
+      citations: citationItems.length > 0 ? {
+        items: citationItems,
+        uniqueDomains,
+        totalCitations
+      } : undefined
+    };
+  }
+
+  private findCommonItems(arrays: string[][]): string[] {
+    if (arrays.length === 0) return [];
+    if (arrays.length === 1) return arrays[0].slice(0, 5); // Return top 5
+
+    // Count occurrences across arrays
+    const itemCounts: Record<string, number> = {};
+    
+    arrays.forEach(array => {
+      const seen = new Set<string>();
+      array.forEach(item => {
+        const normalized = item.toLowerCase();
+        if (!seen.has(normalized)) {
+          seen.add(normalized);
+          itemCounts[normalized] = (itemCounts[normalized] || 0) + 1;
+        }
+      });
+    });
+
+    // Find items that appear in at least half of the arrays
+    const threshold = Math.ceil(arrays.length / 2);
+    return Object.entries(itemCounts)
+      .filter(([_, count]) => count >= threshold)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([item]) => item);
+  }
+
   private async calculateVariation(
     projectId: string,
     dateFilter: any,
@@ -1586,6 +1814,20 @@ export class BrandReportService {
       availableModels: [],
       chartData: [],
       sentimentBreakdown: [],
+      reportCount: 0,
+      dateRange: { start: '', end: '' }
+    };
+  }
+
+  private createEmptyCompetitionResponse(projectId: string): AggregatedCompetitionResponseDto {
+    return {
+      brandName: 'Brand',
+      competitors: [],
+      availableModels: [],
+      competitorInsights: [],
+      commonStrengths: [],
+      commonWeaknesses: [],
+      chartData: [],
       reportCount: 0,
       dateRange: { start: '', end: '' }
     };

@@ -299,3 +299,35 @@ export async function getAggregatedExplorer(
     );
   }
 }
+
+/**
+ * Get aggregated competition data for a project (requires token authentication)
+ */
+export async function getAggregatedCompetition(
+  projectId: string,
+  token: string,
+  query?: AggregatedReportQuery
+): Promise<any> {
+  try {
+    const params = new URLSearchParams();
+    if (query?.startDate) params.append('startDate', query.startDate);
+    if (query?.endDate) params.append('endDate', query.endDate);
+    if (query?.models !== undefined) {
+      // Send models parameter even if empty array (empty means all models)
+      params.append('models', query.models.join(','));
+    }
+    if (query?.includeVariation !== undefined) params.append('includeVariation', String(query.includeVariation));
+
+    const url = `${API_ENDPOINTS.BRAND_REPORTS.COMPETITION_AGGREGATED(projectId)}${params.toString() ? `?${params.toString()}` : ''}`;
+    
+    return await apiFetch<any>(url, {
+      method: 'GET',
+      token,
+    });
+  } catch (error) {
+    console.error('Get aggregated competition error:', error);
+    throw new Error(
+      error instanceof Error ? error.message : 'Failed to get aggregated competition data'
+    );
+  }
+}
