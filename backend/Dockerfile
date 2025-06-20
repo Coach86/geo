@@ -43,6 +43,9 @@ COPY --chown=nodejs:nodejs package*.json ./
 COPY --chown=nodejs:nodejs config.json ./
 COPY --chown=nodejs:nodejs public ./public
 
+# Create logs directory with proper permissions
+RUN mkdir -p /app/logs && chown nodejs:nodejs /app/logs
+
 # Download SSL certificate for RDS
 RUN wget -O /app/global-bundle.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem && \
     chown nodejs:nodejs /app/global-bundle.pem
