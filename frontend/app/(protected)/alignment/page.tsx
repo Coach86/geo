@@ -42,6 +42,7 @@ export default function AlignmentPage() {
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date } | null>(null);
   const [isAllTime, setIsAllTime] = useState<boolean>(false);
+  const [isLatest, setIsLatest] = useState<boolean>(false);
   const [selectedAttributeReport, setSelectedAttributeReport] = useState<ReportResponse | null>(null);
 
   // Memoize the date range object to prevent infinite re-renders
@@ -67,15 +68,16 @@ export default function AlignmentPage() {
     availableModels: alignmentAvailableModels,
     detailedResults,
     citations,
-  } = useAlignmentReports(selectedProjectId, selectedModels, token, isAllTime, memoizedDateRange);
+  } = useAlignmentReports(selectedProjectId, selectedModels, token, isAllTime, memoizedDateRange, isLatest);
 
   // Handle date range change
-  const handleRangeChange = useCallback((start: Date, end: Date, reports: ReportResponse[], isAllTimeRange?: boolean) => {
+  const handleRangeChange = useCallback((start: Date, end: Date, reports: ReportResponse[], isAllTimeRange?: boolean, isLatestReport?: boolean) => {
     console.log('[AlignmentPage] handleRangeChange called with:', {
       start: start.toISOString(),
       end: end.toISOString(),
       reportsCount: reports.length,
-      isAllTimeRange
+      isAllTimeRange,
+      isLatestReport
     });
     
     setDateRange(prev => {
@@ -89,6 +91,7 @@ export default function AlignmentPage() {
     });
     setSelectedReports(reports);
     setIsAllTime(isAllTimeRange || false);
+    setIsLatest(isLatestReport || false);
   }, []);
 
   // Update available models when alignment data changes

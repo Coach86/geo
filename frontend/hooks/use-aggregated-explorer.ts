@@ -29,7 +29,8 @@ interface UseAggregatedExplorerReturn {
 export function useAggregatedExplorer(
   projectId: string | null,
   token: string | null,
-  dateRange?: { startDate: Date; endDate: Date }
+  dateRange?: { startDate: Date; endDate: Date },
+  isLatest: boolean = false
 ): UseAggregatedExplorerReturn {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +52,7 @@ export function useAggregatedExplorer(
 
   useEffect(() => {
     const fetchAggregatedExplorer = async () => {
-      if (!token || !projectId || !dateRange) {
+      if (!token || !projectId || (!dateRange && !isLatest)) {
         setData({
           loading: false,
           error: null,
@@ -74,14 +75,16 @@ export function useAggregatedExplorer(
       setError(null);
 
       try {
-        // Use the provided date range
-        const startDate = dateRange.startDate.toISOString().split('T')[0];
-        const endDate = dateRange.endDate.toISOString().split('T')[0];
+        const queryParams: any = {};
+        
+        if (isLatest) {
+          queryParams.latestOnly = true;
+        } else if (dateRange) {
+          queryParams.startDate = dateRange.startDate.toISOString();
+          queryParams.endDate = dateRange.endDate.toISOString();
+        }
 
-        const response = await getAggregatedExplorer(projectId, token, {
-          startDate,
-          endDate,
-        });
+        const response = await getAggregatedExplorer(projectId, token, queryParams);
 
         // Transform the response to match hook interface
         const topKeywords = response.topKeywords.map((item: any) => ({
@@ -129,7 +132,7 @@ export function useAggregatedExplorer(
     };
 
     fetchAggregatedExplorer();
-  }, [projectId, dateRange, token]);
+  }, [projectId, dateRange, token, isLatest]);
 
   return {
     loading,

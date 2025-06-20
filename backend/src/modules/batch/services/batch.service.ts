@@ -1155,36 +1155,46 @@ export class BatchService {
       (visibilityResults.summary.mentionRate || 0) * 100
     );
 
-    // Extract competitor mentions for arena metrics (only configured competitors)
-    const competitorMentions: Record<string, Record<string, number>> = {};
+    // Extract competitor mentions for arena metrics
+    const brandMentions: Record<string, Record<string, number>> = {};
     const models: string[] = Array.from(new Set(visibilityResults.results.map((r: any) => r.llmModel)));
 
-    // Initialize competitor mentions only for configured competitors
-    competitors.forEach(competitor => {
-      competitorMentions[competitor] = {};
-      models.forEach(model => {
-        competitorMentions[competitor][model] = 0;
-      });
-    });
-
-    // Count mentions of configured competitors only
+    // Count only competitor mentions for arena metrics
     visibilityResults.results.forEach((result: any) => {
       if (result.topOfMind && Array.isArray(result.topOfMind)) {
-        result.topOfMind.forEach((brand: string) => {
-          // Only count if this brand is in the configured competitors list
-          const matchingCompetitor = competitors.find(comp => 
-            comp.toLowerCase() === brand.toLowerCase()
-          );
-          if (matchingCompetitor && competitorMentions[matchingCompetitor]) {
-            competitorMentions[matchingCompetitor][result.llmModel] = 
-              (competitorMentions[matchingCompetitor][result.llmModel] || 0) + 1;
+        result.topOfMind.forEach((brand: any) => {
+          // Handle both old format (string) and new format (TopOfMindBrand object)
+          const brandName = typeof brand === 'string' ? brand : brand.name;
+          const brandType = typeof brand === 'string' ? 'unknown' : brand.type;
+          
+          // For backward compatibility: if type is unknown, check against configured competitors
+          if (brandType === 'unknown') {
+            const isConfiguredCompetitor = competitors.some(comp => 
+              comp.toLowerCase() === brandName.toLowerCase()
+            );
+            if (!isConfiguredCompetitor) return;
+          } else if (brandType !== 'competitor') {
+            // For new format, only include explicit competitors
+            return;
           }
+          
+          // Initialize if not exists
+          if (!brandMentions[brandName]) {
+            brandMentions[brandName] = {};
+            models.forEach(model => {
+              brandMentions[brandName][model] = 0;
+            });
+          }
+          
+          // Count the mention
+          brandMentions[brandName][result.llmModel] = 
+            (brandMentions[brandName][result.llmModel] || 0) + 1;
         });
       }
     });
 
     // Build arena metrics from competitor mentions
-    const arenaMetrics = Object.entries(competitorMentions).map(([competitorName, modelMentionsData]) => {
+    const arenaMetrics = Object.entries(brandMentions).map(([brandName, modelMentionsData]) => {
       const modelsMentionsRate = models.map((model: string) => {
         const modelResults = visibilityResults.results.filter((r: any) => r.llmModel === model);
         const promptsTested = modelResults.length;
@@ -1202,15 +1212,24 @@ export class BatchService {
       const globalRate = totalPrompts > 0 ? Math.round((totalMentions / totalPrompts) * 100) : 0;
 
       return {
-        name: competitorName,
+        name: brandName,
         size: globalRate > 20 ? 'lg' : globalRate > 10 ? 'md' : 'sm' as 'lg' | 'md' | 'sm',
         global: `${globalRate}%`,
         modelsMentionsRate,
       };
-    }).sort((a, b) => parseInt(b.global) - parseInt(a.global)); // Sort by global rate descending
+    })
+    .sort((a, b) => parseInt(b.global) - parseInt(a.global)) // Sort by global rate descending
+    .filter(metric => parseInt(metric.global) > 0) // Only include brands that were actually mentioned
+    .slice(0, 10); // Limit to top 10 brands
 
     // Include topMentions from visibility results
     const topMentions = visibilityResults.summary.topMentionCounts || [];
+
+    // Log for debugging
+    this.logger.log(`Building visibility data: ${topMentions.length} top mentions found`);
+    if (topMentions.length > 0) {
+      this.logger.log(`Top mentions sample: ${JSON.stringify(topMentions.slice(0, 3))}`);
+    }
 
     return {
       overallMentionRate,
