@@ -33,9 +33,9 @@ export const runSpontaneousPipeline = async (projectId: string): Promise<Spontan
   // Poll for completion
   const batchExecution = await pollBatchExecution(batchExecutionId);
 
-  // Find the spontaneous result
+  // Find the spontaneous result (visibility in database)
   const spontaneousResult = batchExecution.finalResults.find(
-    (r: BatchResult) => r.resultType === 'spontaneous',
+    (r: BatchResult) => r.resultType === 'visibility',
   );
 
   if (!spontaneousResult) {
@@ -83,9 +83,9 @@ export const runComparisonPipeline = async (projectId: string): Promise<Comparis
   // Poll for completion
   const batchExecution = await pollBatchExecution(batchExecutionId);
 
-  // Find the comparison result
+  // Find the comparison result (competition in database)
   const comparisonResult = batchExecution.finalResults.find(
-    (r: BatchResult) => r.resultType === 'comparison',
+    (r: BatchResult) => r.resultType === 'competition',
   );
 
   if (!comparisonResult) {
@@ -108,9 +108,9 @@ export const runAccuracyPipeline = async (projectId: string): Promise<AccuracyRe
   // Poll for completion
   const batchExecution = await pollBatchExecution(batchExecutionId);
 
-  // Find the accuracy result
+  // Find the accuracy result (alignment in database)
   const accuracyResult = batchExecution.finalResults.find(
-    (r: BatchResult) => r.resultType === 'accuracy',
+    (r: BatchResult) => r.resultType === 'alignment',
   );
 
   if (!accuracyResult) {

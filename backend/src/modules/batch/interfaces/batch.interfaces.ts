@@ -33,6 +33,14 @@ export interface ProjectBatchContext {
 }
 
 /**
+ * Top of Mind Brand Interface
+ */
+export interface TopOfMindBrand {
+  name: string;
+  type: 'ourbrand' | 'competitor' | 'other';
+}
+
+/**
  * Visibility Pipeline Interfaces
  */
 export interface VisibilityPipelineResult {
@@ -41,7 +49,7 @@ export interface VisibilityPipelineResult {
   promptIndex: number;
   runIndex?: number; // Index of the run for this model/prompt combination
   mentioned: boolean;
-  topOfMind: string[];
+  topOfMind: TopOfMindBrand[];
   originalPrompt?: string;
   llmResponse?: string;
   error?: string;

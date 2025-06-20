@@ -45,6 +45,7 @@ export default function SentimentPage() {
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date } | null>(null);
   const [isAllTime, setIsAllTime] = useState<boolean>(false);
+  const [isLatest, setIsLatest] = useState<boolean>(false);
 
   // Memoize the date range object to prevent infinite re-renders
   const memoizedDateRange = useMemo(() => {
@@ -80,7 +81,7 @@ export default function SentimentPage() {
     aggregatedHeatmap,
     availableModels: sentimentAvailableModels,
     citations,
-  } = useSentimentReports(selectedProjectId, selectedModels, token, isAllTime, memoizedDateRange);
+  } = useSentimentReports(selectedProjectId, selectedModels, token, isAllTime, memoizedDateRange, isLatest);
   
   // Debug logging for citations
   useEffect(() => {
@@ -91,12 +92,13 @@ export default function SentimentPage() {
   const [heatmapSentimentData, setHeatmapSentimentData] = useState<any>(null);
 
   // Handle date range change
-  const handleRangeChange = useCallback((start: Date, end: Date, reports: ReportResponse[], isAllTimeRange?: boolean) => {
+  const handleRangeChange = useCallback((start: Date, end: Date, reports: ReportResponse[], isAllTimeRange?: boolean, isLatestReport?: boolean) => {
     console.log('[SentimentPage] handleRangeChange called with:', {
       start: start.toISOString(),
       end: end.toISOString(),
       reportsCount: reports.length,
-      isAllTimeRange
+      isAllTimeRange,
+      isLatestReport
     });
     
     setDateRange(prev => {
@@ -110,6 +112,7 @@ export default function SentimentPage() {
     });
     setSelectedReports(reports);
     setIsAllTime(isAllTimeRange || false);
+    setIsLatest(isLatestReport || false);
   }, []);
 
   // Update available models when sentiment data changes
