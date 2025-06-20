@@ -173,6 +173,7 @@ interface AggregatedReportQuery {
   endDate?: string;
   models?: string[];
   includeVariation?: boolean;
+  latestOnly?: boolean;
 }
 
 /**
@@ -192,6 +193,7 @@ export async function getAggregatedVisibility(
       params.append('models', query.models.join(','));
     }
     if (query?.includeVariation !== undefined) params.append('includeVariation', String(query.includeVariation));
+    if (query?.latestOnly !== undefined) params.append('latestOnly', String(query.latestOnly));
 
     const url = `${API_ENDPOINTS.BRAND_REPORTS.VISIBILITY_AGGREGATED(projectId)}${params.toString() ? `?${params.toString()}` : ''}`;
     
@@ -224,6 +226,7 @@ export async function getAggregatedAlignment(
       params.append('models', query.models.join(','));
     }
     if (query?.includeVariation !== undefined) params.append('includeVariation', String(query.includeVariation));
+    if (query?.latestOnly !== undefined) params.append('latestOnly', String(query.latestOnly));
 
     const url = `${API_ENDPOINTS.BRAND_REPORTS.ALIGNMENT_AGGREGATED(projectId)}${params.toString() ? `?${params.toString()}` : ''}`;
     
@@ -256,6 +259,7 @@ export async function getAggregatedSentiment(
       params.append('models', query.models.join(','));
     }
     if (query?.includeVariation !== undefined) params.append('includeVariation', String(query.includeVariation));
+    if (query?.latestOnly !== undefined) params.append('latestOnly', String(query.latestOnly));
 
     const url = `${API_ENDPOINTS.BRAND_REPORTS.SENTIMENT_AGGREGATED(projectId)}${params.toString() ? `?${params.toString()}` : ''}`;
     
@@ -285,6 +289,7 @@ export async function getAggregatedExplorer(
     if (query?.endDate) params.append('endDate', query.endDate);
     // Explorer doesn't use models filter, but we can include it for consistency
     if (query?.includeVariation !== undefined) params.append('includeVariation', String(query.includeVariation));
+    if (query?.latestOnly !== undefined) params.append('latestOnly', String(query.latestOnly));
 
     const url = `${API_ENDPOINTS.BRAND_REPORTS.EXPLORER_AGGREGATED(projectId)}${params.toString() ? `?${params.toString()}` : ''}`;
     
@@ -317,6 +322,7 @@ export async function getAggregatedCompetition(
       params.append('models', query.models.join(','));
     }
     if (query?.includeVariation !== undefined) params.append('includeVariation', String(query.includeVariation));
+    if (query?.latestOnly !== undefined) params.append('latestOnly', String(query.latestOnly));
 
     const url = `${API_ENDPOINTS.BRAND_REPORTS.COMPETITION_AGGREGATED(projectId)}${params.toString() ? `?${params.toString()}` : ''}`;
     

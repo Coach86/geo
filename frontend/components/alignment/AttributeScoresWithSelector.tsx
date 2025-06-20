@@ -32,8 +32,15 @@ export function AttributeScoresWithSelector({
 
   // Set initial report selection
   useEffect(() => {
-    if (reports.length > 0 && !selectedReport) {
-      onReportSelect(reports[0]);
+    if (reports.length > 0) {
+      // If no report is selected, or if the currently selected report is not in the new reports list
+      // (which happens when switching projects), select the first report
+      if (!selectedReport || !reports.find(r => r.id === selectedReport.id)) {
+        onReportSelect(reports[0]);
+      }
+    } else {
+      // No reports available, clear selection
+      onReportSelect(null);
     }
   }, [reports, selectedReport, onReportSelect]);
 

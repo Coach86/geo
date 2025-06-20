@@ -89,7 +89,8 @@ export function useSentimentReports(
   selectedModels: string[],
   token: string | null,
   isAllTime: boolean = false,
-  dateRange?: { startDate: Date; endDate: Date }
+  dateRange?: { startDate: Date; endDate: Date },
+  isLatest: boolean = false
 ): UseSentimentReportsReturn {
   const [aggregatedData, setAggregatedData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -110,19 +111,19 @@ export function useSentimentReports(
         isAllTime
       });
       
-      if (!token || !dateRange || !projectId) {
+      if (!token || (!dateRange && !isLatest) || !projectId) {
         console.log('[useSentimentReports] Missing required data, skipping fetch');
         setAggregatedData(null);
         return;
       }
       
-      const startDate = dateRange.startDate.toISOString();
-      const endDate = dateRange.endDate.toISOString();
-
       console.log('[useSentimentReports] Making API call with:', {
         projectId,
-        startDate,
-        endDate,
+        isLatest,
+        dateRange: dateRange ? {
+          start: dateRange.startDate.toISOString(),
+          end: dateRange.endDate.toISOString()
+        } : null,
         models: selectedModels,
         includeVariation: !isAllTime
       });
@@ -131,12 +132,19 @@ export function useSentimentReports(
       setError(null);
 
       try {
-        const data = await getAggregatedSentiment(projectId, token, {
-          startDate,
-          endDate,
+        const queryParams: any = {
           models: selectedModels, // Send the array as-is (empty array means all models)
           includeVariation: !isAllTime, // Don't calculate variations for "All time"
-        });
+        };
+
+        if (isLatest) {
+          queryParams.latestOnly = true;
+        } else if (dateRange) {
+          queryParams.startDate = dateRange.startDate.toISOString();
+          queryParams.endDate = dateRange.endDate.toISOString();
+        }
+
+        const data = await getAggregatedSentiment(projectId, token, queryParams);
         
         console.log('useSentimentReports - API response:', data);
         console.log('useSentimentReports - citations in response:', data.citations);
@@ -151,7 +159,7 @@ export function useSentimentReports(
     };
 
     fetchAggregatedData();
-  }, [dateRange, selectedModels, token, isAllTime, projectId]);
+  }, [dateRange, selectedModels, token, isAllTime, isLatest, projectId]);
 
   return useMemo(() => {
     if (!aggregatedData || loading) {

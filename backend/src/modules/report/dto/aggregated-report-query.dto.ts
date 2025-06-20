@@ -42,4 +42,13 @@ export class AggregatedReportQueryDto {
   @IsBoolean()
   @Transform(({ value }) => value === 'true' || value === true)
   includeVariation?: boolean = true;
+
+  @ApiPropertyOptional({ 
+    description: 'Return only the latest report instead of aggregating by date range',
+    default: false 
+  })
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => value === 'true' || value === true)
+  latestOnly?: boolean = false;
 }

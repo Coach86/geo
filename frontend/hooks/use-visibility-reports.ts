@@ -38,7 +38,8 @@ export function useVisibilityReports(
   selectedModels: string[],
   token: string | null,
   isAllTime: boolean = false,
-  dateRange?: { startDate: Date; endDate: Date }
+  dateRange?: { startDate: Date; endDate: Date },
+  isLatest: boolean = false
 ): UseVisibilityReportsReturn {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,19 +60,19 @@ export function useVisibilityReports(
         isAllTime
       });
       
-      if (!token || !dateRange || !projectId) {
+      if (!token || (!dateRange && !isLatest) || !projectId) {
         console.log('[useVisibilityReports] Missing required data, skipping fetch');
         setAggregatedData(null);
         return;
       }
-      
-      const startDate = dateRange.startDate.toISOString();
-      const endDate = dateRange.endDate.toISOString();
 
       console.log('[useVisibilityReports] Making API call with:', {
         projectId,
-        startDate,
-        endDate,
+        isLatest,
+        dateRange: dateRange ? {
+          start: dateRange.startDate.toISOString(),
+          end: dateRange.endDate.toISOString()
+        } : null,
         models: selectedModels,
         includeVariation: !isAllTime
       });
@@ -80,12 +81,19 @@ export function useVisibilityReports(
       setError(null);
 
       try {
-        const data = await getAggregatedVisibility(projectId, token, {
-          startDate,
-          endDate,
+        const queryParams: any = {
           models: selectedModels, // Send the array as-is (empty array means all models)
           includeVariation: !isAllTime, // Don't calculate variations for "All time"
-        });
+        };
+
+        if (isLatest) {
+          queryParams.latestOnly = true;
+        } else if (dateRange) {
+          queryParams.startDate = dateRange.startDate.toISOString();
+          queryParams.endDate = dateRange.endDate.toISOString();
+        }
+
+        const data = await getAggregatedVisibility(projectId, token, queryParams);
         
         setAggregatedData(data);
       } catch (err) {
@@ -97,7 +105,7 @@ export function useVisibilityReports(
     };
 
     fetchAggregatedData();
-  }, [dateRange, selectedModels, token, isAllTime, projectId]);
+  }, [dateRange, selectedModels, token, isAllTime, isLatest, projectId]);
 
   // Process the aggregated data
   const processData = useCallback((): UseVisibilityReportsReturn => {

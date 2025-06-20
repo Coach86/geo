@@ -10,6 +10,7 @@ import {
   VisibilityPipelineResult,
   VisibilityResults,
   WebSearchSummary,
+  TopOfMindBrand,
 } from '../interfaces/batch.interfaces';
 import { AnalyzerConfig, LlmModelConfig, PipelineType, PromptType } from '../interfaces/llm.interfaces';
 import { BasePipelineService } from './base-pipeline.service';
@@ -100,6 +101,7 @@ export class VisibilityPipelineService extends BasePipelineService {
                   return await this.analyzeResponse(
                     modelConfig,
                     context.brandName,
+                    context.competitors,
                     prompts[i],
                     llmResponse,
                     i,
@@ -172,6 +174,7 @@ export class VisibilityPipelineService extends BasePipelineService {
    * Analyze the LLM response to determine if the brand was mentioned
    * @param modelConfig The LLM model configuration that generated the response
    * @param brandName The company brand name
+   * @param competitors The list of competitors
    * @param prompt The original prompt
    * @param llmResponse The response from the LLM
    * @param promptIndex The index of the prompt
@@ -181,6 +184,7 @@ export class VisibilityPipelineService extends BasePipelineService {
   private async analyzeResponse(
     modelConfig: LlmModelConfig,
     brandName: string,
+    competitors: string[],
     prompt: string,
     llmResponseObj: any, // Changed to accept the full response object
     promptIndex: number,
@@ -201,11 +205,13 @@ export class VisibilityPipelineService extends BasePipelineService {
 
     // Define the schema for structured output
     const schema = z.object({
-      mentioned: z.boolean().describe('Whether the brand was mentioned without prompting'),
       topOfMind: z
-        .array(z.string())
+        .array(z.object({
+          name: z.string().describe('The brand or company name as mentioned'),
+          type: z.enum(['ourbrand', 'competitor', 'other']).describe('The type of brand'),
+        }))
         .describe(
-          'List of top-of-mind brands or companies mentioned, empty if no brand was mentioned',
+          'List of top-of-mind brands or companies mentioned with their types, empty if no brand was mentioned',
         )
         .nullable()
         .default([]),
@@ -215,6 +221,7 @@ export class VisibilityPipelineService extends BasePipelineService {
     const userPrompt = formatPrompt(PromptTemplates.VISIBILITY_ANALYSIS, {
       originalPrompt: prompt,
       brandName,
+      competitors: JSON.stringify(competitors),
       llmResponse,
     });
 
@@ -232,15 +239,14 @@ export class VisibilityPipelineService extends BasePipelineService {
         modelConfig.model, // Pass the original LLM model
       );
 
-      // Check if the brand name is mentioned in the top-of-mind list as a backup
-      const normalizedBrandName = brandName.toLowerCase();
-      let mentioned = result.mentioned;
-
       // Safe access to topOfMind with fallback to empty array
       const topOfMind = result.topOfMind || [];
-
-      if (!mentioned && topOfMind.length > 0) {
-        mentioned = topOfMind.some((brand) => brand.toLowerCase().includes(normalizedBrandName));
+      
+      // Check if the brand is mentioned by looking for 'ourbrand' type in the topOfMind list
+      const mentioned = topOfMind.some(brand => brand.type === 'ourbrand');
+      
+      if (mentioned) {
+        this.logger.log(`Brand "${brandName}" found in topOfMind list with type 'ourbrand'`);
       }
 
       return {
@@ -427,27 +433,56 @@ export class VisibilityPipelineService extends BasePipelineService {
     const mentionCount = validResults.filter((r) => r.mentioned).length;
     const mentionRate = mentionCount / validResults.length;
 
-    // Count top mentions
-    const mentions: Record<string, number> = {};
+    // Count top mentions - track both normalized and original versions
+    const mentionsMap: Map<string, { originalNames: Set<string>; count: number; type: string }> = new Map();
+    
     for (const result of validResults) {
       for (const brand of result.topOfMind) {
-        const normalizedBrand = brand.toLowerCase();
-        mentions[normalizedBrand] = (mentions[normalizedBrand] || 0) + 1;
+        // Normalize for matching but preserve original for display
+        const normalizedBrand = brand.name.toLowerCase().trim();
+        
+        if (!mentionsMap.has(normalizedBrand)) {
+          mentionsMap.set(normalizedBrand, {
+            originalNames: new Set(),
+            count: 0,
+            type: brand.type,
+          });
+        }
+        
+        const entry = mentionsMap.get(normalizedBrand)!;
+        entry.originalNames.add(brand.name);
+        entry.count++;
       }
     }
 
     // Sort by mention count and prepare data arrays
-    const sortedMentionEntries = Object.entries(mentions)
-      .sort((a: [string, number], b: [string, number]) => b[1] - a[1])
+    const sortedEntries = Array.from(mentionsMap.entries())
+      .sort((a, b) => b[1].count - a[1].count)
       .slice(0, 10);
     
-    const sortedMentions = sortedMentionEntries.map(([brand]) => brand);
+    // For topMentions array, use the most common original form
+    const sortedMentions = sortedEntries.map(([normalizedBrand, data]) => {
+      // Pick the most frequently occurring original form
+      const originalFormsArray = Array.from(data.originalNames);
+      return originalFormsArray[0]; // Use first original form (could be enhanced to pick most common)
+    });
     
-    // Create mention counts array for frontend
-    const topMentionCounts = sortedMentionEntries.map(([mention, count]) => ({
-      mention,
-      count,
-    }));
+    // Create mention counts array for frontend with proper casing
+    const topMentionCounts = sortedEntries.map(([normalizedBrand, data]) => {
+      // Pick the most frequently occurring original form for display
+      const originalFormsArray = Array.from(data.originalNames);
+      const displayName = originalFormsArray[0]; // Use first original form
+      
+      return {
+        mention: displayName,
+        count: data.count,
+      };
+    });
+
+    this.logger.log(`Analyzed visibility results: ${validResults.length} valid results, ${mentionCount} mentions, ${topMentionCounts.length} unique brands`);
+    if (topMentionCounts.length > 0) {
+      this.logger.log(`Top mention: ${topMentionCounts[0].mention} (${topMentionCounts[0].count} times)`);
+    }
 
     return {
       mentionRate,
