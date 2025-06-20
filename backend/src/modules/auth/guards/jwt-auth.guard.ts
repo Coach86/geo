@@ -19,15 +19,6 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    // Get the request object
-    const request = context.switchToHttp().getRequest();
-    const path = request.url;
-
-    // Allow static files to bypass authentication
-    if (path && (path.startsWith('/static/') || path.startsWith('/index.html') || path === '/')) {
-      return true;
-    }
-
     // Check if the route is marked as public (no auth required)
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),

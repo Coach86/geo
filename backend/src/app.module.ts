@@ -62,7 +62,7 @@ import { getWinstonConfig } from './utils/logger.config';
       serveStaticOptions: {
         cacheControl: true,
         maxAge: 3600000,
-        index: false, // Don't serve index.html automatically
+        index: ['index.html'],
       },
     }),
     ScheduleModule.forRoot(),
