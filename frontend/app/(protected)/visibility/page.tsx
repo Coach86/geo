@@ -39,6 +39,7 @@ export default function VisibilityPage() {
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date } | null>(null);
   const [isAllTime, setIsAllTime] = useState<boolean>(false);
+  const [isLatest, setIsLatest] = useState<boolean>(false);
   const [hoveredEntity, setHoveredEntity] = useState<string | null>(null);
 
   // Fetch reports when project changes
@@ -63,7 +64,8 @@ export default function VisibilityPage() {
     chartData,
     modelBreakdown,
     availableModels: visibilityAvailableModels,
-  } = useVisibilityReports(selectedProjectId, selectedModels, token, isAllTime, memoizedDateRange);
+    topMentions: visibilityTopMentions,
+  } = useVisibilityReports(selectedProjectId, selectedModels, token, isAllTime, memoizedDateRange, isLatest);
 
   const {
     loading: loadingExplorer,
@@ -71,18 +73,19 @@ export default function VisibilityPage() {
     topMentions,
     topKeywords,
     topSources,
-  } = useAggregatedExplorer(selectedProjectId, token, memoizedDateRange);
+  } = useAggregatedExplorer(selectedProjectId, token, memoizedDateRange, isLatest);
 
   // Show all competitors by default
   const selectedCompetitors = competitors.map(c => c.name);
 
   // Handle date range change
-  const handleRangeChange = useCallback((start: Date, end: Date, reports: ReportResponse[], isAllTimeRange?: boolean) => {
+  const handleRangeChange = useCallback((start: Date, end: Date, reports: ReportResponse[], isAllTimeRange?: boolean, isLatestReport?: boolean) => {
     console.log('[VisibilityPage] handleRangeChange called with:', {
       start: start.toISOString(),
       end: end.toISOString(),
       reportsCount: reports.length,
-      isAllTimeRange
+      isAllTimeRange,
+      isLatestReport
     });
     
     setDateRange(prev => {
@@ -96,6 +99,7 @@ export default function VisibilityPage() {
     });
     setSelectedReports(reports);
     setIsAllTime(isAllTimeRange || false);
+    setIsLatest(isLatestReport || false);
   }, []);
 
   // Update available models when visibility data changes
@@ -240,8 +244,8 @@ export default function VisibilityPage() {
             {/* Top Mentions */}
             <div>
               <MentionsListCard
-                mentions={topMentions.map(item => ({ mention: item.name, count: item.count }))}
-                loading={loadingExplorer}
+                mentions={visibilityTopMentions}
+                loading={loadingVisibility}
               />
             </div>
 

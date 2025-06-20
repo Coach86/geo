@@ -26,7 +26,7 @@ interface ReportRangeSelectorProps {
   reports: ReportResponse[];
   projectId: string;
   availableModels: string[];
-  onRangeChange: (startDate: Date, endDate: Date, selectedReports: ReportResponse[], isAllTime?: boolean) => void;
+  onRangeChange: (startDate: Date, endDate: Date, selectedReports: ReportResponse[], isAllTime?: boolean, isLatest?: boolean) => void;
   onModelFilterChange: (models: string[]) => void;
 }
 
@@ -189,12 +189,14 @@ export function ReportRangeSelector({
   useEffect(() => {
     if (actualDateRange) {
       const isAllTime = selectedRange === "All time";
+      const isLatest = selectedRange === "Latest";
       console.log(`[ReportRangeSelector] ${selectedRange} - Sending date range:`, {
         startDate: actualDateRange.startDate.toISOString(),
         endDate: actualDateRange.endDate.toISOString(),
-        filteredReportsCount: filteredReports.length
+        filteredReportsCount: filteredReports.length,
+        isLatest
       });
-      onRangeChange(actualDateRange.startDate, actualDateRange.endDate, filteredReports, isAllTime);
+      onRangeChange(actualDateRange.startDate, actualDateRange.endDate, filteredReports, isAllTime, isLatest);
     }
   }, [actualDateRange, filteredReports, onRangeChange, selectedRange]);
 

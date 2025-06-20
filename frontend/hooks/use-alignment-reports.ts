@@ -50,7 +50,8 @@ export function useAlignmentReports(
   selectedModels: string[],
   token: string | null,
   isAllTime: boolean = false,
-  dateRange?: { startDate: Date; endDate: Date }
+  dateRange?: { startDate: Date; endDate: Date },
+  isLatest: boolean = false
 ): UseAlignmentReportsReturn {
   const { isFreePlan } = useFeatureGate("alignment");
   const [loading, setLoading] = useState(true);
@@ -72,7 +73,7 @@ export function useAlignmentReports(
         isAllTime
       });
       
-      if (!token || !dateRange || !projectId) {
+      if (!token || (!dateRange && !isLatest) || !projectId) {
         console.log('[useAlignmentReports] Missing required data, skipping fetch');
         setAggregatedData(null);
         setLoading(false);
@@ -124,23 +125,30 @@ export function useAlignmentReports(
           
           setAggregatedData(mockAggregatedData);
         } else {
-          const startDate = dateRange.startDate.toISOString();
-          const endDate = dateRange.endDate.toISOString();
-
           console.log('[useAlignmentReports] Making API call with:', {
             projectId,
-            startDate,
-            endDate,
+            isLatest,
+            dateRange: dateRange ? {
+              start: dateRange.startDate.toISOString(),
+              end: dateRange.endDate.toISOString()
+            } : null,
             models: selectedModels,
             includeVariation: !isAllTime
           });
 
-          const data = await getAggregatedAlignment(projectId, token, {
-            startDate,
-            endDate,
+          const queryParams: any = {
             models: selectedModels, // Send the array as-is (empty array means all models)
             includeVariation: !isAllTime, // Don't calculate variations for "All time"
-          });
+          };
+
+          if (isLatest) {
+            queryParams.latestOnly = true;
+          } else if (dateRange) {
+            queryParams.startDate = dateRange.startDate.toISOString();
+            queryParams.endDate = dateRange.endDate.toISOString();
+          }
+
+          const data = await getAggregatedAlignment(projectId, token, queryParams);
           
           setAggregatedData(data);
         }
@@ -153,7 +161,7 @@ export function useAlignmentReports(
     };
 
     fetchData();
-  }, [dateRange, selectedModels, token, isFreePlan, isAllTime, projectId]);
+  }, [dateRange, selectedModels, token, isFreePlan, isAllTime, isLatest, projectId]);
 
   // Process the data
   const result = useMemo(() => {

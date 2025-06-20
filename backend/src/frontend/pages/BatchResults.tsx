@@ -82,18 +82,18 @@ const BatchResults: React.FC = () => {
         const batchExecutionData = await getBatchExecution(id);
         setBatchExecution(batchExecutionData);
 
-        // Parse results
+        // Parse results - map database resultType to frontend expectations
         const spontaneousResult = batchExecutionData.finalResults.find(
-          (r: BatchResult) => r.resultType === 'spontaneous',
+          (r: BatchResult) => r.resultType === 'visibility',
         );
         const sentimentResult = batchExecutionData.finalResults.find(
           (r: BatchResult) => r.resultType === 'sentiment',
         );
         const accuracyResult = batchExecutionData.finalResults.find(
-          (r: BatchResult) => r.resultType === 'accuracy',
+          (r: BatchResult) => r.resultType === 'alignment',
         );
         const comparisonResult = batchExecutionData.finalResults.find(
-          (r: BatchResult) => r.resultType === 'comparison',
+          (r: BatchResult) => r.resultType === 'competition',
         );
 
         if (spontaneousResult) {
@@ -218,12 +218,16 @@ const BatchResults: React.FC = () => {
   const getPromptTypeDisplayName = (type: string) => {
     switch (type) {
       case 'spontaneous':
+      case 'visibility':
         return 'Visibility';
       case 'direct':
+      case 'sentiment':
         return 'Sentiment';
       case 'accuracy':
+      case 'alignment':
         return 'Alignment';
       case 'comparison':
+      case 'competition':
         return 'Competition';
       default:
         return type.charAt(0).toUpperCase() + type.slice(1);

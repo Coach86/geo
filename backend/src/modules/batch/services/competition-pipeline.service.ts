@@ -198,6 +198,8 @@ export class CompetitionPipelineService extends BasePipelineService {
 
     // Create tasks for each model, prompt, and competitor
     const tasks = [];
+    
+    this.logger.log(`[COMPETITION] Creating tasks for ${enabledModels.length} models, ${prompts.length} prompts, ${competitors.length} competitors`);
 
     for (const modelConfig of enabledModels) {
       for (let promptIndex = 0; promptIndex < prompts.length; promptIndex++) {
@@ -271,7 +273,9 @@ export class CompetitionPipelineService extends BasePipelineService {
     // Generate web search summary
     const webSearchSummary = this.createWebSearchSummary(results);
 
-    return {
+    this.logger.log(`[COMPETITION] Returning CompetitionResults with ${results.length} results, ${competitorAnalyses.length} competitor analyses`);
+    
+    const competitionResults = {
       results,
       summary: {
         competitorAnalyses,
@@ -280,6 +284,21 @@ export class CompetitionPipelineService extends BasePipelineService {
       },
       webSearchSummary,
     };
+    
+    // Log first result for debugging
+    if (results.length > 0) {
+      this.logger.log(`[COMPETITION] First result: ${JSON.stringify({
+        model: results[0].llmModel,
+        competitor: results[0].competitor,
+        hasOriginalPrompt: !!results[0].originalPrompt,
+        hasLlmResponse: !!(results[0] as any).llmResponse,
+        hasError: !!results[0].error,
+        strengthsCount: results[0].brandStrengths?.length || 0,
+        weaknessesCount: results[0].brandWeaknesses?.length || 0,
+      })}`);
+    }
+    
+    return competitionResults;
   }
 
   /**

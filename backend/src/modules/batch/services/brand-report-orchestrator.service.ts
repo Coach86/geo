@@ -114,6 +114,20 @@ export class BrandReportOrchestratorService {
       const sentimentResults = pipelineResults[1] as SentimentResults;
       const accuracyResults = pipelineResults[2] as AccuracyResults;
       const comparisonResults = pipelineResults[3] as ComparisonResults;
+      
+      // Debug logging for competition results
+      this.logger.log(`[ORCHESTRATOR] Received competition results: ${JSON.stringify({
+        hasResults: !!comparisonResults,
+        resultsCount: comparisonResults?.results?.length || 0,
+        hasSummary: !!comparisonResults?.summary,
+        competitorAnalysesCount: comparisonResults?.summary?.competitorAnalyses?.length || 0,
+        firstResult: comparisonResults?.results?.[0] ? {
+          model: comparisonResults.results[0].llmModel,
+          competitor: comparisonResults.results[0].competitor,
+          hasOriginalPrompt: !!comparisonResults.results[0].originalPrompt,
+          hasLlmResponse: !!(comparisonResults.results[0] as any).llmResponse,
+        } : null
+      })}`);
 
       // Save batch results
       await Promise.all([
@@ -201,20 +215,6 @@ export class BrandReportOrchestratorService {
     accuracyResults: AccuracyResults,
     comparisonResults: ComparisonResults,
   ): ExplorerData {
-    // Extract top mentions from spontaneous results
-    const mentionCounts: Record<string, number> = {};
-    spontaneousResults.results.forEach(result => {
-      if (result.mentioned && result.topOfMind) {
-        result.topOfMind.forEach(brand => {
-          mentionCounts[brand] = (mentionCounts[brand] || 0) + 1;
-        });
-      }
-    });
-
-    const topMentions = Object.entries(mentionCounts)
-      .map(([mention, count]) => ({ mention, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
 
     // Build citations data
     const allCitationsData: Array<{
@@ -435,7 +435,6 @@ export class BrandReportOrchestratorService {
         totalCitations,
         uniqueSources: sourceMap.size,
       },
-      topMentions,
       topKeywords,
       topSources,
       webSearchResults, // New structure: query -> citations
@@ -619,6 +618,7 @@ export class BrandReportOrchestratorService {
     brandName: string,
     competitors: string[]
   ): CompetitionData {
+    this.logger.log(`[ORCHESTRATOR] Starting buildCompetitionData with ${comparisonResults?.results?.length || 0} results`);
     // Use the summary data which already has the analysis
     const commonStrengths = comparisonResults.summary.commonStrengths || [];
     const commonWeaknesses = comparisonResults.summary.commonWeaknesses || [];
@@ -653,22 +653,49 @@ export class BrandReportOrchestratorService {
     }));
 
     // Include detailed results with citations
-    const detailedResults = comparisonResults.results.map(result => ({
-      model: result.llmModel,
-      promptIndex: result.promptIndex,
-      competitor: result.competitor,
-      originalPrompt: result.originalPrompt || '',
-      llmResponse: result.llmResponse || '',
-      brandStrengths: result.brandStrengths || [],
-      brandWeaknesses: result.brandWeaknesses || [],
-      usedWebSearch: result.usedWebSearch || false,
-      citations: (result.citations || []).map((citation: any) => ({
-        url: citation.url || '',
-        title: citation.title,
-        text: citation.text,
-      })),
-      toolUsage: result.toolUsage || [],
-    }));
+    const detailedResults = comparisonResults.results.map(result => {
+      this.logger.log(`[ORCHESTRATOR] Processing result: ${JSON.stringify({
+        model: result.llmModel,
+        competitor: result.competitor,
+        citationsCount: result.citations?.length || 0,
+        citationsType: typeof result.citations,
+        firstCitation: result.citations?.[0],
+      })}`);
+      
+      return {
+        model: result.llmModel,
+        promptIndex: result.promptIndex,
+        competitor: result.competitor,
+        originalPrompt: result.originalPrompt || '',
+        llmResponse: result.llmResponse || '',
+        brandStrengths: result.brandStrengths || [],
+        brandWeaknesses: result.brandWeaknesses || [],
+        usedWebSearch: result.usedWebSearch || false,
+        citations: (result.citations || []).map((citation: any) => {
+          // Ensure citations match schema structure
+          if (typeof citation === 'string') {
+            return { url: citation };
+          }
+          return {
+            url: citation?.url || citation?.source || '',
+            title: citation?.title || undefined,
+            text: citation?.text || citation?.snippet || undefined,
+          };
+        }),
+        toolUsage: (result.toolUsage || []).map((tool: any) => {
+          // Ensure toolUsage matches schema structure
+          return {
+            type: tool?.type || 'unknown',
+            parameters: tool?.parameters || {},
+            execution_details: tool?.execution_details ? {
+              status: tool.execution_details.status || 'unknown',
+              result: tool.execution_details.result,
+              error: tool.execution_details.error,
+            } : undefined,
+          };
+        }),
+      };
+    });
 
     // Debug logging
     this.logger.log(`Building competition data with ${detailedResults.length} detailed results`);
@@ -685,6 +712,7 @@ export class BrandReportOrchestratorService {
         hasLlmResponse: !!comparisonResults.results[0].llmResponse,
         citationsCount: comparisonResults.results[0].citations?.length || 0,
         usedWebSearch: comparisonResults.results[0].usedWebSearch,
+        firstCitationRaw: comparisonResults.results[0].citations?.[0],
       } : null
     })}`);
     
@@ -695,7 +723,7 @@ export class BrandReportOrchestratorService {
         model: firstMapped.model,
         citationsCount: firstMapped.citations?.length || 0,
         firstCitation: firstMapped.citations?.[0],
-      })}`);
+      })}`)
     }
 
     const competitionData = {
@@ -709,12 +737,17 @@ export class BrandReportOrchestratorService {
     };
 
     // Log the structure
-    this.logger.log(`Competition data structure: ${JSON.stringify({
+    this.logger.log(`[ORCHESTRATOR] Competition data structure: ${JSON.stringify({
       brandName,
       competitorsCount: competitors.length,
       competitorAnalysesCount: competitorAnalyses.length,
       detailedResultsCount: detailedResults.length,
-      hasDetailedResults: !!detailedResults && detailedResults.length > 0
+      hasDetailedResults: !!detailedResults && detailedResults.length > 0,
+      firstDetailedResult: detailedResults[0] ? {
+        model: detailedResults[0].model,
+        competitor: detailedResults[0].competitor,
+        citationsCount: detailedResults[0].citations?.length || 0,
+      } : null
     })}`);
 
     return competitionData;

@@ -37,6 +37,17 @@ export class CompetitorDataDto {
   variation: number;
 }
 
+export class TopMentionDto {
+  @ApiProperty({ description: 'Brand or competitor name' })
+  mention: string;
+
+  @ApiProperty({ description: 'Number of times mentioned' })
+  count: number;
+
+  @ApiProperty({ description: 'Percentage of total mentions' })
+  percentage: number;
+}
+
 export class AggregatedVisibilityResponseDto {
   @ApiProperty({ description: 'Average visibility score across all selected reports and models' })
   averageScore: number;
@@ -67,6 +78,12 @@ export class AggregatedVisibilityResponseDto {
     type: [CompetitorDataDto]
   })
   competitors: CompetitorDataDto[];
+
+  @ApiProperty({ 
+    description: 'Top mentioned brands with counts and percentages',
+    type: [TopMentionDto]
+  })
+  topMentions: TopMentionDto[];
 
   @ApiProperty({ description: 'Number of reports included in aggregation' })
   reportCount: number;

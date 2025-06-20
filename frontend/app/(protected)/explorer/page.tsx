@@ -49,6 +49,7 @@ export default function ExplorerPage() {
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date } | null>(null);
   const [isAllTime, setIsAllTime] = useState<boolean>(false);
+  const [isLatest, setIsLatest] = useState<boolean>(false);
   const [promptSet, setPromptSet] = useState<PromptSet | null>(null);
   const [keywordFilter, setKeywordFilter] = useState<string>("");
   const [filteringKeyword, setFilteringKeyword] = useState<string>("");
@@ -76,21 +77,21 @@ export default function ExplorerPage() {
   const {
     loading: loadingExplorer,
     error: explorerError,
-    topMentions,
     topKeywords,
     topSources,
     summary,
     citations,
     webSearchResults,
-  } = useAggregatedExplorer(selectedProjectId, token, memoizedDateRange);
+  } = useAggregatedExplorer(selectedProjectId, token, memoizedDateRange, isLatest);
 
   // Handle date range change
-  const handleRangeChange = useCallback((start: Date, end: Date, reports: ReportResponse[], isAllTimeRange?: boolean) => {
+  const handleRangeChange = useCallback((start: Date, end: Date, reports: ReportResponse[], isAllTimeRange?: boolean, isLatestReport?: boolean) => {
     console.log('[ExplorerPage] handleRangeChange called with:', {
       start: start.toISOString(),
       end: end.toISOString(),
       reportsCount: reports.length,
-      isAllTimeRange
+      isAllTimeRange,
+      isLatestReport
     });
     
     setDateRange(prev => {
@@ -104,6 +105,7 @@ export default function ExplorerPage() {
     });
     setSelectedReports(reports);
     setIsAllTime(isAllTimeRange || false);
+    setIsLatest(isLatestReport || false);
   }, []);
 
   // Handle model filter change
@@ -183,13 +185,12 @@ export default function ExplorerPage() {
         totalCitations: summary.totalCitations,
         uniqueSources: summary.uniqueSources,
       },
-      topMentions,
       topKeywords,
       topSources,
       citations: citations || [],
       webSearchResults: webSearchResults || []
     };
-  }, [selectedReports, summary, topMentions, topKeywords, topSources, citations, webSearchResults]);
+  }, [selectedReports, summary, topKeywords, topSources, citations, webSearchResults]);
 
   // Export citations to CSV
   const exportToCSV = useCallback(() => {

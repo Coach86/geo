@@ -13,7 +13,6 @@ interface ExplorerItem {
 interface UseAggregatedExplorerReturn {
   loading: boolean;
   error: string | null;
-  topMentions: ExplorerItem[];
   topKeywords: ExplorerItem[];
   topSources: ExplorerItem[];
   summary: {
@@ -30,14 +29,14 @@ interface UseAggregatedExplorerReturn {
 export function useAggregatedExplorer(
   projectId: string | null,
   token: string | null,
-  dateRange?: { startDate: Date; endDate: Date }
+  dateRange?: { startDate: Date; endDate: Date },
+  isLatest: boolean = false
 ): UseAggregatedExplorerReturn {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<UseAggregatedExplorerReturn>({
     loading: false,
     error: null,
-    topMentions: [],
     topKeywords: [],
     topSources: [],
     summary: {
@@ -53,11 +52,10 @@ export function useAggregatedExplorer(
 
   useEffect(() => {
     const fetchAggregatedExplorer = async () => {
-      if (!token || !projectId || !dateRange) {
+      if (!token || !projectId || (!dateRange && !isLatest)) {
         setData({
           loading: false,
           error: null,
-          topMentions: [],
           topKeywords: [],
           topSources: [],
           summary: {
@@ -77,22 +75,18 @@ export function useAggregatedExplorer(
       setError(null);
 
       try {
-        // Use the provided date range
-        const startDate = dateRange.startDate.toISOString().split('T')[0];
-        const endDate = dateRange.endDate.toISOString().split('T')[0];
+        const queryParams: any = {};
+        
+        if (isLatest) {
+          queryParams.latestOnly = true;
+        } else if (dateRange) {
+          queryParams.startDate = dateRange.startDate.toISOString();
+          queryParams.endDate = dateRange.endDate.toISOString();
+        }
 
-        const response = await getAggregatedExplorer(projectId, token, {
-          startDate,
-          endDate,
-        });
+        const response = await getAggregatedExplorer(projectId, token, queryParams);
 
         // Transform the response to match hook interface
-        const topMentions = response.topMentions.map((item: any) => ({
-          name: item.name,
-          count: item.count,
-          percentage: item.percentage,
-        }));
-
         const topKeywords = response.topKeywords.map((item: any) => ({
           name: item.name,
           count: item.count,
@@ -108,7 +102,6 @@ export function useAggregatedExplorer(
         setData({
           loading: false,
           error: null,
-          topMentions,
           topKeywords,
           topSources,
           summary: response.summary,
@@ -121,7 +114,6 @@ export function useAggregatedExplorer(
         setData({
           loading: false,
           error: "Failed to load explorer data",
-          topMentions: [],
           topKeywords: [],
           topSources: [],
           summary: {
@@ -140,12 +132,11 @@ export function useAggregatedExplorer(
     };
 
     fetchAggregatedExplorer();
-  }, [projectId, dateRange, token]);
+  }, [projectId, dateRange, token, isLatest]);
 
   return {
     loading,
     error,
-    topMentions: data.topMentions,
     topKeywords: data.topKeywords,
     topSources: data.topSources,
     summary: data.summary,

@@ -5,7 +5,7 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { BrandReport, BrandReportDocument } from '../schemas/brand-report.schema';
 import { BrandReportResponseDto } from '../dto/brand-report-response.dto';
 import { AggregatedReportQueryDto } from '../dto/aggregated-report-query.dto';
-import { AggregatedVisibilityResponseDto, VisibilityChartDataDto, CompetitorDataDto } from '../dto/aggregated-visibility-response.dto';
+import { AggregatedVisibilityResponseDto, VisibilityChartDataDto, CompetitorDataDto, TopMentionDto } from '../dto/aggregated-visibility-response.dto';
 import { AggregatedAlignmentResponseDto, AlignmentChartDataDto, AttributeScoreDto } from '../dto/aggregated-alignment-response.dto';
 import { AggregatedSentimentResponseDto, SentimentChartDataDto } from '../dto/aggregated-sentiment-response.dto';
 import { AggregatedExplorerResponseDto, ExplorerItemDto } from '../dto/aggregated-explorer-response.dto';
@@ -120,6 +120,18 @@ export class BrandReportService {
       throw new NotFoundException(`Report with ID ${reportId} not found`);
     }
 
+    // Debug logging
+    this.logger.log(`Retrieved competition data for report ${reportId}: ${JSON.stringify({
+      hasCompetition: !!report.competition,
+      hasDetailedResults: !!report.competition?.detailedResults,
+      detailedResultsCount: report.competition?.detailedResults?.length || 0,
+      firstDetailedResult: report.competition?.detailedResults?.[0] ? {
+        model: report.competition.detailedResults[0].model,
+        competitor: report.competition.detailedResults[0].competitor,
+        citationsCount: report.competition.detailedResults[0].citations?.length || 0
+      } : null
+    })}`);
+
     // Extract citations from detailedResults if available
     let citations = null;
     if (report.competition?.detailedResults) {
@@ -170,6 +182,48 @@ export class BrandReportService {
       this.logger.log(`Deleted ${result.deletedCount} brand reports for deleted project ${projectId}`);
     } catch (error) {
       this.logger.error(`Failed to delete brand reports for project ${projectId}: ${error.message}`, error.stack);
+    }
+  }
+
+  /**
+   * Helper method to fetch reports based on query parameters
+   */
+  private async fetchReportsForAggregation<T>(
+    projectId: string,
+    query: AggregatedReportQueryDto,
+    selectFields: string
+  ): Promise<T[]> {
+    if (query.latestOnly) {
+      // Fetch only the latest report
+      const latestReport = await this.brandReportModel
+        .findOne({ projectId })
+        .select(selectFields)
+        .sort({ reportDate: -1 })
+        .lean() as T;
+
+      return latestReport ? [latestReport] : [];
+    } else {
+      // Build date filter
+      const dateFilter: any = { projectId };
+      if (query.startDate || query.endDate) {
+        dateFilter.reportDate = {};
+        if (query.startDate) {
+          dateFilter.reportDate.$gte = new Date(query.startDate);
+        }
+        if (query.endDate) {
+          // For end date, include the entire day by using the start of the next day
+          const endDate = new Date(query.endDate);
+          endDate.setDate(endDate.getDate() + 1);
+          dateFilter.reportDate.$lt = endDate;
+        }
+      }
+
+      // Fetch reports within date range
+      return await this.brandReportModel
+        .find(dateFilter)
+        .select(selectFields)
+        .sort({ reportDate: 1 })
+        .lean() as T[];
     }
   }
 
@@ -249,27 +303,12 @@ export class BrandReportService {
     projectId: string,
     query: AggregatedReportQueryDto
   ): Promise<AggregatedVisibilityResponseDto> {
-    // Build date filter
-    const dateFilter: any = { projectId };
-    if (query.startDate || query.endDate) {
-      dateFilter.reportDate = {};
-      if (query.startDate) {
-        dateFilter.reportDate.$gte = new Date(query.startDate);
-      }
-      if (query.endDate) {
-        // For end date, include the entire day by using the start of the next day
-        const endDate = new Date(query.endDate);
-        endDate.setDate(endDate.getDate() + 1);
-        dateFilter.reportDate.$lt = endDate;
-      }
-    }
-
-    // Fetch reports within date range
-    const reports = await this.brandReportModel
-      .find(dateFilter)
-      .select('id reportDate generatedAt visibility')
-      .sort({ reportDate: 1 })
-      .lean() as BrandReportVisibilitySelect[];
+    // Fetch reports using helper method
+    const reports = await this.fetchReportsForAggregation<BrandReportVisibilitySelect & { explorer?: ExplorerData }>(
+      projectId,
+      query,
+      'id reportDate generatedAt visibility explorer'
+    );
 
     if (reports.length === 0) {
       return this.createEmptyVisibilityResponse(projectId);
@@ -297,10 +336,33 @@ export class BrandReportService {
     const competitorMap: Record<string, { scores: number[]; dates: string[] }> = {};
     const chartData: VisibilityChartDataDto[] = [];
     const modelScores: Record<string, { total: number; count: number }> = {};
+    
+    // Track mentions with original casing preserved
+    const mentionTracker: Map<string, { displayName: string; count: number }> = new Map();
 
     reports.forEach(report => {
       const visData = report.visibility;
       if (!visData) return;
+
+      // Aggregate top mentions from visibility data
+      if (report.visibility?.topMentions) {
+        report.visibility.topMentions.forEach(mentionItem => {
+          if (mentionItem.mention && mentionItem.count) {
+            // Normalize the mention for aggregation
+            const normalizedMention = mentionItem.mention.toLowerCase().trim();
+            
+            if (!mentionTracker.has(normalizedMention)) {
+              mentionTracker.set(normalizedMention, {
+                displayName: mentionItem.mention, // Preserve original casing
+                count: 0
+              });
+            }
+            
+            const tracker = mentionTracker.get(normalizedMention)!;
+            tracker.count += mentionItem.count;
+          }
+        });
+      }
 
       // Calculate brand score for this report
       let reportScore = 0;
@@ -365,11 +427,9 @@ export class BrandReportService {
     if (query.includeVariation) {
       scoreVariation = await this.calculateVariation(
         projectId,
-        dateFilter,
+        query,
         selectedModels,
-        'visibility',
-        query.startDate,
-        query.endDate
+        'visibility'
       );
     }
 
@@ -390,10 +450,8 @@ export class BrandReportService {
       if (query.includeVariation) {
         variation = await this.calculateCompetitorVariation(
           projectId,
-          dateFilter,
-          name,
-          query.startDate,
-          query.endDate
+          query,
+          name
         );
       }
 
@@ -404,6 +462,29 @@ export class BrandReportService {
       });
     }
 
+    // Process top mentions from the tracker
+    const mentionEntries = Array.from(mentionTracker.entries())
+      .map(([normalized, data]) => ({ 
+        mention: data.displayName, 
+        count: data.count 
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10); // Top 10 mentions
+    
+    const totalMentions = mentionEntries.reduce((sum, item) => sum + item.count, 0);
+    
+    const topMentions: TopMentionDto[] = mentionEntries.map(item => ({
+      mention: item.mention,
+      count: item.count,
+      percentage: totalMentions > 0 ? Math.round((item.count / totalMentions) * 100) : 0
+    }));
+
+    // Add logging for debugging
+    this.logger.log(`Aggregated visibility data: ${mentionTracker.size} unique mentions across ${reports.length} reports`);
+    if (topMentions.length > 0) {
+      this.logger.log(`Top aggregated mention: ${topMentions[0].mention} (${topMentions[0].count} total mentions, ${topMentions[0].percentage}%)`);
+    }
+
     return {
       averageScore,
       scoreVariation,
@@ -411,6 +492,7 @@ export class BrandReportService {
       chartData,
       modelBreakdown,
       competitors,
+      topMentions,
       reportCount: reports.length,
       dateRange: {
         start: reports[0].reportDate.toISOString(),
@@ -492,27 +574,12 @@ export class BrandReportService {
     projectId: string,
     query: AggregatedReportQueryDto
   ): Promise<AggregatedAlignmentResponseDto> {
-    // Build date filter
-    const dateFilter: any = { projectId };
-    if (query.startDate || query.endDate) {
-      dateFilter.reportDate = {};
-      if (query.startDate) {
-        dateFilter.reportDate.$gte = new Date(query.startDate);
-      }
-      if (query.endDate) {
-        // For end date, include the entire day by using the start of the next day
-        const endDate = new Date(query.endDate);
-        endDate.setDate(endDate.getDate() + 1);
-        dateFilter.reportDate.$lt = endDate;
-      }
-    }
-
-    // Fetch reports within date range
-    const reports = await this.brandReportModel
-      .find(dateFilter)
-      .select('id reportDate generatedAt alignment')
-      .sort({ reportDate: 1 })
-      .lean() as BrandReportAlignmentSelect[];
+    // Fetch reports using helper method
+    const reports = await this.fetchReportsForAggregation<BrandReportAlignmentSelect>(
+      projectId,
+      query,
+      'id reportDate generatedAt alignment'
+    );
 
     if (reports.length === 0) {
       return this.createEmptyAlignmentResponse(projectId);
@@ -625,11 +692,9 @@ export class BrandReportService {
     if (query.includeVariation) {
       scoreVariation = await this.calculateVariation(
         projectId,
-        dateFilter,
+        query,
         selectedModels,
-        'alignment',
-        query.startDate,
-        query.endDate
+        'alignment'
       );
     }
 
@@ -677,27 +742,12 @@ export class BrandReportService {
     projectId: string,
     query: AggregatedReportQueryDto
   ): Promise<AggregatedSentimentResponseDto> {
-    // Build date filter
-    const dateFilter: any = { projectId };
-    if (query.startDate || query.endDate) {
-      dateFilter.reportDate = {};
-      if (query.startDate) {
-        dateFilter.reportDate.$gte = new Date(query.startDate);
-      }
-      if (query.endDate) {
-        // For end date, include the entire day by using the start of the next day
-        const endDate = new Date(query.endDate);
-        endDate.setDate(endDate.getDate() + 1);
-        dateFilter.reportDate.$lt = endDate;
-      }
-    }
-
-    // Fetch reports within date range - include explorer for citations
-    const reports = await this.brandReportModel
-      .find(dateFilter)
-      .select('id reportDate generatedAt sentiment explorer')
-      .sort({ reportDate: 1 })
-      .lean() as any[];
+    // Fetch reports using helper method - include explorer for citations
+    const reports = await this.fetchReportsForAggregation<any>(
+      projectId,
+      query,
+      'id reportDate generatedAt sentiment explorer'
+    );
 
     if (reports.length === 0) {
       return this.createEmptySentimentResponse(projectId);
@@ -932,10 +982,8 @@ export class BrandReportService {
     if (query.includeVariation) {
       sentimentVariation = await this.calculateSentimentVariation(
         projectId,
-        dateFilter,
-        selectedModels,
-        query.startDate,
-        query.endDate
+        query,
+        selectedModels
       );
     }
 
@@ -985,27 +1033,12 @@ export class BrandReportService {
     projectId: string,
     query: AggregatedReportQueryDto
   ): Promise<AggregatedCompetitionResponseDto> {
-    // Build date filter
-    const dateFilter: any = { projectId };
-    if (query.startDate || query.endDate) {
-      dateFilter.reportDate = {};
-      if (query.startDate) {
-        dateFilter.reportDate.$gte = new Date(query.startDate);
-      }
-      if (query.endDate) {
-        // For end date, include the entire day by using the start of the next day
-        const endDate = new Date(query.endDate);
-        endDate.setDate(endDate.getDate() + 1);
-        dateFilter.reportDate.$lt = endDate;
-      }
-    }
-
-    // Fetch reports within date range
-    const reports = await this.brandReportModel
-      .find(dateFilter)
-      .select('id reportDate generatedAt competition brandName')
-      .sort({ reportDate: 1 })
-      .lean();
+    // Fetch reports using helper method
+    const reports = await this.fetchReportsForAggregation<any>(
+      projectId,
+      query,
+      'id reportDate generatedAt competition brandName'
+    );
 
     if (reports.length === 0) {
       return this.createEmptyCompetitionResponse(projectId);
@@ -1210,15 +1243,27 @@ export class BrandReportService {
 
   private async calculateVariation(
     projectId: string,
-    dateFilter: any,
+    query: AggregatedReportQueryDto,
     selectedModels: string[],
-    type: 'visibility' | 'alignment',
-    queryStartDate?: string,
-    queryEndDate?: string
+    type: 'visibility' | 'alignment'
   ): Promise<number> {
     this.logger.log(`[calculateVariation] Starting for type: ${type}, projectId: ${projectId}, selectedModels: ${selectedModels.join(',')}`);
-    this.logger.log(`[calculateVariation] dateFilter: ${JSON.stringify(dateFilter)}`);
-    this.logger.log(`[calculateVariation] Query dates: ${queryStartDate} to ${queryEndDate}`);
+    this.logger.log(`[calculateVariation] Query dates: ${query.startDate} to ${query.endDate}`);
+
+    // Build date filter
+    const dateFilter: any = { projectId };
+    if (query.startDate || query.endDate) {
+      dateFilter.reportDate = {};
+      if (query.startDate) {
+        dateFilter.reportDate.$gte = new Date(query.startDate);
+      }
+      if (query.endDate) {
+        // For end date, include the entire day by using the start of the next day
+        const endDate = new Date(query.endDate);
+        endDate.setDate(endDate.getDate() + 1);
+        dateFilter.reportDate.$lt = endDate;
+      }
+    }
 
     // Get all reports within the date filter
     const allReports = await this.brandReportModel
@@ -1239,12 +1284,12 @@ export class BrandReportService {
     let previousEndDate: Date;
 
     // Use query date range if provided, otherwise fall back to report dates
-    if (queryStartDate && queryEndDate) {
-      const queryStart = new Date(queryStartDate);
-      const queryEnd = new Date(queryEndDate);
+    if (query.startDate && query.endDate) {
+      const queryStart = new Date(query.startDate);
+      const queryEnd = new Date(query.endDate);
       periodLength = queryEnd.getTime() - queryStart.getTime();
       
-      this.logger.log(`[calculateVariation] Using query date range: ${queryStartDate} to ${queryEndDate}`);
+      this.logger.log(`[calculateVariation] Using query date range: ${query.startDate} to ${query.endDate}`);
       this.logger.log(`[calculateVariation] Period length: ${periodLength}ms (${periodLength / (1000 * 60 * 60 * 24)} days)`);
 
       // Calculate previous period of same length
@@ -1369,13 +1414,26 @@ export class BrandReportService {
 
   private async calculateCompetitorVariation(
     projectId: string,
-    dateFilter: any,
-    competitorName: string,
-    queryStartDate?: string,
-    queryEndDate?: string
+    query: AggregatedReportQueryDto,
+    competitorName: string
   ): Promise<number> {
     this.logger.log(`[calculateCompetitorVariation] Starting for competitor: ${competitorName}, projectId: ${projectId}`);
-    this.logger.log(`[calculateCompetitorVariation] Query dates: ${queryStartDate} to ${queryEndDate}`);
+    this.logger.log(`[calculateCompetitorVariation] Query dates: ${query.startDate} to ${query.endDate}`);
+
+    // Build date filter
+    const dateFilter: any = { projectId };
+    if (query.startDate || query.endDate) {
+      dateFilter.reportDate = {};
+      if (query.startDate) {
+        dateFilter.reportDate.$gte = new Date(query.startDate);
+      }
+      if (query.endDate) {
+        // For end date, include the entire day by using the start of the next day
+        const endDate = new Date(query.endDate);
+        endDate.setDate(endDate.getDate() + 1);
+        dateFilter.reportDate.$lt = endDate;
+      }
+    }
 
     // Get all reports within the date filter
     const allReports = await this.brandReportModel
@@ -1393,12 +1451,12 @@ export class BrandReportService {
     let previousEndDate: Date;
 
     // Use query date range if provided, otherwise fall back to report dates
-    if (queryStartDate && queryEndDate) {
-      const queryStart = new Date(queryStartDate);
-      const queryEnd = new Date(queryEndDate);
+    if (query.startDate && query.endDate) {
+      const queryStart = new Date(query.startDate);
+      const queryEnd = new Date(query.endDate);
       periodLength = queryEnd.getTime() - queryStart.getTime();
       
-      this.logger.log(`[calculateCompetitorVariation] Using query date range: ${queryStartDate} to ${queryEndDate}`);
+      this.logger.log(`[calculateCompetitorVariation] Using query date range: ${query.startDate} to ${query.endDate}`);
       this.logger.log(`[calculateCompetitorVariation] Period length: ${periodLength}ms (${periodLength / (1000 * 60 * 60 * 24)} days)`);
 
       // Calculate previous period of same length
@@ -1592,11 +1650,24 @@ export class BrandReportService {
 
   private async calculateSentimentVariation(
     projectId: string,
-    dateFilter: any,
-    selectedModels: string[],
-    queryStartDate?: string,
-    queryEndDate?: string
+    query: AggregatedReportQueryDto,
+    selectedModels: string[]
   ): Promise<{ positive: number; neutral: number; negative: number }> {
+    // Build date filter
+    const dateFilter: any = { projectId };
+    if (query.startDate || query.endDate) {
+      dateFilter.reportDate = {};
+      if (query.startDate) {
+        dateFilter.reportDate.$gte = new Date(query.startDate);
+      }
+      if (query.endDate) {
+        // For end date, include the entire day by using the start of the next day
+        const endDate = new Date(query.endDate);
+        endDate.setDate(endDate.getDate() + 1);
+        dateFilter.reportDate.$lt = endDate;
+      }
+    }
+
     // Get all reports within the date filter
     const allReports = await this.brandReportModel
       .find(dateFilter)
@@ -1613,12 +1684,12 @@ export class BrandReportService {
     let previousEndDate: Date;
 
     // Use query date range if provided, otherwise fall back to report dates
-    if (queryStartDate && queryEndDate) {
-      const queryStart = new Date(queryStartDate);
-      const queryEnd = new Date(queryEndDate);
+    if (query.startDate && query.endDate) {
+      const queryStart = new Date(query.startDate);
+      const queryEnd = new Date(query.endDate);
       periodLength = queryEnd.getTime() - queryStart.getTime();
       
-      this.logger.log(`[calculateSentimentVariation] Using query date range: ${queryStartDate} to ${queryEndDate}`);
+      this.logger.log(`[calculateSentimentVariation] Using query date range: ${query.startDate} to ${query.endDate}`);
       this.logger.log(`[calculateSentimentVariation] Period length: ${periodLength}ms (${periodLength / (1000 * 60 * 60 * 24)} days)`);
 
       // Calculate previous period of same length
@@ -1826,6 +1897,7 @@ export class BrandReportService {
       chartData: [],
       modelBreakdown: [],
       competitors: [],
+      topMentions: [],
       reportCount: 0,
       dateRange: { start: '', end: '' }
     };
@@ -1876,34 +1948,18 @@ export class BrandReportService {
     projectId: string,
     query: AggregatedReportQueryDto
   ): Promise<AggregatedExplorerResponseDto> {
-    // Build date filter
-    const dateFilter: any = { projectId };
-    if (query.startDate || query.endDate) {
-      dateFilter.reportDate = {};
-      if (query.startDate) {
-        dateFilter.reportDate.$gte = new Date(query.startDate);
-      }
-      if (query.endDate) {
-        // For end date, include the entire day by using the start of the next day
-        const endDate = new Date(query.endDate);
-        endDate.setDate(endDate.getDate() + 1);
-        dateFilter.reportDate.$lt = endDate;
-      }
-    }
-
-    // Fetch reports within date range
-    const reports = await this.brandReportModel
-      .find(dateFilter)
-      .select('id reportDate generatedAt explorer')
-      .sort({ reportDate: 1 })
-      .lean() as BrandReportExplorerSelect[];
+    // Fetch reports using helper method
+    const reports = await this.fetchReportsForAggregation<BrandReportExplorerSelect>(
+      projectId,
+      query,
+      'id reportDate generatedAt explorer'
+    );
 
     if (reports.length === 0) {
       return this.createEmptyExplorerResponse(projectId);
     }
 
     // Aggregate data from all reports
-    const mentionCounts: Record<string, number> = {};
     const keywordCounts: Record<string, number> = {};
     const sourceCounts: Record<string, number> = {};
     const allWebSearchResults: any[] = [];
@@ -1921,13 +1977,6 @@ export class BrandReportService {
       if (explorerData.summary) {
         totalPrompts += explorerData.summary.totalPrompts || 0;
         promptsWithWebAccess += explorerData.summary.promptsWithWebAccess || 0;
-      }
-
-      // Aggregate top mentions
-      if (explorerData.topMentions) {
-        explorerData.topMentions.forEach(item => {
-          mentionCounts[item.mention] = (mentionCounts[item.mention] || 0) + item.count;
-        });
       }
 
       // Aggregate top keywords
@@ -1990,11 +2039,6 @@ export class BrandReportService {
     });
 
     // Convert to sorted arrays
-    const topMentions: ExplorerItemDto[] = Object.entries(mentionCounts)
-      .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
-
     const topKeywords: ExplorerItemDto[] = Object.entries(keywordCounts)
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count)
@@ -2006,13 +2050,8 @@ export class BrandReportService {
       .slice(0, 10);
 
     // Calculate percentages
-    const totalMentionCount = Object.values(mentionCounts).reduce((sum, count) => sum + count, 0);
     const totalKeywordCount = Object.values(keywordCounts).reduce((sum, count) => sum + count, 0);
     const totalSourceCount = Object.values(sourceCounts).reduce((sum, count) => sum + count, 0);
-
-    topMentions.forEach(item => {
-      item.percentage = totalMentionCount > 0 ? Math.round((item.count / totalMentionCount) * 100) : 0;
-    });
 
     topKeywords.forEach(item => {
       item.percentage = totalKeywordCount > 0 ? Math.round((item.count / totalKeywordCount) * 100) : 0;
@@ -2027,7 +2066,6 @@ export class BrandReportService {
       : 0;
 
     return {
-      topMentions,
       topKeywords,
       topSources,
       summary: {
@@ -2048,7 +2086,6 @@ export class BrandReportService {
 
   private createEmptyExplorerResponse(projectId: string): AggregatedExplorerResponseDto {
     return {
-      topMentions: [],
       topKeywords: [],
       topSources: [],
       summary: {
