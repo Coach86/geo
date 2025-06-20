@@ -1,7 +1,8 @@
 "use client"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Globe, Calendar, BarChart3, RefreshCw } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Globe, Calendar, BarChart3, RefreshCw, ArrowRight } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { ProjectResponse } from "@/lib/auth-api"
 import { useEffect, useState } from "react"
@@ -12,9 +13,10 @@ import { useNotificationContext } from "@/providers/notification-provider"
 interface ProjectOverviewCardProps {
   project: ProjectResponse
   onClick: () => void
+  onGoToProject?: () => void
 }
 
-export function ProjectOverviewCard({ project, onClick }: ProjectOverviewCardProps) {
+export function ProjectOverviewCard({ project, onClick, onGoToProject }: ProjectOverviewCardProps) {
   const [isProcessing, setIsProcessing] = useState(false)
   const { token } = useAuth()
   const { notifications } = useNotificationContext()
@@ -102,6 +104,24 @@ export function ProjectOverviewCard({ project, onClick }: ProjectOverviewCardPro
               </div>
             )}
           </div>
+          
+          {/* Go to Project Button */}
+          {onGoToProject && (
+            <div className="pt-3 border-t">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full" 
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent card click
+                  onGoToProject();
+                }}
+              >
+                <ArrowRight className="h-3 w-3 mr-2" />
+                Go to project
+              </Button>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
