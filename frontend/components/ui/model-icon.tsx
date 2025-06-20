@@ -24,6 +24,8 @@ const modelProviderMap: { [key: string]: string } = {
   "Mistral": "mistral",
   "Mixtral": "mistral",
   "Perplexity": "perplexity",
+  "Sonar Pro": "perplexity",
+  "sonar-pro": "perplexity",
   "Grok": "xai",
   "DeepSeek": "deepseek",
 };
@@ -49,7 +51,7 @@ const getProviderFromModel = (model: string): string => {
   if (modelLower.includes("gemini") || modelLower.includes("bard")) return "google";
   if (modelLower.includes("llama")) return "meta";
   if (modelLower.includes("mistral") || modelLower.includes("mixtral")) return "mistral";
-  if (modelLower.includes("perplexity")) return "perplexity";
+  if (modelLower.includes("perplexity") || modelLower.includes("sonar")) return "perplexity";
   if (modelLower.includes("grok")) return "xai";
   if (modelLower.includes("deepseek")) return "deepseek";
   

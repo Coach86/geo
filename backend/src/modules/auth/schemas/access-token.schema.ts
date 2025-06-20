@@ -19,6 +19,14 @@ export class AccessToken {
 
   @Prop({ default: Date.now })
   createdAt: Date;
+
+  @Prop({ type: Object, default: {} })
+  metadata?: {
+    trialDays?: number;
+    planId?: string;
+    promoCode?: string;
+    [key: string]: any;
+  };
 }
 
 export const AccessTokenSchema = SchemaFactory.createForClass(AccessToken);

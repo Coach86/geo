@@ -137,6 +137,23 @@ export class OrganizationRepository {
       selectedModels: document.selectedModels || [],
       createdAt: document.createdAt || new Date(),
       updatedAt: document.updatedAt || new Date(),
+      trialStartDate: document.trialStartDate,
+      trialEndDate: document.trialEndDate,
+      isOnTrial: document.isOnTrial,
+      trialPlanId: document.trialPlanId,
+      promoCode: document.promoCode,
     };
+  }
+
+  async findExpiredTrials(currentDate: Date): Promise<OrganizationDocument[]> {
+    try {
+      return await this.organizationModel.find({
+        isOnTrial: true,
+        trialEndDate: { $lte: currentDate }
+      }).exec();
+    } catch (error) {
+      this.logger.error('Failed to find expired trials', error);
+      throw error;
+    }
   }
 }
