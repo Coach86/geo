@@ -56,7 +56,7 @@ import { getWinstonConfig } from './utils/logger.config';
       }),
     }),
     ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', 'public'),
+      rootPath: join(process.cwd(), 'public'),
       serveRoot: '/',
       exclude: ['/api/(.*)'],
       serveStaticOptions: {
