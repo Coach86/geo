@@ -334,9 +334,6 @@ export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowe
                   ) : (
                     <Badge className="bg-destructive-50 text-destructive-700 border border-destructive-200 text-xs">{percentage}%</Badge>
                   )}
-                  {scores.length > 1 && (
-                    <span className="text-xs text-gray-500">({scores.length})</span>
-                  )}
                 </div>
               );
             },
