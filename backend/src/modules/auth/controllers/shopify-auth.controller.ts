@@ -5,6 +5,7 @@ import {
   UseGuards, 
   Request,
   UnauthorizedException,
+  BadRequestException,
   Headers,
   RawBodyRequest,
   Req,
@@ -96,7 +97,7 @@ export class ShopifyAuthController {
     },
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async refreshToken(@CurrentUser() user: any) {
+  async refreshToken(@CurrentUser() user: { userId: string; email: string; organizationId: string }) {
     if (!user.userId) {
       throw new UnauthorizedException('Invalid user');
     }
@@ -121,8 +122,45 @@ export class ShopifyAuthController {
       throw new UnauthorizedException('Invalid webhook signature');
     }
 
-    // TODO: Implement webhook handling based on topic
-    // For now, just acknowledge receipt
+    // Parse the webhook body
+    let webhookData;
+    try {
+      webhookData = JSON.parse(rawBody);
+    } catch (error) {
+      throw new BadRequestException('Invalid webhook body');
+    }
+
+    // Handle different webhook topics
+    switch (topic) {
+      case 'app/uninstalled':
+        // Handle app uninstall - clean up or mark organization as inactive
+        await this.shopifyAuthService.handleAppUninstalled(shopDomain, webhookData);
+        break;
+      
+      case 'shop/update':
+        // Handle shop updates - update organization details if needed
+        await this.shopifyAuthService.handleShopUpdate(shopDomain, webhookData);
+        break;
+      
+      case 'customers/data_request':
+        // GDPR webhook - handle customer data request
+        await this.shopifyAuthService.handleCustomerDataRequest(shopDomain, webhookData);
+        break;
+      
+      case 'customers/redact':
+        // GDPR webhook - handle customer data deletion
+        await this.shopifyAuthService.handleCustomerRedact(shopDomain, webhookData);
+        break;
+      
+      case 'shop/redact':
+        // GDPR webhook - handle shop data deletion
+        await this.shopifyAuthService.handleShopRedact(shopDomain, webhookData);
+        break;
+      
+      default:
+        // Log unhandled webhook topics for future implementation
+        console.log(`Unhandled webhook topic: ${topic} for shop: ${shopDomain}`);
+    }
     
     return { received: true };
   }

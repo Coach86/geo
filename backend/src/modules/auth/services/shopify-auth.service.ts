@@ -29,6 +29,17 @@ interface ShopifyAuthResult {
   };
 }
 
+interface ShopifyWebhookData {
+  id?: string;
+  name?: string;
+  email?: string;
+  customer?: {
+    id: string;
+  };
+  orders_requested?: string[];
+  orders_to_redact?: string[];
+}
+
 @Injectable()
 export class ShopifyAuthService {
   private readonly logger = new Logger(ShopifyAuthService.name);
@@ -155,23 +166,43 @@ export class ShopifyAuthService {
         throw new Error('Token expired');
       }
 
-      // In production, verify the token signature using Shopify's public key
-      // For now, we'll do basic validation
+      // Verify the token signature using HMAC SHA256
       const shopifyApiSecret = this.configService.get<string>('SHOPIFY_API_SECRET');
-      const isDevelopment = this.configService.get<string>('NODE_ENV') !== 'production';
-      
-      // Allow test tokens in development
-      if (isDevelopment && payload.iss?.includes('test-shop')) {
-        this.logger.warn('Accepting test token in development mode');
-        return payload;
-      }
       
       if (!shopifyApiSecret) {
         throw new Error('SHOPIFY_API_SECRET not configured');
       }
 
-      // TODO: Implement proper JWT verification with Shopify's public key
-      // This is a simplified version - in production, use proper JWT verification
+      // Verify JWT signature using HMAC SHA256
+      const message = `${headerB64}.${payloadB64}`;
+      const expectedSignature = crypto
+        .createHmac('sha256', shopifyApiSecret)
+        .update(message)
+        .digest('base64url');
+      
+      if (signatureB64 !== expectedSignature) {
+        this.logger.error('Signature verification failed', {
+          expected: expectedSignature.substring(0, 20) + '...',
+          received: signatureB64.substring(0, 20) + '...',
+          apiKey: this.configService.get<string>('SHOPIFY_API_KEY'),
+          secretLength: shopifyApiSecret.length,
+        });
+        throw new Error('Invalid token signature');
+      }
+      
+      // Validate token claims
+      if (!payload.dest || !payload.dest.includes('myshopify.com')) {
+        throw new Error('Invalid destination claim');
+      }
+      
+      const shopifyApiKey = this.configService.get<string>('SHOPIFY_API_KEY');
+      if (!shopifyApiKey) {
+        throw new Error('SHOPIFY_API_KEY not configured');
+      }
+      
+      if (!payload.aud || payload.aud !== shopifyApiKey) {
+        throw new Error('Invalid audience claim');
+      }
       
       return payload;
     } catch (error) {
@@ -185,14 +216,48 @@ export class ShopifyAuthService {
    * In production, this would make an API call to Shopify
    */
   private async getShopifyUserEmail(userId: string, shopDomain: string): Promise<string> {
-    // For test shops, return a more readable email
-    if (shopDomain.includes('test-shop') || shopDomain.includes('demo-shop')) {
-      return `test-user-${userId}@${shopDomain}`;
-    }
     
-    // TODO: Implement actual Shopify API call to get user details
-    // For now, return a placeholder email
-    return `${userId}@${shopDomain}`;
+    try {
+      // Check if we have Shopify access token for this shop
+      const shopifyAccessToken = this.configService.get<string>('SHOPIFY_ACCESS_TOKEN');
+      const shopifyApiVersion = this.configService.get<string>('SHOPIFY_API_VERSION') || '2024-01';
+      
+      if (!shopifyAccessToken) {
+        this.logger.warn('SHOPIFY_ACCESS_TOKEN not configured, using fallback email');
+        return `${userId}@${shopDomain}`;
+      }
+      
+      // Make API call to Shopify Admin API to get user details
+      // Note: This requires the shop to have granted appropriate permissions
+      const shopifyApiUrl = `https://${shopDomain}/admin/api/${shopifyApiVersion}/users/${userId}.json`;
+      
+      const response = await fetch(shopifyApiUrl, {
+        method: 'GET',
+        headers: {
+          'X-Shopify-Access-Token': shopifyAccessToken,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Shopify API returned ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.user && data.user.email) {
+        return data.user.email;
+      }
+      
+      // If no email found, fall back to constructed email
+      this.logger.warn(`No email found for Shopify user ${userId}, using fallback`);
+      return `${userId}@${shopDomain}`;
+      
+    } catch (error) {
+      this.logger.error(`Failed to fetch Shopify user details: ${error.message}`, error.stack);
+      // Fall back to constructed email on error
+      return `${userId}@${shopDomain}`;
+    }
   }
 
   /**
@@ -234,5 +299,141 @@ export class ShopifyAuthService {
       .digest('base64');
 
     return hash === signature;
+  }
+
+  /**
+   * Handle app uninstalled webhook
+   */
+  async handleAppUninstalled(shopDomain: string, webhookData: ShopifyWebhookData): Promise<void> {
+    this.logger.log(`Handling app uninstalled for shop: ${shopDomain}`);
+    
+    try {
+      // Find the organization for this shop
+      const organizations = await this.organizationService.findByShopDomain(shopDomain);
+      
+      if (organizations && organizations.length > 0) {
+        const organization = organizations[0];
+        
+        // Log the app uninstall event
+        // In a real implementation, you might want to:
+        // 1. Cancel any active subscriptions
+        // 2. Mark projects as inactive
+        // 3. Send a notification email
+        this.logger.log(`App uninstalled for organization ${organization.id} (shop: ${shopDomain})`);
+        
+        // Update the organization's subscription status if they have one
+        if (organization.stripeSubscriptionId) {
+          await this.organizationService.update(organization.id, {
+            subscriptionStatus: 'cancelled',
+          });
+        }
+      }
+    } catch (error) {
+      this.logger.error(`Error handling app uninstalled webhook: ${error.message}`, error.stack);
+    }
+  }
+
+  /**
+   * Handle shop update webhook
+   */
+  async handleShopUpdate(shopDomain: string, webhookData: ShopifyWebhookData): Promise<void> {
+    this.logger.log(`Handling shop update for shop: ${shopDomain}`);
+    
+    try {
+      // Find the organization for this shop
+      const organizations = await this.organizationService.findByShopDomain(shopDomain);
+      
+      if (organizations && organizations.length > 0) {
+        const organization = organizations[0];
+        
+        // Update organization with new shop data
+        const updates: Record<string, any> = {};
+        
+        if (webhookData.name && webhookData.name !== organization.name) {
+          updates.name = webhookData.name;
+        }
+        
+        if (Object.keys(updates).length > 0) {
+          await this.organizationService.update(organization.id, updates);
+          this.logger.log(`Updated organization ${organization.id} with shop changes`);
+        }
+        
+        // Log additional shop data for future reference
+        if (webhookData.email) {
+          this.logger.log(`Shop email updated for ${shopDomain}: ${webhookData.email}`);
+        }
+      }
+    } catch (error) {
+      this.logger.error(`Error handling shop update webhook: ${error.message}`, error.stack);
+    }
+  }
+
+  /**
+   * Handle customer data request webhook (GDPR)
+   */
+  async handleCustomerDataRequest(shopDomain: string, webhookData: ShopifyWebhookData): Promise<void> {
+    this.logger.log(`Handling customer data request for shop: ${shopDomain}`);
+    
+    // In a real implementation, you would:
+    // 1. Find all data related to the customer
+    // 2. Generate a report
+    // 3. Send it to the provided webhook URL
+    
+    // For now, just log the request
+    this.logger.log(`Customer data requested for shop ${shopDomain}:`, {
+      customerId: webhookData.customer?.id,
+      ordersRequested: webhookData.orders_requested,
+    });
+  }
+
+  /**
+   * Handle customer redact webhook (GDPR)
+   */
+  async handleCustomerRedact(shopDomain: string, webhookData: ShopifyWebhookData): Promise<void> {
+    this.logger.log(`Handling customer redact for shop: ${shopDomain}`);
+    
+    // In a real implementation, you would:
+    // 1. Find all data related to the customer
+    // 2. Delete or anonymize it
+    
+    // For now, just log the request
+    this.logger.log(`Customer data deletion requested for shop ${shopDomain}:`, {
+      customerId: webhookData.customer?.id,
+      ordersToRedact: webhookData.orders_to_redact,
+    });
+  }
+
+  /**
+   * Handle shop redact webhook (GDPR)
+   */
+  async handleShopRedact(shopDomain: string, webhookData: ShopifyWebhookData): Promise<void> {
+    this.logger.log(`Handling shop redact for shop: ${shopDomain}`);
+    
+    try {
+      // Find the organization for this shop
+      const organizations = await this.organizationService.findByShopDomain(shopDomain);
+      
+      if (organizations && organizations.length > 0) {
+        const organization = organizations[0];
+        
+        // In a real implementation, you would delete all data
+        // For GDPR compliance, we should:
+        // 1. Delete all user data
+        // 2. Delete all project data
+        // 3. Delete the organization
+        
+        // For now, log the request for manual processing
+        this.logger.warn(`SHOP REDACT REQUEST: Organization ${organization.id} (shop: ${shopDomain}) needs to be deleted for GDPR compliance`);
+        
+        // Cancel any active subscriptions
+        if (organization.stripeSubscriptionId) {
+          await this.organizationService.update(organization.id, {
+            subscriptionStatus: 'cancelled',
+          });
+        }
+      }
+    } catch (error) {
+      this.logger.error(`Error handling shop redact webhook: ${error.message}`, error.stack);
+    }
   }
 }
