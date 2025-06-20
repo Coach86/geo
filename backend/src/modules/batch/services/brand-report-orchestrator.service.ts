@@ -652,6 +652,24 @@ export class BrandReportOrchestratorService {
       modelMentions: [],
     }));
 
+    // Include detailed results with citations
+    const detailedResults = comparisonResults.results.map(result => ({
+      model: result.llmModel,
+      promptIndex: result.promptIndex,
+      competitor: result.competitor,
+      originalPrompt: result.originalPrompt || '',
+      llmResponse: result.llmResponse || '',
+      brandStrengths: result.brandStrengths || [],
+      brandWeaknesses: result.brandWeaknesses || [],
+      usedWebSearch: result.usedWebSearch || false,
+      citations: (result.citations || []).map((citation: any) => ({
+        url: citation.url || '',
+        title: citation.title,
+        text: citation.text,
+      })),
+      toolUsage: result.toolUsage || [],
+    }));
+
     return {
       brandName,
       competitors,
@@ -659,6 +677,7 @@ export class BrandReportOrchestratorService {
       competitorMetrics,
       commonStrengths,
       commonWeaknesses,
+      detailedResults,
     };
   }
 
