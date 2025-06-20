@@ -175,17 +175,27 @@ export const PromptTemplates = {
   Competitors: {competitors}
 
   Extract all companies or brands that are mentioned and classify each one as:
-  - 'ourbrand': if it's "{brandName}", written **exactly** as above.
-  - 'competitor': if it's one of the competitors listed above, written **exactly** as above.
+  - 'ourbrand': if it matches our brand "{brandName}"
+  - 'competitor': if it matches one of the competitors listed above
   - 'other': if it's any other brand or company
 
   Return the list as an array of objects with 'name' and 'type' properties.
   The list should be empty if no brand was mentioned.
 
-  # BRAND NAME RULES:
-  When extracting brand names, always use the most common, official, or canonical name for each brand.
-  Do not return spelling variations, abbreviations, or partial names—normalize all mentions to the standard brand name (e.g.: extract "Manpower" for any mention like "Manpower", "Manpower Grp", or "ManpowerGroup").
-  **IT IS CRITICAL TO RETURN THE COMPETITORS AND OUR BRAND, ONLY IF PRESENTS, EXACTLY AS THEY ARE WRITTEN ABOVE, WITHOUT ANY MODIFICATIONS.**
+  # CRITICAL NAMING RULES:
+  1. For our brand "{brandName}": Use EXACTLY "{brandName}" - no variations allowed
+  2. For competitors: Use EXACTLY the competitor names as listed above - no variations allowed
+  3. For 'other' brands: Use the most common/official name
+
+  # MATCHING RULES:
+  When you encounter brand mentions in the response, you must:
+  - If it refers to our brand (even with variations like abbreviations, full names, etc.), return: name: "{brandName}", type: "ourbrand"
+  - If it refers to any competitor (even with variations), map it to the EXACT competitor name from the list above and return: name: "[exact_competitor_name]", type: "competitor"
+  - For any other brand, use: name: "[normalized_name]", type: "other"
+
+  EXAMPLE:
+  If competitors list contains "Free" and the response mentions "Free Mobile", "Free (Iliad)", or "Iliad Free", 
+  you MUST return: name: "Free", type: "competitor"
 
   Response: {llmResponse}
   `,

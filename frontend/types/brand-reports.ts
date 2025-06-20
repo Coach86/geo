@@ -78,11 +78,19 @@ export interface VisibilityData {
     model: string;
     mentionRate: number;
   }[];
+  // Arena metrics extracted for visibility page - competitor comparison data
   arenaMetrics: {
-    model: string;
-    mentions: number;
-    score: number;
-    rank: number;
+    name: string;
+    size?: 'lg' | 'md' | 'sm';
+    global?: string;
+    modelsMentionsRate?: Array<{
+      model: string;
+      mentionsRate: number;
+    }>;
+  }[];
+  topMentions?: {
+    mention: string;
+    count: number;
   }[];
 }
 
