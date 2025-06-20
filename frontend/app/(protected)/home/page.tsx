@@ -60,6 +60,14 @@ export default function HomePage() {
     router.push("/project-settings")
   }
 
+  const handleGoToProject = (project: ProjectResponse) => {
+    analytics.trackProjectViewed(project.id, project.brandName)
+    setSelectedProject(project)
+    // Store the selected project ID in localStorage
+    localStorage.setItem('selectedProjectId', project.id)
+    router.push("/visibility") // Navigate to the project dashboard
+  }
+
   const handleAddProjectClick = () => {
     if (!organization) {
       setShowAddProjectModal(true)
@@ -124,7 +132,8 @@ export default function HomePage() {
           <div key={project.id} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <ProjectOverviewCard 
               project={project} 
-              onClick={() => handleProjectClick(project)} 
+              onClick={() => handleProjectClick(project)}
+              onGoToProject={() => handleGoToProject(project)}
             />
             <MintScoreCard 
               projectId={project.id} 
