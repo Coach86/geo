@@ -30,7 +30,7 @@ interface ProcessedReport {
 export default function CompetitionPage() {
   const { token } = useAuth();
   const { hasAccess, isLoading: accessLoading, isFreePlan } = useFeatureGate("competition");
-  const { filteredProjects, selectedProject, setSelectedProject } = useNavigation();
+  const { allProjects, selectedProject, setSelectedProject } = useNavigation();
   const { reports, loadingReports, fetchReports } = useReports();
   
   const selectedProjectId = selectedProject?.id || null;
@@ -148,9 +148,9 @@ export default function CompetitionPage() {
     <div className="space-y-6">
       {/* Breadcrumb Navigation and Report Selector */}
       <div className="flex items-center justify-between">
-        {token && filteredProjects.length > 0 && (
+        {token && allProjects.length > 0 && (
           <BreadcrumbNav
-            projects={filteredProjects}
+            projects={allProjects}
             selectedProject={selectedProject}
             onProjectSelect={setSelectedProject}
             currentPage="Competition"

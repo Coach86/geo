@@ -31,7 +31,7 @@ import { useNotificationContext } from "@/providers/notification-provider";
 
 export default function ExplorerPage() {
   const { token } = useAuth();
-  const { filteredProjects, selectedProject, setSelectedProject } = useNavigation();
+  const { allProjects, selectedProject, setSelectedProject } = useNavigation();
   const { subscribeToProject } = useNotificationContext();
   const { reports, loadingReports, fetchReports } = useReports();
   
@@ -290,9 +290,9 @@ export default function ExplorerPage() {
     <div className="space-y-6">
       {/* Breadcrumb Navigation with new Report Range Selector */}
       <div className="flex items-center justify-between">
-        {token && filteredProjects.length > 0 && (
+        {token && allProjects.length > 0 && (
           <BreadcrumbNav
-            projects={filteredProjects}
+            projects={allProjects}
             selectedProject={selectedProject}
             onProjectSelect={setSelectedProject}
             currentPage="Explorer"

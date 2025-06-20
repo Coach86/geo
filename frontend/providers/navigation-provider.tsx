@@ -8,7 +8,6 @@ import {
 } from "@/lib/navigation-persistence";
 
 interface NavigationContextType {
-  filteredProjects: ProjectResponse[];
   selectedProject: ProjectResponse | null;
   setSelectedProject: (project: ProjectResponse | null) => void;
   allProjects: ProjectResponse[];
@@ -57,7 +56,6 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   return (
     <NavigationContext.Provider
       value={{
-        filteredProjects: allProjects,
         selectedProject,
         setSelectedProject,
         allProjects,

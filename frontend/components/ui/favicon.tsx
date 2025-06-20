@@ -1,6 +1,6 @@
 "use client";
 
-import { Globe } from "lucide-react";
+import { Building2 } from "lucide-react";
 import { useState } from "react";
 import Image from "next/image";
 
@@ -20,7 +20,7 @@ export function Favicon({
   const [error, setError] = useState(false);
 
   if (!src || error) {
-    return <Globe className={fallbackClassName} />;
+    return <Building2 className={fallbackClassName} />;
   }
 
   return (

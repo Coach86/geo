@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Globe, Calendar, BarChart3, RefreshCw, ArrowRight } from "lucide-react"
+import { ExternalLink, Calendar, BarChart3, RefreshCw, ArrowRight } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { ProjectResponse } from "@/lib/auth-api"
 import { useEffect, useState } from "react"
@@ -76,7 +76,7 @@ export function ProjectOverviewCard({ project, onClick, onGoToProject }: Project
           {project.name || project.brandName}
         </CardTitle>
         <CardDescription className="flex items-center gap-2 text-sm">
-          <Globe className="h-3 w-3" />
+          <ExternalLink className="h-3 w-3" />
           {project.url}
         </CardDescription>
       </CardHeader>

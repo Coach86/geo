@@ -184,8 +184,8 @@ export const PromptTemplates = {
 
   # BRAND NAME RULES:
   When extracting brand names, always use the most common, official, or canonical name for each brand.
-  Do not return spelling variations, abbreviations, or partial names—normalize all mentions to the standard brand name (e.g., always extract "Manpower" for any mention like "Manpower", "Manpower Grp", or "ManpowerGroup").
-  **IT IS CRITICAL TO RETURN THE COMPETITORS AND OUR BRAND, IF PRESENTS, EXACTLY AS THEY ARE WRITTEN ABOVE.**
+  Do not return spelling variations, abbreviations, or partial names—normalize all mentions to the standard brand name (e.g.: extract "Manpower" for any mention like "Manpower", "Manpower Grp", or "ManpowerGroup").
+  **IT IS CRITICAL TO RETURN THE COMPETITORS AND OUR BRAND, ONLY IF PRESENTS, EXACTLY AS THEY ARE WRITTEN ABOVE, WITHOUT ANY MODIFICATIONS.**
 
   Response: {llmResponse}
   `,
