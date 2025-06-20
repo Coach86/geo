@@ -40,7 +40,6 @@ export class BrandReportResponseDto {
       totalCitations: number;
       uniqueSources: number;
     };
-    topMentions: { mention: string; count: number }[];
     topKeywords: { keyword: string; count: number; percentage: number }[];
     topSources: { domain: string; count: number; percentage: number }[];
     citations: {
@@ -72,6 +71,7 @@ export class BrandReportResponseDto {
       size: string;
       global: string;
     }[];
+    topMentions?: { mention: string; count: number }[];
   };
 
   @ApiProperty({ description: 'Sentiment data - tone analysis' })

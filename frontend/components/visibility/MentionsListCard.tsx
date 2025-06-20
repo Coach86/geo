@@ -9,6 +9,7 @@ interface MentionsListCardProps {
   mentions: Array<{
     mention: string;
     count: number;
+    percentage?: number;
   }>;
   loading?: boolean;
 }
@@ -56,7 +57,7 @@ export function MentionsListCard({ mentions, loading }: MentionsListCardProps) {
           {displayMentions && displayMentions.length > 0 ? (
             <>
               {displayMentions.map((item, index) => {
-                const percentage = total > 0 ? Math.round((item.count / total) * 100) : 0;
+                const percentage = item.percentage ?? (total > 0 ? Math.round((item.count / total) * 100) : 0);
                 // Use gradient colors for visual appeal
                 const colors = [
                   'from-blue-500 to-blue-600',

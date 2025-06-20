@@ -5,7 +5,7 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { BrandReport, BrandReportDocument } from '../schemas/brand-report.schema';
 import { BrandReportResponseDto } from '../dto/brand-report-response.dto';
 import { AggregatedReportQueryDto } from '../dto/aggregated-report-query.dto';
-import { AggregatedVisibilityResponseDto, VisibilityChartDataDto, CompetitorDataDto } from '../dto/aggregated-visibility-response.dto';
+import { AggregatedVisibilityResponseDto, VisibilityChartDataDto, CompetitorDataDto, TopMentionDto } from '../dto/aggregated-visibility-response.dto';
 import { AggregatedAlignmentResponseDto, AlignmentChartDataDto, AttributeScoreDto } from '../dto/aggregated-alignment-response.dto';
 import { AggregatedSentimentResponseDto, SentimentChartDataDto } from '../dto/aggregated-sentiment-response.dto';
 import { AggregatedExplorerResponseDto, ExplorerItemDto } from '../dto/aggregated-explorer-response.dto';
@@ -119,6 +119,18 @@ export class BrandReportService {
     if (!report) {
       throw new NotFoundException(`Report with ID ${reportId} not found`);
     }
+
+    // Debug logging
+    this.logger.log(`Retrieved competition data for report ${reportId}: ${JSON.stringify({
+      hasCompetition: !!report.competition,
+      hasDetailedResults: !!report.competition?.detailedResults,
+      detailedResultsCount: report.competition?.detailedResults?.length || 0,
+      firstDetailedResult: report.competition?.detailedResults?.[0] ? {
+        model: report.competition.detailedResults[0].model,
+        competitor: report.competition.detailedResults[0].competitor,
+        citationsCount: report.competition.detailedResults[0].citations?.length || 0
+      } : null
+    })}`);
 
     // Extract citations from detailedResults if available
     let citations = null;
@@ -267,9 +279,9 @@ export class BrandReportService {
     // Fetch reports within date range
     const reports = await this.brandReportModel
       .find(dateFilter)
-      .select('id reportDate generatedAt visibility')
+      .select('id reportDate generatedAt visibility explorer')
       .sort({ reportDate: 1 })
-      .lean() as BrandReportVisibilitySelect[];
+      .lean() as (BrandReportVisibilitySelect & { explorer?: ExplorerData })[];
 
     if (reports.length === 0) {
       return this.createEmptyVisibilityResponse(projectId);
@@ -297,10 +309,20 @@ export class BrandReportService {
     const competitorMap: Record<string, { scores: number[]; dates: string[] }> = {};
     const chartData: VisibilityChartDataDto[] = [];
     const modelScores: Record<string, { total: number; count: number }> = {};
+    const mentionCounts: Record<string, number> = {};
 
     reports.forEach(report => {
       const visData = report.visibility;
       if (!visData) return;
+
+      // Aggregate top mentions from visibility data
+      if (report.visibility?.topMentions) {
+        report.visibility.topMentions.forEach(mentionItem => {
+          if (mentionItem.mention && mentionItem.count) {
+            mentionCounts[mentionItem.mention] = (mentionCounts[mentionItem.mention] || 0) + mentionItem.count;
+          }
+        });
+      }
 
       // Calculate brand score for this report
       let reportScore = 0;
@@ -404,6 +426,17 @@ export class BrandReportService {
       });
     }
 
+    // Process top mentions
+    const totalMentions = Object.values(mentionCounts).reduce((sum, count) => sum + count, 0);
+    const topMentions: TopMentionDto[] = Object.entries(mentionCounts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 10) // Top 10 mentions
+      .map(([mention, count]) => ({
+        mention,
+        count,
+        percentage: totalMentions > 0 ? Math.round((count / totalMentions) * 100) : 0
+      }));
+
     return {
       averageScore,
       scoreVariation,
@@ -411,6 +444,7 @@ export class BrandReportService {
       chartData,
       modelBreakdown,
       competitors,
+      topMentions,
       reportCount: reports.length,
       dateRange: {
         start: reports[0].reportDate.toISOString(),
@@ -1826,6 +1860,7 @@ export class BrandReportService {
       chartData: [],
       modelBreakdown: [],
       competitors: [],
+      topMentions: [],
       reportCount: 0,
       dateRange: { start: '', end: '' }
     };
@@ -1903,7 +1938,6 @@ export class BrandReportService {
     }
 
     // Aggregate data from all reports
-    const mentionCounts: Record<string, number> = {};
     const keywordCounts: Record<string, number> = {};
     const sourceCounts: Record<string, number> = {};
     const allWebSearchResults: any[] = [];
@@ -1921,13 +1955,6 @@ export class BrandReportService {
       if (explorerData.summary) {
         totalPrompts += explorerData.summary.totalPrompts || 0;
         promptsWithWebAccess += explorerData.summary.promptsWithWebAccess || 0;
-      }
-
-      // Aggregate top mentions
-      if (explorerData.topMentions) {
-        explorerData.topMentions.forEach(item => {
-          mentionCounts[item.mention] = (mentionCounts[item.mention] || 0) + item.count;
-        });
       }
 
       // Aggregate top keywords
@@ -1990,11 +2017,6 @@ export class BrandReportService {
     });
 
     // Convert to sorted arrays
-    const topMentions: ExplorerItemDto[] = Object.entries(mentionCounts)
-      .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
-
     const topKeywords: ExplorerItemDto[] = Object.entries(keywordCounts)
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count)
@@ -2006,13 +2028,8 @@ export class BrandReportService {
       .slice(0, 10);
 
     // Calculate percentages
-    const totalMentionCount = Object.values(mentionCounts).reduce((sum, count) => sum + count, 0);
     const totalKeywordCount = Object.values(keywordCounts).reduce((sum, count) => sum + count, 0);
     const totalSourceCount = Object.values(sourceCounts).reduce((sum, count) => sum + count, 0);
-
-    topMentions.forEach(item => {
-      item.percentage = totalMentionCount > 0 ? Math.round((item.count / totalMentionCount) * 100) : 0;
-    });
 
     topKeywords.forEach(item => {
       item.percentage = totalKeywordCount > 0 ? Math.round((item.count / totalKeywordCount) * 100) : 0;
@@ -2027,7 +2044,6 @@ export class BrandReportService {
       : 0;
 
     return {
-      topMentions,
       topKeywords,
       topSources,
       summary: {
@@ -2048,7 +2064,6 @@ export class BrandReportService {
 
   private createEmptyExplorerResponse(projectId: string): AggregatedExplorerResponseDto {
     return {
-      topMentions: [],
       topKeywords: [],
       topSources: [],
       summary: {

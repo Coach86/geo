@@ -22,10 +22,6 @@ export interface ExplorerData {
     totalCitations: number;
     uniqueSources: number;
   };
-  topMentions: {
-    mention: string;
-    count: number;
-  }[];
   topKeywords: {
     keyword: string;
     count: number;
@@ -74,6 +70,10 @@ export interface VisibilityData {
       model: string;
       mentionsRate: number;
     }>;
+  }[];
+  topMentions?: {
+    mention: string;
+    count: number;
   }[];
 }
 

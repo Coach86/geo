@@ -81,10 +81,6 @@ export class BrandReport {
       totalCitations: number;
       uniqueSources: number;
     };
-    topMentions: {
-      mention: string;
-      count: number;
-    }[];
     topKeywords: {
       keyword: string;
       count: number;
@@ -129,6 +125,10 @@ export class BrandReport {
       name: string;
       size: string;
       global: string;
+    }[];
+    topMentions?: {
+      mention: string;
+      count: number;
     }[];
   };
 

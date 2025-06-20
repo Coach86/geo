@@ -26,6 +26,11 @@ interface UseVisibilityReportsReturn {
     competitorScores: Record<string, number>;
   }>;
   availableModels: string[];
+  topMentions: Array<{
+    mention: string;
+    count: number;
+    percentage: number;
+  }>;
 }
 
 export function useVisibilityReports(
@@ -106,6 +111,7 @@ export function useVisibilityReports(
         chartData: [],
         modelBreakdown: [],
         availableModels: [],
+        topMentions: [],
       };
     }
 
@@ -140,6 +146,7 @@ export function useVisibilityReports(
       chartData,
       modelBreakdown,
       availableModels: aggregatedData.availableModels || [],
+      topMentions: aggregatedData.topMentions || [],
     };
   }, [aggregatedData]);
 
@@ -154,5 +161,6 @@ export function useVisibilityReports(
     chartData: result.chartData,
     modelBreakdown: result.modelBreakdown,
     availableModels: result.availableModels,
+    topMentions: result.topMentions,
   };
 }
