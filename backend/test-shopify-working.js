@@ -1,17 +1,28 @@
 const axios = require('axios');
 
+// Environment variables needed for proper testing:
+// - SHOPIFY_API_KEY: Your Shopify app's API key (REQUIRED)
+// - SHOPIFY_API_SECRET: Your Shopify app's API secret for JWT signing (REQUIRED)
+// - SHOPIFY_WEBHOOK_SECRET: Secret for webhook signature validation (REQUIRED)
+// - SHOPIFY_ACCESS_TOKEN: (Optional) Access token for Shopify Admin API calls
+//
+// Note: All test-specific code has been removed from the service.
+// The JWT signature MUST be valid for authentication to work.
+
 const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3002/api';
 
 // Simple test configuration
 const TEST_SHOP = 'demo-shop.myshopify.com';
 const TEST_USER_ID = '12345678';
 
-// Create a simple mock token
+// Create a properly signed mock token
+const crypto = require('crypto');
+
 function createMockToken() {
   const payload = {
     iss: `https://${TEST_SHOP}/admin`,
     dest: `https://${TEST_SHOP}`,
-    aud: 'shopify-app-id',
+    aud: process.env.SHOPIFY_API_KEY || 'test-api-key',
     sub: TEST_USER_ID,
     exp: Math.floor(Date.now() / 1000) + 3600,
     nbf: Math.floor(Date.now() / 1000),
@@ -22,7 +33,15 @@ function createMockToken() {
 
   const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
   const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
-  return `${header}.${body}.test-signature`;
+  
+  // Create proper signature if we have the secret
+  const secret = process.env.SHOPIFY_API_SECRET || 'test-secret';
+  const signature = crypto
+    .createHmac('sha256', secret)
+    .update(`${header}.${body}`)
+    .digest('base64url');
+  
+  return `${header}.${body}.${signature}`;
 }
 
 async function runWorkingTest() {
@@ -39,7 +58,8 @@ async function runWorkingTest() {
     project: { passed: false, message: '' },
     refresh: { passed: false, message: '' },
     invalidToken: { passed: false, message: '' },
-    adminAccess: { passed: false, message: '' }
+    adminAccess: { passed: false, message: '' },
+    webhook: { passed: false, message: '' }
   };
 
   let accessToken = null;
@@ -258,6 +278,49 @@ async function runWorkingTest() {
       ? `${adminTestsPassed}/${adminEndpointsFound} existing endpoints correctly denied access`
       : 'No admin endpoints found to test';
 
+    // 8. Test webhook handling
+    console.log('\n8️⃣  Test webhook handling...');
+    try {
+      const webhookData = {
+        id: 12345,
+        name: TEST_SHOP,
+        email: 'test@example.com',
+        domain: TEST_SHOP,
+        updated_at: new Date().toISOString()
+      };
+
+      const webhookBody = JSON.stringify(webhookData);
+      const webhookSecret = process.env.SHOPIFY_WEBHOOK_SECRET || 'test-webhook-secret';
+      const hmac = crypto
+        .createHmac('sha256', webhookSecret)
+        .update(webhookBody, 'utf8')
+        .digest('base64');
+
+      const webhookResponse = await axios.post(
+        `${API_BASE_URL}/auth/shopify/webhook`,
+        webhookData,
+        {
+          headers: {
+            'X-Shopify-Topic': 'shop/update',
+            'X-Shopify-Shop-Domain': TEST_SHOP,
+            'X-Shopify-API-Version': '2024-01',
+            'X-Shopify-Webhook-Id': 'test-webhook-id',
+            'X-Shopify-Hmac-SHA256': hmac
+          }
+        }
+      );
+
+      if (webhookResponse.status === 200 || webhookResponse.status === 201) {
+        results.webhook.passed = true;
+        results.webhook.message = 'Webhook processed successfully';
+        console.log('   ✅ Webhook handled successfully');
+        console.log('   📦 Response:', webhookResponse.data);
+      }
+    } catch (error) {
+      results.webhook.message = error.response?.data?.message || error.message;
+      console.error('   ❌ Webhook test failed:', results.webhook.message);
+    }
+
   } catch (error) {
     console.error('\n❌ Unexpected error:', error.message);
   }
@@ -272,6 +335,7 @@ async function runWorkingTest() {
   console.log(`   ║ Refresh:       ${results.refresh.passed ? '✅ PASSED' : '❌ FAILED'}                  ║`);
   console.log(`   ║ Invalid Token: ${results.invalidToken.passed ? '✅ PASSED' : '❌ FAILED'}                  ║`);
   console.log(`   ║ Admin Access:  ${results.adminAccess.passed ? '✅ PASSED' : '❌ FAILED'}                  ║`);
+  console.log(`   ║ Webhook:       ${results.webhook.passed ? '✅ PASSED' : '❌ FAILED'}                  ║`);
   console.log('   ╚════════════════════════════════════════╝');
 
   const totalPassed = Object.values(results).filter(r => r.passed).length;
