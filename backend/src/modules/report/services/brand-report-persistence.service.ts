@@ -15,8 +15,26 @@ export class BrandReportPersistenceService {
 
   async saveReport(reportData: ReportStructure): Promise<BrandReportDocument> {
     try {
+      // Debug logging for competition data
+      if (reportData.competition) {
+        this.logger.log(`Saving report with competition data: ${JSON.stringify({
+          hasDetailedResults: !!(reportData.competition as any).detailedResults,
+          detailedResultsCount: (reportData.competition as any).detailedResults?.length || 0,
+          competitorAnalysesCount: reportData.competition.competitorAnalyses?.length || 0
+        })}`);
+      }
+      
       const report = new this.brandReportModel(reportData);
-      return await report.save();
+      const saved = await report.save();
+      
+      // Verify what was actually saved
+      const savedCompetition = saved.competition as any;
+      this.logger.log(`Saved report competition data: ${JSON.stringify({
+        hasDetailedResults: !!savedCompetition?.detailedResults,
+        detailedResultsCount: savedCompetition?.detailedResults?.length || 0
+      })}`);
+      
+      return saved;
     } catch (error) {
       this.logger.error(`Failed to save brand report: ${error.message}`, error.stack);
       throw error;

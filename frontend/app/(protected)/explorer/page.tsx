@@ -10,52 +10,48 @@ import { Button } from "@/components/ui/button";
 import {
   AlertCircle,
   Globe,
-  TrendingUp,
   Database,
-  Download,
-  Brain,
-  Hash,
   Link as LinkIcon,
+  Download,
 } from "lucide-react";
 import { CitationsTable } from "@/components/explorer/CitationsTable";
 import {
-  getReportExplorer,
   getPromptSet,
   PromptSet,
 } from "@/lib/auth-api";
-import type { ExplorerData } from "@/types/brand-reports";
 import type { ReportResponse } from "@/types/reports";
-import { ReportSelector } from "@/components/shared/ReportSelector";
-import { useReportData } from "@/hooks/use-report-data";
+import { ReportRangeSelector } from "@/components/shared/ReportRangeSelector";
+import { useAggregatedExplorer } from "@/hooks/use-aggregated-explorer";
+import { useReports } from "@/providers/report-provider";
 import BreadcrumbNav from "@/components/layout/breadcrumb-nav";
 import { useNavigation } from "@/providers/navigation-provider";
 import { ProcessingLoader } from "@/components/shared/ProcessingLoader";
-import { toast } from "@/hooks/use-toast";
 import { useNotificationContext } from "@/providers/notification-provider";
 
-interface ProcessedReport extends ReportResponse {
-  createdAt: string;
-  reportDate: string;
-}
 
 export default function ExplorerPage() {
   const { token } = useAuth();
   const { filteredProjects, selectedProject, setSelectedProject } = useNavigation();
   const { subscribeToProject } = useNotificationContext();
-  const {
-    selectedProjectId,
-    projectDetails,
-    selectedReport,
-    setSelectedReport,
-    loading,
-    error
-  } = useReportData<ProcessedReport>((report, project) => {
-    return {
-      ...report,
-      reportDate: report.metadata?.date || report.generatedAt,
-      createdAt: report.generatedAt,
-    };
-  });
+  const { reports, loadingReports, fetchReports } = useReports();
+  
+  // Get selected project from localStorage
+  const selectedProjectId = typeof window !== 'undefined'
+    ? localStorage.getItem('selectedProjectId')
+    : null;
+
+  const projectReports = selectedProjectId ? reports[selectedProjectId] || [] : [];
+  const brandName = selectedProject?.brandName || 'Brand';
+
+  // State for date range and model filters
+  const [selectedReports, setSelectedReports] = useState<ReportResponse[]>([]);
+  const [selectedModels, setSelectedModels] = useState<string[]>([]);
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
+  const [dateRange, setDateRange] = useState<{ start: Date; end: Date } | null>(null);
+  const [isAllTime, setIsAllTime] = useState<boolean>(false);
+  const [promptSet, setPromptSet] = useState<PromptSet | null>(null);
+  const [keywordFilter, setKeywordFilter] = useState<string>("");
+  const [filteringKeyword, setFilteringKeyword] = useState<string>("");
 
   // Subscribe to project notifications
   useEffect(() => {
@@ -64,56 +60,56 @@ export default function ExplorerPage() {
     }
   }, [selectedProjectId, subscribeToProject]);
 
-  const [explorerData, setExplorerData] = useState<ExplorerData | null>(null);
-  const [loadingExplorer, setLoadingExplorer] = useState(false);
-  const [explorerError, setExplorerError] = useState<string | null>(null);
-  const [promptSet, setPromptSet] = useState<PromptSet | null>(null);
-  const [expandedSources, setExpandedSources] = useState(false);
-  const [keywordFilter, setKeywordFilter] = useState<string>("");
-  const [filteringKeyword, setFilteringKeyword] = useState<string>("");
+  // Fetch reports when project changes
+  useEffect(() => {
+    if (selectedProjectId && token) {
+      fetchReports(selectedProjectId, token);
+    }
+  }, [selectedProjectId, token, fetchReports]);
 
-  // Handle keyword click with animation
-  const handleKeywordClick = (keyword: string) => {
-    setFilteringKeyword(keyword);
-    
-    // Show toast notification
-    toast({
-      title: "Filter Applied",
-      description: `Filtering citations by "${keyword}"`,
-      duration: 2000,
+  // Memoize the date range object to prevent infinite re-renders
+  const memoizedDateRange = useMemo(() => {
+    return dateRange ? { startDate: dateRange.start, endDate: dateRange.end } : undefined;
+  }, [dateRange?.start, dateRange?.end]);
+
+  // Use aggregated explorer hook for date range data
+  const {
+    loading: loadingExplorer,
+    error: explorerError,
+    topMentions,
+    topKeywords,
+    topSources,
+    summary,
+    citations,
+    webSearchResults,
+  } = useAggregatedExplorer(selectedProjectId, token, memoizedDateRange);
+
+  // Handle date range change
+  const handleRangeChange = useCallback((start: Date, end: Date, reports: ReportResponse[], isAllTimeRange?: boolean) => {
+    console.log('[ExplorerPage] handleRangeChange called with:', {
+      start: start.toISOString(),
+      end: end.toISOString(),
+      reportsCount: reports.length,
+      isAllTimeRange
     });
     
-    // Add a small delay for visual feedback
-    setTimeout(() => {
-      setKeywordFilter(keyword);
-      setFilteringKeyword("");
-    }, 300);
-  };
-
-  // Fetch explorer data when selected report changes
-  useEffect(() => {
-    const fetchExplorerData = async () => {
-      if (!selectedReport || !token) {
-        setExplorerData(null);
-        return;
+    setDateRange(prev => {
+      // Only update if dates actually changed
+      if (prev?.start.getTime() === start.getTime() && prev?.end.getTime() === end.getTime()) {
+        console.log('[ExplorerPage] Date range unchanged, skipping update');
+        return prev;
       }
+      console.log('[ExplorerPage] Date range changed, updating');
+      return { start, end };
+    });
+    setSelectedReports(reports);
+    setIsAllTime(isAllTimeRange || false);
+  }, []);
 
-      setLoadingExplorer(true);
-      setExplorerError(null);
-
-      try {
-        const data = await getReportExplorer(selectedReport.id, token);
-        setExplorerData(data);
-      } catch (err) {
-        console.error("Failed to fetch explorer data:", err);
-        setExplorerError("Failed to load explorer data. Please try again later.");
-      } finally {
-        setLoadingExplorer(false);
-      }
-    };
-
-    fetchExplorerData();
-  }, [selectedReport, token]);
+  // Handle model filter change
+  const handleModelFilterChange = useCallback((models: string[]) => {
+    setSelectedModels(models);
+  }, []);
 
   // Fetch prompt set when selected project changes
   useEffect(() => {
@@ -135,7 +131,6 @@ export default function ExplorerPage() {
 
     fetchPromptSet();
   }, [selectedProjectId, token]);
-
 
 
   // Get prompt text based on type and index
@@ -168,42 +163,45 @@ export default function ExplorerPage() {
 
   // Pre-compute prompt texts for all citations
   const citationsWithPromptText = useMemo(() => {
-    if (!explorerData) return [];
+    if (!citations || !citations.length) return [];
     
-    // Check if we have the old format with citations array
-    if (explorerData.citations) {
-      return explorerData.citations.map(citation => ({
-        ...citation,
-        promptText: getPromptText(citation.promptType, citation.promptIndex)
-      }));
-    }
-    
-    // For new format, return empty array as CitationsTable will use webSearchResults directly
-    return [];
-  }, [explorerData, promptSet]);
+    return citations.map(citation => ({
+      ...citation,
+      promptText: getPromptText(citation.promptType, citation.promptIndex)
+    }));
+  }, [citations, promptSet]);
 
-  // Calculate total unique citations (actual number of citation objects)
-  const totalUniqueCitations = useMemo(() => {
-    if (!explorerData) return 0;
+  // Create explorer data structure
+  const explorerData = useMemo(() => {
+    if (!selectedReports.length || !summary) return null;
     
-    // Use the totalCitations from summary which is calculated correctly in both formats
-    return explorerData.summary.totalCitations || 0;
-  }, [explorerData]);
+    return {
+      summary: {
+        totalPrompts: summary.totalPrompts,
+        promptsWithWebAccess: summary.promptsWithWebAccess,
+        webAccessPercentage: summary.webAccessPercentage,
+        totalCitations: summary.totalCitations,
+        uniqueSources: summary.uniqueSources,
+      },
+      topMentions,
+      topKeywords,
+      topSources,
+      citations: citations || [],
+      webSearchResults: webSearchResults || []
+    };
+  }, [selectedReports, summary, topMentions, topKeywords, topSources, citations, webSearchResults]);
 
   // Export citations to CSV
   const exportToCSV = useCallback(() => {
     if (!explorerData) return;
 
-    // Use all data for export (not filtered)
     const headers = ["Search Query", "Source", "Link", "Model", "Prompt Category", "Prompt Detail"];
-
-    // Prepare CSV rows from all data
     const rows: string[][] = [];
     
     // Use new structure if available
     if (explorerData.webSearchResults && explorerData.webSearchResults.length > 0) {
       explorerData.webSearchResults.forEach((searchResult) => {
-        searchResult.citations.forEach((citation) => {
+        searchResult.citations.forEach((citation: any) => {
           const promptText = getPromptText(citation.promptType, citation.promptIndex) || "N/A";
           rows.push([
             searchResult.query,
@@ -215,13 +213,13 @@ export default function ExplorerPage() {
           ]);
         });
       });
-    } else {
+    } else if (citationsWithPromptText && citationsWithPromptText.length > 0) {
       // Fallback to old structure
       citationsWithPromptText.forEach((citation) => {
         const promptText = citation.promptText || "N/A";
         
         if (citation.webSearchQueries && citation.webSearchQueries.length > 0) {
-          citation.webSearchQueries.forEach((queryObj) => {
+          citation.webSearchQueries.forEach((queryObj: any) => {
             rows.push([
               queryObj.query,
               citation.website,
@@ -257,15 +255,17 @@ export default function ExplorerPage() {
     link.setAttribute("href", url);
     link.setAttribute(
       "download",
-      `citations_${(selectedReport?.reportDate || new Date().toISOString())
-        .split('T')[0].replace(/-/g, "_")}.csv`
+      `citations_${new Date().toISOString().split('T')[0].replace(/-/g, "_")}.csv`
     );
     link.style.visibility = "hidden";
 
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  }, [citationsWithPromptText, selectedReport, explorerData]);
+  }, [explorerData, citationsWithPromptText]);
+
+  const loading = loadingReports[selectedProjectId || ''] || loadingExplorer;
+  const error = explorerError;
 
   if (!selectedProjectId) {
     return (
@@ -287,339 +287,194 @@ export default function ExplorerPage() {
 
   return (
     <div className="space-y-6">
-        {/* Breadcrumb Navigation */}
+      {/* Breadcrumb Navigation with new Report Range Selector */}
+      <div className="flex items-center justify-between">
         {token && filteredProjects.length > 0 && (
           <BreadcrumbNav
             projects={filteredProjects}
             selectedProject={selectedProject}
             onProjectSelect={setSelectedProject}
             currentPage="Explorer"
-            showReportSelector={true}
+            showReportSelector={false}
             token={token}
-            onReportSelect={(report) => {
-              if (!report) {
-                setSelectedReport(null);
-                return;
-              }
-              // Transform ReportResponse to ProcessedReport
-              const processedReport: ProcessedReport = {
-                ...report,
-                reportDate: report.metadata?.date || report.generatedAt,
-                createdAt: report.generatedAt,
-              };
-              setSelectedReport(processedReport);
-            }}
           />
         )}
-
-
-        {/* Error State */}
-        {(error || explorerError) && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error || explorerError}</AlertDescription>
-          </Alert>
-        )}
-
-        {/* Loading State */}
-        {(loading || loadingExplorer) && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <Skeleton className="h-6 w-48" />
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-24 w-full" />
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <Skeleton className="h-6 w-48" />
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-24 w-full" />
-                </CardContent>
-              </Card>
-            </div>
-            <Card>
-              <CardHeader>
-                <Skeleton className="h-6 w-48" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-64 w-full" />
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Explorer Content */}
-        {!loading && !loadingExplorer && selectedReport && explorerData && (
-          <div className="space-y-6">
-            {/* First Row: Three Columns */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Tracked Responses */}
-              <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <Database className="h-5 w-5 text-purple-600" />
-                    Total prompts executed
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="text-3xl font-bold text-purple-600">
-                      {explorerData.summary.totalPrompts || 0}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Number of Citations */}
-              <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <LinkIcon className="h-5 w-5 text-blue-600" />
-                    Total links consulted
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="text-3xl font-bold text-blue-600">
-                      {totalUniqueCitations}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Total Sources */}
-              <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <Globe className="h-5 w-5 text-green-600" />
-                    Total sources
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="text-3xl font-bold text-green-600">
-                      {explorerData.summary.uniqueSources || 0}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Second Row: Three Columns - Top Mentions, Keywords, Sources */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Top 10 Mentions */}
-              <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <Brain className="h-5 w-5 text-accent-600" />
-                    Top 10 Mentions
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-2">
-                    {explorerData.topMentions && explorerData.topMentions.length > 0 ? (
-                      explorerData.topMentions.slice(0, 10).map((item, index) => (
-                        <Badge
-                          key={index}
-                          variant={index < 3 ? "default" : "outline"}
-                          className={`
-                            ${index < 3
-                              ? "bg-secondary-100 text-secondary-800 border-secondary-200"
-                              : "border-gray-300 text-gray-700"
-                            }
-                            text-sm font-medium px-3 py-1
-                          `}
-                        >
-                          {item.mention} ({item.count})
-                          {index === 0 && (
-                            <span className="ml-1 text-xs">
-                              👑
-                            </span>
-                          )}
-                        </Badge>
-                      ))
-                    ) : (
-                      <p className="text-sm text-gray-400 italic">
-                        No mentions found
-                      </p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Top 10 Keywords */}
-              <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <Hash className="h-5 w-5 text-purple-600" />
-                    Top 10 Keywords
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-2">
-                    {explorerData.topKeywords && explorerData.topKeywords.length > 0 ? (
-                      explorerData.topKeywords
-                        .filter(item => item.keyword.toLowerCase() !== 'unknown')
-                        .slice(0, 10)
-                        .map((item, index) => {
-                        const isFiltering = filteringKeyword === item.keyword;
-                        const isActive = keywordFilter === item.keyword;
-                        return (
-                          <Badge
-                            key={index}
-                            variant={index < 3 ? "default" : "outline"}
-                            className={`
-                              ${isActive
-                                ? "bg-blue-100 text-blue-800 border-blue-300"
-                                : index < 3
-                                  ? "bg-purple-100 text-purple-800 border-purple-200"
-                                  : "border-gray-300 text-gray-700"
-                              }
-                              ${isFiltering ? "animate-pulse bg-blue-200" : ""}
-                              text-sm font-medium px-3 py-1 cursor-pointer hover:scale-105 transition-all duration-200
-                              ${isActive ? "ring-2 ring-blue-300 ring-opacity-50" : ""}
-                            `}
-                            onClick={() => handleKeywordClick(item.keyword)}
-                            title={`Click to filter citations by "${item.keyword}"`}
-                          >
-                            {isFiltering && (
-                              <span className="mr-1 animate-spin">⟳</span>
-                            )}
-                            {item.keyword} ({item.count})
-                            {index === 0 && !isFiltering && (
-                              <span className="ml-1 text-xs">
-                                🔍
-                              </span>
-                            )}
-                            {isActive && !isFiltering && (
-                              <span className="ml-1 text-xs">
-                                ✓
-                              </span>
-                            )}
-                          </Badge>
-                        );
-                      })
-                    ) : (
-                      <p className="text-sm text-gray-400 italic">
-                        No keywords available
-                      </p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Top Sources */}
-              <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-green-600" />
-                    Top {expandedSources ? '10' : '5'} Sources
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {explorerData.topSources.length > 0 ? (
-                      <>
-                        {explorerData.topSources.slice(0, expandedSources ? 10 : 5).map((source, index) => (
-                          <div
-                            key={source.domain}
-                            className="flex items-center justify-between p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors duration-200"
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium text-gray-600">
-                                #{index + 1}
-                              </span>
-                              <span className="text-sm font-medium text-gray-900 truncate">
-                                {source.domain}
-                              </span>
-                            </div>
-                            <Badge variant="outline" className="text-xs">
-                              {source.count}
-                            </Badge>
-                          </div>
-                        ))}
-                        {explorerData.topSources.length > 5 && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setExpandedSources(!expandedSources)}
-                            className="w-full mt-2 text-gray-600 hover:text-gray-900"
-                          >
-                            {expandedSources ? 'Show less' : `Show ${Math.min(5, explorerData.topSources.length - 5)} more`}
-                          </Button>
-                        )}
-                      </>
-                    ) : (
-                      <p className="text-sm text-gray-400 italic">
-                        No sources found
-                      </p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-
-            {/* Third Row: Full Width Citations Table */}
-            <Card className={`
-              border-0 shadow-sm hover:shadow-md transition-all duration-300
-              ${filteringKeyword ? "animate-pulse" : ""}
-              ${keywordFilter ? "ring-2 ring-blue-200 ring-opacity-50" : ""}
-            `}>
-              <CardHeader className="pb-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                      <Database className="h-5 w-5 text-purple-600" />
-                      All Citations
-                    </CardTitle>
-                    <p className="text-sm text-gray-600 mt-1">
-                      Complete list of sources cited in AI responses with advanced filtering and sorting
-                    </p>
-                  </div>
-                  {keywordFilter && (
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 animate-in fade-in-0 slide-in-from-right-5 duration-300">
-                        <span className="text-xs">🔍</span> Filtered by: {keywordFilter}
-                      </Badge>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setKeywordFilter("");
-                          setFilteringKeyword("");
-                        }}
-                        className="h-7 w-7 p-0 hover:bg-red-100 hover:text-red-600 transition-colors"
-                        title="Clear filter"
-                      >
-                        ✕
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent>
-                <CitationsTable
-                  citations={citationsWithPromptText}
-                  webSearchResults={explorerData.webSearchResults}
-                  onExport={exportToCSV}
-                  searchQueryFilter={keywordFilter}
-                  promptSet={promptSet}
-                />
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* No Reports State */}
-        {!loading && !selectedReport && selectedProjectId && (
-          <ProcessingLoader />
+        {projectReports.length > 0 && selectedProjectId && (
+          <ReportRangeSelector
+            reports={projectReports}
+            projectId={selectedProjectId}
+            availableModels={availableModels}
+            onRangeChange={handleRangeChange}
+            onModelFilterChange={handleModelFilterChange}
+          />
         )}
       </div>
+
+
+      {/* Error State */}
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[...Array(3)].map((_, i) => (
+              <Card key={i}>
+                <CardHeader>
+                  <Skeleton className="h-6 w-48" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-24 w-full" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-48" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-64 w-full" />
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Explorer Content */}
+      {!loading && selectedReports.length > 0 && explorerData && (
+        <div className="space-y-6 fade-in-section is-visible">
+          {/* First Row: Three Columns */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Tracked Responses */}
+            <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <Database className="h-5 w-5 text-purple-600" />
+                  Total prompts executed
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="text-3xl font-bold text-purple-600">
+                    {explorerData.summary.totalPrompts || 0}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Number of Citations */}
+            <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <LinkIcon className="h-5 w-5 text-blue-600" />
+                  Total links consulted
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="text-3xl font-bold text-blue-600">
+                    {explorerData.summary.totalCitations || 0}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Total Sources */}
+            <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <Globe className="h-5 w-5 text-green-600" />
+                  Total sources
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="text-3xl font-bold text-green-600">
+                    {explorerData.summary.uniqueSources || 0}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+
+
+          {/* Second Row: Full Width Citations Table */}
+          <Card className={`
+            border-0 shadow-sm hover:shadow-md transition-all duration-300
+            ${filteringKeyword ? "animate-pulse" : ""}
+            ${keywordFilter ? "ring-2 ring-blue-200 ring-opacity-50" : ""}
+          `}>
+            <CardHeader className="pb-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <Database className="h-5 w-5 text-purple-600" />
+                    All Citations
+                  </CardTitle>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Complete list of sources cited in AI responses with advanced filtering and sorting
+                  </p>
+                </div>
+                {keywordFilter && (
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 animate-in fade-in-0 slide-in-from-right-5 duration-300">
+                      <span className="text-xs">🔍</span> Filtered by: {keywordFilter}
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setKeywordFilter("");
+                        setFilteringKeyword("");
+                      }}
+                      className="h-7 w-7 p-0 hover:bg-red-100 hover:text-red-600 transition-colors"
+                      title="Clear filter"
+                    >
+                      ✕
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              <CitationsTable
+                citations={citationsWithPromptText}
+                webSearchResults={explorerData.webSearchResults}
+                onExport={exportToCSV}
+                searchQueryFilter={keywordFilter}
+                promptSet={promptSet}
+              />
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* No Reports State */}
+      {!loading && projectReports.length === 0 && selectedProjectId && (
+        <ProcessingLoader />
+      )}
+
+      {/* No Selected Reports */}
+      {!loading && projectReports.length > 0 && selectedReports.length === 0 && (
+        <div className="flex items-center justify-center h-[50vh]">
+          <Card className="max-w-md w-full">
+            <CardContent className="pt-6">
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Please select a date range to view explorer data.
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+    </div>
   );
 }

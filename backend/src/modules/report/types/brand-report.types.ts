@@ -130,7 +130,7 @@ export interface ExplorerData {
   topMentions: { mention: string; count: number }[];
   topKeywords: { keyword: string; count: number; percentage: number }[];
   topSources: { domain: string; count: number; percentage: number }[];
-  citations: {
+  citations?: {
     website: string;
     link?: string;
     model: string;
@@ -138,6 +138,20 @@ export interface ExplorerData {
     promptIndex: number;
     promptText?: string;
     webSearchQueries?: { query: string; timestamp?: string }[];
+  }[];
+  webSearchResults?: {
+    query: string;
+    timestamp?: string;
+    models: string[];
+    promptTypes: string[];
+    citations: {
+      website: string;
+      link?: string;
+      model: string;
+      promptType: string;
+      promptIndex: number;
+      source?: string;
+    }[];
   }[];
   webAccess: {
     totalResponses: number;

@@ -25,10 +25,14 @@ export function CompetitionWatchtower({
   citations,
   loading = false,
 }: CompetitionWatchtowerProps) {
-  // Competition analysis currently focuses on comparative insights
-  // Citation tracking for competition analysis is coming soon
+  // Handle null citations from API
+  const competitionCitations = citations || {
+    items: [],
+    uniqueDomains: 0,
+    totalCitations: 0,
+  };
   
-  if (!citations || citations.items.length === 0) {
+  if (competitionCitations.items.length === 0) {
     return (
       <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
         <CardHeader className="pb-4">
@@ -41,11 +45,11 @@ export function CompetitionWatchtower({
           <div className="text-center py-12">
             <FileSearch className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              Citation Tracking Coming Soon
+              No Citations Available
             </h3>
             <p className="text-sm text-gray-600 max-w-md mx-auto">
-              We're working on tracking sources and citations for competitive analysis. 
-              This feature will help you understand where competitive insights originate from across different AI models.
+              Citations will be tracked in future batch analyses. Run a new batch to see sources and citations 
+              for competitive insights across different AI models.
             </p>
           </div>
         </CardContent>
@@ -55,8 +59,8 @@ export function CompetitionWatchtower({
 
   return (
     <SourcesWatchtower
-      citations={citations}
-      type="alignment"
+      citations={competitionCitations}
+      type="competition"
       loading={loading}
     />
   );

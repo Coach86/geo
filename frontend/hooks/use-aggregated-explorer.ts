@@ -23,6 +23,8 @@ interface UseAggregatedExplorerReturn {
     totalCitations: number;
     uniqueSources: number;
   };
+  citations?: any[];
+  webSearchResults?: any[];
 }
 
 export function useAggregatedExplorer(
@@ -45,6 +47,8 @@ export function useAggregatedExplorer(
       totalCitations: 0,
       uniqueSources: 0,
     },
+    citations: [],
+    webSearchResults: [],
   });
 
   useEffect(() => {
@@ -63,6 +67,8 @@ export function useAggregatedExplorer(
             totalCitations: 0,
             uniqueSources: 0,
           },
+          citations: [],
+          webSearchResults: [],
         });
         return;
       }
@@ -106,6 +112,8 @@ export function useAggregatedExplorer(
           topKeywords,
           topSources,
           summary: response.summary,
+          citations: response.citations || [],
+          webSearchResults: response.webSearchResults || [],
         });
       } catch (err) {
         console.error("Failed to fetch aggregated explorer data:", err);
@@ -123,6 +131,8 @@ export function useAggregatedExplorer(
             totalCitations: 0,
             uniqueSources: 0,
           },
+          citations: [],
+          webSearchResults: [],
         });
       } finally {
         setLoading(false);
@@ -139,5 +149,7 @@ export function useAggregatedExplorer(
     topKeywords: data.topKeywords,
     topSources: data.topSources,
     summary: data.summary,
+    citations: data.citations,
+    webSearchResults: data.webSearchResults,
   };
 }
