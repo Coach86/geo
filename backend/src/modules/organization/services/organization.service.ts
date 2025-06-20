@@ -277,6 +277,100 @@ export class OrganizationService {
       currentUsers,
       currentProjects,
       projects,
+      trialStartDate: entity.trialStartDate?.toISOString(),
+      trialEndDate: entity.trialEndDate?.toISOString(),
+      isOnTrial: entity.isOnTrial,
+      trialPlanId: entity.trialPlanId,
+      promoCode: entity.promoCode,
     };
+  }
+
+  async activateTrial(organizationId: string, planId: string, trialDays: number, promoCode?: string): Promise<OrganizationResponseDto> {
+    try {
+      this.logger.log(`Activating trial for organization ${organizationId} - Plan: ${planId}, Days: ${trialDays}, Promo: ${promoCode}`);
+
+      // Get the plan details
+      const plan = await this.planService.findById(planId);
+      if (!plan) {
+        throw new NotFoundException(`Plan with ID ${planId} not found`);
+      }
+
+      // Calculate trial dates
+      const trialStartDate = new Date();
+      const trialEndDate = new Date();
+      trialEndDate.setDate(trialEndDate.getDate() + trialDays);
+
+      // Update organization with trial information
+      const updateData: any = {
+        isOnTrial: true,
+        trialStartDate,
+        trialEndDate,
+        trialPlanId: planId,
+        stripePlanId: planId,
+        planSettings: {
+          maxProjects: plan.maxProjects,
+          maxAIModels: plan.maxModels,
+          maxSpontaneousPrompts: plan.maxSpontaneousPrompts,
+          maxUrls: plan.maxUrls,
+          maxUsers: plan.maxUsers,
+          maxCompetitors: plan.maxCompetitors,
+        },
+      };
+
+      // Add promo code if provided
+      if (promoCode) {
+        updateData.promoCode = promoCode;
+      }
+
+      const updatedOrganization = await this.organizationRepository.update(organizationId, updateData);
+
+      if (!updatedOrganization) {
+        throw new NotFoundException(`Organization with ID ${organizationId} not found`);
+      }
+
+      this.logger.log(`Trial activated successfully for organization ${organizationId}`);
+      return this.mapToResponseDto(updatedOrganization);
+    } catch (error) {
+      this.logger.error(`Failed to activate trial: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  async checkAndExpireTrials(): Promise<void> {
+    try {
+      const now = new Date();
+      
+      // Find all organizations with expired trials
+      const expiredTrials = await this.organizationRepository.findExpiredTrials(now);
+      
+      for (const organization of expiredTrials) {
+        this.logger.log(`Expiring trial for organization ${organization.id}`);
+        
+        // Find the free plan to downgrade to
+        const freePlan = await this.planService.findFreePlan();
+        if (!freePlan) {
+          this.logger.error('No free plan found for downgrade');
+          continue;
+        }
+
+        // Downgrade to free plan
+        await this.organizationRepository.update(organization.id, {
+          isOnTrial: false,
+          stripePlanId: freePlan.id,
+          planSettings: {
+            maxProjects: freePlan.maxProjects,
+            maxAIModels: freePlan.maxModels,
+            maxSpontaneousPrompts: freePlan.maxSpontaneousPrompts,
+            maxUrls: freePlan.maxUrls,
+            maxUsers: freePlan.maxUsers,
+            maxCompetitors: freePlan.maxCompetitors,
+          },
+        });
+
+        this.logger.log(`Organization ${organization.id} downgraded to free plan after trial expiry`);
+      }
+    } catch (error) {
+      this.logger.error(`Failed to check and expire trials: ${error.message}`, error.stack);
+    }
   }
 }

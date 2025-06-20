@@ -1,90 +1,73 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/providers/auth-provider";
 import { useFeatureGate } from "@/hooks/use-feature-access";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { ModelDisplay } from "@/components/shared/ModelDisplay";
-import { ReportSelector } from "@/components/shared/ReportSelector";
-import { useReportData } from "@/hooks/use-report-data";
-import type { ReportResponse } from "@/types/reports";
 import type { CompetitionData as CompetitionTypeData } from "@/types/competition";
 import BreadcrumbNav from "@/components/layout/breadcrumb-nav";
 import { useNavigation } from "@/providers/navigation-provider";
 import { ProcessingLoader } from "@/components/shared/ProcessingLoader";
-import { getReportCompetition } from "@/lib/api/report";
 import { FeatureLockedWrapper } from "@/components/shared/FeatureLockedWrapper";
-import { getMockCompetitionData } from "@/lib/mock-data";
+import { getReportCompetition } from "@/lib/api/report";
+import { useReportData } from "@/hooks/use-report-data";
+import { CompetitionWatchtower } from "@/components/competition/CompetitionWatchtower";
+import { useReports } from "@/providers/report-provider";
+import { SingleReportSelector } from "@/components/shared/SingleReportSelector";
+import type { ReportResponse } from "@/types/reports";
 
-interface ProcessedReport extends ReportResponse {
-  competition: CompetitionTypeData;
-  brandName: string;
-  competitors: string[];
-  reportDate: string;
-  createdAt: string;
+interface ProcessedReport {
+  id: string;
   projectId: string;
-}
-
-interface CompetitionData {
   brandName: string;
   competitors: string[];
-  competitorAnalyses: {
-    competitor: string;
-    analysisByModel: {
-      model: string;
-      strengths: string[];
-      weaknesses: string[];
-    }[];
-  }[];
-  competitorMetrics?: {
-    competitor: string;
-    overallRank: number;
-    mentionRate: number;
-    modelMentions: {
-      model: string;
-      rank: number;
-      mentionRate: number;
-    }[];
-  }[];
-  commonStrengths: string[];
-  commonWeaknesses: string[];
+  generatedAt: string;
 }
 
 export default function CompetitionPage() {
   const { token } = useAuth();
   const { hasAccess, isLoading: accessLoading, isFreePlan } = useFeatureGate("competition");
   const { filteredProjects, selectedProject, setSelectedProject } = useNavigation();
+  const { reports, loadingReports, fetchReports } = useReports();
+  
+  const selectedProjectId = selectedProject?.id || null;
+  const projectReports = selectedProjectId ? reports[selectedProjectId] || [] : [];
+  const brandName = selectedProject?.brandName || 'Brand';
+  
+  // Use report data hook for report selection
   const {
-    selectedProjectId,
-    projectDetails,
     selectedReport,
     setSelectedReport,
-    loading,
-    error
+    loading: reportLoading,
+    error: reportError
   } = useReportData<ProcessedReport>((report, project) => {
-    // Type assertion to handle the report data structure
-    const reportData = report as any;
-    
     return {
-      ...report,
+      id: report.id,
       projectId: report.projectId,
-      reportDate: report.metadata?.date || report.generatedAt,
-      createdAt: report.generatedAt,
-      brandName: reportData.brand || (report.metadata as any)?.brand || project.brandName,
+      brandName: project.brandName,
       competitors: project.competitors || [],
-      competition: reportData.competition || reportData.brandBattle || {
-        competitorAnalyses: [],
-        commonStrengths: [],
-        commonWeaknesses: []
-      },
+      generatedAt: report.generatedAt,
     };
   });
   
-  const [competitionData, setCompetitionData] = useState<CompetitionData | null>(null);
+  // State for competition data
+  const [competitionData, setCompetitionData] = useState<any>(null);
   const [loadingCompetition, setLoadingCompetition] = useState(false);
   const [competitionError, setCompetitionError] = useState<string | null>(null);
+  
+  // State for model filtering
+  const [selectedModels, setSelectedModels] = useState<string[]>([]);
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
+
+  // Fetch reports when project changes
+  useEffect(() => {
+    if (selectedProjectId && token) {
+      fetchReports(selectedProjectId, token);
+    }
+  }, [selectedProjectId, token, fetchReports]);
 
   // Fetch competition data when selected report changes
   useEffect(() => {
@@ -98,61 +81,20 @@ export default function CompetitionPage() {
       setCompetitionError(null);
 
       try {
-        if (isFreePlan) {
-          // Use mock data for free plan users
-          const mockData = getMockCompetitionData();
-          // Use the project's configured competitors if available, otherwise use mock competitors
-          const projectCompetitors = projectDetails?.competitors || [];
-          const mockCompetitors = mockData.competitorAnalysis.slice(0, Math.max(3, projectCompetitors.length));
-          
-          const competitionData: CompetitionData = {
-            brandName: projectDetails?.brandName || "Your Brand",
-            competitors: projectCompetitors.length > 0 ? projectCompetitors : mockCompetitors.map(c => c.name),
-            competitorAnalyses: (projectCompetitors.length > 0 ? projectCompetitors : mockCompetitors.map(c => c.name))
-              .map((competitorName, idx) => {
-                const mockComp = mockCompetitors[idx % mockCompetitors.length];
-                return {
-                  competitor: competitorName,
-                  analysisByModel: [
-                    {
-                      model: "GPT-4",
-                      strengths: mockComp.strengths.slice(0, 3),
-                      weaknesses: mockComp.weaknesses.slice(0, 3)
-                    },
-                    {
-                      model: "Claude 3.5 Sonnet",
-                      strengths: [...mockComp.strengths.slice(1, 3), mockComp.strengths[0]],
-                      weaknesses: [...mockComp.weaknesses.slice(1, 3), mockComp.weaknesses[0]]
-                    },
-                    {
-                      model: "Gemini 1.5 Pro",
-                      strengths: [...mockComp.strengths.slice(2, 4), mockComp.strengths[1]],
-                      weaknesses: [...mockComp.weaknesses.slice(2, 4), mockComp.weaknesses[1]]
-                    }
-                  ]
-                };
-              }),
-            competitorMetrics: (projectCompetitors.length > 0 ? projectCompetitors : mockCompetitors.map(c => c.name))
-              .map((competitorName, idx) => {
-                const mockComp = mockCompetitors[idx % mockCompetitors.length];
-                return {
-                  competitor: competitorName,
-                  overallRank: idx + 1,
-                  mentionRate: mockComp.overallScore,
-                  modelMentions: [
-                    { model: "GPT-4", rank: idx + 1, mentionRate: mockComp.overallScore - 5 + idx },
-                    { model: "Claude 3.5 Sonnet", rank: idx + 1, mentionRate: mockComp.overallScore - 3 + idx },
-                    { model: "Gemini 1.5 Pro", rank: idx + 1, mentionRate: mockComp.overallScore - 7 + idx }
-                  ]
-                };
-              }),
-            commonStrengths: mockData.competitiveAdvantages,
-            commonWeaknesses: mockData.opportunities
-          };
-          setCompetitionData(competitionData);
-        } else {
-          const data = await getReportCompetition(selectedReport.id, token);
-          setCompetitionData(data);
+        const data = await getReportCompetition(selectedReport.id, token);
+        setCompetitionData(data);
+        
+        // Extract available models from the competition data
+        if (data?.competitorAnalyses) {
+          const models = new Set<string>();
+          data.competitorAnalyses.forEach((comp: any) => {
+            comp.analysisByModel?.forEach((analysis: any) => {
+              models.add(analysis.model);
+            });
+          });
+          const modelArray = Array.from(models);
+          setAvailableModels(modelArray);
+          setSelectedModels(modelArray); // Select all by default
         }
       } catch (err) {
         console.error("Failed to fetch competition data:", err);
@@ -163,22 +105,17 @@ export default function CompetitionPage() {
     };
 
     fetchCompetitionData();
-  }, [selectedReport, token, isFreePlan, projectDetails]);
+  }, [selectedReport, token]);
 
-  // All competitors are always selected
-  const selectedCompetitors = projectDetails?.competitors || [];
+  // Handle report change
+  const handleReportChange = useCallback((report: ReportResponse | null) => {
+    setSelectedReport(report);
+  }, [setSelectedReport]);
 
-  // Get brand battle data (all competitors are included)
-  const getBattleData = (): CompetitionTypeData | null => {
-    if (!competitionData || !competitionData.competitorAnalyses || competitionData.competitorAnalyses.length === 0)
-      return null;
-
-    return {
-      competitorAnalyses: competitionData.competitorAnalyses,
-      commonStrengths: competitionData.commonStrengths || [],
-      commonWeaknesses: competitionData.commonWeaknesses || []
-    };
-  };
+  // Handle model filter change
+  const handleModelFilterChange = useCallback((models: string[]) => {
+    setSelectedModels(models.length === 0 ? availableModels : models);
+  }, [availableModels]);
 
   // Check feature access
   if (accessLoading) {
@@ -188,7 +125,6 @@ export default function CompetitionPage() {
       </div>
     );
   }
-
 
   if (!selectedProjectId) {
     return (
@@ -210,51 +146,39 @@ export default function CompetitionPage() {
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumb Navigation */}
-      {token && filteredProjects.length > 0 && (
-        <BreadcrumbNav
-          projects={filteredProjects}
-          selectedProject={selectedProject}
-          onProjectSelect={setSelectedProject}
-          currentPage="Competition"
-          showReportSelector={true}
-          token={token}
-          onReportSelect={(report) => {
-            if (!report || !projectDetails) {
-              setSelectedReport(null);
-              return;
-            }
-            // Transform ReportResponse to ProcessedReport
-            const reportData = report as any;
-            const processedReport: ProcessedReport = {
-              ...report,
-              projectId: report.projectId,
-              reportDate: report.metadata?.date || report.generatedAt,
-              createdAt: report.generatedAt,
-              brandName: reportData.brand || (report.metadata as any)?.brand || projectDetails.brandName,
-              competitors: projectDetails.competitors || [],
-              competition: reportData.competition || reportData.brandBattle || {
-                competitorAnalyses: [],
-                commonStrengths: [],
-                commonWeaknesses: []
-              },
-            };
-            setSelectedReport(processedReport);
-          }}
-        />
-      )}
-
+      {/* Breadcrumb Navigation and Report Selector */}
+      <div className="flex items-center justify-between">
+        {token && filteredProjects.length > 0 && (
+          <BreadcrumbNav
+            projects={filteredProjects}
+            selectedProject={selectedProject}
+            onProjectSelect={setSelectedProject}
+            currentPage="Competition"
+            showReportSelector={false}
+            token={token}
+          />
+        )}
+        {projectReports.length > 0 && selectedProjectId && (
+          <SingleReportSelector
+            reports={projectReports}
+            selectedReport={selectedReport}
+            availableModels={availableModels}
+            onReportChange={handleReportChange}
+            onModelFilterChange={handleModelFilterChange}
+          />
+        )}
+      </div>
 
       {/* Error State */}
-      {(error || competitionError) && (
+      {(competitionError || reportError) && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error || competitionError}</AlertDescription>
+          <AlertDescription>{competitionError || reportError}</AlertDescription>
         </Alert>
       )}
 
       {/* Loading State */}
-      {(loading || loadingCompetition) && (
+      {(loadingCompetition || reportLoading) && (
         <div className="space-y-6">
           <Card>
             <CardHeader>
@@ -268,7 +192,7 @@ export default function CompetitionPage() {
       )}
 
       {/* Report Content */}
-      {!loading && !loadingCompetition && selectedReport && competitionData && (
+      {!loadingCompetition && !reportLoading && selectedReport && competitionData && (
         <FeatureLockedWrapper
           isLocked={isFreePlan}
           featureName="Competition Analysis"
@@ -276,13 +200,21 @@ export default function CompetitionPage() {
         >
           <div className="space-y-6">
             {/* Competition Table */}
-            {getBattleData() &&
-            getBattleData()!.competitorAnalyses &&
-            getBattleData()!.competitorAnalyses.length > 0 ? (
-              <CompetitionTable
-                brand={competitionData.brandName || selectedReport.brandName}
-                data={getBattleData()!}
-              />
+            {competitionData.competitorAnalyses &&
+            competitionData.competitorAnalyses.length > 0 ? (
+              <>
+                <CompetitionTable
+                  brand={competitionData.brandName || brandName}
+                  data={competitionData}
+                  selectedModels={selectedModels}
+                />
+                
+                {/* Competition Watchtower */}
+                <CompetitionWatchtower
+                  citations={competitionData.citations}
+                  loading={false}
+                />
+              </>
             ) : (
               <Card>
                 <CardContent className="pt-6">
@@ -300,8 +232,24 @@ export default function CompetitionPage() {
       )}
 
       {/* No Reports State */}
-      {!loading && !selectedReport && selectedProjectId && (
+      {!loadingCompetition && !reportLoading && selectedProjectId && projectReports.length === 0 && (
         <ProcessingLoader />
+      )}
+
+      {/* No Selected Report */}
+      {!loadingCompetition && !reportLoading && projectReports.length > 0 && !selectedReport && (
+        <div className="flex items-center justify-center h-[50vh]">
+          <Card className="max-w-md w-full">
+            <CardContent className="pt-6">
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Please select a report from the dropdown above to view competition analysis.
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );
@@ -311,18 +259,25 @@ export default function CompetitionPage() {
 function CompetitionTable({
   brand,
   data,
+  selectedModels,
 }: {
   brand: string;
   data: CompetitionTypeData;
+  selectedModels: string[];
 }) {
   // Get unique list of models across all competitor analyses
-  const models = Array.from(
+  const allModels = Array.from(
     new Set(
       (data.competitorAnalyses || []).flatMap((comp) =>
         (comp.analysisByModel || []).map((c) => c.model)
       )
     )
   );
+  
+  // Filter models based on selection
+  const models = selectedModels.length > 0 
+    ? allModels.filter(model => selectedModels.includes(model))
+    : allModels;
 
   return (
     <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">

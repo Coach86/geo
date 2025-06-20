@@ -68,10 +68,9 @@ export class BrandReportResponseDto {
       mentionRate: number;
     }[];
     arenaMetrics: {
-      model: string;
-      mentions: number;
-      score: number;
-      rank: number;
+      name: string;
+      size: string;
+      global: string;
     }[];
   };
 

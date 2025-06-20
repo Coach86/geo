@@ -52,6 +52,12 @@ export const API_ENDPOINTS = {
     SENTIMENT: (reportId: string) => `/brand-reports/${reportId}/sentiment`,
     ALIGNMENT: (reportId: string) => `/brand-reports/${reportId}/alignment`,
     COMPETITION: (reportId: string) => `/brand-reports/${reportId}/competition`,
+    // Aggregated endpoints
+    VISIBILITY_AGGREGATED: (projectId: string) => `/brand-reports/project/${projectId}/visibility/aggregated`,
+    ALIGNMENT_AGGREGATED: (projectId: string) => `/brand-reports/project/${projectId}/alignment/aggregated`,
+    SENTIMENT_AGGREGATED: (projectId: string) => `/brand-reports/project/${projectId}/sentiment/aggregated`,
+    EXPLORER_AGGREGATED: (projectId: string) => `/brand-reports/project/${projectId}/explorer/aggregated`,
+    COMPETITION_AGGREGATED: (projectId: string) => `/brand-reports/project/${projectId}/competition/aggregated`,
   },
   
   // Batch result endpoints
