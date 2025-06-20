@@ -136,9 +136,9 @@ export function SourcesAnalysis({ citations, type, loading }: SourcesAnalysisPro
               <span className="text-lg text-gray-500">/ {analysis.totalUrls}</span>
             </div>
             <p className="text-sm text-gray-600 mb-3">{getDescription()}</p>
-            
+
             {/* Status Badge */}
-            <Badge 
+            <Badge
               variant={getStatusColor()}
               className="text-sm px-3 py-1"
             >
@@ -146,41 +146,6 @@ export function SourcesAnalysis({ citations, type, loading }: SourcesAnalysisPro
             </Badge>
           </div>
 
-          {/* Additional Stats */}
-          <div className="space-y-2 pt-3 border-t border-gray-100">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Affected domains:</span>
-              <span className="text-sm font-medium text-gray-900">
-                {analysis.riskyDomains}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Total sources:</span>
-              <span className="text-sm font-medium text-gray-900">
-                {citations?.uniqueDomains || 0}
-              </span>
-            </div>
-          </div>
-
-          {/* Risk Level Indicator */}
-          <div className="pt-2">
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className={`h-2 rounded-full transition-all duration-300 ${
-                  analysis.percentage >= 30 
-                    ? 'bg-destructive-500' 
-                    : analysis.percentage >= 15 
-                    ? 'bg-orange-500'
-                    : 'bg-accent-500'
-                }`}
-                style={{ width: `${Math.min(analysis.percentage, 100)}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>Low</span>
-              <span>High</span>
-            </div>
-          </div>
         </div>
       </CardContent>
     </Card>
