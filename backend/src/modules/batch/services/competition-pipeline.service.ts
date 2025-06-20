@@ -331,6 +331,14 @@ export class CompetitionPipelineService extends BasePipelineService {
 
     // Extract metadata if available
     const metadata = typeof llmResponseObj === 'string' ? {} : llmResponseObj.metadata || {};
+    
+    // Debug logging
+    this.logger.log(`Competition response metadata: ${JSON.stringify({
+      hasMetadata: !!metadata,
+      usedWebSearch: metadata.usedWebSearch,
+      annotationsCount: metadata.annotations?.length || 0,
+      toolUsageCount: metadata.toolUsage?.length || 0,
+    })}`);
 
     // Define the schema for structured output
     const schema = z.object({
@@ -367,7 +375,7 @@ export class CompetitionPipelineService extends BasePipelineService {
         `${modelConfig.model}_${competitor}`,
       );
 
-      return {
+      const competitionResult = {
         llmProvider: modelConfig.provider,
         llmModel: modelConfig.model,
         promptIndex,
@@ -381,6 +389,16 @@ export class CompetitionPipelineService extends BasePipelineService {
         citations: metadata.annotations || ([] as unknown[]),
         toolUsage: metadata.toolUsage || ([] as unknown[]),
       };
+      
+      // Debug logging
+      this.logger.log(`Returning competition result: ${JSON.stringify({
+        model: competitionResult.llmModel,
+        competitor: competitionResult.competitor,
+        citationsCount: competitionResult.citations.length,
+        usedWebSearch: competitionResult.usedWebSearch,
+      })}`);
+      
+      return competitionResult;
     } catch (error) {
       this.logger.error(`All analyzers failed for competition analysis: ${error.message}`);
       throw error;

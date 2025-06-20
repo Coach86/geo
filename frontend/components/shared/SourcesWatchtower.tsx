@@ -229,14 +229,10 @@ export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowe
             />
           </div>
         ),
-        cell: ({ getValue, row }) => {
+        cell: ({ getValue }) => {
           const domain = getValue() as string;
-          const totalCount = row.original.totalCount;
           return (
-            <div className="flex items-center gap-2">
-              <span className="font-medium">{domain}</span>
-              <Badge variant="secondary" className="text-xs">{totalCount}</Badge>
-            </div>
+            <span className="font-medium">{domain}</span>
           );
         },
         filterFn: fuzzyFilter,
@@ -360,19 +356,16 @@ export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowe
             />
           </div>
         ),
-        cell: ({ getValue, row }) => {
+        cell: ({ getValue }) => {
           const url = getValue() as string;
-          const title = row.original.title;
           return (
             <a 
               href={url} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1"
+              className="text-xs text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1 break-all"
             >
-              <span className="truncate max-w-[400px]" title={url}>
-                {title || url}
-              </span>
+              {url}
               <ExternalLink className="h-3 w-3 flex-shrink-0" />
             </a>
           );
@@ -686,10 +679,7 @@ export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowe
                             style={isFirstInGroup ? {} : { display: 'none' }}
                           >
                             {isFirstInGroup && (
-                              <div className="flex items-center gap-2">
-                                <span>{domain}</span>
-                                <Badge variant="secondary" className="ml-2">{totalCount}</Badge>
-                              </div>
+                              <span>{domain}</span>
                             )}
                           </td>
                           {row.getVisibleCells().slice(1).map((cell) => (

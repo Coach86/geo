@@ -31,4 +31,10 @@ export class UpdatePlanSettingsDto {
   @IsNumber()
   @Min(0)
   maxUsers?: number;
+
+  @ApiPropertyOptional({ description: 'Maximum number of competitors allowed' })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  maxCompetitors?: number;
 }

@@ -670,7 +670,35 @@ export class BrandReportOrchestratorService {
       toolUsage: result.toolUsage || [],
     }));
 
-    return {
+    // Debug logging
+    this.logger.log(`Building competition data with ${detailedResults.length} detailed results`);
+    if (detailedResults.length > 0) {
+      this.logger.log(`First detailed result has ${detailedResults[0].citations?.length || 0} citations`);
+    }
+    
+    // More detailed debug logging
+    this.logger.log(`Competition results raw data: ${JSON.stringify({
+      resultsCount: comparisonResults.results.length,
+      firstResult: comparisonResults.results[0] ? {
+        model: comparisonResults.results[0].llmModel,
+        hasOriginalPrompt: !!comparisonResults.results[0].originalPrompt,
+        hasLlmResponse: !!comparisonResults.results[0].llmResponse,
+        citationsCount: comparisonResults.results[0].citations?.length || 0,
+        usedWebSearch: comparisonResults.results[0].usedWebSearch,
+      } : null
+    })}`);
+    
+    // Log the actual mapping
+    if (comparisonResults.results.length > 0) {
+      const firstMapped = detailedResults[0];
+      this.logger.log(`First mapped detailedResult: ${JSON.stringify({
+        model: firstMapped.model,
+        citationsCount: firstMapped.citations?.length || 0,
+        firstCitation: firstMapped.citations?.[0],
+      })}`);
+    }
+
+    const competitionData = {
       brandName,
       competitors,
       competitorAnalyses,
@@ -679,6 +707,17 @@ export class BrandReportOrchestratorService {
       commonWeaknesses,
       detailedResults,
     };
+
+    // Log the structure
+    this.logger.log(`Competition data structure: ${JSON.stringify({
+      brandName,
+      competitorsCount: competitors.length,
+      competitorAnalysesCount: competitorAnalyses.length,
+      detailedResultsCount: detailedResults.length,
+      hasDetailedResults: !!detailedResults && detailedResults.length > 0
+    })}`);
+
+    return competitionData;
   }
 
   private extractDomain(url: string): string {

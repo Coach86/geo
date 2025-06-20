@@ -11,6 +11,46 @@ export class ExplorerItemDto {
   percentage?: number;
 }
 
+export class CitationDto {
+  @ApiProperty({ description: 'Website domain' })
+  website: string;
+
+  @ApiProperty({ description: 'Full URL link', required: false })
+  link?: string;
+
+  @ApiProperty({ description: 'Model that generated this citation' })
+  model: string;
+
+  @ApiProperty({ description: 'Type of prompt' })
+  promptType: string;
+
+  @ApiProperty({ description: 'Index of the prompt' })
+  promptIndex: number;
+
+  @ApiProperty({ description: 'Source information', required: false })
+  source?: string;
+}
+
+export class WebSearchResultDto {
+  @ApiProperty({ description: 'Search query' })
+  query: string;
+
+  @ApiProperty({ description: 'Timestamp of the search', required: false })
+  timestamp?: string;
+
+  @ApiProperty({ description: 'Models used for this search' })
+  models: string[];
+
+  @ApiProperty({ description: 'Prompt types used' })
+  promptTypes: string[];
+
+  @ApiProperty({ 
+    description: 'Citations found for this search',
+    type: [CitationDto]
+  })
+  citations: CitationDto[];
+}
+
 export class AggregatedExplorerResponseDto {
   @ApiProperty({ 
     description: 'Top mentions aggregated across reports',
@@ -38,6 +78,13 @@ export class AggregatedExplorerResponseDto {
     totalCitations: number;
     uniqueSources: number;
   };
+
+  @ApiProperty({ 
+    description: 'All web search results with citations',
+    type: [WebSearchResultDto],
+    required: false
+  })
+  webSearchResults?: WebSearchResultDto[];
 
   @ApiProperty({ description: 'Number of reports included in aggregation' })
   reportCount: number;

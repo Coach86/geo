@@ -1,79 +1,121 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/providers/auth-provider";
 import { useFeatureGate } from "@/hooks/use-feature-access";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { ModelDisplay } from "@/components/shared/ModelDisplay";
-import type { ReportResponse } from "@/types/reports";
 import type { CompetitionData as CompetitionTypeData } from "@/types/competition";
 import BreadcrumbNav from "@/components/layout/breadcrumb-nav";
 import { useNavigation } from "@/providers/navigation-provider";
 import { ProcessingLoader } from "@/components/shared/ProcessingLoader";
 import { FeatureLockedWrapper } from "@/components/shared/FeatureLockedWrapper";
+import { getReportCompetition } from "@/lib/api/report";
+import { useReportData } from "@/hooks/use-report-data";
 import { CompetitionWatchtower } from "@/components/competition/CompetitionWatchtower";
-import { ReportRangeSelector } from "@/components/shared/ReportRangeSelector";
 import { useReports } from "@/providers/report-provider";
-import { useCompetitionReports } from "@/hooks/use-competition-reports";
+import { SingleReportSelector } from "@/components/shared/SingleReportSelector";
+import type { ReportResponse } from "@/types/reports";
 
+interface ProcessedReport {
+  id: string;
+  projectId: string;
+  brandName: string;
+  competitors: string[];
+  generatedAt: string;
+}
 
 export default function CompetitionPage() {
   const { token } = useAuth();
   const { hasAccess, isLoading: accessLoading, isFreePlan } = useFeatureGate("competition");
   const { filteredProjects, selectedProject, setSelectedProject } = useNavigation();
   const { reports, loadingReports, fetchReports } = useReports();
+  
   const selectedProjectId = selectedProject?.id || null;
   const projectReports = selectedProjectId ? reports[selectedProjectId] || [] : [];
   const brandName = selectedProject?.brandName || 'Brand';
-
-  // State for date range and model filters
-  const [selectedReports, setSelectedReports] = useState<ReportResponse[]>([]);
+  
+  // Use report data hook for report selection
+  const {
+    selectedReport,
+    setSelectedReport,
+    loading: reportLoading,
+    error: reportError
+  } = useReportData<ProcessedReport>((report, project) => {
+    return {
+      id: report.id,
+      projectId: report.projectId,
+      brandName: project.brandName,
+      competitors: project.competitors || [],
+      generatedAt: report.generatedAt,
+    };
+  });
+  
+  // State for competition data
+  const [competitionData, setCompetitionData] = useState<any>(null);
+  const [loadingCompetition, setLoadingCompetition] = useState(false);
+  const [competitionError, setCompetitionError] = useState<string | null>(null);
+  
+  // State for model filtering
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
   const [availableModels, setAvailableModels] = useState<string[]>([]);
-  const [dateRange, setDateRange] = useState<{ start: Date; end: Date } | null>(null);
-  const [isAllTime, setIsAllTime] = useState<boolean>(false);
 
-  // Memoize the date range object to prevent infinite re-renders
-  const memoizedDateRange = useMemo(() => {
-    return dateRange ? { startDate: dateRange.start, endDate: dateRange.end } : undefined;
-  }, [dateRange?.start, dateRange?.end]);
+  // Fetch reports when project changes
+  useEffect(() => {
+    if (selectedProjectId && token) {
+      fetchReports(selectedProjectId, token);
+    }
+  }, [selectedProjectId, token, fetchReports]);
 
-  // Hook for competition data with citations
-  const {
-    loading: loadingAggregated,
-    error: aggregatedError,
-    competitionData: aggregatedCompetitionData,
-    citations,
-    availableModels: competitionAvailableModels,
-    brandName: aggregatedBrandName
-  } = useCompetitionReports(selectedProjectId, selectedModels, token, isAllTime, memoizedDateRange);
+  // Fetch competition data when selected report changes
+  useEffect(() => {
+    const fetchCompetitionData = async () => {
+      if (!selectedReport || !token) {
+        setCompetitionData(null);
+        return;
+      }
 
-  // Handle range change from the selector
-  const handleRangeChange = useCallback((start: Date, end: Date, reports: ReportResponse[], isAllTimeRange?: boolean) => {
-    setDateRange({ start, end });
-    setSelectedReports(reports);
-    setIsAllTime(isAllTimeRange || false);
-  }, []);
+      setLoadingCompetition(true);
+      setCompetitionError(null);
+
+      try {
+        const data = await getReportCompetition(selectedReport.id, token);
+        setCompetitionData(data);
+        
+        // Extract available models from the competition data
+        if (data?.competitorAnalyses) {
+          const models = new Set<string>();
+          data.competitorAnalyses.forEach((comp: any) => {
+            comp.analysisByModel?.forEach((analysis: any) => {
+              models.add(analysis.model);
+            });
+          });
+          const modelArray = Array.from(models);
+          setAvailableModels(modelArray);
+          setSelectedModels(modelArray); // Select all by default
+        }
+      } catch (err) {
+        console.error("Failed to fetch competition data:", err);
+        setCompetitionError("Failed to load competition data. Please try again later.");
+      } finally {
+        setLoadingCompetition(false);
+      }
+    };
+
+    fetchCompetitionData();
+  }, [selectedReport, token]);
+
+  // Handle report change
+  const handleReportChange = useCallback((report: ReportResponse | null) => {
+    setSelectedReport(report);
+  }, [setSelectedReport]);
 
   // Handle model filter change
   const handleModelFilterChange = useCallback((models: string[]) => {
-    setSelectedModels(models);
-  }, []);
-
-  // Update available models when competition data changes
-  useEffect(() => {
-    if (competitionAvailableModels && competitionAvailableModels.length > 0) {
-      setAvailableModels(competitionAvailableModels);
-      // Select all models by default when they become available for the first time
-      if (selectedModels.length === 0 && availableModels.length === 0) {
-        setSelectedModels(competitionAvailableModels);
-      }
-    }
-  }, [competitionAvailableModels, selectedModels, availableModels]);
-
-
+    setSelectedModels(models.length === 0 ? availableModels : models);
+  }, [availableModels]);
 
   // Check feature access
   if (accessLoading) {
@@ -83,7 +125,6 @@ export default function CompetitionPage() {
       </div>
     );
   }
-
 
   if (!selectedProjectId) {
     return (
@@ -105,29 +146,39 @@ export default function CompetitionPage() {
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumb Navigation */}
-      {token && filteredProjects.length > 0 && (
-        <BreadcrumbNav
-          projects={filteredProjects}
-          selectedProject={selectedProject}
-          onProjectSelect={setSelectedProject}
-          currentPage="Competition"
-          showReportSelector={false}
-          token={token}
-        />
-      )}
-
+      {/* Breadcrumb Navigation and Report Selector */}
+      <div className="flex items-center justify-between">
+        {token && filteredProjects.length > 0 && (
+          <BreadcrumbNav
+            projects={filteredProjects}
+            selectedProject={selectedProject}
+            onProjectSelect={setSelectedProject}
+            currentPage="Competition"
+            showReportSelector={false}
+            token={token}
+          />
+        )}
+        {projectReports.length > 0 && selectedProjectId && (
+          <SingleReportSelector
+            reports={projectReports}
+            selectedReport={selectedReport}
+            availableModels={availableModels}
+            onReportChange={handleReportChange}
+            onModelFilterChange={handleModelFilterChange}
+          />
+        )}
+      </div>
 
       {/* Error State */}
-      {aggregatedError && (
+      {(competitionError || reportError) && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{aggregatedError}</AlertDescription>
+          <AlertDescription>{competitionError || reportError}</AlertDescription>
         </Alert>
       )}
 
       {/* Loading State */}
-      {loadingAggregated && (
+      {(loadingCompetition || reportLoading) && (
         <div className="space-y-6">
           <Card>
             <CardHeader>
@@ -140,19 +191,8 @@ export default function CompetitionPage() {
         </div>
       )}
 
-      {/* Report Range Selector */}
-      {projectReports.length > 0 && selectedProjectId && (
-        <ReportRangeSelector
-          reports={projectReports}
-          projectId={selectedProjectId}
-          availableModels={availableModels}
-          onRangeChange={handleRangeChange}
-          onModelFilterChange={handleModelFilterChange}
-        />
-      )}
-
       {/* Report Content */}
-      {!loadingAggregated && aggregatedCompetitionData && (
+      {!loadingCompetition && !reportLoading && selectedReport && competitionData && (
         <FeatureLockedWrapper
           isLocked={isFreePlan}
           featureName="Competition Analysis"
@@ -160,18 +200,19 @@ export default function CompetitionPage() {
         >
           <div className="space-y-6">
             {/* Competition Table */}
-            {aggregatedCompetitionData.competitorAnalyses &&
-            aggregatedCompetitionData.competitorAnalyses.length > 0 ? (
+            {competitionData.competitorAnalyses &&
+            competitionData.competitorAnalyses.length > 0 ? (
               <>
                 <CompetitionTable
-                  brand={aggregatedBrandName || brandName}
-                  data={aggregatedCompetitionData}
+                  brand={competitionData.brandName || brandName}
+                  data={competitionData}
+                  selectedModels={selectedModels}
                 />
                 
                 {/* Competition Watchtower */}
                 <CompetitionWatchtower
-                  citations={citations}
-                  loading={loadingAggregated}
+                  citations={competitionData.citations}
+                  loading={false}
                 />
               </>
             ) : (
@@ -180,7 +221,7 @@ export default function CompetitionPage() {
                   <Alert>
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                      No competition data available for the selected time range.
+                      No competition data available for this report.
                     </AlertDescription>
                   </Alert>
                 </CardContent>
@@ -191,8 +232,24 @@ export default function CompetitionPage() {
       )}
 
       {/* No Reports State */}
-      {!loadingAggregated && selectedProjectId && projectReports.length === 0 && (
+      {!loadingCompetition && !reportLoading && selectedProjectId && projectReports.length === 0 && (
         <ProcessingLoader />
+      )}
+
+      {/* No Selected Report */}
+      {!loadingCompetition && !reportLoading && projectReports.length > 0 && !selectedReport && (
+        <div className="flex items-center justify-center h-[50vh]">
+          <Card className="max-w-md w-full">
+            <CardContent className="pt-6">
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Please select a report from the dropdown above to view competition analysis.
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );
@@ -202,18 +259,25 @@ export default function CompetitionPage() {
 function CompetitionTable({
   brand,
   data,
+  selectedModels,
 }: {
   brand: string;
   data: CompetitionTypeData;
+  selectedModels: string[];
 }) {
   // Get unique list of models across all competitor analyses
-  const models = Array.from(
+  const allModels = Array.from(
     new Set(
       (data.competitorAnalyses || []).flatMap((comp) =>
         (comp.analysisByModel || []).map((c) => c.model)
       )
     )
   );
+  
+  // Filter models based on selection
+  const models = selectedModels.length > 0 
+    ? allModels.filter(model => selectedModels.includes(model))
+    : allModels;
 
   return (
     <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">

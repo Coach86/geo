@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
+import { CompetitionSchema } from './competition.schema';
 
 export type BrandReportDocument = BrandReport & Document;
 
@@ -234,7 +235,7 @@ export class BrandReport {
   };
 
   @Prop({
-    type: Object,
+    type: CompetitionSchema,
     required: true,
   })
   competition: {

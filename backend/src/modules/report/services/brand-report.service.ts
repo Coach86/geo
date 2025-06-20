@@ -120,7 +120,46 @@ export class BrandReportService {
       throw new NotFoundException(`Report with ID ${reportId} not found`);
     }
 
-    return report.competition;
+    // Extract citations from detailedResults if available
+    let citations = null;
+    if (report.competition?.detailedResults) {
+      citations = this.extractCitationsFromCompetition(report.competition.detailedResults);
+    }
+
+    return {
+      ...report.competition,
+      citations
+    };
+  }
+
+  private extractCitationsFromCompetition(detailedResults: any[]) {
+    const citationMap = new Map<string, CitationItemDto>();
+    
+    detailedResults.forEach(result => {
+      if (result.citations && Array.isArray(result.citations)) {
+        result.citations.forEach((citation: any) => {
+          if (citation.url) {
+            this.aggregateCitation(
+              citationMap,
+              citation.url,
+              citation.url,
+              citation.title,
+              result.originalPrompt,
+              undefined, // sentiment not applicable
+              undefined, // score not applicable
+              result.model,
+              citation.text
+            );
+          }
+        });
+      }
+    });
+
+    return {
+      items: Array.from(citationMap.values()),
+      uniqueDomains: new Set(Array.from(citationMap.values()).map(c => c.domain)).size,
+      totalCitations: Array.from(citationMap.values()).reduce((sum, c) => sum + c.count, 0)
+    };
   }
 
   @OnEvent('project.deleted')
@@ -1867,10 +1906,11 @@ export class BrandReportService {
     const mentionCounts: Record<string, number> = {};
     const keywordCounts: Record<string, number> = {};
     const sourceCounts: Record<string, number> = {};
+    const allWebSearchResults: any[] = [];
     
     let totalPrompts = 0;
     let promptsWithWebAccess = 0;
-    let totalCitations = 0;
+    let actualCitationCount = 0;
     const uniqueSourcesSet = new Set<string>();
 
     reports.forEach(report => {
@@ -1881,7 +1921,6 @@ export class BrandReportService {
       if (explorerData.summary) {
         totalPrompts += explorerData.summary.totalPrompts || 0;
         promptsWithWebAccess += explorerData.summary.promptsWithWebAccess || 0;
-        totalCitations += explorerData.summary.totalCitations || 0;
       }
 
       // Aggregate top mentions
@@ -1904,15 +1943,48 @@ export class BrandReportService {
       if (explorerData.topSources) {
         explorerData.topSources.forEach(item => {
           sourceCounts[item.domain] = (sourceCounts[item.domain] || 0) + item.count;
-          uniqueSourcesSet.add(item.domain);
+          // Normalize domain to lowercase for unique counting
+          if (item.domain) {
+            uniqueSourcesSet.add(item.domain.toLowerCase());
+          }
         });
       }
 
-      // Also process citations for additional sources
-      if (explorerData.citations) {
+      // Collect webSearchResults and count actual citations
+      if (explorerData.webSearchResults && Array.isArray(explorerData.webSearchResults)) {
+        explorerData.webSearchResults.forEach(searchResult => {
+          // Count each citation in the webSearchResults
+          if (searchResult.citations && Array.isArray(searchResult.citations)) {
+            actualCitationCount += searchResult.citations.length;
+            
+            // Also track unique sources from citations
+            searchResult.citations.forEach(citation => {
+              if (citation.website) {
+                // Normalize website to lowercase for unique counting
+                uniqueSourcesSet.add(citation.website.toLowerCase());
+                
+                // Also update source counts for consistency
+                const domain = citation.website.toLowerCase();
+                sourceCounts[domain] = (sourceCounts[domain] || 0) + 1;
+              }
+            });
+          }
+        });
+        allWebSearchResults.push(...explorerData.webSearchResults);
+      }
+
+      // Also process old-format citations if present
+      if (explorerData.citations && Array.isArray(explorerData.citations)) {
+        actualCitationCount += explorerData.citations.length;
         explorerData.citations.forEach(citation => {
-          const domain = citation.website || 'unknown';
-          uniqueSourcesSet.add(domain);
+          if (citation.website) {
+            // Normalize website to lowercase for unique counting
+            uniqueSourcesSet.add(citation.website.toLowerCase());
+            
+            // Also update source counts for consistency
+            const domain = citation.website.toLowerCase();
+            sourceCounts[domain] = (sourceCounts[domain] || 0) + 1;
+          }
         });
       }
     });
@@ -1962,9 +2034,10 @@ export class BrandReportService {
         totalPrompts,
         promptsWithWebAccess,
         webAccessPercentage,
-        totalCitations,
+        totalCitations: actualCitationCount,
         uniqueSources: uniqueSourcesSet.size,
       },
+      webSearchResults: allWebSearchResults,
       reportCount: reports.length,
       dateRange: {
         start: reports[0].reportDate.toISOString(),
@@ -1985,6 +2058,7 @@ export class BrandReportService {
         totalCitations: 0,
         uniqueSources: 0,
       },
+      webSearchResults: [],
       reportCount: 0,
       dateRange: { start: '', end: '' }
     };

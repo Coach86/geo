@@ -159,6 +159,31 @@ export interface CompetitionData {
   }[];
   commonStrengths: string[];
   commonWeaknesses: string[];
+  // Detailed results with citations
+  detailedResults?: {
+    model: string;
+    promptIndex: number;
+    competitor: string;
+    originalPrompt: string;
+    llmResponse: string;
+    brandStrengths: string[];
+    brandWeaknesses: string[];
+    usedWebSearch: boolean;
+    citations: {
+      url: string;
+      title?: string;
+      text?: string;
+    }[];
+    toolUsage: {
+      type: string;
+      parameters?: Record<string, unknown>;
+      execution_details?: {
+        status: string;
+        result?: unknown;
+        error?: string;
+      };
+    }[];
+  }[];
 }
 
 // Main report structure
