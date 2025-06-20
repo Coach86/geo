@@ -25,7 +25,7 @@ import { SourcesAnalysis } from "@/components/shared/SourcesAnalysis";
 export default function AlignmentPage() {
   const { token } = useAuth();
   const { hasAccess, isLoading: accessLoading, isFreePlan } = useFeatureGate("alignment");
-  const { filteredProjects, selectedProject, setSelectedProject } = useNavigation();
+  const { allProjects, selectedProject, setSelectedProject } = useNavigation();
   const { reports, loadingReports, fetchReports } = useReports();
   
   // Get selected project from localStorage
@@ -147,9 +147,9 @@ export default function AlignmentPage() {
     <div className="space-y-6">
       {/* Breadcrumb Navigation with Report Range Selector */}
       <div className="flex items-center justify-between">
-        {token && filteredProjects.length > 0 && (
+        {token && allProjects.length > 0 && (
           <BreadcrumbNav
-            projects={filteredProjects}
+            projects={allProjects}
             selectedProject={selectedProject}
             onProjectSelect={setSelectedProject}
             currentPage="Alignment"

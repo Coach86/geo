@@ -23,12 +23,7 @@ export default function ProjectSelector({
   selectedProject,
   onProjectSelect,
 }: ProjectSelectorProps) {
-  useEffect(() => {
-    // Auto-select first project if none selected
-    if (!selectedProject && projects.length > 0) {
-      onProjectSelect(projects[0])
-    }
-  }, [projects, selectedProject, onProjectSelect])
+  // Note: Auto-selection is handled by NavigationProvider to ensure persistence works correctly
 
   if (projects.length === 0) {
     return null

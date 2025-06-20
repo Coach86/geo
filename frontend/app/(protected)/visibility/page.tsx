@@ -22,7 +22,7 @@ import { ProcessingLoader } from "@/components/shared/ProcessingLoader";
 
 export default function VisibilityPage() {
   const { token } = useAuth();
-  const { filteredProjects, selectedProject, setSelectedProject } = useNavigation();
+  const { allProjects, selectedProject, setSelectedProject } = useNavigation();
   const { reports, loadingReports, fetchReports } = useReports();
 
   // Get selected project from localStorage
@@ -149,9 +149,9 @@ export default function VisibilityPage() {
     <div className="space-y-6">
       {/* Breadcrumb Navigation with new Report Range Selector */}
       <div className="flex items-center justify-between">
-        {token && filteredProjects.length > 0 && (
+        {token && allProjects.length > 0 && (
           <BreadcrumbNav
-            projects={filteredProjects}
+            projects={allProjects}
             selectedProject={selectedProject}
             onProjectSelect={setSelectedProject}
             currentPage="Visibility"
