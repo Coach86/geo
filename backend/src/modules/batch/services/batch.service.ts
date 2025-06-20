@@ -879,21 +879,6 @@ export class BatchService {
     alignmentResults: AlignmentResults,
     competitionResults: CompetitionResults,
   ): ExplorerData {
-    // Extract top mentions from visibility results
-    const mentionCounts: Record<string, number> = {};
-    visibilityResults.results.forEach((result: any) => {
-      if (result.mentioned && result.topOfMind) {
-        result.topOfMind.forEach((brand: string) => {
-          mentionCounts[brand] = (mentionCounts[brand] || 0) + 1;
-        });
-      }
-    });
-
-    const topMentions = Object.entries(mentionCounts)
-      .map(([mention, count]) => ({ mention, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
-
     // Build citations data using logic from deleted ReportConverterService
     const allCitationsData: Array<{
       modelId: string;
@@ -1113,7 +1098,6 @@ export class BatchService {
         totalCitations,
         uniqueSources: sourceMap.size,
       },
-      topMentions,
       topKeywords,
       topSources,
       webSearchResults, // New structure: query -> citations
@@ -1225,11 +1209,15 @@ export class BatchService {
       };
     }).sort((a, b) => parseInt(b.global) - parseInt(a.global)); // Sort by global rate descending
 
+    // Include topMentions from visibility results
+    const topMentions = visibilityResults.summary.topMentionCounts || [];
+
     return {
       overallMentionRate,
       promptsTested: visibilityResults.results.length,
       modelVisibility,
       arenaMetrics,
+      topMentions,
     };
   }
 

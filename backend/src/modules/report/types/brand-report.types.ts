@@ -18,6 +18,10 @@ export interface VisibilityData {
   promptsTested: number;
   modelVisibility: ModelVisibilityItem[];
   arenaMetrics: ArenaMetric[];
+  topMentions?: Array<{
+    mention: string;
+    count: number;
+  }>;
 }
 
 export interface AttributeScore {
@@ -127,7 +131,6 @@ export interface ExplorerData {
     totalCitations: number;
     uniqueSources: number;
   };
-  topMentions: { mention: string; count: number }[];
   topKeywords: { keyword: string; count: number; percentage: number }[];
   topSources: { domain: string; count: number; percentage: number }[];
   citations?: {

@@ -53,12 +53,6 @@ export class WebSearchResultDto {
 
 export class AggregatedExplorerResponseDto {
   @ApiProperty({ 
-    description: 'Top mentions aggregated across reports',
-    type: [ExplorerItemDto]
-  })
-  topMentions: ExplorerItemDto[];
-
-  @ApiProperty({ 
     description: 'Top keywords aggregated across reports',
     type: [ExplorerItemDto]
   })

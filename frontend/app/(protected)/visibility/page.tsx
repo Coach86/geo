@@ -63,6 +63,7 @@ export default function VisibilityPage() {
     chartData,
     modelBreakdown,
     availableModels: visibilityAvailableModels,
+    topMentions: visibilityTopMentions,
   } = useVisibilityReports(selectedProjectId, selectedModels, token, isAllTime, memoizedDateRange);
 
   const {
@@ -240,8 +241,8 @@ export default function VisibilityPage() {
             {/* Top Mentions */}
             <div>
               <MentionsListCard
-                mentions={topMentions.map(item => ({ mention: item.name, count: item.count }))}
-                loading={loadingExplorer}
+                mentions={visibilityTopMentions}
+                loading={loadingVisibility}
               />
             </div>
 

@@ -76,7 +76,6 @@ export default function ExplorerPage() {
   const {
     loading: loadingExplorer,
     error: explorerError,
-    topMentions,
     topKeywords,
     topSources,
     summary,
@@ -183,13 +182,12 @@ export default function ExplorerPage() {
         totalCitations: summary.totalCitations,
         uniqueSources: summary.uniqueSources,
       },
-      topMentions,
       topKeywords,
       topSources,
       citations: citations || [],
       webSearchResults: webSearchResults || []
     };
-  }, [selectedReports, summary, topMentions, topKeywords, topSources, citations, webSearchResults]);
+  }, [selectedReports, summary, topKeywords, topSources, citations, webSearchResults]);
 
   // Export citations to CSV
   const exportToCSV = useCallback(() => {

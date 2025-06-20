@@ -13,7 +13,6 @@ interface ExplorerItem {
 interface UseAggregatedExplorerReturn {
   loading: boolean;
   error: string | null;
-  topMentions: ExplorerItem[];
   topKeywords: ExplorerItem[];
   topSources: ExplorerItem[];
   summary: {
@@ -37,7 +36,6 @@ export function useAggregatedExplorer(
   const [data, setData] = useState<UseAggregatedExplorerReturn>({
     loading: false,
     error: null,
-    topMentions: [],
     topKeywords: [],
     topSources: [],
     summary: {
@@ -57,7 +55,6 @@ export function useAggregatedExplorer(
         setData({
           loading: false,
           error: null,
-          topMentions: [],
           topKeywords: [],
           topSources: [],
           summary: {
@@ -87,12 +84,6 @@ export function useAggregatedExplorer(
         });
 
         // Transform the response to match hook interface
-        const topMentions = response.topMentions.map((item: any) => ({
-          name: item.name,
-          count: item.count,
-          percentage: item.percentage,
-        }));
-
         const topKeywords = response.topKeywords.map((item: any) => ({
           name: item.name,
           count: item.count,
@@ -108,7 +99,6 @@ export function useAggregatedExplorer(
         setData({
           loading: false,
           error: null,
-          topMentions,
           topKeywords,
           topSources,
           summary: response.summary,
@@ -121,7 +111,6 @@ export function useAggregatedExplorer(
         setData({
           loading: false,
           error: "Failed to load explorer data",
-          topMentions: [],
           topKeywords: [],
           topSources: [],
           summary: {
@@ -145,7 +134,6 @@ export function useAggregatedExplorer(
   return {
     loading,
     error,
-    topMentions: data.topMentions,
     topKeywords: data.topKeywords,
     topSources: data.topSources,
     summary: data.summary,
