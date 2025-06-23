@@ -118,6 +118,10 @@ export interface ProjectResponse {
   objectives?: string;
   keyBrandAttributes: string[];
   competitors: string[];
+  competitorDetails?: Array<{
+    name: string;
+    website?: string;
+  }>;
   createdAt: string;
   updatedAt: string;
   userId: string;

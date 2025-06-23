@@ -1,41 +1,47 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Brain } from "lucide-react";
+import { Globe } from "lucide-react";
 import { useMemo } from "react";
+import { useFavicons } from "@/hooks/use-favicon";
 
-interface MentionsListCardProps {
-  mentions: Array<{
-    mention: string;
+interface TopDomainRankingCardProps {
+  domains: Array<{
+    domain: string;
     count: number;
     percentage?: number;
   }>;
   loading?: boolean;
 }
 
-export function MentionsListCard({ mentions, loading }: MentionsListCardProps) {
+export function TopDomainRankingCard({ domains, loading }: TopDomainRankingCardProps) {
   // Always show 10 entries
-  const { displayMentions, total } = useMemo(() => {
-    // Take first 10 mentions, or pad with empty entries if less than 10
-    const mentionsList = mentions || [];
-    const displayItems = mentionsList.slice(0, 10);
+  const { displayDomains, total, domainNames } = useMemo(() => {
+    // Take first 10 domains, or pad with empty entries if less than 10
+    const domainsList = domains || [];
+    const displayItems = domainsList.slice(0, 10);
     
     // Pad with empty entries if less than 10
     while (displayItems.length < 10) {
-      displayItems.push({ mention: '-', count: 0, percentage: 0 });
+      displayItems.push({ domain: '-', count: 0, percentage: 0 });
     }
     
-    const totalCount = mentionsList.reduce((sum, item) => sum + item.count, 0) || 0;
-    return { displayMentions: displayItems, total: totalCount };
-  }, [mentions]);
+    const totalCount = domainsList.reduce((sum, item) => sum + item.count, 0) || 0;
+    const domainNames = displayItems.map(item => item.domain === '-' ? null : item.domain);
+    
+    return { displayDomains: displayItems, total: totalCount, domainNames };
+  }, [domains]);
+
+  // Fetch favicons for all domains
+  const { favicons } = useFavicons(domainNames);
 
   if (loading) {
     return (
       <Card className="border-0 shadow-sm">
         <CardHeader className="pb-4">
           <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <Brain className="h-5 w-5 text-blue-500" />
-            Industry Share of Voice
+            <Globe className="h-5 w-5 text-accent-600" />
+            Top Domain Ranking
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -53,16 +59,16 @@ export function MentionsListCard({ mentions, loading }: MentionsListCardProps) {
     <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
       <CardHeader className="pb-4">
         <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-          <Brain className="h-5 w-5 text-blue-500" />
-          Industry Share of Voice
+          <Globe className="h-5 w-5 text-accent-600" />
+          Top Domain Ranking
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
-          {displayMentions && displayMentions.length > 0 ? (
+          {displayDomains && displayDomains.length > 0 ? (
             <>
-              {displayMentions.map((item, index) => {
-                const percentage = item.count > 0 ? (item.percentage ?? (total > 0 ? Math.round((item.count / total) * 100) : 0)) : 0;
+              {displayDomains.map((item, index) => {
+                const percentage = item.percentage ?? (total > 0 && item.count > 0 ? Math.round((item.count / total) * 100) : 0);
                 // Single color with degradation from dark to light
                 const opacity = 100 - (index * 8); // Decreases from 100 to 20
 
@@ -77,21 +83,28 @@ export function MentionsListCard({ mentions, loading }: MentionsListCardProps) {
                       </span>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm font-medium text-gray-900 truncate mr-2">
-                            {item.mention}
-                          </span>
-                          <div className="flex items-center gap-1">
-                            <span className="text-sm font-semibold text-gray-700">
-                              {percentage}%
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              ({item.count})
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            {item.domain !== '-' && favicons[item.domain] && (
+                              <img 
+                                src={favicons[item.domain]} 
+                                alt={`${item.domain} favicon`}
+                                className="w-4 h-4 flex-shrink-0"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                }}
+                              />
+                            )}
+                            <span className="text-sm font-medium text-gray-900 truncate">
+                              {item.domain}
                             </span>
                           </div>
+                          <span className="text-sm font-semibold text-gray-700 ml-2">
+                            {percentage}%
+                          </span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                           <div
-                            className="h-full bg-blue-500 transition-all duration-500 ease-out"
+                            className="h-full bg-emerald-500 transition-all duration-500 ease-out"
                             style={{ 
                               width: `${percentage}%`,
                               opacity: opacity / 100
@@ -106,7 +119,7 @@ export function MentionsListCard({ mentions, loading }: MentionsListCardProps) {
             </>
           ) : (
             <p className="text-sm text-gray-400 italic">
-              No mentions found
+              No domains found
             </p>
           )}
         </div>

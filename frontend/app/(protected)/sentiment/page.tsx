@@ -408,23 +408,35 @@ export default function SentimentPage() {
             description="Unlock sentiment analysis to understand how AI models perceive your brand's emotional tone and reputation."
           >
             <div className="space-y-6 fade-in-section is-visible">
-              {/* First Row: Sentiment Metrics and Trend Chart */}
+              {/* First Row: 3 columns grid */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Sentiment Metrics - 1 column */}
-                <div>
-                  <SentimentMetricsCard
-                    averageScore={averageScore}
-                    scoreVariation={scoreVariation}
-                    distribution={distribution}
-                    distributionVariations={distributionVariations}
-                    onMetricHover={setHoveredMetric}
-                    hoveredMetric={hoveredMetric}
-                    isAllTime={isAllTime}
-                  />
+                {/* Left Column: Table-like structure with 2 rows for cards - 1 column */}
+                <div className="flex flex-col gap-6">
+                  {/* Row 1: Sentiment Metrics */}
+                  <div>
+                    <SentimentMetricsCard
+                      averageScore={averageScore}
+                      scoreVariation={scoreVariation}
+                      distribution={distribution}
+                      distributionVariations={distributionVariations}
+                      onMetricHover={setHoveredMetric}
+                      hoveredMetric={hoveredMetric}
+                      isAllTime={isAllTime}
+                    />
+                  </div>
+                  
+                  {/* Row 2: Sources Analysis */}
+                  <div>
+                    <SourcesAnalysis
+                      citations={citations}
+                      type="sentiment"
+                      loading={loadingSentiment}
+                    />
+                  </div>
                 </div>
                 
-                {/* Sentiment Trend Chart - Takes 2 columns */}
-                <div className="md:col-span-2">
+                {/* Right Column: Sentiment Trend Chart - Takes 2 columns */}
+                <div className="md:col-span-2 h-full">
                   <SentimentTrendChart
                     data={chartData}
                     brandName={brandName}
@@ -434,28 +446,16 @@ export default function SentimentPage() {
                 </div>
               </div>
 
-              {/* Second Row: 3 columns with heatmap taking 2 */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Sources Analysis - 1 column */}
-                <div>
-                  <SourcesAnalysis
-                    citations={citations}
-                    type="sentiment"
-                    loading={loadingSentiment}
-                  />
-                </div>
-                
-                {/* Sentiment Heatmap - Takes 2 columns */}
-                <div className="md:col-span-2">
-                  <SentimentHeatmap
-                    reports={selectedReports}
-                    selectedReport={selectedHeatmapReport}
-                    onReportSelect={setSelectedHeatmapReport}
-                    token={token}
-                    onCellClick={handleCellClick}
-                    onSentimentDataLoaded={setHeatmapSentimentData}
-                  />
-                </div>
+              {/* Third Row: Sentiment Heatmap */}
+              <div className="grid grid-cols-1 gap-6">
+                <SentimentHeatmap
+                  reports={selectedReports}
+                  selectedReport={selectedHeatmapReport}
+                  onReportSelect={setSelectedHeatmapReport}
+                  token={token}
+                  onCellClick={handleCellClick}
+                  onSentimentDataLoaded={setHeatmapSentimentData}
+                />
               </div>
 
               {/* Sources Watchtower - Full width */}

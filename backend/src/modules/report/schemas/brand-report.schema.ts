@@ -136,6 +136,11 @@ export class BrandReport {
       mention: string;
       count: number;
     }[];
+    topDomains?: {
+      domain: string;
+      count: number;
+      percentage: number;
+    }[];
   };
 
   @Prop({

@@ -12,7 +12,6 @@ import { Citation } from '../types/citation.types';
 import { CitationItemDto } from '../dto/citation-item.dto';
 import { BrandReportVariationCalculatorService } from './brand-report-variation-calculator.service';
 import { ExplorerData, SentimentData } from '../interfaces/report.interfaces';
-import { ProjectService } from '../../project/services/project.service';
 
 // Define proper types for sentiment report data
 interface SentimentReportData {
@@ -58,13 +57,11 @@ interface ExplorerCitation {
 @Injectable()
 export class BrandReportSentimentAggregationService {
   private readonly logger = new Logger(BrandReportSentimentAggregationService.name);
-  private projectPromptsCache = new Map<string, { sentiment: string[]; visibility: string[]; alignment: string[]; competition: string[] }>();
 
   constructor(
     @InjectModel(BrandReport.name)
     private brandReportModel: Model<BrandReportDocument>,
     private variationCalculator: BrandReportVariationCalculatorService,
-    private projectService: ProjectService,
   ) {}
 
   async getAggregatedSentiment(
@@ -333,7 +330,7 @@ export class BrandReportSentimentAggregationService {
     if (explorer?.webSearchResults) {
       explorer.webSearchResults.forEach(searchResult => {
         if (searchResult.citations) {
-          this.extractFromExplorerData(searchResult.citations, selectedModels, citationMap);
+          this.extractFromExplorerData(searchResult.citations, selectedModels, citationMap, sentData);
         }
       });
     }
@@ -390,16 +387,29 @@ export class BrandReportSentimentAggregationService {
   private extractFromExplorerData(
     citations: ExplorerCitation[],
     selectedModels: string[],
-    citationMap: Map<string, CitationItemDto>
+    citationMap: Map<string, CitationItemDto>,
+    sentData?: SentimentData
   ): void {
     citations
       .filter((c: ExplorerCitation) => selectedModels.length === 0 || selectedModels.includes(c.model))
       .forEach((citation: ExplorerCitation) => {
         if (citation.link) {
+          // Try to get the actual prompt from detailedResults using promptType and promptIndex
+          let actualPrompt = `${citation.promptType} prompt`;
+          
+          if (sentData?.detailedResults && citation.promptType === 'sentiment') {
+            const detailedResult = sentData.detailedResults.find(
+              r => r.model === citation.model && r.promptIndex === citation.promptIndex
+            );
+            if (detailedResult && detailedResult.originalPrompt) {
+              actualPrompt = detailedResult.originalPrompt;
+            }
+          }
+          
           this.addCitationToMap(
             { url: citation.link, title: citation.website },
             citationMap,
-            `${citation.promptType} prompt` || '',
+            actualPrompt,
             'neutral',
             citation.model
           );

@@ -97,6 +97,11 @@ export interface VisibilityResults {
     mentionRate: number;
     topMentions: string[];
     topMentionCounts?: MentionCount[]; // Added field for mention counts
+    topDomains?: Array<{
+      domain: string;
+      count: number;
+      percentage: number;
+    }>;
   };
   webSearchSummary: WebSearchSummary;
   brandVisibility?: BrandVisibilitySummary; // Field for UI dashboard data

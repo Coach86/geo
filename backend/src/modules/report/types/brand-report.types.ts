@@ -25,6 +25,11 @@ export interface VisibilityData {
     mention: string;
     count: number;
   }>;
+  topDomains?: Array<{
+    domain: string;
+    count: number;
+    percentage: number;
+  }>;
 }
 
 export interface AttributeScore {

@@ -24,7 +24,8 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
 import AddIcon from '@mui/icons-material/Add';
 import BusinessIcon from '@mui/icons-material/Business';
-import { updateProjectDetails } from '../../utils/api';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import { updateProjectDetails, refreshCompetitors, getProjectById } from '../../utils/api';
 
 interface EditableCompetitorsProps {
   projectId: string;
@@ -41,7 +42,9 @@ const EditableCompetitors: React.FC<EditableCompetitorsProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editedCompetitors, setEditedCompetitors] = useState<string[]>([...competitors]);
   const [saving, setSaving] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const handleStartEdit = () => {
     setEditedCompetitors([...competitors]);
@@ -95,6 +98,73 @@ const EditableCompetitors: React.FC<EditableCompetitorsProps> = ({
     setEditedCompetitors([...editedCompetitors, '']);
   };
 
+  const handleRefreshCompetitors = async () => {
+    try {
+      setRefreshing(true);
+      setError(null);
+      setSuccessMessage(null);
+
+      const result = await refreshCompetitors(projectId);
+      
+      // Show initial success message
+      setSuccessMessage('Refreshing competitor websites... This may take a few moments.');
+      
+      // Poll for updates every 2 seconds for up to 30 seconds
+      const maxAttempts = 15;
+      let attempts = 0;
+      let hasUpdates = false;
+      
+      const pollInterval = setInterval(async () => {
+        attempts++;
+        
+        try {
+          const updatedProject = await getProjectById(projectId);
+          
+          // Check if competitorDetails have been updated (they have websites)
+          const hasCompetitorDetails = updatedProject.competitorDetails && 
+            updatedProject.competitorDetails.length > 0 &&
+            updatedProject.competitorDetails.some((detail: any) => detail.website);
+          
+          if (hasCompetitorDetails || attempts >= maxAttempts) {
+            clearInterval(pollInterval);
+            setRefreshing(false);
+            
+            if (hasCompetitorDetails) {
+              // Update the competitors list if there are new ones
+              const newCompetitors = updatedProject.competitors || [];
+              if (JSON.stringify(newCompetitors) !== JSON.stringify(competitors)) {
+                onUpdate(newCompetitors);
+                hasUpdates = true;
+              }
+              
+              setSuccessMessage('Competitor websites refreshed successfully!');
+            } else {
+              setSuccessMessage('Refresh completed. No new competitor information found.');
+            }
+            
+            // Clear success message after 5 seconds
+            setTimeout(() => {
+              setSuccessMessage(null);
+            }, 5000);
+          }
+        } catch (error) {
+          console.error('Error polling for updates:', error);
+          clearInterval(pollInterval);
+          setRefreshing(false);
+        }
+      }, 2000);
+      
+    } catch (err) {
+      console.error('Failed to refresh competitors:', err);
+      setError('Failed to refresh competitors. Please try again.');
+      setRefreshing(false);
+      // Clear error after 5 seconds
+      setTimeout(() => {
+        setError(null);
+      }, 5000);
+    }
+  };
+
   // Render the view mode
   if (!isEditing) {
     return (
@@ -121,25 +191,104 @@ const EditableCompetitors: React.FC<EditableCompetitorsProps> = ({
             />
             Competitors
           </Typography>
-          <Tooltip title="Edit competitors">
-            <IconButton
-              onClick={handleStartEdit}
-              color="secondary"
-              size="small"
-              sx={{
-                width: 30,
-                height: 30,
-                backgroundColor: alpha(theme.palette.secondary.main, 0.08),
-                '&:hover': {
-                  backgroundColor: alpha(theme.palette.secondary.main, 0.12),
-                },
-              }}
-            >
-              <EditIcon sx={{ fontSize: '0.9rem' }} />
-            </IconButton>
-          </Tooltip>
+          <Box sx={{ display: 'flex', gap: 0.5 }}>
+            <Tooltip title="Refresh competitors from websites">
+              <IconButton
+                onClick={handleRefreshCompetitors}
+                color="primary"
+                size="small"
+                disabled={refreshing}
+                sx={{
+                  width: 30,
+                  height: 30,
+                  backgroundColor: alpha(theme.palette.primary.main, 0.08),
+                  '&:hover': {
+                    backgroundColor: alpha(theme.palette.primary.main, 0.12),
+                  },
+                }}
+              >
+                <RefreshIcon 
+                  sx={{ 
+                    fontSize: '0.9rem',
+                    animation: refreshing ? 'spin 1s linear infinite' : 'none',
+                    '@keyframes spin': {
+                      '0%': { transform: 'rotate(0deg)' },
+                      '100%': { transform: 'rotate(360deg)' },
+                    },
+                  }} 
+                />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Edit competitors">
+              <IconButton
+                onClick={handleStartEdit}
+                color="secondary"
+                size="small"
+                sx={{
+                  width: 30,
+                  height: 30,
+                  backgroundColor: alpha(theme.palette.secondary.main, 0.08),
+                  '&:hover': {
+                    backgroundColor: alpha(theme.palette.secondary.main, 0.12),
+                  },
+                }}
+              >
+                <EditIcon sx={{ fontSize: '0.9rem' }} />
+              </IconButton>
+            </Tooltip>
+          </Box>
         </Box>
         <Divider sx={{ mb: 2 }} />
+        
+        {/* Success/Error Messages */}
+        {successMessage && (
+          <Box
+            sx={{
+              mb: 2,
+              p: 1.5,
+              borderRadius: 1,
+              backgroundColor: alpha(theme.palette.success.light, 0.1),
+              border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`,
+            }}
+          >
+            <Typography
+              color="success.main"
+              variant="body2"
+              sx={{
+                fontSize: '0.875rem',
+                display: 'flex',
+                alignItems: 'center',
+              }}
+            >
+              {successMessage}
+            </Typography>
+          </Box>
+        )}
+        
+        {error && (
+          <Box
+            sx={{
+              mb: 2,
+              p: 1.5,
+              borderRadius: 1,
+              backgroundColor: alpha(theme.palette.error.light, 0.1),
+              border: `1px solid ${alpha(theme.palette.error.main, 0.2)}`,
+            }}
+          >
+            <Typography
+              color="error"
+              variant="body2"
+              sx={{
+                fontSize: '0.875rem',
+                display: 'flex',
+                alignItems: 'center',
+              }}
+            >
+              {error}
+            </Typography>
+          </Box>
+        )}
+        
         <List sx={{ p: 0 }}>
           {competitors.map((competitor, index) => (
             <ListItem

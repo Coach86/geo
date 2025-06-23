@@ -11,7 +11,7 @@ import { ReportRangeSelector } from "@/components/shared/ReportRangeSelector";
 import { VisibilityMetricsCard } from "@/components/visibility/VisibilityMetricsCard";
 import { VisibilityTrendChart } from "@/components/visibility/VisibilityTrendChart";
 import { MentionsListCard } from "@/components/visibility/MentionsListCard";
-import { TopSourcesCard } from "@/components/visibility/TopSourcesCard";
+import { TopDomainRankingCard } from "@/components/visibility/TopDomainRankingCard";
 import { DomainSourceChart } from "@/components/visibility/DomainSourceChart";
 import { useVisibilityReports } from "@/hooks/use-visibility-reports";
 import { useAggregatedExplorer } from "@/hooks/use-aggregated-explorer";
@@ -66,6 +66,7 @@ export default function VisibilityPage() {
     modelBreakdown,
     availableModels: visibilityAvailableModels,
     topMentions: visibilityTopMentions,
+    topDomains,
   } = useVisibilityReports(selectedProjectId, selectedModels, token, isAllTime, memoizedDateRange, isLatest);
 
   const {
@@ -251,11 +252,11 @@ export default function VisibilityPage() {
               />
             </div>
 
-            {/* Top Sources */}
+            {/* Top Domain Ranking */}
             <div>
-              <TopSourcesCard
-                sources={topSources.map(item => ({ domain: item.name, count: item.count }))}
-                loading={loadingExplorer}
+              <TopDomainRankingCard
+                domains={topDomains}
+                loading={loadingVisibility}
               />
             </div>
 

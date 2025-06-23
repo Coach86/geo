@@ -48,6 +48,17 @@ export class TopMentionDto {
   percentage: number;
 }
 
+export class TopDomainDto {
+  @ApiProperty({ description: 'Domain name' })
+  domain: string;
+
+  @ApiProperty({ description: 'Number of citations from this domain' })
+  count: number;
+
+  @ApiProperty({ description: 'Percentage of total citations' })
+  percentage: number;
+}
+
 export class AggregatedVisibilityResponseDto {
   @ApiProperty({ description: 'Average visibility score across all selected reports and models' })
   averageScore: number;
@@ -84,6 +95,12 @@ export class AggregatedVisibilityResponseDto {
     type: [TopMentionDto]
   })
   topMentions: TopMentionDto[];
+
+  @ApiProperty({ 
+    description: 'Top domains from visibility citations',
+    type: [TopDomainDto]
+  })
+  topDomains: TopDomainDto[];
 
   @ApiProperty({ description: 'Number of reports included in aggregation' })
   reportCount: number;

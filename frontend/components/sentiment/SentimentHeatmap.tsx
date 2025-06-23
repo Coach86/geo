@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ModelDisplay } from "@/components/shared/ModelDisplay";
-import { MousePointer2 } from "lucide-react";
+import { MousePointer2, LayoutGrid } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -114,7 +114,8 @@ export function SentimentHeatmap({
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-lg font-semibold text-gray-900">
+            <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <LayoutGrid className="h-5 w-5 text-purple-600" />
               Sentiment Heatmap
             </CardTitle>
             <p className="text-sm text-gray-500 mt-1">
@@ -140,6 +141,11 @@ export function SentimentHeatmap({
                       day: "numeric",
                       year: "numeric",
                     })}
+                    {" "}
+                    {new Date(report.generatedAt).toLocaleTimeString("en-US", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -154,19 +160,20 @@ export function SentimentHeatmap({
           </div>
         ) : sentimentHeatmap.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
+            <table className="w-full border-collapse table-fixed">
               <thead>
                 <tr>
-                  <th className="text-left text-sm font-semibold text-gray-700 p-0 w-1/3">
-                    <div className="px-3 py-2 border-b-2 border-gray-200">Prompts</div>
+                  <th className="text-left text-sm font-semibold text-gray-700 p-0 w-[30%]">
+                    <div className="px-3 py-2 border-b border-gray-300">Prompts</div>
                   </th>
                   {/* Get unique models from the first question */}
                   {sentimentHeatmap[0]?.results.map((result, index) => (
                     <th
                       key={index}
-                      className="text-center text-sm font-semibold text-gray-700 p-0"
+                      className="text-center text-sm font-semibold text-gray-700 p-0 w-[70%]"
+                      style={{ width: `${70 / (sentimentHeatmap[0]?.results.length || 1)}%` }}
                     >
-                      <div className="px-2 py-2 border-b-2 border-gray-200">
+                      <div className="px-2 py-2 border-b border-gray-300">
                         <ModelDisplay model={result.model} size="xs" className="justify-center" />
                       </div>
                     </th>
@@ -176,8 +183,8 @@ export function SentimentHeatmap({
               <tbody>
                 {sentimentHeatmap.map((q, qIndex) => (
                   <tr key={qIndex}>
-                    <td className="p-0 font-medium text-gray-700">
-                      <div className="px-3 py-2 border-r border-gray-200">
+                    <td className="p-0 font-medium text-gray-700 border-b border-r border-gray-300">
+                      <div className="px-3 py-3 h-[80px] flex items-center">
                         {q.question.split("\n").map((line, i) => (
                           <div key={i} className="text-sm">{line}</div>
                         ))}
@@ -189,10 +196,10 @@ export function SentimentHeatmap({
                       return (
                         <td
                           key={mIndex}
-                          className="p-0 relative group"
+                          className="p-0 relative group border-b border-r border-gray-300"
                         >
                           <div
-                            className="w-full h-full min-h-[60px] cursor-pointer relative overflow-hidden transition-all duration-200 hover:brightness-110"
+                            className="w-full h-[80px] cursor-pointer relative overflow-hidden transition-all duration-200 hover:brightness-110"
                             style={{
                               backgroundColor: color,
                             }}

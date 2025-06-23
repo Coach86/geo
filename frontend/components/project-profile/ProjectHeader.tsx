@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Building2, Globe, Languages, ChevronDown, Edit } from "lucide-react";
 import { ProjectResponse } from "@/lib/auth-api";
 import { Button } from "@/components/ui/button";
-import { Favicon } from "@/components/ui/favicon";
+import { useFavicon } from "@/hooks/use-favicon";
 
 interface ProjectHeaderProps {
   project: ProjectResponse;
@@ -20,6 +20,9 @@ export function ProjectHeader({
   onEditName,
   onEditObjectives,
 }: ProjectHeaderProps) {
+  // Get favicon from project URL
+  const { faviconUrl } = useFavicon(project.url);
+  
   const getMarketEmoji = (market: string) => {
     const marketFlags: { [key: string]: string } = {
       "United States": "🇺🇸",
@@ -84,12 +87,15 @@ export function ProjectHeader({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-white rounded-xl shadow-sm">
-              <Favicon 
-                src={project.favicon}
-                alt={`${project.brandName} favicon`}
-                className="h-6 w-6"
-                fallbackClassName="h-6 w-6 text-gray-700"
-              />
+              {faviconUrl ? (
+                <img 
+                  src={faviconUrl}
+                  alt={`${project.brandName} favicon`}
+                  className="h-5 w-5"
+                />
+              ) : (
+                <Building2 className="h-5 w-5 text-gray-700" />
+              )}
             </div>
             <div>
               <div className="flex items-center gap-2">
