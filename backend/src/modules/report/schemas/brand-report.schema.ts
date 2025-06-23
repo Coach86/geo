@@ -108,6 +108,12 @@ export class BrandReport {
       successfulQueries: number;
       failedQueries: number;
     };
+    domainSourceAnalysis?: {
+      brandDomainPercentage: number;
+      otherSourcesPercentage: number;
+      brandDomainCount: number;
+      otherSourcesCount: number;
+    };
   };
 
   @Prop({

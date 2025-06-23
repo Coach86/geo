@@ -35,7 +35,7 @@ export interface OnboardingStep {
 export const ONBOARDING_STEPS: OnboardingStep[] = [
   {
     id: StepId.PROJECT,
-    name: "Project",
+    name: "Start",
     icon: Globe,
     component: ProjectInfo,
     path: "/onboarding",
@@ -48,7 +48,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     id: StepId.BRAND,
-    name: "Brand",
+    name: "Project",
     icon: Users,
     component: BrandIdentity,
     path: "/onboarding",
@@ -76,7 +76,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     id: StepId.CONTACT,
-    name: "Contact",
+    name: "Account",
     icon: Phone,
     component: PhoneVerification,
     path: "/onboarding",

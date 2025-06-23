@@ -170,7 +170,7 @@ export class BrandReportOrchestratorService {
             version: '2.0.0',
           },
         },
-        explorer: this.reportBuilderService.buildExplorerData(spontaneousResults, sentimentResults, accuracyResults, comparisonResults),
+        explorer: this.reportBuilderService.buildExplorerData(spontaneousResults, sentimentResults, accuracyResults, comparisonResults, project.website),
         visibility: this.reportBuilderService.buildVisibilityData(spontaneousResults, project.brandName, project.competitors || []),
         sentiment: this.reportBuilderService.buildSentimentData(sentimentResults),
         alignment: this.reportBuilderService.buildAlignmentData(accuracyResults),

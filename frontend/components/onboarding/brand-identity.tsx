@@ -38,14 +38,14 @@ interface BrandIdentityProps {
       competitors: string[];
     };
   };
-  onDataReady?: (data: { 
+  onDataReady?: (data: {
     project: {
       brandName: string;
       description: string;
       industry: string;
     };
-    attributes: string[]; 
-    competitors: Competitor[] 
+    attributes: string[];
+    competitors: Competitor[]
   }) => void;
 }
 
@@ -67,7 +67,7 @@ export default function BrandIdentity({ initialData, onDataReady }: BrandIdentit
         if (!addedAttributes.has(attr)) {
           const isSelected = hasSavedSelections
             ? initialData.attributes?.includes(attr) || false
-            : idx < 5;  // Select first 5 by default if no saved selections
+            : idx < 4;  // Select first 4 by default if no saved selections
           allAttributes.push({
             id: generateId(),
             value: attr,
@@ -108,15 +108,15 @@ export default function BrandIdentity({ initialData, onDataReady }: BrandIdentit
       initialData.analyzedData.competitors.forEach((comp, index) => {
         if (!addedCompetitors.has(comp)) {
           let isSelected: boolean;
-          
+
           if (hasSavedSelections) {
             // If we have saved selections, check if this competitor is selected
             isSelected = initialData.competitors?.some(c => c.name === comp && c.selected) || false;
           } else {
-            // If no saved selections, select first 5 by default
-            isSelected = index < 5;
+            // If no saved selections, select first 3 by default
+            isSelected = index < 3;
           }
-          
+
           allCompetitors.push({
             id: generateId(),
             name: comp,
@@ -176,14 +176,14 @@ export default function BrandIdentity({ initialData, onDataReady }: BrandIdentit
         selected: item.selected
       }));
 
-      onDataReady({ 
+      onDataReady({
         project: {
           brandName,
           description,
           industry,
         },
-        attributes: selectedAttributes, 
-        competitors 
+        attributes: selectedAttributes,
+        competitors
       });
     }
   }, [brandName, description, industry, attributeItems, competitorItems, onDataReady]);
@@ -295,11 +295,7 @@ export default function BrandIdentity({ initialData, onDataReady }: BrandIdentit
   return (
     <div className="py-8 animate-fade-in">
       <div className="mb-8 text-center">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-md bg-accent-100 text-accent-500 mb-4">
-          <Users className="h-8 w-8" />
-        </div>
-        <h1 className="text-3xl font-bold mb-2 text-mono-900">Now, build your brand profile</h1>
-        <p className="text-gray-600 max-w-md mx-auto">Help us understand your brand's key attributes and competitors</p>
+        <h1 className="text-3xl font-bold mb-2 text-mono-900">Configure your project parameters</h1>
       </div>
 
       <div className="space-y-10">
@@ -318,7 +314,7 @@ export default function BrandIdentity({ initialData, onDataReady }: BrandIdentit
                 htmlFor="brandName"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                Your brand's name
+                Brand's name
               </label>
               <Input
                 id="brandName"
@@ -366,50 +362,18 @@ export default function BrandIdentity({ initialData, onDataReady }: BrandIdentit
         {/* Brand Attributes */}
         <Card className="border border-gray-200 shadow-sm">
           <CardContent className="p-6">
-            <div className="flex items-center gap-2 mb-2">
-              <Tag className="h-5 w-5 text-accent-600" />
-              <h2 className="text-xl font-semibold text-mono-900">Brand Attributes</h2>
-              <Badge className="bg-accent-100 text-accent-700 ml-2">{selectedAttributesCount}/5</Badge>
+            <div className="mb-4">
+              <Badge className="bg-accent-100 text-accent-500 hover:bg-accent-200">
+                <Tag className="h-3 w-3 mr-1" />
+                Brand Alignment properties
+              </Badge>
             </div>
             <p className="text-sm text-gray-500 mb-4">
               {analyzedAttributes.length > 0
-                ? "Based on your website analysis - feel free to edit or add more"
+                ? "Edit your main properties to verify that AI accurately portrays your key differentiators, tone, and positioning"
                 : "Select up to 5 key brand attributes"
               }
             </p>
-
-            <div className="mb-4">
-              <div className="relative">
-                <Input
-                  id="attribute-input"
-                  placeholder="Ex: Innovative and forward-thinking"
-                  value={attributeInput}
-                  onChange={(e) => setAttributeInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault()
-                      handleAddAttribute(attributeInput)
-                    }
-                  }}
-                  className="pr-10 input-focus"
-                  disabled={selectedAttributesCount >= 5}
-                />
-                {attributeInput && (
-                  <button
-                    onClick={() => handleAddAttribute(attributeInput)}
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                    disabled={selectedAttributesCount >= 5}
-                  >
-                    <Plus className="h-5 w-5" />
-                  </button>
-                )}
-              </div>
-              {selectedAttributesCount >= 5 && (
-                <p className="text-xs text-amber-600 mt-1">
-                  You have reached the maximum of 5 attributes. Deselect one to add a new one.
-                </p>
-              )}
-            </div>
 
             {/* List of attributes */}
             <div className="space-y-3">
@@ -497,9 +461,44 @@ export default function BrandIdentity({ initialData, onDataReady }: BrandIdentit
               ))}
             </div>
 
+            <div className="mt-4 flex items-center gap-3">
+              <div className="relative flex-1">
+                <Input
+                  id="attribute-input"
+                  placeholder="Ex: Innovative and forward-thinking"
+                  value={attributeInput}
+                  onChange={(e) => setAttributeInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault()
+                      handleAddAttribute(attributeInput)
+                    }
+                  }}
+                  className="pr-10 input-focus"
+                  disabled={selectedAttributesCount >= 5}
+                />
+                {attributeInput && (
+                  <button
+                    onClick={() => handleAddAttribute(attributeInput)}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    disabled={selectedAttributesCount >= 5}
+                  >
+                    <Plus className="h-5 w-5" />
+                  </button>
+                )}
+              </div>
+              <Badge className="bg-accent-100 text-accent-700">{selectedAttributesCount}/5</Badge>
+            </div>
+            <div>
+              {selectedAttributesCount >= 5 && (
+                <p className="text-xs text-amber-600 mt-1">
+                  You have reached the maximum of 5 attributes. Deselect one to add a new one.
+                </p>
+              )}
+            </div>
+
             <p className="text-sm text-gray-500 mt-6">
-              Brand attributes are the differentiating factors you want AI models to naturally highlight when describing
-              your brand. Select up to 5 attributes.
+              Protect your revenue with strong AI brand credibility.
             </p>
           </CardContent>
         </Card>
@@ -507,49 +506,16 @@ export default function BrandIdentity({ initialData, onDataReady }: BrandIdentit
         {/* Competitor Selection */}
         <Card className="border border-gray-200 shadow-sm">
           <CardContent className="p-6">
-            <div className="flex items-center gap-2 mb-2">
-              <Users className="h-5 w-5 text-accent-600" />
-              <h2 className="text-xl font-semibold text-mono-900">Competitor Selection</h2>
-              <Badge className="bg-accent-100 text-accent-700 ml-2">
-                {competitorItems.filter(c => c.selected).length}/5
+            <div className="mb-4">
+              <Badge className="bg-accent-100 text-accent-500 hover:bg-accent-200">
+                <Users className="h-3 w-3 mr-1" />
+                Top Competitor Selection
               </Badge>
             </div>
             <p className="text-sm text-gray-500 mb-4">
-              {analyzedCompetitors.length > 0
-                ? "Based on your website analysis - you can add, remove or modify these"
-                : "Select up to 5 main competitors"
-              }
-            </p>
+              Watch your closest competitors to track their visibility, to understand their strategies, and to capture opportunities
 
-            <div className="mb-4">
-              <div className="relative">
-                <Input
-                  placeholder="Add a competitor"
-                  value={competitorInput}
-                  onChange={(e) => setCompetitorInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault()
-                      handleAddCompetitor(competitorInput)
-                    }
-                  }}
-                  className="pr-10 input-focus"
-                />
-                {competitorInput && (
-                  <button
-                    onClick={() => handleAddCompetitor(competitorInput)}
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                  >
-                    <Plus className="h-5 w-5" />
-                  </button>
-                )}
-              </div>
-              {competitorItems.filter(c => c.selected).length >= 5 && (
-                <p className="text-xs text-amber-600 mt-1">
-                  You have reached the maximum of 5 competitors. Deselect one to add a new one.
-                </p>
-              )}
-            </div>
+            </p>
 
             {/* Competitor cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -582,6 +548,41 @@ export default function BrandIdentity({ initialData, onDataReady }: BrandIdentit
                   </CardContent>
                 </Card>
               ))}
+            </div>
+
+            <div className="mt-4 flex items-center gap-3">
+              <div className="relative flex-1">
+                <Input
+                  placeholder="Add a competitor"
+                  value={competitorInput}
+                  onChange={(e) => setCompetitorInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault()
+                      handleAddCompetitor(competitorInput)
+                    }
+                  }}
+                  className="pr-10 input-focus"
+                />
+                {competitorInput && (
+                  <button
+                    onClick={() => handleAddCompetitor(competitorInput)}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  >
+                    <Plus className="h-5 w-5" />
+                  </button>
+                )}
+              </div>
+              <Badge className="bg-accent-100 text-accent-700">
+                {competitorItems.filter(c => c.selected).length}/5
+              </Badge>
+            </div>
+            <div>
+              {competitorItems.filter(c => c.selected).length >= 5 && (
+                <p className="text-xs text-amber-600 mt-1">
+                  You have reached the maximum of 5 competitors. Deselect one to add a new one.
+                </p>
+              )}
             </div>
 
             <p className="text-sm text-gray-500 mt-4">

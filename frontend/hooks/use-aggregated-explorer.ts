@@ -24,6 +24,12 @@ interface UseAggregatedExplorerReturn {
   };
   citations?: any[];
   webSearchResults?: any[];
+  domainSourceAnalysis?: {
+    brandDomainPercentage: number;
+    otherSourcesPercentage: number;
+    brandDomainCount: number;
+    otherSourcesCount: number;
+  };
 }
 
 export function useAggregatedExplorer(
@@ -48,6 +54,7 @@ export function useAggregatedExplorer(
     },
     citations: [],
     webSearchResults: [],
+    domainSourceAnalysis: undefined,
   });
 
   useEffect(() => {
@@ -67,6 +74,7 @@ export function useAggregatedExplorer(
           },
           citations: [],
           webSearchResults: [],
+          domainSourceAnalysis: undefined,
         });
         return;
       }
@@ -107,6 +115,7 @@ export function useAggregatedExplorer(
           summary: response.summary,
           citations: response.citations || [],
           webSearchResults: response.webSearchResults || [],
+          domainSourceAnalysis: response.domainSourceAnalysis,
         });
       } catch (err) {
         console.error("Failed to fetch aggregated explorer data:", err);
@@ -125,6 +134,7 @@ export function useAggregatedExplorer(
           },
           citations: [],
           webSearchResults: [],
+          domainSourceAnalysis: undefined,
         });
       } finally {
         setLoading(false);
@@ -142,5 +152,6 @@ export function useAggregatedExplorer(
     summary: data.summary,
     citations: data.citations,
     webSearchResults: data.webSearchResults,
+    domainSourceAnalysis: data.domainSourceAnalysis,
   };
 }

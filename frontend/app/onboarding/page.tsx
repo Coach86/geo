@@ -72,7 +72,7 @@ export default function OnboardingPage() {
             Analyzing your website...
           </h2>
           <p className="text-mono-600 text-center max-w-md">
-            We're extracting key information about your brand, including attributes and competitors. This will help us create targeted prompts for your brand analysis.
+            We are configuring your project project profile and your prompts portfolio.
           </p>
           <div className="mt-6 flex flex-col items-center">
             <div className="flex items-center gap-2 mb-2">
@@ -80,12 +80,12 @@ export default function OnboardingPage() {
               <div className="h-2 w-2 rounded-full bg-accent-500 animate-pulse delay-100"></div>
               <div className="h-2 w-2 rounded-full bg-accent-500 animate-pulse delay-200"></div>
             </div>
-            <p className="text-sm text-mono-500">This may take a few seconds</p>
+            <p className="text-sm text-mono-500">This might take a few seconds, please stand still</p>
           </div>
         </div>
       );
     }
-    
+
     if (isLoading) {
       return (
         <div className="flex justify-center items-center py-20">
@@ -99,10 +99,10 @@ export default function OnboardingPage() {
 
     // Get existing data from localStorage for initial values
     const existingData = getOnboardingData();
-    
+
     // Prepare initial data based on the current step
     let initialData: any = {};
-    
+
     switch (currentStep) {
       case StepId.PROJECT:
         initialData = {
@@ -110,7 +110,7 @@ export default function OnboardingPage() {
           brand: existingData.brand,
         };
         break;
-        
+
       case StepId.BRAND:
         initialData = {
           project: existingData.project,
@@ -119,7 +119,7 @@ export default function OnboardingPage() {
           analyzedData: existingData.brand?.analyzedData,
         };
         break;
-        
+
       case StepId.PROMPTS:
         initialData = {
           visibilityPrompts: existingData.prompts?.visibilityPrompts || [],
@@ -128,7 +128,7 @@ export default function OnboardingPage() {
           brandData: existingData.brand,
         };
         break;
-        
+
       case StepId.CONTACT:
         initialData = {
           phoneNumber: existingData.contact?.phoneNumber || "",
@@ -138,7 +138,7 @@ export default function OnboardingPage() {
     }
 
     return (
-      <StepComponent 
+      <StepComponent
         initialData={initialData}
         onDataReady={setCurrentStepData}
       />

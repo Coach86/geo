@@ -8,8 +8,8 @@ export default function OnboardingProgress() {
   const { currentStep, setCurrentStep } = useOnboarding();
   const router = useRouter();
 
-  // Combine onboarding steps with pricing step for display
-  const allSteps = [...ONBOARDING_STEPS, PRICING_STEP];
+  // Only use onboarding steps for display (hide pricing step)
+  const allSteps = ONBOARDING_STEPS;
 
   // Fonction pour naviguer vers une étape spécifique
   const navigateToStep = (stepId: StepId) => {

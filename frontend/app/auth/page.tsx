@@ -171,16 +171,11 @@ export default function AuthPage() {
           ) : (
             <div className="text-center">
               <div className="bg-green-50 text-green-700 p-4 rounded-lg mb-6">
-                <p className="font-medium">Magic link sent!</p>
+                <p className="font-medium">Magic link sent to {email}!</p>
                 <p className="text-sm mt-1">
                   Check your email inbox for a link to continue.
                 </p>
               </div>
-              <p className="text-mono-600 mb-6">
-                We've sent a magic link to{" "}
-                <span className="font-medium">{email}</span>. Click the link in
-                the email to sign in.
-              </p>
             </div>
           )}
         </div>

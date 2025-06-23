@@ -12,6 +12,7 @@ import { VisibilityMetricsCard } from "@/components/visibility/VisibilityMetrics
 import { VisibilityTrendChart } from "@/components/visibility/VisibilityTrendChart";
 import { MentionsListCard } from "@/components/visibility/MentionsListCard";
 import { TopSourcesCard } from "@/components/visibility/TopSourcesCard";
+import { DomainSourceChart } from "@/components/visibility/DomainSourceChart";
 import { useVisibilityReports } from "@/hooks/use-visibility-reports";
 import { useAggregatedExplorer } from "@/hooks/use-aggregated-explorer";
 import { useReports } from "@/providers/report-provider";
@@ -73,6 +74,7 @@ export default function VisibilityPage() {
     topMentions,
     topKeywords,
     topSources,
+    domainSourceAnalysis,
   } = useAggregatedExplorer(selectedProjectId, token, memoizedDateRange, isLatest);
 
   // Show all competitors by default
@@ -257,22 +259,13 @@ export default function VisibilityPage() {
               />
             </div>
 
-            {/* Placeholder */}
+            {/* Domain Source Chart */}
             <div>
-              <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-lg font-semibold text-gray-900">
-                    Coming Soon
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-32 flex items-center justify-center">
-                    <p className="text-sm text-gray-500 italic">
-                      New feature coming soon
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+              <DomainSourceChart
+                domainSourceAnalysis={domainSourceAnalysis}
+                loading={loadingExplorer}
+                brandName={brandName}
+              />
             </div>
           </div>
         </div>

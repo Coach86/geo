@@ -51,6 +51,7 @@ export class ReportBuilderService {
     sentimentResults: SentimentResults,
     accuracyResults: AccuracyResults,
     comparisonResults: CompetitionResults,
+    projectWebsite?: string,
   ): ExplorerData {
     // Build citations data
     const allCitationsData: Array<{
@@ -263,6 +264,40 @@ export class ReportBuilderService {
         percentage: totalWebSearchQueries > 0 ? (count / totalWebSearchQueries) * 100 : 0,
       }));
 
+    // Calculate domain source analysis
+    let domainSourceAnalysis: ExplorerData['domainSourceAnalysis'] | undefined;
+    
+    if (projectWebsite && totalCitations > 0) {
+      // Extract brand domain without TLD
+      const brandDomain = this.extractBrandDomain(projectWebsite);
+      
+      if (brandDomain) {
+        let brandDomainCount = 0;
+        let otherSourcesCount = 0;
+        
+        // Count sources from brand domain vs others
+        sourceMap.forEach((stats, domain) => {
+          if (this.isDomainMatch(domain, brandDomain)) {
+            brandDomainCount += stats.totalMentions;
+          } else {
+            otherSourcesCount += stats.totalMentions;
+          }
+        });
+        
+        const brandDomainPercentage = (brandDomainCount / totalCitations) * 100;
+        const otherSourcesPercentage = (otherSourcesCount / totalCitations) * 100;
+        
+        domainSourceAnalysis = {
+          brandDomainPercentage: Math.round(brandDomainPercentage * 10) / 10, // Round to 1 decimal
+          otherSourcesPercentage: Math.round(otherSourcesPercentage * 10) / 10,
+          brandDomainCount,
+          otherSourcesCount,
+        };
+        
+        this.logger.log(`Domain source analysis: ${brandDomainCount} from brand domain (${brandDomainPercentage.toFixed(1)}%), ${otherSourcesCount} from other sources (${otherSourcesPercentage.toFixed(1)}%)`);
+      }
+    }
+
     return {
       summary: {
         totalPrompts,
@@ -279,6 +314,7 @@ export class ReportBuilderService {
         successfulQueries: promptsWithWebAccess,
         failedQueries: 0,
       },
+      domainSourceAnalysis,
     };
   }
 
@@ -710,5 +746,37 @@ export class ReportBuilderService {
       }
     });
     return count;
+  }
+
+  /**
+   * Extract brand domain from website URL (without TLD)
+   */
+  private extractBrandDomain(website: string): string {
+    try {
+      const url = new URL(website);
+      const hostname = url.hostname.replace('www.', '');
+      // Extract domain name without TLD (e.g., "sfr" from "sfr.fr")
+      const parts = hostname.split('.');
+      if (parts.length >= 2) {
+        return parts[0]; // Return the first part before the TLD
+      }
+      return hostname;
+    } catch {
+      return '';
+    }
+  }
+
+  /**
+   * Check if a domain matches the brand domain
+   */
+  private isDomainMatch(domain: string, brandDomain: string): boolean {
+    if (!domain || !brandDomain) return false;
+    
+    // Remove www. prefix if present
+    const cleanDomain = domain.replace('www.', '');
+    
+    // Check if the domain contains the brand domain
+    // This will match "sfr.fr", "sfr.com", "business.sfr.fr", etc.
+    return cleanDomain.includes(brandDomain + '.');
   }
 }
