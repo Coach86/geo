@@ -1,12 +1,14 @@
 import { Controller, Get, Post, Body } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsArray, IsOptional, IsString } from 'class-validator';
 import { LlmService } from '../services/llm.service';
 import { LlmProvider } from '../interfaces/llm-provider.enum';
 class DirectTestDto {
+  @ApiProperty({ description: 'The prompt to test with LLM providers' })
   @IsString()
   prompt: string;
 
+  @ApiPropertyOptional({ description: 'Specific providers to test (empty for all)', type: [String] })
   @IsArray()
   @IsOptional()
   providers?: string[];
@@ -33,6 +35,7 @@ export class LlmController {
 
   @Post('direct-test')
   @ApiOperation({ summary: 'Test LLM providers with a direct prompt' })
+  @ApiBody({ type: DirectTestDto })
   @ApiResponse({
     status: 200,
     description: 'Returns the responses from the specified LLM providers',

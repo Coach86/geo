@@ -40,7 +40,6 @@ export class BrandReportResponseDto {
       totalCitations: number;
       uniqueSources: number;
     };
-    topMentions: { mention: string; count: number }[];
     topKeywords: { keyword: string; count: number; percentage: number }[];
     topSources: { domain: string; count: number; percentage: number }[];
     citations: {
@@ -68,11 +67,11 @@ export class BrandReportResponseDto {
       mentionRate: number;
     }[];
     arenaMetrics: {
-      model: string;
-      mentions: number;
-      score: number;
-      rank: number;
+      name: string;
+      size: string;
+      global: string;
     }[];
+    topMentions?: { mention: string; count: number }[];
   };
 
   @ApiProperty({ description: 'Sentiment data - tone analysis' })
@@ -164,5 +163,29 @@ export class BrandReportResponseDto {
     }[];
     commonStrengths: string[];
     commonWeaknesses: string[];
+    detailedResults?: {
+      model: string;
+      promptIndex: number;
+      competitor: string;
+      originalPrompt: string;
+      llmResponse: string;
+      brandStrengths: string[];
+      brandWeaknesses: string[];
+      usedWebSearch: boolean;
+      citations: {
+        url: string;
+        title?: string;
+        text?: string;
+      }[];
+      toolUsage: {
+        type: string;
+        parameters?: Record<string, any>;
+        execution_details?: {
+          status: string;
+          result?: any;
+          error?: string;
+        };
+      }[];
+    }[];
   };
 }

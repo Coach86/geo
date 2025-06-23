@@ -15,8 +15,36 @@ export class BrandReportPersistenceService {
 
   async saveReport(reportData: ReportStructure): Promise<BrandReportDocument> {
     try {
+      // Debug logging for competition data
+      if (reportData.competition) {
+        this.logger.log(`[PERSIST-001] Saving report with competition data: ${JSON.stringify({
+          hasDetailedResults: !!(reportData.competition as any).detailedResults,
+          detailedResultsCount: (reportData.competition as any).detailedResults?.length || 0,
+          competitorAnalysesCount: reportData.competition.competitorAnalyses?.length || 0,
+          firstDetailedResult: (reportData.competition as any).detailedResults?.[0] ? {
+            model: (reportData.competition as any).detailedResults[0].model,
+            hasLlmResponse: !!(reportData.competition as any).detailedResults[0].llmResponse,
+            llmResponseLength: (reportData.competition as any).detailedResults[0].llmResponse?.length || 0
+          } : null
+        })}`);
+      }
+      
       const report = new this.brandReportModel(reportData);
-      return await report.save();
+      const saved = await report.save();
+      
+      // Verify what was actually saved
+      const savedCompetition = saved.competition as any;
+      this.logger.log(`[PERSIST-002] Saved report competition data: ${JSON.stringify({
+        hasDetailedResults: !!savedCompetition?.detailedResults,
+        detailedResultsCount: savedCompetition?.detailedResults?.length || 0,
+        firstDetailedResult: savedCompetition?.detailedResults?.[0] ? {
+          model: savedCompetition.detailedResults[0].model,
+          hasLlmResponse: !!savedCompetition.detailedResults[0].llmResponse,
+          llmResponseLength: savedCompetition.detailedResults[0].llmResponse?.length || 0
+        } : null
+      })}`);
+      
+      return saved;
     } catch (error) {
       this.logger.error(`Failed to save brand report: ${error.message}`, error.stack);
       throw error;

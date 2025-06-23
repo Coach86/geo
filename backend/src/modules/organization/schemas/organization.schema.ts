@@ -60,6 +60,23 @@ export class Organization {
   @Prop({ type: Date })
   updatedAt?: Date;
 
+  // Trial-related fields
+  @Prop({ type: Date })
+  trialStartDate?: Date;
+
+  @Prop({ type: Date })
+  trialEndDate?: Date;
+
+  @Prop({ type: Boolean, default: false })
+  isOnTrial?: boolean;
+
+  @Prop({ type: String })
+  trialPlanId?: string;
+
+  // Promo code tracking
+  @Prop({ type: String })
+  promoCode?: string;
+
   @Prop({ required: true })
   name: string;
 

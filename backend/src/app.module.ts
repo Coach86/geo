@@ -56,13 +56,13 @@ import { getWinstonConfig } from './utils/logger.config';
       }),
     }),
     ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', 'public'),
+      rootPath: join(process.cwd(), 'public'),
       serveRoot: '/',
       exclude: ['/api/(.*)'],
       serveStaticOptions: {
         cacheControl: true,
         maxAge: 3600000,
-        index: false, // Don't serve index.html automatically
+        index: ['index.html'],
       },
     }),
     ScheduleModule.forRoot(),

@@ -9,7 +9,6 @@ import {
   updatePromptSet,
   ProjectResponse,
   PromptSet,
-  getUserProfile,
   getUserProjects,
   runManualAnalysis,
 } from "@/lib/auth-api";
@@ -46,7 +45,7 @@ export default function Home() {
   const { token } = useAuth();
   const router = useRouter();
   const analytics = useAnalytics();
-  const { filteredProjects, selectedProject, setSelectedProject } = useNavigation();
+  const { allProjects, selectedProject, setSelectedProject } = useNavigation();
   const [projectDetails, setProjectDetails] = useState<ProjectResponse | null>(null);
   const [promptSet, setPromptSet] = useState<PromptSet | null>(null);
   const [organization, setOrganization] = useState<any>(null);
@@ -276,10 +275,10 @@ export default function Home() {
   return (
     <div className="space-y-6">
         {/* Breadcrumb Navigation and Manual Refresh Button */}
-        {token && filteredProjects.length > 0 && (
+        {token && allProjects.length > 0 && (
           <div className="flex items-center justify-between gap-4">
             <BreadcrumbNav
-              projects={filteredProjects}
+              projects={allProjects}
               selectedProject={selectedProject}
               onProjectSelect={setSelectedProject}
               currentPage="Profile"
@@ -417,7 +416,7 @@ export default function Home() {
                           }
                         }}
                         canAdd={true}
-                        maxPrompts={12} // TODO: Get from user profile
+                        maxPrompts={organization?.planSettings?.maxSpontaneousPrompts || 12}
                         maxSpontaneousPrompts={organization?.planSettings?.maxSpontaneousPrompts}
                         onAddClick={() => router.push("/update-plan")}
                         onRegenerateComplete={async () => {

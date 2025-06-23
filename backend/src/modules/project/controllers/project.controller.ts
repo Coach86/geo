@@ -13,9 +13,10 @@ import {
   HttpCode,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBody } from '@nestjs/swagger';
 import { ProjectService } from '../services/project.service';
 import { CreateProjectDto } from '../dto/create-project.dto';
+import { CreateFromUrlDto } from '../dto/create-from-url.dto';
 import { UpdateProjectDto } from '../dto/update-project.dto';
 import { ProjectResponseDto } from '../dto/project-response.dto';
 import { AdminGuard } from '../../auth/guards/admin.guard';
@@ -29,6 +30,7 @@ export class ProjectController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new company project' })
+  @ApiBody({ type: CreateProjectDto })
   @ApiResponse({
     status: 201,
     description: 'The project has been successfully created.',
@@ -44,6 +46,7 @@ export class ProjectController {
 
   @Post('from-url')
   @ApiOperation({ summary: 'Create a new company project from URL' })
+  @ApiBody({ type: CreateFromUrlDto })
   @ApiResponse({
     status: 201,
     description: 'The project has been successfully created from URL.',
@@ -51,24 +54,24 @@ export class ProjectController {
   })
   @ApiResponse({ status: 400, description: 'Bad request.' })
   async createFromUrl(
-    @Body() body: { url: string; organizationId: string; market: string; language?: string },
+    @Body() createFromUrlDto: CreateFromUrlDto,
   ): Promise<ProjectResponseDto> {
     const createDto = new CreateProjectDto();
-    createDto.url = body.url;
-    createDto.organizationId = body.organizationId;
+    createDto.url = createFromUrlDto.url;
+    createDto.organizationId = createFromUrlDto.organizationId;
 
     // Market is required
-    if (!body.market) {
+    if (!createFromUrlDto.market) {
       throw new BadRequestException('Market is required');
     }
 
     if (!createDto.data) {
       createDto.data = {};
     }
-    createDto.data.market = body.market;
+    createDto.data.market = createFromUrlDto.market;
     
-    if (body.language) {
-      createDto.data.language = body.language;
+    if (createFromUrlDto.language) {
+      createDto.data.language = createFromUrlDto.language;
     }
 
     const project = await this.projectService.create(createDto);
@@ -104,6 +107,7 @@ export class ProjectController {
   @Patch(':projectId')
   @ApiOperation({ summary: 'Update key features and competitors for a project' })
   @ApiParam({ name: 'projectId', description: 'The ID of the project' })
+  @ApiBody({ type: UpdateProjectDto })
   @ApiResponse({
     status: 200,
     description: 'The project has been successfully updated.',

@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Sparkles } from "lucide-react";
@@ -16,10 +16,19 @@ export default function AuthPage() {
   const searchParams = useSearchParams();
   const analytics = useAnalytics();
   const urlParam = searchParams.get("url") || "";
+  const codeParam = searchParams.get("code") || "";
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isMagicLinkSent, setIsMagicLinkSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Store promo code in localStorage if present
+    if (codeParam) {
+      localStorage.setItem("promoCode", codeParam);
+      analytics.track('promo_code_captured', { code: codeParam });
+    }
+  }, [codeParam, analytics]);
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,14 +36,16 @@ export default function AuthPage() {
     setError(null);
 
     try {
-      const response = await sendMagicLink(email);
+      // Get promo code from localStorage if available
+      const promoCode = localStorage.getItem("promoCode") || undefined;
+      const response = await sendMagicLink(email, promoCode);
 
       if (response.success) {
         setIsMagicLinkSent(true);
         // Store user ID for potential use later
         localStorage.setItem("pendingUserId", response.userId);
         // Track signup/login attempt - we'll know which one when they click the magic link
-        analytics.track('magic_link_sent', { email });
+        analytics.track('magic_link_sent', { email, hasPromoCode: !!promoCode });
       } else {
         setError(response.message || "Failed to send magic link");
         analytics.trackError('magic_link_failed', response.message || "Failed to send magic link");

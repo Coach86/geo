@@ -39,9 +39,12 @@ RUN addgroup -g 1001 -S nodejs && \
 # Copy only production dependencies and built application
 COPY --from=prod-dependencies --chown=nodejs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
+COPY --from=builder --chown=nodejs:nodejs /app/public ./public
 COPY --chown=nodejs:nodejs package*.json ./
 COPY --chown=nodejs:nodejs config.json ./
-COPY --chown=nodejs:nodejs public ./public
+
+# Create logs directory with proper permissions
+RUN mkdir -p /app/logs && chown nodejs:nodejs /app/logs
 
 # Download SSL certificate for RDS
 RUN wget -O /app/global-bundle.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem && \

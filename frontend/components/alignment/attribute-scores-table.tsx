@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -40,6 +41,13 @@ export default function AttributeScoresByModelTable({
     null
   );
   const [currentResultIndex, setCurrentResultIndex] = useState(0);
+  const [mounted, setMounted] = useState(false);
+
+  // Check if component is mounted for portal rendering
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
 
   // Keyboard navigation for drawer
   useEffect(() => {
@@ -253,11 +261,12 @@ export default function AttributeScoresByModelTable({
       </div>
 
       {/* Right Drawer for Compliance Details */}
-      <div
-        className={`fixed inset-0 z-50 overflow-hidden ${
-          drawerOpen ? "pointer-events-auto" : "pointer-events-none"
-        }`}
-      >
+      {mounted && createPortal(
+        <div
+          className={`fixed inset-0 z-50 overflow-hidden ${
+            drawerOpen ? "pointer-events-auto" : "pointer-events-none"
+          }`}
+        >
         {/* Backdrop */}
         <div
           className={`absolute inset-0 bg-black transition-opacity duration-300 ${
@@ -499,7 +508,9 @@ export default function AttributeScoresByModelTable({
             )}
           </div>
         </div>
-      </div>
+      </div>,
+      document.body
+      )}
     </>
   );
 }

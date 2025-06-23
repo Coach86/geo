@@ -3,6 +3,7 @@ import { BatchService } from './batch.service';
 import { BatchExecutionService } from './batch-execution.service';
 import { BrandReportPersistenceService } from '../../report/services/brand-report-persistence.service';
 import { ProjectService } from '../../project/services/project.service';
+import { ReportBuilderService } from './report-builder.service';
 import {
   AccuracyResults,
   ProjectBatchContext,
@@ -31,6 +32,7 @@ export class BrandReportOrchestratorService {
     private readonly batchExecutionService: BatchExecutionService,
     private readonly brandReportPersistenceService: BrandReportPersistenceService,
     private readonly projectService: ProjectService,
+    private readonly reportBuilderService: ReportBuilderService,
   ) {}
 
   /**
@@ -114,6 +116,29 @@ export class BrandReportOrchestratorService {
       const sentimentResults = pipelineResults[1] as SentimentResults;
       const accuracyResults = pipelineResults[2] as AccuracyResults;
       const comparisonResults = pipelineResults[3] as ComparisonResults;
+      
+      // Debug logging for competition results
+      this.logger.log(`[ORCH-001] Received competition results: ${JSON.stringify({
+        hasResults: !!comparisonResults,
+        resultsCount: comparisonResults?.results?.length || 0,
+        hasSummary: !!comparisonResults?.summary,
+        competitorAnalysesCount: comparisonResults?.summary?.competitorAnalyses?.length || 0,
+        firstResult: comparisonResults?.results?.[0] ? {
+          model: comparisonResults.results[0].llmModel,
+          competitor: comparisonResults.results[0].competitor,
+          hasOriginalPrompt: !!comparisonResults.results[0].originalPrompt,
+          hasLlmResponse: !!comparisonResults.results[0].llmResponse,
+        } : null
+      })}`);
+      
+      // Extra debug: log raw pipeline result
+      if (comparisonResults?.results?.length > 0) {
+        this.logger.log(`[ORCH-002] Raw first competition result keys: ${Object.keys(comparisonResults.results[0])}`);
+        this.logger.log(`[ORCH-003] Has llmResponse in first result: ${'llmResponse' in comparisonResults.results[0]}`);
+        this.logger.log(`[ORCH-004] First result llmResponse length: ${comparisonResults.results[0].llmResponse?.length || 0}`);
+      } else {
+        this.logger.error(`[ORCH-005] Competition results is empty or undefined! comparisonResults: ${JSON.stringify(comparisonResults)}`);
+      }
 
       // Save batch results
       await Promise.all([
@@ -145,11 +170,21 @@ export class BrandReportOrchestratorService {
             version: '2.0.0',
           },
         },
-        explorer: this.buildExplorerData(spontaneousResults, sentimentResults, accuracyResults, comparisonResults),
-        visibility: this.batchService.buildVisibilityData(spontaneousResults, project.brandName, project.competitors || []),
-        sentiment: this.buildSentimentData(sentimentResults),
-        alignment: this.buildAlignmentData(accuracyResults),
-        competition: this.buildCompetitionData(comparisonResults, project.brandName, project.competitors || []),
+        explorer: this.reportBuilderService.buildExplorerData(spontaneousResults, sentimentResults, accuracyResults, comparisonResults),
+        visibility: this.reportBuilderService.buildVisibilityData(spontaneousResults, project.brandName, project.competitors || []),
+        sentiment: this.reportBuilderService.buildSentimentData(sentimentResults),
+        alignment: this.reportBuilderService.buildAlignmentData(accuracyResults),
+        competition: (() => {
+          this.logger.log(`[ORCH-006] About to call buildCompetitionData with ${comparisonResults?.results?.length || 0} results`);
+          if (comparisonResults?.results?.length > 0) {
+            this.logger.log(`[ORCH-007] First result before buildCompetitionData: ${JSON.stringify({
+              model: comparisonResults.results[0].llmModel,
+              hasLlmResponse: !!comparisonResults.results[0].llmResponse,
+              llmResponseLength: comparisonResults.results[0].llmResponse?.length || 0
+            })}`);
+          }
+          return this.reportBuilderService.buildCompetitionData(comparisonResults, project.brandName, project.competitors || []);
+        })(),
       };
 
       // Save the report
@@ -195,482 +230,4 @@ export class BrandReportOrchestratorService {
     return count;
   }
 
-  private buildExplorerData(
-    spontaneousResults: SpontaneousResults,
-    sentimentResults: SentimentResults,
-    accuracyResults: AccuracyResults,
-    comparisonResults: ComparisonResults,
-  ): ExplorerData {
-    // Extract top mentions from spontaneous results
-    const mentionCounts: Record<string, number> = {};
-    spontaneousResults.results.forEach(result => {
-      if (result.mentioned && result.topOfMind) {
-        result.topOfMind.forEach(brand => {
-          mentionCounts[brand] = (mentionCounts[brand] || 0) + 1;
-        });
-      }
-    });
-
-    const topMentions = Object.entries(mentionCounts)
-      .map(([mention, count]) => ({ mention, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
-
-    // Build citations data
-    const allCitationsData: Array<{
-      modelId: string;
-      modelProvider: string;
-      promptIndex: number;
-      promptType: string;
-      citations: any[];
-      webSearchQueries: any[];
-    }> = [];
-
-    // Collect citations from all pipeline results
-    const collectCitations = (results: any[] | undefined, promptType: string) => {
-      if (!results) return;
-
-      results.forEach((result, index) => {
-        // Extract web search queries
-        let webSearchQueries: any[] = [];
-
-        // Check if webSearchQueries is already extracted
-        if (result.webSearchQueries && Array.isArray(result.webSearchQueries)) {
-          webSearchQueries = result.webSearchQueries;
-        }
-        // Fallback to extracting from toolUsage
-        else if (result.toolUsage && Array.isArray(result.toolUsage)) {
-          const extractedQueries: any[] = [];
-          result.toolUsage.forEach((tool: any) => {
-            if (tool.type === 'web_search' || tool.type === 'search' || tool.type?.includes('search')) {
-              const query = tool.input?.query || tool.parameters?.query || tool.parameters?.q || tool.query;
-              if (query) {
-                extractedQueries.push({
-                  query: query,
-                  timestamp: new Date().toISOString(),
-                });
-              }
-            }
-          });
-          webSearchQueries = extractedQueries;
-        }
-
-        // Add entry if we have citations OR web search queries
-        if ((result.citations && result.citations.length > 0) || webSearchQueries.length > 0) {
-          allCitationsData.push({
-            modelId: result.llmModel || 'unknown',
-            modelProvider: result.llmProvider || 'unknown',
-            promptIndex: result.promptIndex ?? index,
-            promptType,
-            citations: result.citations || [],
-            webSearchQueries: webSearchQueries,
-          });
-        }
-      });
-    };
-
-    // Collect from all pipelines
-    collectCitations(spontaneousResults?.results, 'visibility');
-    collectCitations(sentimentResults?.results, 'sentiment');
-    collectCitations(accuracyResults?.results, 'alignment');
-    collectCitations(comparisonResults?.results, 'competition');
-
-    // Calculate statistics
-    const totalPrompts = this.countPromptsExecuted(spontaneousResults, sentimentResults, accuracyResults, comparisonResults);
-    const promptsWithWebAccess = allCitationsData.length;
-    const webAccessPercentage = totalPrompts > 0 ? (promptsWithWebAccess / totalPrompts) * 100 : 0;
-
-    // Aggregate source statistics
-    const sourceMap = new Map<string, {
-      totalMentions: number;
-      citedByModels: Set<string>;
-      associatedQueries: Set<string>;
-    }>();
-
-    let totalCitations = 0;
-    
-    // Build query-based structure
-    const webSearchResults: any[] = [];
-    const queryToCitationsMap = new Map<string, {
-      query: string;
-      timestamp?: string;
-      citations: any[];
-      models: Set<string>;
-      promptTypes: Set<string>;
-    }>();
-
-    allCitationsData.forEach(({ modelId, modelProvider, promptIndex, promptType, citations, webSearchQueries }) => {
-      // Count all citations for statistics
-      citations.forEach((citation: any) => {
-        totalCitations++;
-        const domain = this.extractDomain(citation.url || citation.source || '');
-        
-        // Update source statistics
-        if (domain) {
-          if (!sourceMap.has(domain)) {
-            sourceMap.set(domain, {
-              totalMentions: 0,
-              citedByModels: new Set(),
-              associatedQueries: new Set(),
-            });
-          }
-          const stats = sourceMap.get(domain)!;
-          stats.totalMentions++;
-          stats.citedByModels.add(modelId);
-        }
-      });
-      
-      // Only add to webSearchResults if we have web search queries
-      if (webSearchQueries.length > 0) {
-        // Process each web search query
-        webSearchQueries.forEach((queryObj: any) => {
-          const query = typeof queryObj === 'string' ? queryObj : (queryObj.query || queryObj);
-          const timestamp = typeof queryObj === 'object' ? queryObj.timestamp : undefined;
-          
-          if (!queryToCitationsMap.has(query)) {
-            queryToCitationsMap.set(query, {
-              query,
-              timestamp,
-              citations: [],
-              models: new Set(),
-              promptTypes: new Set(),
-            });
-          }
-          
-          const entry = queryToCitationsMap.get(query)!;
-          
-          // Add citations for this query
-          citations.forEach((citation: any) => {
-            const domain = this.extractDomain(citation.url || citation.source || '');
-            
-            entry.citations.push({
-              website: domain,
-              link: citation.url,
-              model: modelId,
-              promptType,
-              promptIndex,
-              source: citation.source || domain,
-            });
-            
-            entry.models.add(modelId);
-            entry.promptTypes.add(promptType);
-            
-            // Add query association to existing source stats
-            if (domain && sourceMap.has(domain)) {
-              sourceMap.get(domain)!.associatedQueries.add(query);
-            }
-          });
-        });
-      }
-    });
-
-    // Convert map to array for webSearchResults
-    webSearchResults.push(...Array.from(queryToCitationsMap.values()).map(entry => ({
-      query: entry.query,
-      timestamp: entry.timestamp,
-      models: Array.from(entry.models),
-      promptTypes: Array.from(entry.promptTypes),
-      citations: entry.citations,
-    })));
-
-    // Get top sources
-    const topSources = Array.from(sourceMap.entries())
-      .map(([domain, stats]) => ({
-        domain,
-        count: stats.totalMentions,
-        percentage: totalCitations > 0 ? (stats.totalMentions / totalCitations) * 100 : 0,
-      }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
-
-    // Extract keywords from web search queries
-    const keywordMap = new Map<string, number>();
-    const stopWords = new Set([
-      'the', 'is', 'at', 'which', 'on', 'and', 'a', 'an', 'as', 'are',
-      'been', 'be', 'have', 'has', 'had', 'do', 'does', 'did', 'done',
-      'will', 'would', 'could', 'should', 'may', 'might', 'must', 'can',
-      'this', 'that', 'these', 'those', 'with', 'from', 'for', 'about',
-      'into', 'through', 'during', 'before', 'after', 'above', 'below',
-      'between', 'under', 'over', 'then', 'than', 'when', 'where', 'what',
-      'who', 'whom', 'whose', 'which', 'why', 'how'
-    ]);
-
-    allCitationsData.forEach(({ webSearchQueries }) => {
-      webSearchQueries.forEach((queryObj: any) => {
-        const query = typeof queryObj === 'string' ? queryObj : (queryObj.query || queryObj);
-        if (query) {
-          // Simple split by spaces and filter stop words
-          const words = query.toLowerCase().split(/\s+/).filter((word: string) => 
-            word.trim() !== '' && !stopWords.has(word) && word.length > 2
-          );
-          
-          words.forEach((word: string) => {
-            keywordMap.set(word, (keywordMap.get(word) || 0) + 1);
-          });
-        }
-      });
-    });
-
-    // Count total web search queries for percentage calculation
-    const totalWebSearchQueries = allCitationsData.reduce(
-      (sum, item) => sum + item.webSearchQueries.length,
-      0
-    );
-
-    // Get top keywords
-    const topKeywords = Array.from(keywordMap.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10)
-      .map(([keyword, count]) => ({
-        keyword,
-        count,
-        percentage: totalWebSearchQueries > 0 ? (count / totalWebSearchQueries) * 100 : 0,
-      }));
-
-    return {
-      summary: {
-        totalPrompts,
-        promptsWithWebAccess,
-        webAccessPercentage,
-        totalCitations,
-        uniqueSources: sourceMap.size,
-      },
-      topMentions,
-      topKeywords,
-      topSources,
-      webSearchResults, // New structure: query -> citations
-      webAccess: {
-        totalResponses: totalPrompts,
-        successfulQueries: promptsWithWebAccess,
-        failedQueries: 0, // Would need error tracking
-      },
-    };
-  }
-
-
-  private buildSentimentData(sentimentResults: SentimentResults): SentimentData {
-    // Count sentiment distribution
-    const distribution = { positive: 0, neutral: 0, negative: 0, total: 0 };
-    const modelSentiments: Record<string, any> = {};
-    const questionResults: Record<string, any[]> = {};
-
-    sentimentResults.results.forEach(result => {
-      distribution.total++;
-      switch (result.sentiment) {
-        case 'positive':
-          distribution.positive++;
-          break;
-        case 'neutral':
-          distribution.neutral++;
-          break;
-        case 'negative':
-          distribution.negative++;
-          break;
-      }
-
-      // Aggregate by model
-      if (!modelSentiments[result.llmModel]) {
-        modelSentiments[result.llmModel] = {
-          model: result.llmModel,
-          sentiments: [],
-          positiveKeywords: new Set<string>(),
-          negativeKeywords: new Set<string>(),
-        };
-      }
-      
-      modelSentiments[result.llmModel].sentiments.push(result.sentiment);
-      result.extractedPositiveKeywords?.forEach(k => modelSentiments[result.llmModel].positiveKeywords.add(k));
-      result.extractedNegativeKeywords?.forEach(k => modelSentiments[result.llmModel].negativeKeywords.add(k));
-
-      // Group by question (originalPrompt)
-      const question = result.originalPrompt || `Question ${result.promptIndex + 1}`;
-      if (!questionResults[question]) {
-        questionResults[question] = [];
-      }
-      questionResults[question].push({
-        model: result.llmModel,
-        sentiment: result.sentiment,
-        status: result.sentiment === 'positive' ? 'green' : result.sentiment === 'negative' ? 'red' : 'yellow',
-        llmResponse: result.llmResponse,
-      });
-    });
-
-    // Calculate overall sentiment
-    const overallSentiment = sentimentResults.summary.overallSentiment;
-    const overallScore = sentimentResults.summary.overallSentimentPercentage || 0;
-
-    // Transform model sentiments
-    const modelSentimentsList = Object.values(modelSentiments).map((ms: any) => {
-      // Determine most common sentiment for this model
-      const sentimentCounts = { positive: 0, neutral: 0, negative: 0 };
-      ms.sentiments.forEach((s: string) => sentimentCounts[s as keyof typeof sentimentCounts]++);
-      
-      const dominantSentiment = Object.entries(sentimentCounts)
-        .sort(([, a], [, b]) => b - a)[0][0] as 'positive' | 'neutral' | 'negative';
-      
-      const status: 'green' | 'yellow' | 'red' = dominantSentiment === 'positive' ? 'green' : 
-                     dominantSentiment === 'negative' ? 'red' : 'yellow';
-
-      return {
-        model: ms.model,
-        sentiment: dominantSentiment,
-        status,
-        positiveKeywords: Array.from(ms.positiveKeywords) as string[],
-        negativeKeywords: Array.from(ms.negativeKeywords) as string[],
-      };
-    });
-
-    // Build heatmap data from question results
-    const heatmapData = Object.entries(questionResults).map(([question, results]) => ({
-      question,
-      results: results as any[],
-    }));
-
-    return {
-      overallScore,
-      overallSentiment,
-      distribution,
-      modelSentiments: modelSentimentsList,
-      heatmapData,
-    };
-  }
-
-  private buildAlignmentData(accuracyResults: AccuracyResults): AlignmentData {
-    // Extract attribute scores
-    const attributeScores: Record<string, number[]> = {};
-    const detailedResults: any[] = [];
-
-    accuracyResults.results.forEach(result => {
-      // Process attribute scores for aggregation
-      result.attributeScores?.forEach(attrScore => {
-        if (!attributeScores[attrScore.attribute]) {
-          attributeScores[attrScore.attribute] = [];
-        }
-        attributeScores[attrScore.attribute].push(attrScore.score);
-      });
-
-      // Map the result to the alignment format with all available data
-      const modelResult = {
-        model: result.llmModel,
-        promptIndex: result.promptIndex,
-        originalPrompt: result.originalPrompt || '',
-        llmResponse: result.llmResponse || '',
-        attributeScores: result.attributeScores || [],
-        usedWebSearch: result.usedWebSearch || false,
-        citations: result.citations || [],
-        toolUsage: result.toolUsage || [],
-        error: result.error || undefined,
-      };
-
-      detailedResults.push(modelResult);
-    });
-
-    // Calculate averages from processed attribute scores
-    const averageAttributeScores: Record<string, number> = {};
-    Object.entries(attributeScores).forEach(([attr, scores]) => {
-      if (scores.length > 0) {
-        averageAttributeScores[attr] = scores.reduce((a, b) => a + b, 0) / scores.length;
-      }
-    });
-
-    // Use processed averages or fall back to summary averages
-    const finalAverageScores = Object.keys(averageAttributeScores).length > 0 
-      ? averageAttributeScores 
-      : accuracyResults.summary.averageAttributeScores || {};
-
-    const overallAlignmentScore = Math.round(
-      Object.values(finalAverageScores)
-        .reduce((sum, score) => sum + score, 0) / 
-      Object.keys(finalAverageScores).length * 100 || 0
-    );
-
-    // Create attribute alignment summary
-    const attributeAlignmentSummary = Object.entries(finalAverageScores).map(([attribute, avgScore]) => {
-      const mentionCount = accuracyResults.results.filter(r => 
-        r.attributeScores?.some(s => s.attribute === attribute)
-      ).length;
-      const mentionRate = `${Math.round((mentionCount / accuracyResults.results.length) * 100)}%`;
-      
-      // Convert score to alignment level
-      let alignment = "❌ Low";
-      if (avgScore >= 0.8) {
-        alignment = "✅ High";
-      } else if (avgScore >= 0.6) {
-        alignment = "⚠️ Medium";
-      }
-
-      return {
-        name: attribute,
-        mentionRate,
-        alignment,
-      };
-    });
-
-    return {
-      overallAlignmentScore,
-      averageAttributeScores: finalAverageScores,
-      attributeAlignmentSummary,
-      detailedResults,
-    };
-  }
-
-  private buildCompetitionData(
-    comparisonResults: ComparisonResults,
-    brandName: string,
-    competitors: string[]
-  ): CompetitionData {
-    // Use the summary data which already has the analysis
-    const commonStrengths = comparisonResults.summary.commonStrengths || [];
-    const commonWeaknesses = comparisonResults.summary.commonWeaknesses || [];
-
-    // Transform competitorAnalyses to match expected structure
-    const competitorAnalysesMap: Record<string, any> = {};
-    
-    // Group results by competitor
-    comparisonResults.results.forEach(result => {
-      if (!competitorAnalysesMap[result.competitor]) {
-        competitorAnalysesMap[result.competitor] = {
-          competitor: result.competitor,
-          analysisByModel: [],
-        };
-      }
-      
-      competitorAnalysesMap[result.competitor].analysisByModel.push({
-        model: result.llmModel,
-        strengths: result.brandStrengths || [],
-        weaknesses: result.brandWeaknesses || [],
-      });
-    });
-
-    const competitorAnalyses = Object.values(competitorAnalysesMap);
-
-    // Build competitor metrics
-    const competitorMetrics = competitors.map((competitor, index) => ({
-      competitor,
-      overallRank: index + 1,
-      mentionRate: 0, // This would need to be calculated from other data
-      modelMentions: [],
-    }));
-
-    return {
-      brandName,
-      competitors,
-      competitorAnalyses,
-      competitorMetrics,
-      commonStrengths,
-      commonWeaknesses,
-    };
-  }
-
-  private extractDomain(url: string): string {
-    try {
-      if (!url) return '';
-      // Handle URLs that might not have protocol
-      const urlWithProtocol = url.startsWith('http') ? url : `https://${url}`;
-      const urlObj = new URL(urlWithProtocol);
-      return urlObj.hostname.replace('www.', '');
-    } catch {
-      return url; // Return as-is if not a valid URL
-    }
-  }
 }

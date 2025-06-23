@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
+import { CompetitionSchema } from './competition.schema';
 
 export type BrandReportDocument = BrandReport & Document;
 
@@ -80,10 +81,6 @@ export class BrandReport {
       totalCitations: number;
       uniqueSources: number;
     };
-    topMentions: {
-      mention: string;
-      count: number;
-    }[];
     topKeywords: {
       keyword: string;
       count: number;
@@ -125,10 +122,13 @@ export class BrandReport {
       mentionRate: number;
     }[];
     arenaMetrics: {
-      model: string;
-      mentions: number;
-      score: number;
-      rank: number;
+      name: string;
+      size: string;
+      global: string;
+    }[];
+    topMentions?: {
+      mention: string;
+      count: number;
     }[];
   };
 
@@ -161,6 +161,36 @@ export class BrandReport {
         llmResponse?: string;
       }[];
     }[];
+    detailedResults?: {
+      model: string;
+      promptIndex: number;
+      originalPrompt: string;
+      llmResponse: string;
+      sentimentBreakdown: {
+        positive: number;
+        neutral: number;
+        negative: number;
+      };
+      overallSentiment: 'positive' | 'neutral' | 'negative';
+      keywords: {
+        positive: string[];
+        negative: string[];
+      };
+      citations: {
+        url: string;
+        title?: string;
+        text?: string;
+      }[];
+      toolUsage: {
+        type: string;
+        parameters?: Record<string, unknown>;
+        execution_details?: {
+          status: string;
+          result?: unknown;
+          error?: string;
+        };
+      }[];
+    }[];
   };
 
   @Prop({
@@ -168,25 +198,44 @@ export class BrandReport {
     required: true,
   })
   alignment: {
-    overallAlignmentScore: number;
-    averageAttributeScores: Object;
-    attributeAlignmentSummary: {
-      name: string;
-      mentionRate: string;
-      alignment: string;
-    }[];
-    detailedResults: {
+    summary?: {
+      overallAlignmentScore: number;
+      averageAttributeScores: Record<string, number>;
+      attributeAlignmentSummary: {
+        name: string;
+        mentionRate: string;
+        alignment: string;
+      }[];
+    };
+    detailedResults?: {
       model: string;
+      promptIndex: number;
+      originalPrompt: string;
+      llmResponse: string;
       attributeScores: {
         attribute: string;
         score: number;
         evaluation: string;
       }[];
+      citations: {
+        url: string;
+        title?: string;
+        text?: string;
+      }[];
+      toolUsage: {
+        type: string;
+        parameters?: Record<string, unknown>;
+        execution_details?: {
+          status: string;
+          result?: unknown;
+          error?: string;
+        };
+      }[];
     }[];
   };
 
   @Prop({
-    type: Object,
+    type: CompetitionSchema,
     required: true,
   })
   competition: {
@@ -212,6 +261,30 @@ export class BrandReport {
     }[];
     commonStrengths: string[];
     commonWeaknesses: string[];
+    detailedResults?: {
+      model: string;
+      promptIndex: number;
+      competitor: string;
+      originalPrompt: string;
+      llmResponse: string;
+      brandStrengths: string[];
+      brandWeaknesses: string[];
+      usedWebSearch: boolean;
+      citations: {
+        url: string;
+        title?: string;
+        text?: string;
+      }[];
+      toolUsage: {
+        type: string;
+        parameters?: Record<string, unknown>;
+        execution_details?: {
+          status: string;
+          result?: unknown;
+          error?: string;
+        };
+      }[];
+    }[];
   };
 
   @Prop({ type: Date })

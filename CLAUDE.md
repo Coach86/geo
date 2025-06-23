@@ -222,7 +222,8 @@ PORT=3001 npm run start:dev
 - `LLM_TESTING.md`: Guide for testing with real LLM API keys
 
 ## Typescript rules
-- No implicit any authorized
+- No implicit *"any"* authorized
+- No explicit *"any"* unless absolutely necessary: use or creates types
 
 ## Project changes
 - Always try to build the project at the end of task implementation

@@ -58,14 +58,14 @@ export function PromptsPortfolio({
   // Check if user can add more prompts for a specific type
   const canAddMorePrompts = (type: string): boolean => {
     if (!userProfile) return false;
-    
+
     // Only limit visibility prompts
     if (type === "visibility") {
       const currentVisibilityCount = promptSet.visibility.length;
       const maxVisibilityPrompts = userProfile.planSettings?.maxVisibilityPrompts || 12;
       return currentVisibilityCount < maxVisibilityPrompts;
     }
-    
+
     // Other prompt types are not limited
     return true;
   };
@@ -184,7 +184,7 @@ export function PromptsPortfolio({
   const renderPrompts = (prompts: string[], type: string) => {
     const canAdd = canAddMorePrompts(type);
     const isAtLimit = type === "visibility" && !canAdd;
-    
+
     return (
       <div className="space-y-2">
         {prompts.map((prompt, index) => (
@@ -265,13 +265,13 @@ export function PromptsPortfolio({
                   Add Visibility Prompt
                   {isAtLimit && <span className="text-xs text-orange-600 ml-1">(Upgrade required)</span>}
                 </Button>
-                
+
                 {userProfile && (
                   <div className="text-xs text-gray-500 text-center">
                     {prompts.length} / {userProfile.planSettings?.maxVisibilityPrompts || 12} visibility prompts used
                   </div>
                 )}
-                
+
                 {isAtLimit && (
                   <Alert className="border-orange-200 bg-orange-50">
                     <AlertCircle className="h-4 w-4 text-orange-600" />

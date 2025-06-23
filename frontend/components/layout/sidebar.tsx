@@ -15,7 +15,7 @@ import {
 import {
   ProjectResponse,
 } from "@/lib/auth-api";
-import DomainSelector from "./domain-selector";
+import ProjectSelector from "./project-selector";
 import { useNavigation } from "@/providers/navigation-provider";
 import { useFeatureAccess } from "@/hooks/use-feature-access";
 
@@ -54,7 +54,6 @@ export default function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { selectedDomain, setSelectedDomain } = useNavigation();
   const featureAccess = useFeatureAccess();
 
   return (
@@ -64,11 +63,11 @@ export default function Sidebar({
         <img src={"/logo-small.png"} className="w-24" />
       </div>
 
-      {/* Domain Selector */}
-      <DomainSelector
+      {/* Project Selector */}
+      <ProjectSelector
         projects={identityCards}
-        selectedDomain={selectedDomain}
-        onDomainSelect={setSelectedDomain}
+        selectedProject={selectedProject}
+        onProjectSelect={onProjectSelect}
       />
 
       {/* Home Link - Always visible */}
