@@ -31,7 +31,7 @@ export default function CompetitionPage() {
   const { token } = useAuth();
   const { hasAccess, isLoading: accessLoading, isFreePlan } = useFeatureGate("competition");
   const { allProjects, selectedProject, setSelectedProject } = useNavigation();
-  const { reports, loadingReports, fetchReports } = useReports();
+  const { reports, loadingReports, fetchReports, selectReport } = useReports();
   
   const selectedProjectId = selectedProject?.id || null;
   const projectReports = selectedProjectId ? reports[selectedProjectId] || [] : [];
@@ -109,8 +109,12 @@ export default function CompetitionPage() {
 
   // Handle report change
   const handleReportChange = useCallback((report: ReportResponse | null) => {
+    if (report && selectedProjectId) {
+      // Save to report provider which will persist to localStorage
+      selectReport(selectedProjectId, report.id);
+    }
     setSelectedReport(report);
-  }, [setSelectedReport]);
+  }, [setSelectedReport, selectReport, selectedProjectId]);
 
   // Handle model filter change
   const handleModelFilterChange = useCallback((models: string[]) => {

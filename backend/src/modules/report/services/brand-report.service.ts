@@ -121,14 +121,16 @@ export class BrandReportService {
     }
 
     // Debug logging
-    this.logger.log(`Retrieved competition data for report ${reportId}: ${JSON.stringify({
+    this.logger.log(`[REPORT-001] Retrieved competition data for report ${reportId}: ${JSON.stringify({
       hasCompetition: !!report.competition,
       hasDetailedResults: !!report.competition?.detailedResults,
       detailedResultsCount: report.competition?.detailedResults?.length || 0,
       firstDetailedResult: report.competition?.detailedResults?.[0] ? {
         model: report.competition.detailedResults[0].model,
         competitor: report.competition.detailedResults[0].competitor,
-        citationsCount: report.competition.detailedResults[0].citations?.length || 0
+        citationsCount: report.competition.detailedResults[0].citations?.length || 0,
+        hasLlmResponse: !!report.competition.detailedResults[0].llmResponse,
+        llmResponseLength: report.competition.detailedResults[0].llmResponse?.length || 0
       } : null
     })}`);
 
@@ -151,17 +153,26 @@ export class BrandReportService {
       if (result.citations && Array.isArray(result.citations)) {
         result.citations.forEach((citation: any) => {
           if (citation.url) {
-            this.aggregateCitation(
-              citationMap,
-              citation.url,
-              citation.url,
-              citation.title,
-              result.originalPrompt,
-              undefined, // sentiment not applicable
-              undefined, // score not applicable
-              result.model,
-              citation.text
-            );
+            try {
+              const urlObj = new URL(citation.url);
+              const domain = urlObj.hostname.replace('www.', '');
+              
+              this.aggregateCitation(
+                citationMap,
+                citation,
+                domain,
+                citation.url,
+                result.originalPrompt,
+                undefined, // sentiment not applicable
+                undefined, // score not applicable
+                result.model,
+                citation.title,
+                citation.text
+              );
+            } catch (e) {
+              // Invalid URL, skip
+              this.logger.warn(`Invalid URL in competition citation: ${citation.url}`);
+            }
           }
         });
       }
@@ -805,11 +816,22 @@ export class BrandReportService {
           let reportNegative = 0;
           let modelCount = 0;
 
-          filteredResults.forEach((result: DetailedSentimentResult) => {
+          filteredResults.forEach((result: any) => {
+            // Handle both old format (sentimentBreakdown) and new format (sentiment string)
             if (result.sentimentBreakdown) {
               reportPositive += result.sentimentBreakdown.positive || 0;
               reportNeutral += result.sentimentBreakdown.neutral || 0;
               reportNegative += result.sentimentBreakdown.negative || 0;
+              modelCount++;
+            } else if (result.sentiment) {
+              // Convert sentiment string to percentages
+              if (result.sentiment === 'positive') {
+                reportPositive += 100;
+              } else if (result.sentiment === 'neutral') {
+                reportNeutral += 100;
+              } else if (result.sentiment === 'negative') {
+                reportNegative += 100;
+              }
               modelCount++;
             }
             
@@ -1091,7 +1113,7 @@ export class BrandReportService {
                 if (citation.url) {
                   try {
                     const urlObj = new URL(citation.url);
-                    const domain = urlObj.hostname;
+                    const domain = urlObj.hostname.replace('www.', '');
                     
                     this.aggregateCitation(
                       citationMap,
@@ -1837,10 +1859,21 @@ export class BrandReportService {
           let modelCount = 0;
 
           filteredResults.forEach((result: any) => {
+            // Handle both old format (sentimentBreakdown) and new format (sentiment string)
             if (result.sentimentBreakdown) {
               reportPositive += result.sentimentBreakdown.positive || 0;
               reportNeutral += result.sentimentBreakdown.neutral || 0;
               reportNegative += result.sentimentBreakdown.negative || 0;
+              modelCount++;
+            } else if (result.sentiment) {
+              // Convert sentiment string to percentages
+              if (result.sentiment === 'positive') {
+                reportPositive += 100;
+              } else if (result.sentiment === 'neutral') {
+                reportNeutral += 100;
+              } else if (result.sentiment === 'negative') {
+                reportNegative += 100;
+              }
               modelCount++;
             }
           });

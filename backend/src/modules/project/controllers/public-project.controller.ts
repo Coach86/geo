@@ -17,6 +17,7 @@ import { PlanService } from '../../plan/services/plan.service';
 import { BrandReportPersistenceService } from '../../report/services/brand-report-persistence.service';
 import { ReportStructure } from '../../report/interfaces/report.interfaces';
 import { SentimentResults, AlignmentResults, CompetitionResults } from '../../batch/interfaces/batch.interfaces';
+import { ReportBuilderService } from '../../batch/services/report-builder.service';
 
 @ApiTags('public-projects')
 @Controller('projects')
@@ -28,6 +29,7 @@ export class PublicProjectController {
     private readonly organizationService: OrganizationService,
     private readonly planService: PlanService,
     private readonly brandReportPersistenceService: BrandReportPersistenceService,
+    private readonly reportBuilderService: ReportBuilderService,
   ) {}
 
   @Post(':projectId/run-analysis')
@@ -306,8 +308,8 @@ export class PublicProjectController {
           },
         },
         // For free plans, build explorer data from visibility pipeline only
-        explorer: this.batchService.buildExplorerData(visibilityResults, sentimentResults, alignmentResults, competitionResults),
-        visibility: await this.batchService.buildVisibilityData(visibilityResults, project.brandName, project.competitors || []),
+        explorer: this.reportBuilderService.buildExplorerData(visibilityResults, sentimentResults, alignmentResults, competitionResults),
+        visibility: await this.reportBuilderService.buildVisibilityData(visibilityResults, project.brandName, project.competitors || []),
         sentiment: {
           overallScore: 0,
           overallSentiment: 'neutral' as const,
@@ -326,7 +328,7 @@ export class PublicProjectController {
           attributeAlignmentSummary: [],
           detailedResults: [],
         },
-        competition: this.batchService.buildCompetitionData(competitionResults, project.brandName, project.competitors || []),
+        competition: this.reportBuilderService.buildCompetitionData(competitionResults, project.brandName, project.competitors || []),
       };
 
       // Save the report
