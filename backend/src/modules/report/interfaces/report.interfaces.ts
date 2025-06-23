@@ -55,25 +55,43 @@ export interface ExplorerData {
 
 // Visibility data - brand mention rates
 export interface VisibilityData {
-  overallMentionRate: number;
-  promptsTested: number;
-  modelVisibility: {
-    model: string;
-    mentionRate: number;
-  }[];
-  // Arena metrics extracted for visibility page - competitor comparison data
-  arenaMetrics: {
-    name: string;
-    size?: 'lg' | 'md' | 'sm';
-    global?: string;
-    modelsMentionsRate?: Array<{
-      model: string;
-      mentionsRate: number;
-    }>;
-  }[];
-  topMentions?: {
+  brandName: string;
+  mentionRate: number;
+  topMentions: {
     mention: string;
     count: number;
+  }[];
+  competitorRanks: {
+    competitor: string;
+    count: number;
+    rank: number;
+  }[];
+  modelVisibility: {
+    model: string;
+    mentioned: boolean;
+    brandMentionCount: number;
+    topOtherMentions: {
+      company: string;
+      count: number;
+    }[];
+  }[];
+  arenaMetrics: {
+    mentionRate: number;
+    avgRank: number;
+    modelsMentioningBrand: number;
+    totalModels: number;
+  };
+  allMentionedCompanies: string[];
+  detailedResults?: {
+    model: string;
+    promptIndex: number;
+    brandMentioned: boolean;
+    extractedCompanies: string[];
+    originalPrompt: string;
+    llmResponse: string;
+    usedWebSearch: boolean;
+    citations: any[];
+    toolUsage: any[];
   }[];
 }
 
@@ -104,6 +122,18 @@ export interface SentimentData {
       citations?: any[];
       toolUsage?: any[];
     }[];
+  }[];
+  detailedResults?: {
+    model: string;
+    promptIndex: number;
+    originalPrompt: string;
+    llmResponse: string;
+    sentiment: 'positive' | 'neutral' | 'negative';
+    extractedPositiveKeywords: string[];
+    extractedNegativeKeywords: string[];
+    usedWebSearch: boolean;
+    citations: any[];
+    toolUsage: any[];
   }[];
 }
 
@@ -199,7 +229,7 @@ export interface ReportStructure {
   
   // Main analysis fields
   explorer: ExplorerData;
-  visibility: VisibilityData;
+  visibility: VisibilityData | any; // Allow both new interface and database structure
   sentiment: SentimentData;
   alignment: AlignmentData;
   competition: CompetitionData;

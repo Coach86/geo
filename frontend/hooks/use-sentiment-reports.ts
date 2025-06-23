@@ -178,20 +178,40 @@ export function useSentimentReports(
     }
 
     try {
-      // Calculate average score (simplified: using positive percentage as score)
-      const averageScore = aggregatedData.positivePercentage;
+      // Calculate average score: (positive - negative) / (positive + negative + neutral)
+      const positive = aggregatedData.positivePercentage || 0;
+      const neutral = aggregatedData.neutralPercentage || 0;
+      const negative = aggregatedData.negativePercentage || 0;
+      const total = positive + neutral + negative;
+      
+      const averageScore = total > 0 
+        ? Math.round((positive - negative) / total * 100)
+        : 0;
 
-      // Calculate overall score variation (simplified approach)
+      // Calculate overall score variation using the same formula
+      const posVariation = aggregatedData.sentimentVariation?.positive || 0;
+      const neuVariation = aggregatedData.sentimentVariation?.neutral || 0;
+      const negVariation = aggregatedData.sentimentVariation?.negative || 0;
+      
+      // For variation, we need to consider the change in the score formula
+      // This is simplified - in reality we'd need the previous period's values
       const scoreVariation = aggregatedData.sentimentVariation?.positive || null;
 
       // Transform chart data
-      const chartData = aggregatedData.chartData.map((point: any) => ({
-        date: new Date(point.date).toLocaleDateString(),
-        score: point.positive, // Using positive as score
-        positive: point.positive,
-        neutral: point.neutral,
-        negative: point.negative,
-      }));
+      const chartData = aggregatedData.chartData.map((point: any) => {
+        const pointTotal = point.positive + point.neutral + point.negative;
+        const pointScore = pointTotal > 0 
+          ? Math.round((point.positive - point.negative) / pointTotal * 100)
+          : 0;
+          
+        return {
+          date: new Date(point.date).toLocaleDateString(),
+          score: pointScore, // Using the formula: (positive - negative) / total
+          positive: point.positive,
+          neutral: point.neutral,
+          negative: point.negative,
+        };
+      });
 
       return {
         loading: false,

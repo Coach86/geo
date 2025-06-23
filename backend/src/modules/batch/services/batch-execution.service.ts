@@ -89,8 +89,27 @@ export class BatchExecutionService {
    * @returns The enhanced result with web search queries for each result item
    */
   private addWebSearchQueriesToResults(result: any): any {
-    // Clone the result to avoid modifying the original object
-    const enhancedResult = { ...result };
+    // Log what we're about to clone
+    this.logger.log(`[BATCH-001] About to clone result with ${result?.results?.length || 0} results`);
+    if (result?.results?.length > 0) {
+      this.logger.log(`[BATCH-002] First result before clone: ${JSON.stringify({
+        model: result.results[0].llmModel,
+        hasLlmResponse: !!result.results[0].llmResponse,
+        llmResponseLength: result.results[0].llmResponse?.length || 0
+      })}`);
+    }
+    
+    // Deep clone the result to avoid modifying the original object
+    const enhancedResult = JSON.parse(JSON.stringify(result));
+    
+    // Verify the clone
+    if (enhancedResult?.results?.length > 0) {
+      this.logger.log(`[BATCH-003] First result after clone: ${JSON.stringify({
+        model: enhancedResult.results[0].llmModel,
+        hasLlmResponse: !!enhancedResult.results[0].llmResponse,
+        llmResponseLength: enhancedResult.results[0].llmResponse?.length || 0
+      })}`);
+    }
 
     try {
       // Check if results array exists

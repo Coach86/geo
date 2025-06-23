@@ -77,7 +77,7 @@ interface SourcesWatchtowerProps {
     uniqueDomains: number;
     totalCitations: number;
   } | undefined;
-  type: 'sentiment' | 'alignment';
+  type: 'sentiment' | 'alignment' | 'competition';
   loading?: boolean;
 }
 
@@ -239,8 +239,8 @@ export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowe
         enableSorting: true,
       }),
 
-      type === 'sentiment' 
-        ? columnHelper.accessor("sentiments", {
+      ...(type === 'sentiment' 
+        ? [columnHelper.accessor("sentiments", {
             header: ({ column }) => {
               const sortedUniqueValues = React.useMemo(
                 () => {
@@ -295,8 +295,9 @@ export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowe
             filterFn: multiSelectFilter,
             enableSorting: true,
             enableColumnFilter: true,
-          })
-        : columnHelper.accessor("scores", {
+          })]
+        : type === 'alignment'
+        ? [columnHelper.accessor("scores", {
             header: ({ column }) => (
               <div className="space-y-2">
                 <Button
@@ -339,7 +340,8 @@ export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowe
             },
             filterFn: numericFilter,
             enableSorting: true,
-          }),
+          })]
+        : []),
 
       columnHelper.accessor("url", {
         header: ({ column }) => (
@@ -633,9 +635,9 @@ export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowe
             <table className="w-full min-w-[1000px] border-collapse table-fixed">
               <colgroup>
                 <col className="w-[20%]" />
-                <col className="w-[12%]" />
-                <col className="w-[25%]" />
-                <col className="w-[28%]" />
+                {type !== 'competition' && <col className="w-[12%]" />}
+                <col className={type === 'competition' ? "w-[30%]" : "w-[25%]"} />
+                <col className={type === 'competition' ? "w-[35%]" : "w-[28%]"} />
                 <col className="w-[15%]" />
               </colgroup>
               <thead>

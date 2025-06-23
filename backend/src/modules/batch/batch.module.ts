@@ -14,6 +14,7 @@ import { CompetitionPipelineService } from './services/competition-pipeline.serv
 import { BatchExecutionService } from './services/batch-execution.service';
 import { BrandReportOrchestratorService } from './services/brand-report-orchestrator.service';
 import { RawResponseService } from './services/raw-response.service';
+import { ReportBuilderService } from './services/report-builder.service';
 import { BatchExecution, BatchExecutionSchema } from './schemas/batch-execution.schema';
 import { BatchResult, BatchResultSchema } from './schemas/batch-result.schema';
 import { ProjectModule } from '../project/project.module';
@@ -69,6 +70,7 @@ import { JwtModule } from '@nestjs/jwt';
     CompetitionPipelineService,
     BrandReportOrchestratorService,
     RawResponseService,
+    ReportBuilderService,
     BatchExecutionRepository,
     BatchResultRepository,
     RawResponseRepository,
@@ -81,6 +83,7 @@ import { JwtModule } from '@nestjs/jwt';
     BatchExecutionService,
     BrandReportOrchestratorService,
     RawResponseService,
+    ReportBuilderService,
     BatchExecutionRepository,
     BatchResultRepository,
     RawResponseRepository,

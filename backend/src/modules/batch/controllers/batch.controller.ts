@@ -11,6 +11,7 @@ import { ProjectService } from '../../project/services/project.service';
 import { BrandReportPersistenceService } from '../../report/services/brand-report-persistence.service';
 import { ReportStructure } from '../../report/interfaces/report.interfaces';
 import { SentimentResults, AlignmentResults, CompetitionResults } from '../interfaces/batch.interfaces';
+import { ReportBuilderService } from '../services/report-builder.service';
 
 class BatchRunDto {
   @IsString()
@@ -33,6 +34,7 @@ export class BatchController {
     @Inject(forwardRef(() => ProjectService))
     private readonly projectService: ProjectService,
     private readonly brandReportPersistenceService: BrandReportPersistenceService,
+    private readonly reportBuilderService: ReportBuilderService,
   ) {}
 
   @Post('run')
@@ -332,8 +334,8 @@ export class BatchController {
           },
         },
         // For free plans, build explorer data from visibility pipeline only
-        explorer: this.batchService.buildExplorerData(visibilityResults, sentimentResults, alignmentResults, competitionResults),
-        visibility: await this.batchService.buildVisibilityData(visibilityResults, project.brandName, project.competitors || []),
+        explorer: this.reportBuilderService.buildExplorerData(visibilityResults, sentimentResults, alignmentResults, competitionResults),
+        visibility: await this.reportBuilderService.buildVisibilityData(visibilityResults, project.brandName, project.competitors || []),
         sentiment: {
           overallScore: 0,
           overallSentiment: 'neutral' as const,
