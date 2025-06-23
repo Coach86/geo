@@ -4,8 +4,6 @@ import {
   Get,
   Body,
   Param,
-  UseInterceptors,
-  ClassSerializerInterceptor,
   Patch,
   Delete,
   Query,
@@ -23,7 +21,6 @@ import { AdminGuard } from '../../auth/guards/admin.guard';
 
 @ApiTags('projects')
 @Controller('admin/project')
-@UseInterceptors(ClassSerializerInterceptor)
 @UseGuards(AdminGuard)
 export class ProjectController {
   constructor(private readonly projectService: ProjectService) {}
@@ -136,6 +133,20 @@ export class ProjectController {
     // Return nothing (204 No Content)
   }
 
+  @Post(':projectId/refresh-competitors')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Refresh competitor websites for a project (admin only)' })
+  @ApiParam({ name: 'projectId', description: 'The ID of the project' })
+  @ApiResponse({
+    status: 200,
+    description: 'Competitor websites refresh has been triggered.',
+  })
+  @ApiResponse({ status: 404, description: 'Project not found.' })
+  async refreshCompetitorWebsites(@Param('projectId') projectId: string): Promise<{ message: string }> {
+    await this.projectService.refreshCompetitorWebsites(projectId);
+    return { message: 'Competitor websites refresh triggered successfully' };
+  }
+
   private mapToResponseDto(project: any): ProjectResponseDto {
     const response = new ProjectResponseDto();
     response.id = project.projectId || project.companyId; // Support both field names during transition
@@ -152,6 +163,7 @@ export class ProjectController {
     response.objectives = project.objectives;
     response.keyBrandAttributes = project.keyBrandAttributes;
     response.competitors = project.competitors;
+    response.competitorDetails = project.competitorDetails;
     response.organizationId = project.organizationId;
     response.createdAt = project.updatedAt; // Using updatedAt as createdAt for now
     response.updatedAt = project.updatedAt;

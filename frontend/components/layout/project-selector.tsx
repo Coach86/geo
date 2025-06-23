@@ -19,6 +19,7 @@ interface ProjectSelectorProps {
   onProjectSelect: (project: ProjectResponse) => void
 }
 
+
 export default function ProjectSelector({
   projects,
   selectedProject,
@@ -70,14 +71,14 @@ export default function ProjectSelector({
         <SelectContent className="max-w-[250px]">
           {projects.map((project) => (
             <SelectItem key={project.id} value={project.id} className="cursor-pointer">
-              <div className="flex items-center gap-2 py-1">
+              <div className="flex items-center gap-2">
                 <Favicon 
                   src={project.favicon}
                   alt={`${project.brandName} favicon`}
                   className="w-4 h-4"
                   fallbackClassName="w-4 h-4 text-gray-500"
                 />
-                <span className="truncate text-sm">{project.name || project.brandName}</span>
+                <span className="truncate">{project.name || project.brandName}</span>
               </div>
             </SelectItem>
           ))}

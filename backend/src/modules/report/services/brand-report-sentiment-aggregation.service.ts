@@ -12,6 +12,7 @@ import { Citation } from '../types/citation.types';
 import { CitationItemDto } from '../dto/citation-item.dto';
 import { BrandReportVariationCalculatorService } from './brand-report-variation-calculator.service';
 import { ExplorerData, SentimentData } from '../interfaces/report.interfaces';
+import { ProjectService } from '../../project/services/project.service';
 
 // Define proper types for sentiment report data
 interface SentimentReportData {
@@ -57,11 +58,13 @@ interface ExplorerCitation {
 @Injectable()
 export class BrandReportSentimentAggregationService {
   private readonly logger = new Logger(BrandReportSentimentAggregationService.name);
+  private projectPromptsCache = new Map<string, { sentiment: string[]; visibility: string[]; alignment: string[]; competition: string[] }>();
 
   constructor(
     @InjectModel(BrandReport.name)
     private brandReportModel: Model<BrandReportDocument>,
     private variationCalculator: BrandReportVariationCalculatorService,
+    private projectService: ProjectService,
   ) {}
 
   async getAggregatedSentiment(
@@ -73,6 +76,10 @@ export class BrandReportSentimentAggregationService {
     if (reports.length === 0) {
       return this.createEmptySentimentResponse();
     }
+
+    // Fetch project prompts for citation mapping
+    // TODO: Implement project prompts loading if needed
+    // await this.loadProjectPrompts(projectId);
 
     const availableModels = this.extractAvailableModels(reports);
     const selectedModels = this.filterSelectedModels(query.models, availableModels);

@@ -6,8 +6,6 @@ import {
   Body,
   Req,
   Param,
-  UseInterceptors,
-  ClassSerializerInterceptor,
   BadRequestException,
   UnauthorizedException,
   Logger,
@@ -30,7 +28,6 @@ import { PromptService } from '../../prompt/services/prompt.service';
 
 @ApiTags('user-projects')
 @Controller('user/project')
-@UseInterceptors(ClassSerializerInterceptor)
 export class UserProjectController {
   private readonly logger = new Logger(UserProjectController.name);
 
@@ -733,6 +730,7 @@ export class UserProjectController {
     response.objectives = project.objectives;
     response.keyBrandAttributes = project.keyBrandAttributes;
     response.competitors = project.competitors;
+    response.competitorDetails = project.competitorDetails;
     response.organizationId = project.organizationId;
     response.createdAt = project.updatedAt;
     response.updatedAt = project.updatedAt;
