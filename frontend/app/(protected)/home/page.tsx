@@ -20,7 +20,7 @@ import { MintScoreCard } from "@/components/home/MintScoreCard"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 
 export default function HomePage() {
-  const { allProjects, setSelectedProject } = useNavigation()
+  const { allProjects, setSelectedProject, selectedProject } = useNavigation()
   const { token } = useAuth()
   const router = useRouter()
   const analytics = useAnalytics()
