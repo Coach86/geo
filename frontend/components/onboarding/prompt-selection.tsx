@@ -339,51 +339,22 @@ export default function PromptSelection({ initialData, onDataReady }: PromptSele
   return (
     <div className="py-8 animate-fade-in">
       <div className="mb-8 text-center">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-md bg-accent-100 text-accent-500 mb-4">
-          <MessageSquare className="h-8 w-8" />
-        </div>
         <h1 className="text-3xl font-bold mb-2 text-mono-900">Validate your prompt portfolio</h1>
-        <p className="text-gray-600 max-w-md mx-auto">Select the prompts that will be used to analyze your brand</p>
       </div>
 
       {/* Visibility Prompts */}
       <Card className="border border-gray-200 shadow-sm">
         <CardContent className="p-6">
-          <div className="flex items-center gap-2 mb-2">
-            <TrendingUp className="h-5 w-5 text-accent-600" />
-            <h2 className="text-xl font-semibold text-mono-900">Visibility Prompts</h2>
-            <Badge className="bg-accent-100 text-accent-700 ml-2">{selectedVisibilityCount}/{visibilityPrompts.length}</Badge>
+          <div className="mb-4">
+            <Badge className="bg-accent-100 text-accent-500 hover:bg-accent-200">
+              <TrendingUp className="h-3 w-3 mr-1" />
+              Visibility Prompts
+            </Badge>
           </div>
           <p className="text-sm text-gray-500 mb-4">
-            These prompts test if your brand gets visibility in your market
+            Monitor where and how your brand is organically mentioned in AI responses, and how it compares to selected competitors.
+            Feel free to edit prompts below.
           </p>
-
-          <div className="mb-4">
-            <div className="relative">
-              <Input
-                placeholder={visibilityPrompts.length >= 12 ? "Maximum prompts reached" : "Add a new visibility prompt..."}
-                value={promptInput}
-                onChange={(e) => setPromptInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault()
-                    handleAddPrompt(promptInput)
-                  }
-                }}
-                className="pr-10 input-focus"
-                disabled={visibilityPrompts.length >= 12}
-              />
-              {promptInput && (
-                <button
-                  onClick={() => handleAddPrompt(promptInput)}
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                  disabled={visibilityPrompts.length >= 12}
-                >
-                  <Plus className="h-5 w-5" />
-                </button>
-              )}
-            </div>
-          </div>
 
           {/* List of prompts */}
           <div className="space-y-3">
@@ -469,6 +440,34 @@ export default function PromptSelection({ initialData, onDataReady }: PromptSele
                 )}
               </div>
             ))}
+          </div>
+
+          <div className="mt-4 flex items-center gap-3">
+            <div className="relative flex-1">
+              <Input
+                placeholder={visibilityPrompts.length >= 12 ? "Maximum prompts reached" : "Add a new visibility prompt..."}
+                value={promptInput}
+                onChange={(e) => setPromptInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault()
+                    handleAddPrompt(promptInput)
+                  }
+                }}
+                className="pr-10 input-focus"
+                disabled={visibilityPrompts.length >= 12}
+              />
+              {promptInput && (
+                <button
+                  onClick={() => handleAddPrompt(promptInput)}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  disabled={visibilityPrompts.length >= 12}
+                >
+                  <Plus className="h-5 w-5" />
+                </button>
+              )}
+            </div>
+            <Badge className="bg-accent-100 text-accent-700">{selectedVisibilityCount}/{visibilityPrompts.length}</Badge>
           </div>
 
           {/* Plan limitation warning */}

@@ -57,7 +57,9 @@ export class BrandReportMapperService {
     if (report.alignment) {
       if (report.alignment.summary) {
         alignmentData = {
-          ...report.alignment.summary,
+          overallAlignmentScore: report.alignment.summary.overallAlignmentScore ?? 0,
+          averageAttributeScores: report.alignment.summary.averageAttributeScores || {},
+          attributeAlignmentSummary: report.alignment.summary.attributeAlignmentSummary || [],
           detailedResults: report.alignment.detailedResults || []
         };
       } else {

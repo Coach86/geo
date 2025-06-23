@@ -2,8 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ExternalLink, Calendar, BarChart3, RefreshCw, ArrowRight } from "lucide-react"
-import { formatDistanceToNow } from "date-fns"
+import { ExternalLink, RefreshCw, ArrowRight } from "lucide-react"
 import { ProjectResponse } from "@/lib/auth-api"
 import { useEffect, useState } from "react"
 import { getProjectReports } from "@/lib/api/report"
@@ -88,22 +87,6 @@ export function ProjectOverviewCard({ project, onClick, onGoToProject }: Project
               <p className="text-sm line-clamp-2">{project.objectives}</p>
             </div>
           )}
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <BarChart3 className="h-3 w-3" />
-              <span>{project.keyBrandAttributes?.length || 0} attributes</span>
-            </div>
-            {project.updatedAt && (
-              <div className="flex items-center gap-1">
-                <Calendar className="h-3 w-3" />
-                <span>
-                  Updated {formatDistanceToNow(new Date(project.updatedAt), {
-                    addSuffix: true
-                  })}
-                </span>
-              </div>
-            )}
-          </div>
           
           {/* Go to Project Button */}
           {onGoToProject && (

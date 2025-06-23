@@ -253,3 +253,18 @@ export interface SpontaneousData {
     }[];
   };
 }
+
+// Alignment data types
+export interface AlignmentSummary {
+  overallAlignmentScore: number;
+  averageAttributeScores: Record<string, number>;
+  attributeAlignmentSummary: Array<{
+    attribute: string;
+    score: number;
+  }>;
+}
+
+export interface AlignmentData {
+  summary: AlignmentSummary;
+  // Add other alignment fields if needed
+}

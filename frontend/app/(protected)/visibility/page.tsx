@@ -16,9 +16,9 @@ import { DomainSourceChart } from "@/components/visibility/DomainSourceChart";
 import { useVisibilityReports } from "@/hooks/use-visibility-reports";
 import { useAggregatedExplorer } from "@/hooks/use-aggregated-explorer";
 import { useReports } from "@/providers/report-provider";
-import BreadcrumbNav from "@/components/layout/breadcrumb-nav";
 import { useNavigation } from "@/providers/navigation-provider";
 import { ProcessingLoader } from "@/components/shared/ProcessingLoader";
+import BreadcrumbNav from "@/components/layout/breadcrumb-nav";
 
 
 export default function VisibilityPage() {
@@ -149,7 +149,7 @@ export default function VisibilityPage() {
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumb Navigation with new Report Range Selector */}
+      {/* Breadcrumb Navigation and Report Range Selector */}
       <div className="flex items-center justify-between">
         {token && allProjects.length > 0 && (
           <BreadcrumbNav

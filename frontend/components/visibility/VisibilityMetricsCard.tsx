@@ -1,8 +1,6 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Minus, Eye } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -52,6 +50,15 @@ export function VisibilityMetricsCard({
     return `${variation > 0 ? "+" : ""}${variation}%`;
   };
 
+  // Combine brand and competitors for the bar chart section
+  const allEntities = [
+    { name: brandName, averageScore, variation: scoreVariation, isBrand: true },
+    ...competitors.map(c => ({ ...c, isBrand: false }))
+  ];
+
+  // Sort by score descending
+  const sortedEntities = [...allEntities].sort((a, b) => b.averageScore - a.averageScore);
+
   return (
     <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300 h-full">
       <CardHeader className="pb-4">
@@ -71,45 +78,28 @@ export function VisibilityMetricsCard({
         </CardTitle>
       </CardHeader>
       <CardContent className="h-[300px] flex flex-col">
-        <div className="flex-1 flex flex-col justify-between">
+        <div className="flex-1 flex flex-col">
           {/* Brand Score - Primary/Reference */}
           <div 
-            className={`${
-              competitors.length >= 5 ? 'pb-3' : 'pb-4'
-            } border-b border-gray-200 cursor-pointer transition-all duration-200 ${
-              hoveredEntity === 'Brand' ? 'opacity-100' : 'opacity-90 hover:opacity-100'
-            }`}
+            className="pb-4 border-b border-gray-200 cursor-pointer transition-all duration-200"
             onMouseEnter={() => onEntityHover?.('Brand')}
             onMouseLeave={() => onEntityHover?.(null)}
           >
             <div className="flex items-start justify-between">
               <div>
-                <h3 className={`${
-                  competitors.length >= 5 ? 'text-xl' : 'text-2xl'
-                } font-bold text-gray-900 transition-transform duration-200 ${
-                  hoveredEntity === 'Brand' ? 'transform scale-105' : ''
-                }`}>{brandName}</h3>
-                <p className={`text-gray-600 ${
-                  competitors.length >= 5 ? 'text-xs mt-0.5' : 'text-sm mt-1'
-                }`}>Your brand</p>
+                <h3 className="text-2xl font-bold text-gray-900">
+                  {brandName}
+                </h3>
+                <p className="text-sm text-gray-600 mt-1">Your brand</p>
               </div>
               <div className="text-right">
-                <div className={`${
-                  competitors.length >= 5 ? 'text-3xl' : 'text-4xl'
-                } font-bold text-secondary-600 transition-transform duration-200 ${
-                  hoveredEntity === 'Brand' ? 'transform scale-105' : ''
-                }`}>
+                <div className="text-4xl font-bold text-secondary-600">
                   {averageScore}%
                 </div>
                 {!isAllTime && (
-                  <div className={`flex items-center gap-1 ${
-                    competitors.length >= 5 ? 'mt-1' : 'mt-2'
-                  } ${getVariationColor(scoreVariation)}`}>
+                  <div className={`flex items-center gap-1 mt-2 ${getVariationColor(scoreVariation)}`}>
                     {getVariationIcon(scoreVariation)}
-                    <span className={`font-medium ${
-                      scoreVariation === 0 ? 'text-xs' : 
-                      competitors.length >= 5 ? 'text-xs' : 'text-sm'
-                    }`}>
+                    <span className="font-medium text-sm">
                       {formatVariation(scoreVariation)}
                     </span>
                   </div>
@@ -118,57 +108,58 @@ export function VisibilityMetricsCard({
             </div>
           </div>
 
-          {/* Competitors - Same simple text design but with more spacing */}
-          <div className={`flex-1 overflow-y-auto ${
-            competitors.length >= 5 ? 'space-y-0.5 mt-2' : competitors.length > 3 ? 'space-y-1 mt-3' : 'space-y-2 mt-3'
-          }`}>
-            {competitors.map(competitor => {
-              const isAhead = competitor.averageScore > averageScore;
-
+          {/* Competitors Bar Charts */}
+          <div className="flex-1 overflow-y-auto mt-4 space-y-2">
+            {sortedEntities.map((entity) => {
+              const isHovered = hoveredEntity === (entity.isBrand ? 'Brand' : entity.name);
+              const isLeading = entity === sortedEntities[0];
+              
               return (
                 <div 
-                  key={competitor.name} 
-                  className={`flex items-start justify-between ${
-                    competitors.length >= 5 ? 'py-0' : competitors.length > 3 ? 'py-0.5' : 'py-1'
-                  } px-2 -mx-2 rounded cursor-pointer transition-all duration-200 ${
-                    hoveredEntity === competitor.name 
-                      ? 'bg-gray-50 shadow-sm' 
-                      : 'hover:bg-gray-50'
-                  }`}
-                  onMouseEnter={() => onEntityHover?.(competitor.name)}
+                  key={entity.name}
+                  className="cursor-pointer"
+                  onMouseEnter={() => onEntityHover?.(entity.isBrand ? 'Brand' : entity.name)}
                   onMouseLeave={() => onEntityHover?.(null)}
                 >
-                  <div>
-                    <h4 className={`font-medium text-gray-700 ${
-                      competitors.length >= 5 ? 'text-sm' : competitors.length > 3 ? 'text-sm' : 'text-base'
-                    }`}>
-                      {competitor.name}
-                    </h4>
-                    {isAhead && (
-                      <p className={`text-orange-600 ${
-                        competitors.length >= 5 ? 'text-xs mt-0' : competitors.length > 3 ? 'text-xs mt-0.5' : 'text-xs mt-1'
-                      }`}>Leading</p>
-                    )}
-                  </div>
-                  <div className="text-right">
-                    <div className={`font-semibold ${
-                      isAhead ? "text-primary-600" : "text-gray-600"
-                    } ${
-                      competitors.length >= 5 ? 'text-base' : competitors.length > 3 ? 'text-lg' : 'text-xl'
-                    }`}>
-                      {competitor.averageScore}%
+                  <div className="flex items-center gap-3">
+                    {/* Bar chart */}
+                    <div className="flex-1">
+                      <div className="relative h-8 bg-gray-100 rounded overflow-hidden">
+                        {/* Filled bar */}
+                        <div 
+                          className={`absolute left-0 top-0 h-full transition-all duration-300 ${
+                            entity.isBrand 
+                              ? 'bg-blue-500' 
+                              : isLeading && !entity.isBrand
+                                ? 'bg-orange-500' 
+                                : 'bg-gray-400'
+                          } ${isHovered ? 'opacity-100' : 'opacity-90'}`}
+                          style={{ width: `${Math.min(entity.averageScore, 100)}%` }}
+                        />
+                        
+                        {/* Name and percentage inside bar */}
+                        <div className="absolute inset-0 flex items-center justify-between px-2">
+                          <span className={`font-medium text-xs ${
+                            entity.averageScore > 50 ? 'text-white' : 'text-gray-700'
+                          }`}>
+                            {entity.name}
+                            {entity.isBrand && <span className="text-xs ml-1">(You)</span>}
+                          </span>
+                          <span className={`font-semibold text-xs ${
+                            entity.averageScore > 80 ? 'text-white' : 'text-gray-700'
+                          }`}>
+                            {entity.averageScore}%
+                          </span>
+                        </div>
+                      </div>
                     </div>
+
+                    {/* Variation outside */}
                     {!isAllTime && (
-                      <div className={`flex items-center gap-1 ${
-                        competitors.length >= 5 ? 'mt-0' : competitors.length > 3 ? 'mt-0.5' : 'mt-1'
-                      } ${getVariationColor(competitor.variation)}`}>
-                        {getVariationIcon(competitor.variation)}
-                        <span className={
-                          competitor.variation === 0 ? 'text-xs' : 
-                          competitors.length >= 5 ? 'text-xs' : 
-                          competitors.length > 3 ? 'text-xs' : 'text-sm'
-                        }>
-                          {formatVariation(competitor.variation)}
+                      <div className={`flex items-center gap-1 min-w-[55px] justify-end ${getVariationColor(entity.variation)}`}>
+                        {getVariationIcon(entity.variation)}
+                        <span className="text-xs font-medium">
+                          {entity.variation === 0 ? "0%" : `${entity.variation > 0 ? "+" : ""}${entity.variation}%`}
                         </span>
                       </div>
                     )}

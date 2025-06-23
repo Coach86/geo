@@ -4,7 +4,7 @@
 
 import { API_ENDPOINTS } from './constants';
 import { apiFetch } from './utils';
-import { BatchResult, CitationsData, SpontaneousData } from './types';
+import { BatchResult, CitationsData, SpontaneousData, AlignmentData } from './types';
 import { ReportResponse } from '../../types/reports';
 
 /**
@@ -128,9 +128,9 @@ export async function getReportSentiment(
 export async function getReportAlignment(
   reportId: string,
   token: string
-): Promise<any> {
+): Promise<AlignmentData> {
   try {
-    return await apiFetch<any>(
+    return await apiFetch<AlignmentData>(
       API_ENDPOINTS.BRAND_REPORTS.ALIGNMENT(reportId),
       {
         method: 'GET',

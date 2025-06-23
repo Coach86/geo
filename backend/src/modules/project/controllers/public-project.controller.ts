@@ -323,9 +323,11 @@ export class PublicProjectController {
           heatmapData: [],
         },
         alignment: {
-          overallAlignmentScore: 0,
-          averageAttributeScores: {},
-          attributeAlignmentSummary: [],
+          summary: {
+            overallAlignmentScore: 0,
+            averageAttributeScores: {},
+            attributeAlignmentSummary: [],
+          },
           detailedResults: [],
         },
         competition: this.reportBuilderService.buildCompetitionData(competitionResults, project.brandName, project.competitors || []),

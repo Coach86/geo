@@ -84,16 +84,12 @@ function DashboardLayoutContent({ children }: DashboardLayoutProps) {
     return null;
   }
 
-  // Determine sidebar variant based on current route
-  const sidebarVariant = pathname === "/home" || pathname === "/settings" ? "global" : "project";
-
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar
         identityCards={allProjects}
         selectedProject={selectedProject}
         onProjectSelect={handleProjectSelect}
-        variant={sidebarVariant}
       />
       <main className="flex-1 overflow-y-auto ml-60">
         <div className="p-8">{children}</div>

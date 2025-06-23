@@ -87,6 +87,10 @@ export function VisibilityTrendChart({
                 <Legend 
                   wrapperStyle={{ fontSize: '12px' }}
                   iconType="line"
+                  formatter={(value: string) => {
+                    // Replace "Brand" with the actual brand name
+                    return value === 'Brand' ? brandName : value;
+                  }}
                   onMouseEnter={(e) => {
                     if (e && e.dataKey) {
                       onEntityHover?.(e.dataKey as string);
