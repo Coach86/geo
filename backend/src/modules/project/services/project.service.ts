@@ -5,6 +5,7 @@ import { ScrapedWebsite, fetchAndScrape } from '../../../utils/url-scraper';
 import { Project } from '../entities/project.entity';
 import { CreateProjectDto } from '../dto/create-project.dto';
 import { ProjectCreatedEvent } from '../events/project-created.event';
+import { ProjectCompetitorsUpdatedEvent } from '../events/project-competitors-updated.event';
 import { LlmService } from '../../llm/services/llm.service';
 import {
   LlmSummaryResult,
@@ -245,6 +246,17 @@ export class ProjectService {
 
       // Update the project
       const updatedProject = await this.projectRepository.update(projectId, updateObj);
+      
+      // Emit event if competitors were updated
+      if (updateData.competitors !== undefined) {
+        const project = await this.projectRepository.findById(projectId);
+        this.eventEmitter.emit('project.competitors.updated', {
+          projectId,
+          competitors: updateData.competitors,
+          organizationId: project.organizationId,
+        });
+      }
+      
       return this.projectRepository.mapToEntity(updatedProject);
     } catch (error) {
       this.logger.error(`Failed to update project: ${error.message}`, error.stack);
@@ -500,6 +512,33 @@ export class ProjectService {
       };
     } catch (error) {
       this.logger.error(`Failed to check manual analysis rate limit: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Refresh competitor websites for a project (admin only)
+   * This will trigger the competitor website resolver to re-fetch all competitor URLs
+   */
+  async refreshCompetitorWebsites(projectId: string): Promise<void> {
+    try {
+      const project = await this.projectRepository.findById(projectId);
+      this.logger.log(`Refreshing competitor websites for project ${projectId}`);
+      
+      // Clear existing competitor details to force refresh
+      await this.projectRepository.update(projectId, {
+        competitorDetails: []
+      });
+      
+      // Emit event to trigger the competitor website listener
+      this.eventEmitter.emit('project.competitors.updated', {
+        projectId: project.id,
+        competitors: project.competitors,
+      } as ProjectCompetitorsUpdatedEvent);
+      
+      this.logger.log(`Competitor website refresh triggered for project ${projectId}`);
+    } catch (error) {
+      this.logger.error(`Failed to refresh competitor websites: ${error.message}`, error.stack);
       throw error;
     }
   }

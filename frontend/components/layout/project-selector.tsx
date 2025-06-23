@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select"
 import { Building2, ArrowRightLeft } from "lucide-react"
 import { ProjectResponse } from "@/lib/auth-api"
-import { Favicon } from "@/components/ui/favicon"
+import { useFavicon } from "@/hooks/use-favicon"
 
 interface ProjectSelectorProps {
   projects: ProjectResponse[]
@@ -20,6 +20,24 @@ interface ProjectSelectorProps {
 }
 
 
+// Component to handle favicon for each project
+function ProjectOption({ project, children }: { project: ProjectResponse; children: React.ReactNode }) {
+  const { faviconUrl } = useFavicon(project.url)
+  
+  return (
+    <div className="flex items-center gap-2">
+      {faviconUrl && (
+        <img 
+          src={faviconUrl}
+          alt={`${project.brandName} favicon`}
+          className="w-4 h-4"
+        />
+      )}
+      {children}
+    </div>
+  )
+}
+
 export default function ProjectSelector({
   projects,
   selectedProject,
@@ -27,6 +45,9 @@ export default function ProjectSelector({
 }: ProjectSelectorProps) {
   const router = useRouter()
   const pathname = usePathname()
+  
+  // Get favicon for selected project
+  const { faviconUrl: selectedFavicon } = useFavicon(selectedProject?.url || '')
 
   if (projects.length === 0) {
     return null
@@ -47,13 +68,14 @@ export default function ProjectSelector({
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-3 min-w-0 flex-1">
               <div className="w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center flex-shrink-0">
-                {selectedProject ? (
-                  <Favicon 
-                    src={selectedProject.favicon}
+                {selectedProject && selectedFavicon ? (
+                  <img 
+                    src={selectedFavicon}
                     alt={`${selectedProject.brandName} favicon`}
                     className="w-5 h-5"
-                    fallbackClassName="w-5 h-5 text-gray-600"
                   />
+                ) : selectedProject ? (
+                  <Building2 className="w-5 h-5 text-gray-600" />
                 ) : (
                   <Building2 className="w-5 h-5 text-gray-600" />
                 )}
@@ -71,15 +93,9 @@ export default function ProjectSelector({
         <SelectContent className="max-w-[250px]">
           {projects.map((project) => (
             <SelectItem key={project.id} value={project.id} className="cursor-pointer">
-              <div className="flex items-center gap-2">
-                <Favicon 
-                  src={project.favicon}
-                  alt={`${project.brandName} favicon`}
-                  className="w-4 h-4"
-                  fallbackClassName="w-4 h-4 text-gray-500"
-                />
+              <ProjectOption project={project}>
                 <span className="truncate">{project.name || project.brandName}</span>
-              </div>
+              </ProjectOption>
             </SelectItem>
           ))}
         </SelectContent>

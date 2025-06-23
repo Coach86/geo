@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, BarChart3 } from "lucide-react";
 
 interface SentimentMetricsCardProps {
   averageScore: number;
@@ -54,11 +54,12 @@ export function SentimentMetricsCard({
   return (
     <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300 h-full">
       <CardHeader className="pb-4">
-        <CardTitle className="text-lg font-semibold text-gray-900">
-          Sentiment Analysis
+        <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+          <BarChart3 className="h-5 w-5 text-indigo-600" />
+          Sentiment Score
         </CardTitle>
       </CardHeader>
-      <CardContent className="h-[300px] flex flex-col">
+      <CardContent className="flex flex-col">
         <div className="flex-1 flex flex-col justify-center space-y-6">
           {/* Average Score Section */}
           <div className="text-center">
@@ -85,9 +86,6 @@ export function SentimentMetricsCard({
                     </div>
                   )}
                 </div>
-                <p className="text-sm text-gray-500 mt-2">
-                  Average sentiment score
-                </p>
               </div>
               
               {/* Distribution on the right */}

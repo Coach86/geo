@@ -118,34 +118,25 @@ export function SourcesAnalysis({ citations, type, loading }: SourcesAnalysisPro
 
   return (
     <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
-      <CardHeader className="pb-4">
+      <CardHeader className="pb-2">
         <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
           <Globe className="h-5 w-5 text-blue-600" />
           Sources Analysis
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
+      <CardContent className="pt-2">
+        <div>
           {/* Main Metric */}
           <div className="text-center">
-            <div className="flex items-center justify-center gap-2 mb-2">
+            <div className="flex items-center justify-center gap-2 mb-1">
               {getStatusIcon()}
-              <span className="text-3xl font-bold text-gray-900">
+              <span className="text-2xl font-bold text-gray-900">
                 {analysis.riskyUrls}
               </span>
-              <span className="text-lg text-gray-500">/ {analysis.totalUrls}</span>
+              <span className="text-base text-gray-500">/ {analysis.totalUrls}</span>
             </div>
-            <p className="text-sm text-gray-600 mb-3">{getDescription()}</p>
-
-            {/* Status Badge */}
-            <Badge
-              variant={getStatusColor()}
-              className="text-sm px-3 py-1"
-            >
-              {analysis.percentage}% • {getStatusText()}
-            </Badge>
+            <p className="text-sm text-gray-600">{getDescription()}</p>
           </div>
-
         </div>
       </CardContent>
     </Card>

@@ -8,6 +8,7 @@ import { useEffect, useState } from "react"
 import { getProjectReports } from "@/lib/api/report"
 import { useAuth } from "@/providers/auth-provider"
 import { useNotificationContext } from "@/providers/notification-provider"
+import { useFavicon } from "@/hooks/use-favicon"
 
 interface ProjectOverviewCardProps {
   project: ProjectResponse
@@ -19,6 +20,9 @@ export function ProjectOverviewCard({ project, onClick, onGoToProject }: Project
   const [isProcessing, setIsProcessing] = useState(false)
   const { token } = useAuth()
   const { notifications } = useNotificationContext()
+  
+  // Get favicon from project URL
+  const { faviconUrl } = useFavicon(project.url)
 
   useEffect(() => {
     const checkProcessingStatus = async () => {
@@ -71,7 +75,14 @@ export function ProjectOverviewCard({ project, onClick, onGoToProject }: Project
         </div>
       )}
       <CardHeader>
-        <CardTitle className="text-xl mb-2">
+        <CardTitle className="text-xl flex items-center gap-2">
+          {faviconUrl && (
+            <img 
+              src={faviconUrl}
+              alt={`${project.brandName} favicon`}
+              className="h-5 w-5"
+            />
+          )}
           {project.name || project.brandName}
         </CardTitle>
         <CardDescription className="flex items-center gap-2 text-sm">

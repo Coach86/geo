@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Minus, Eye } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Eye, Crown } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface CompetitorData {
@@ -33,6 +33,17 @@ export function VisibilityMetricsCard({
   hoveredEntity,
   isAllTime = false,
 }: VisibilityMetricsCardProps) {
+  // Same colors as Visibility Trend Analysis
+  const CHART_COLORS = [
+    "#7C3AED", // Brand color (purple)
+    "#3B82F6", // Blue
+    "#10B981", // Green
+    "#F59E0B", // Orange
+    "#EF4444", // Red
+    "#8B5CF6", // Violet
+    "#EC4899", // Pink
+  ];
+
   const getVariationIcon = (variation: number) => {
     if (variation > 0) return <TrendingUp className="h-4 w-4" />;
     if (variation < 0) return <TrendingDown className="h-4 w-4" />;
@@ -90,13 +101,12 @@ export function VisibilityMetricsCard({
                 <h3 className="text-2xl font-bold text-gray-900">
                   {brandName}
                 </h3>
-                <p className="text-sm text-gray-600 mt-1">Your brand</p>
               </div>
               <div className="text-right">
                 <div className="text-4xl font-bold text-secondary-600">
                   {averageScore}%
                 </div>
-                {!isAllTime && (
+                {!isAllTime && scoreVariation !== 0 && (
                   <div className={`flex items-center gap-1 mt-2 ${getVariationColor(scoreVariation)}`}>
                     {getVariationIcon(scoreVariation)}
                     <span className="font-medium text-sm">
@@ -110,9 +120,19 @@ export function VisibilityMetricsCard({
 
           {/* Competitors Bar Charts */}
           <div className="flex-1 overflow-y-auto mt-4 space-y-2">
-            {sortedEntities.map((entity) => {
+            {sortedEntities.map((entity, index) => {
               const isHovered = hoveredEntity === (entity.isBrand ? 'Brand' : entity.name);
               const isLeading = entity === sortedEntities[0];
+              
+              // Assign colors based on index, brand always gets purple (index 0 in CHART_COLORS)
+              const getEntityColor = () => {
+                if (entity.isBrand) return CHART_COLORS[0]; // Purple for brand
+                // Find the entity's position among non-brand entities for consistent coloring
+                const nonBrandIndex = sortedEntities
+                  .filter(e => !e.isBrand)
+                  .findIndex(e => e.name === entity.name);
+                return CHART_COLORS[(nonBrandIndex + 1) % CHART_COLORS.length];
+              };
               
               return (
                 <div 
@@ -127,24 +147,28 @@ export function VisibilityMetricsCard({
                       <div className="relative h-8 bg-gray-100 rounded overflow-hidden">
                         {/* Filled bar */}
                         <div 
-                          className={`absolute left-0 top-0 h-full transition-all duration-300 ${
-                            entity.isBrand 
-                              ? 'bg-blue-500' 
-                              : isLeading && !entity.isBrand
-                                ? 'bg-orange-500' 
-                                : 'bg-gray-400'
-                          } ${isHovered ? 'opacity-100' : 'opacity-90'}`}
-                          style={{ width: `${Math.min(entity.averageScore, 100)}%` }}
+                          className={`absolute left-0 top-0 h-full transition-all duration-300 ${isHovered ? 'opacity-100' : 'opacity-90'}`}
+                          style={{ 
+                            width: `${Math.min(entity.averageScore, 100)}%`,
+                            backgroundColor: getEntityColor()
+                          }}
                         />
                         
                         {/* Name and percentage inside bar */}
                         <div className="absolute inset-0 flex items-center justify-between px-2">
-                          <span className={`font-medium text-xs ${
-                            entity.averageScore > 50 ? 'text-white' : 'text-gray-700'
-                          }`}>
-                            {entity.name}
-                            {entity.isBrand && <span className="text-xs ml-1">(You)</span>}
-                          </span>
+                          <div className="flex items-center gap-1">
+                            <span className={`font-medium text-xs ${
+                              entity.averageScore > 50 ? 'text-white' : 'text-gray-700'
+                            }`}>
+                              {entity.name}
+                              {entity.isBrand && <span className="text-xs ml-1">(You)</span>}
+                            </span>
+                            {isLeading && (
+                              <Crown className={`h-4 w-4 ${
+                                entity.averageScore > 50 ? 'text-yellow-400 drop-shadow-md' : 'text-yellow-500'
+                              }`} />
+                            )}
+                          </div>
                           <span className={`font-semibold text-xs ${
                             entity.averageScore > 80 ? 'text-white' : 'text-gray-700'
                           }`}>

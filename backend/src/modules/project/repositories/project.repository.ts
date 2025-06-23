@@ -126,6 +126,7 @@ export class ProjectRepository {
       objectives: document.objectives,
       keyBrandAttributes: document.keyBrandAttributes,
       competitors: document.competitors,
+      competitorDetails: document.competitorDetails,
       updatedAt: document.updatedAt instanceof Date ? document.updatedAt : new Date(),
       organizationId: document.organizationId,
       language: document.language,

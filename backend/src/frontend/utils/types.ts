@@ -10,6 +10,10 @@ export interface Project {
   longDescription?: string;
   keyBrandAttributes: string[];
   competitors: string[];
+  competitorDetails?: Array<{
+    name: string;
+    website?: string;
+  }>;
   url?: string;
   logo?: string;
   organizationId?: string;

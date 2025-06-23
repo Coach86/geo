@@ -419,11 +419,17 @@ export class ReportBuilderService {
 
     // Include topMentions from visibility results
     const topMentions = visibilityResults.summary.topMentionCounts || [];
+    
+    // Include topDomains from visibility results
+    const topDomains = visibilityResults.summary.topDomains || [];
 
     // Log for debugging
     this.logger.log(`Building visibility data: ${topMentions.length} top mentions found`);
     if (topMentions.length > 0) {
       this.logger.log(`Top mentions sample: ${JSON.stringify(topMentions.slice(0, 3))}`);
+    }
+    if (topDomains.length > 0) {
+      this.logger.log(`Top domains sample: ${JSON.stringify(topDomains.slice(0, 3))}`);
     }
 
     return {
@@ -432,6 +438,7 @@ export class ReportBuilderService {
       modelVisibility,
       arenaMetrics,
       topMentions,
+      topDomains,
     };
   }
 

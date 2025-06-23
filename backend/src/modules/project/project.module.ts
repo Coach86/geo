@@ -6,7 +6,9 @@ import { UserProjectController } from './controllers/user-project.controller';
 import { PublicProjectController } from './controllers/public-project.controller';
 import { ProjectService } from './services/project.service';
 import { FaviconService } from './services/favicon.service';
+import { CompetitorWebsiteResolverService } from './services/competitor-website-resolver.service';
 import { ProjectCreatedListener } from './listeners/project-created.listener';
+import { CompetitorWebsiteListener } from './listeners/competitor-website.listener';
 import { ProjectRepository } from './repositories/project.repository';
 import { Project, ProjectSchema } from './schemas/project-base.schema';
 import { UserModule } from '../user/user.module';
@@ -39,7 +41,9 @@ import { ReportModule } from '../report/report.module';
   providers: [
     ProjectService, 
     FaviconService,
+    CompetitorWebsiteResolverService,
     ProjectCreatedListener,
+    CompetitorWebsiteListener,
     ProjectRepository, 
     TokenService,
     AccessTokenRepository

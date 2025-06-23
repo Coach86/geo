@@ -162,6 +162,15 @@ export class LlmService {
   }
 
   /**
+   * Check if a specific provider is available
+   */
+  isProviderAvailable(provider: LlmProvider | string): boolean {
+    const providerEnum = provider as LlmProvider;
+    const adapter = this.adapters[providerEnum];
+    return adapter ? adapter.isAvailable() : false;
+  }
+
+  /**
    * Helper method to get and validate an adapter
    */
   private getAdapter(provider: LlmProvider): LlmAdapter {

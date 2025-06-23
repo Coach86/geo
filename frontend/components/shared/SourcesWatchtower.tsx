@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useFavicons } from "@/hooks/use-favicon";
 import {
   useReactTable,
   getCoreRowModel,
@@ -198,6 +199,14 @@ export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowe
     }));
   }, [citations]);
 
+  // Get unique domains for favicon fetching
+  const uniqueDomains = React.useMemo(() => {
+    return data.map(item => item.domain);
+  }, [data]);
+
+  // Fetch favicons for all domains
+  const { favicons } = useFavicons(uniqueDomains);
+
   // Column definitions
   const columnHelper = createColumnHelper<AggregatedCitation>();
 
@@ -231,8 +240,26 @@ export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowe
         ),
         cell: ({ getValue }) => {
           const domain = getValue() as string;
+          const faviconUrl = favicons[domain];
+          
           return (
-            <span className="font-medium">{domain}</span>
+            <div className="flex items-center gap-2">
+              {faviconUrl ? (
+                <img
+                  src={faviconUrl}
+                  alt={`${domain} favicon`}
+                  className="w-4 h-4 rounded-sm"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              ) : (
+                <div className="w-4 h-4 rounded-sm bg-gray-200 flex items-center justify-center">
+                  <Globe className="w-3 h-3 text-gray-400" />
+                </div>
+              )}
+              <span className="font-medium">{domain}</span>
+            </div>
           );
         },
         filterFn: fuzzyFilter,
@@ -678,7 +705,23 @@ export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowe
                             style={isFirstInGroup ? {} : { display: 'none' }}
                           >
                             {isFirstInGroup && (
-                              <span>{domain}</span>
+                              <div className="flex items-center gap-2">
+                                {favicons[domain] ? (
+                                  <img
+                                    src={favicons[domain]}
+                                    alt={`${domain} favicon`}
+                                    className="w-4 h-4 rounded-sm"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                    }}
+                                  />
+                                ) : (
+                                  <div className="w-4 h-4 rounded-sm bg-gray-200 flex items-center justify-center">
+                                    <Globe className="w-3 h-3 text-gray-400" />
+                                  </div>
+                                )}
+                                <span>{domain}</span>
+                              </div>
                             )}
                           </td>
                           {row.getVisibleCells().slice(1).map((cell) => (

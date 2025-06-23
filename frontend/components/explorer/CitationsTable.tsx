@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useFavicons, extractDomain } from "@/hooks/use-favicon";
 import {
   useReactTable,
   getCoreRowModel,
@@ -252,6 +253,20 @@ export function CitationsTable({ citations, webSearchResults, onExport, searchQu
     return { data: rows, groupedData: groups };
   }, [citations, webSearchResults]);
 
+  // Get unique domains for favicon fetching
+  const uniqueDomains = React.useMemo(() => {
+    const domains = new Set<string>();
+    data.forEach(row => {
+      if (row.domain && row.domain !== 'No link') {
+        domains.add(row.domain);
+      }
+    });
+    return Array.from(domains);
+  }, [data]);
+
+  // Fetch favicons for all domains
+  const { favicons } = useFavicons(uniqueDomains);
+
   // Column definitions
   const columnHelper = createColumnHelper<CitationRow>();
 
@@ -332,11 +347,25 @@ export function CitationsTable({ citations, webSearchResults, onExport, searchQu
             />
           </div>
         ),
-        cell: ({ getValue }) => {
-          const source = getValue() as string;
+        cell: ({ row }) => {
+          const source = row.original.source;
+          const domain = row.original.domain;
+          const faviconUrl = domain !== "No link" ? favicons[domain] : null;
+          
           return (
             <div className="flex items-center gap-2 min-w-0">
-              <LinkIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
+              {faviconUrl ? (
+                <img
+                  src={faviconUrl}
+                  alt={`${domain} favicon`}
+                  className="w-4 h-4 rounded-sm flex-shrink-0"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              ) : (
+                <LinkIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
+              )}
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -716,7 +745,18 @@ export function CitationsTable({ citations, webSearchResults, onExport, searchQu
                       </td>
                       <td className={`px-4 py-3 border-b ${isLastInGroup ? 'border-gray-300' : 'border-gray-200'}`}>
                         <div className="flex items-center gap-2 min-w-0">
-                          <LinkIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                          {row.original.domain !== "No link" && favicons[row.original.domain] ? (
+                            <img
+                              src={favicons[row.original.domain]}
+                              alt={`${row.original.domain} favicon`}
+                              className="w-4 h-4 rounded-sm flex-shrink-0"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <LinkIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                          )}
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>

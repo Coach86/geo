@@ -2,6 +2,8 @@ import { useState } from "react";
 import { ProjectResponse } from "@/lib/auth-api";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, Settings } from "lucide-react";
+import { useFavicon, extractDomain } from "@/hooks/use-favicon";
+import { Favicon } from "@/components/ui/favicon";
 import {
   Sheet,
   SheetContent,
@@ -17,12 +19,40 @@ interface CompetitorsListProps {
   onUpdate?: (competitors: string[]) => void;
 }
 
+// Separate component for competitor favicon that uses the hook
+function CompetitorFavicon({ website, name }: { website?: string; name: string }) {
+  const domain = website ? extractDomain(website) : null;
+  const { faviconUrl } = useFavicon(domain);
+  
+  if (!domain || !faviconUrl) return null;
+  
+  return (
+    <Favicon 
+      src={faviconUrl} 
+      alt={`${name} favicon`}
+      className="w-4 h-4"
+      fallbackClassName="w-4 h-4 text-gray-400"
+    />
+  );
+}
+
 export function CompetitorsList({ project, onEdit, onUpdate }: CompetitorsListProps) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const maxCompetitors = 5;
   const isAtLimit = project.competitors.length >= maxCompetitors;
   const displayThreshold = 5;
-  const displayedCompetitors = project.competitors.slice(0, displayThreshold);
+  
+  // Create a map of competitor details for easy lookup
+  const detailsMap = new Map(
+    (project.competitorDetails || []).map(detail => [detail.name, detail])
+  );
+  
+  // Get displayed competitors with their details
+  const displayedCompetitors = project.competitors.slice(0, displayThreshold).map(name => ({
+    name,
+    detail: detailsMap.get(name)
+  }));
+  
   const hiddenCount = Math.max(0, project.competitors.length - displayThreshold);
   
   return (
@@ -44,12 +74,23 @@ export function CompetitorsList({ project, onEdit, onUpdate }: CompetitorsListPr
         {/* Display first 5 competitors */}
         <div className="space-y-2">
           {displayedCompetitors.length > 0 ? (
-            displayedCompetitors.map((competitor, index) => (
+            displayedCompetitors.map(({ name, detail }, index) => (
               <div
                 key={index}
-                className="px-3 py-3 bg-gray-50 rounded-md text-sm text-gray-700 min-h-[2.75rem] flex items-center"
+                className="px-3 py-3 bg-gray-50 rounded-md text-sm text-gray-700 min-h-[2.75rem] flex items-center gap-2"
               >
-                {competitor}
+                <CompetitorFavicon website={detail?.website} name={name} />
+                <span>{name}</span>
+                {detail?.website && (
+                  <a 
+                    href={detail.website} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="ml-auto text-xs text-gray-500 hover:text-gray-700"
+                  >
+                    Visit
+                  </a>
+                )}
               </div>
             ))
           ) : (
@@ -81,7 +122,45 @@ export function CompetitorsList({ project, onEdit, onUpdate }: CompetitorsListPr
             </SheetDescription>
           </SheetHeader>
           
-          <div className="mt-6">
+          <div className="mt-6 space-y-4">
+            {/* Item count */}
+            <div className="text-sm text-gray-600">
+              {project.competitors.length}/{maxCompetitors} competitors
+            </div>
+            
+            {/* Competitor list with favicons */}
+            <div className="space-y-2">
+              {project.competitors.length > 0 ? (
+                project.competitors.map((name, index) => {
+                  const detail = detailsMap.get(name);
+                  return (
+                    <div
+                      key={index}
+                      className="px-3 py-3 bg-gray-50 rounded-md text-sm text-gray-700 flex items-center gap-2"
+                    >
+                      <CompetitorFavicon website={detail?.website} name={name} />
+                      <span className="flex-1">{name}</span>
+                      {detail?.website && (
+                        <a 
+                          href={detail.website} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-xs text-gray-500 hover:text-gray-700"
+                        >
+                          Visit
+                        </a>
+                      )}
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="text-sm text-gray-400 italic px-3 py-3">
+                  No competitors defined
+                </p>
+              )}
+            </div>
+            
+            {/* Use EditableList for adding/editing functionality */}
             <EditableList
               title=""
               items={project.competitors}
@@ -90,13 +169,13 @@ export function CompetitorsList({ project, onEdit, onUpdate }: CompetitorsListPr
               canAdd={true}
               canExpand={false}
               placeholder="Enter competitor name..."
-              emptyMessage="No competitors defined"
+              emptyMessage=""
               bgColor="gray"
               inputType="input"
               addButtonLabel="Add Competitor"
               isAtLimit={isAtLimit}
               limitMessage="(Max 5)"
-              itemCount={`${project.competitors.length}/${maxCompetitors} competitors`}
+              itemCount=""
             />
           </div>
         </SheetContent>

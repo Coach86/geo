@@ -7,7 +7,8 @@ import {
   AggregatedVisibilityResponseDto,
   VisibilityChartDataDto,
   CompetitorDataDto,
-  TopMentionDto
+  TopMentionDto,
+  TopDomainDto
 } from '../dto/aggregated-visibility-response.dto';
 import { 
   ModelVisibilityItem,
@@ -74,6 +75,7 @@ export class BrandReportVisibilityAggregationService {
     );
 
     const topMentions = this.processTopMentions(aggregationResult.mentionTracker);
+    const topDomains = this.processTopDomains(aggregationResult.domainTracker);
 
     const response = {
       averageScore: aggregationResult.averageScore,
@@ -83,6 +85,7 @@ export class BrandReportVisibilityAggregationService {
       modelBreakdown: aggregationResult.modelBreakdown,
       competitors,
       topMentions,
+      topDomains,
       reportCount: reports.length,
       dateRange: {
         start: reports[0].reportDate.toISOString(),
@@ -176,12 +179,14 @@ export class BrandReportVisibilityAggregationService {
     const chartData: VisibilityChartDataDto[] = [];
     const modelScores: Record<string, { total: number; count: number }> = {};
     const mentionTracker: Map<string, { displayName: string; count: number }> = new Map();
+    const domainTracker: Map<string, number> = new Map();
 
     reports.forEach(report => {
       const visData = report.visibility;
       if (!visData) return;
 
       this.trackMentions(visData, mentionTracker);
+      this.trackDomains(visData, domainTracker);
 
       const reportResult = this.processReportVisibility(
         visData,
@@ -217,7 +222,8 @@ export class BrandReportVisibilityAggregationService {
       chartData,
       modelBreakdown,
       competitorMap,
-      mentionTracker
+      mentionTracker,
+      domainTracker
     };
   }
 
@@ -255,6 +261,21 @@ export class BrandReportVisibilityAggregationService {
       trackerSize: mentionTracker.size,
       trackerEntries: Array.from(mentionTracker.entries()).slice(0, 5)
     });
+  }
+
+  private trackDomains(
+    visData: any,
+    domainTracker: Map<string, number>
+  ): void {
+    // Track domains from topDomains if available in visibility data
+    if (visData.topDomains && Array.isArray(visData.topDomains)) {
+      visData.topDomains.forEach((domainItem: any) => {
+        if (domainItem.domain && domainItem.count) {
+          const currentCount = domainTracker.get(domainItem.domain) || 0;
+          domainTracker.set(domainItem.domain, currentCount + domainItem.count);
+        }
+      });
+    }
   }
 
   private processReportVisibility(
@@ -380,6 +401,23 @@ export class BrandReportVisibilityAggregationService {
     return result;
   }
 
+  private processTopDomains(
+    domainTracker: Map<string, number>
+  ): TopDomainDto[] {
+    const domainEntries = Array.from(domainTracker.entries())
+      .map(([domain, count]) => ({ domain, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+    
+    const totalCitations = domainEntries.reduce((sum, item) => sum + item.count, 0);
+    
+    return domainEntries.map(item => ({
+      domain: item.domain,
+      count: item.count,
+      percentage: totalCitations > 0 ? Math.round((item.count / totalCitations) * 100 * 10) / 10 : 0 // Round to 1 decimal
+    }));
+  }
+
   private createEmptyVisibilityResponse(): AggregatedVisibilityResponseDto {
     return {
       averageScore: 0,
@@ -389,6 +427,7 @@ export class BrandReportVisibilityAggregationService {
       modelBreakdown: [],
       competitors: [],
       topMentions: [],
+      topDomains: [],
       reportCount: 0,
       dateRange: { start: '', end: '' }
     };

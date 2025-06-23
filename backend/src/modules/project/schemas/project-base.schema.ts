@@ -62,6 +62,20 @@ export class Project {
   competitors: string[];
 
   @Prop({
+    type: [
+      {
+        name: { type: String, required: true },
+        website: { type: String, required: false },
+      },
+    ],
+    default: [],
+  })
+  competitorDetails: Array<{
+    name: string;
+    website?: string;
+  }>;
+
+  @Prop({
     type: Object,
     default: {},
   })

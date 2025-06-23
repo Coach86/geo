@@ -50,6 +50,22 @@ export class ProjectResponseDto {
   @ApiProperty({ description: 'List of competitors', type: [String] })
   competitors: string[];
 
+  @ApiPropertyOptional({ 
+    description: 'Detailed competitor information including websites', 
+    type: 'array',
+    items: {
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+        website: { type: 'string' }
+      }
+    }
+  })
+  competitorDetails?: Array<{
+    name: string;
+    website?: string;
+  }>;
+
   @ApiProperty({ description: 'Logo URL', required: false })
   logo?: string;
 

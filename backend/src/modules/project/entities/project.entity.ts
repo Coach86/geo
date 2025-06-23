@@ -39,6 +39,23 @@ export class Project {
   @ApiProperty({ description: 'List of competitors', type: [String] })
   competitors: string[];
 
+  @ApiProperty({ 
+    description: 'Detailed competitor information including websites', 
+    type: 'array',
+    items: {
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+        website: { type: 'string' }
+      }
+    },
+    required: false
+  })
+  competitorDetails?: Array<{
+    name: string;
+    website?: string;
+  }>;
+
   @ApiProperty({ description: 'Last update timestamp' })
   updatedAt: Date;
 

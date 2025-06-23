@@ -426,6 +426,7 @@ export class VisibilityPipelineService extends BasePipelineService {
         mentionRate: 0,
         topMentions: [],
         topMentionCounts: [],
+        topDomains: [],
       };
     }
 
@@ -436,7 +437,12 @@ export class VisibilityPipelineService extends BasePipelineService {
     // Count top mentions - track both normalized and original versions
     const mentionsMap: Map<string, { originalNames: Set<string>; count: number; type: string }> = new Map();
     
+    // Count domains from citations
+    const domainMap = new Map<string, number>();
+    let totalCitations = 0;
+    
     for (const result of validResults) {
+      // Process top of mind brands
       for (const brand of result.topOfMind) {
         // Normalize for matching but preserve original for display
         const normalizedBrand = brand.name.toLowerCase().trim();
@@ -452,6 +458,31 @@ export class VisibilityPipelineService extends BasePipelineService {
         const entry = mentionsMap.get(normalizedBrand)!;
         entry.originalNames.add(brand.name);
         entry.count++;
+      }
+      
+      // Process citations for domain counting
+      if (result.citations && Array.isArray(result.citations)) {
+        for (const citation of result.citations) {
+          if (citation.url || citation.website) {
+            try {
+              const urlString = citation.url || citation.website;
+              const url = new URL(urlString);
+              const domain = url.hostname.replace(/^www\./, '').toLowerCase();
+              
+              domainMap.set(domain, (domainMap.get(domain) || 0) + 1);
+              totalCitations++;
+            } catch (e) {
+              // If URL parsing fails, try to extract domain from the string
+              const urlString = (citation.url || citation.website || '').toLowerCase();
+              const domainMatch = urlString.match(/(?:https?:\/\/)?(?:www\.)?([^\/\s]+)/);
+              if (domainMatch) {
+                const domain = domainMatch[1];
+                domainMap.set(domain, (domainMap.get(domain) || 0) + 1);
+                totalCitations++;
+              }
+            }
+          }
+        }
       }
     }
 
@@ -479,15 +510,29 @@ export class VisibilityPipelineService extends BasePipelineService {
       };
     });
 
+    // Calculate top domains
+    const topDomains = Array.from(domainMap.entries())
+      .map(([domain, count]) => ({
+        domain,
+        count,
+        percentage: totalCitations > 0 ? Math.round((count / totalCitations) * 100 * 10) / 10 : 0, // Round to 1 decimal
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+
     this.logger.log(`Analyzed visibility results: ${validResults.length} valid results, ${mentionCount} mentions, ${topMentionCounts.length} unique brands`);
     if (topMentionCounts.length > 0) {
       this.logger.log(`Top mention: ${topMentionCounts[0].mention} (${topMentionCounts[0].count} times)`);
+    }
+    if (topDomains.length > 0) {
+      this.logger.log(`Top domains: ${topDomains.slice(0, 3).map(d => `${d.domain} (${d.count})`).join(', ')}`);
     }
 
     return {
       mentionRate,
       topMentions: sortedMentions,
       topMentionCounts,
+      topDomains,
     };
   }
 

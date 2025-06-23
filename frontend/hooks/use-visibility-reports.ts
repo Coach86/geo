@@ -31,6 +31,11 @@ interface UseVisibilityReportsReturn {
     count: number;
     percentage: number;
   }>;
+  topDomains: Array<{
+    domain: string;
+    count: number;
+    percentage: number;
+  }>;
 }
 
 export function useVisibilityReports(
@@ -120,6 +125,7 @@ export function useVisibilityReports(
         modelBreakdown: [],
         availableModels: [],
         topMentions: [],
+        topDomains: [],
       };
     }
 
@@ -155,6 +161,7 @@ export function useVisibilityReports(
       modelBreakdown,
       availableModels: aggregatedData.availableModels || [],
       topMentions: aggregatedData.topMentions || [],
+      topDomains: aggregatedData.topDomains || [],
     };
   }, [aggregatedData]);
 
@@ -170,5 +177,6 @@ export function useVisibilityReports(
     modelBreakdown: result.modelBreakdown,
     availableModels: result.availableModels,
     topMentions: result.topMentions,
+    topDomains: result.topDomains,
   };
 }

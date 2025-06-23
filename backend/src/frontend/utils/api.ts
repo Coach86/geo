@@ -56,6 +56,11 @@ export const deleteProject = async (id: string): Promise<void> => {
   await authApi.delete(`/project/${id}`);
 };
 
+export const refreshCompetitors = async (id: string): Promise<{ message: string }> => {
+  const response = await authApi.post(`/project/${id}/refresh-competitors`);
+  return response.data;
+};
+
 // User API
 export const getUsers = async (): Promise<User[]> => {
   const response = await authApi.get('/users');

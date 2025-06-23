@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Globe, Building2 } from "lucide-react";
+import { Globe, Building2, BarChart3 } from "lucide-react";
 
 interface DomainSourceChartProps {
   domainSourceAnalysis?: {
@@ -37,7 +37,8 @@ export function DomainSourceChart({
     return (
       <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
         <CardHeader className="pb-4">
-          <CardTitle className="text-lg font-semibold text-gray-900">
+          <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-purple-600" />
             Domain Sources
           </CardTitle>
         </CardHeader>
@@ -57,7 +58,8 @@ export function DomainSourceChart({
   return (
     <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
       <CardHeader className="pb-4">
-        <CardTitle className="text-lg font-semibold text-gray-900">
+        <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+          <BarChart3 className="h-5 w-5 text-purple-600" />
           Domain Sources
         </CardTitle>
       </CardHeader>
@@ -96,16 +98,6 @@ export function DomainSourceChart({
             </div>
             <span className="font-medium text-gray-900">
               {otherSourcesCount} {otherSourcesCount === 1 ? 'citation' : 'citations'} ({otherSourcesPercentage}%)
-            </span>
-          </div>
-        </div>
-
-        {/* Total */}
-        <div className="pt-2 border-t border-gray-200">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600">Total Citations</span>
-            <span className="font-semibold text-gray-900">
-              {brandDomainCount + otherSourcesCount}
             </span>
           </div>
         </div>
