@@ -6,11 +6,13 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { AuthService } from './services/auth.service';
 import { TokenService } from './services/token.service';
 import { JwtTokenService } from './services/jwt-token.service';
+import { ShopifyAuthService } from './services/shopify-auth.service';
 import { LocalStrategy } from './strategies/local.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { AuthController } from './controllers/auth.controller';
 import { PublicAuthController } from './controllers/public-auth.controller';
 import { TokenController } from './controllers/token.controller';
+import { ShopifyAuthController } from './controllers/shopify-auth.controller';
 import { UserAuthController } from './controllers/user-auth.controller';
 import { TokenAuthGuard } from './guards/token-auth.guard';
 import { Admin, AdminSchema } from './schemas/admin.schema';
@@ -28,7 +30,7 @@ import { AccessTokenRepository } from './repositories/access-token.repository';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET'),
+        secret: configService.get<string>('JWT_SECRET') || 'default_secret_key_for_dev',
         signOptions: { expiresIn: '2h' },
       }),
       inject: [ConfigService],
@@ -39,11 +41,21 @@ import { AccessTokenRepository } from './repositories/access-token.repository';
     ]),
     forwardRef(() => ReportModule),
     forwardRef(() => UserModule),
-    forwardRef(() => OrganizationModule),
     forwardRef(() => PromoModule),
+    forwardRef(() => OrganizationModule),
   ],
-  providers: [AuthService, TokenService, JwtTokenService, LocalStrategy, JwtStrategy, TokenAuthGuard, AdminRepository, AccessTokenRepository],
-  controllers: [AuthController, PublicAuthController, TokenController],
-  exports: [AuthService, TokenService, JwtTokenService, TokenAuthGuard, AdminRepository, AccessTokenRepository],
+  providers: [
+    AuthService,
+    TokenService,
+    JwtTokenService,
+    ShopifyAuthService,
+    LocalStrategy,
+    JwtStrategy,
+    TokenAuthGuard,
+    AdminRepository,
+    AccessTokenRepository
+  ],
+  controllers: [AuthController, PublicAuthController, TokenController, ShopifyAuthController],
+  exports: [AuthService, TokenService, JwtTokenService, ShopifyAuthService, TokenAuthGuard, AdminRepository, AccessTokenRepository, JwtModule],
 })
 export class AuthModule {}

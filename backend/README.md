@@ -134,6 +134,11 @@ POST   /admin/auth/refresh            # Refresh JWT token
 POST   /auth/magic-link               # Send magic link (public)
 GET    /tokens/validate               # Validate access token
 POST   /tokens/generate               # Generate access token
+
+# Shopify Authentication
+POST   /auth/shopify/session          # Exchange Shopify session token for JWT
+POST   /auth/shopify/refresh          # Refresh Shopify JWT token
+POST   /auth/shopify/webhook          # Handle Shopify webhooks
 ```
 
 ### Projects
@@ -417,6 +422,13 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 # Analytics
 POSTHOG_API_KEY=...
 
+# Shopify Integration
+SHOPIFY_API_KEY=...
+SHOPIFY_API_SECRET=...
+SHOPIFY_WEBHOOK_SECRET=...
+SHOPIFY_ACCESS_TOKEN=...  # Optional, for API calls
+SHOPIFY_API_VERSION=2024-01  # Optional, defaults to 2024-01
+
 # Rate Limiting
 LLM_MAX_RETRIES=8
 LLM_BASE_DELAY_MS=5000
@@ -491,6 +503,12 @@ node test-free-plan.js          # Test free plan functionality
 node test-project-deletion.js   # Test project deletion
 node test-mistral-websearch.js  # Test Mistral web search  
 node test-google-grounding.js   # Test Google grounding
+node test-shopify-working.js    # Test Shopify authentication
+
+# Shopify testing helpers
+node generate-shopify-test-token.js     # Generate valid test token
+node test-shopify-token-validation.js   # Validate token locally
+node check-shopify-config.js            # Check API configuration
 
 # Brand insight test
 npm run test:brand-insight      # Run brand insight test

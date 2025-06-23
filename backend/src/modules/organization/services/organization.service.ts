@@ -60,6 +60,8 @@ export class OrganizationService {
 
       const organizationData = {
         id: uuidv4(),
+        name: createOrganizationDto.name,
+        shopifyShopDomain: createOrganizationDto.shopifyShopDomain,
         stripePlanId: stripePlanId || createOrganizationDto.stripePlanId,
         planSettings: {
           maxProjects: planSettings?.maxProjects || ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_PROJECTS,
@@ -112,6 +114,16 @@ export class OrganizationService {
       return this.mapToResponseDto(organization);
     } catch (error) {
       this.logger.error(`Failed to find organization by stripe customer: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  async findByShopDomain(shopDomain: string): Promise<OrganizationResponseDto[]> {
+    try {
+      const organizations = await this.organizationRepository.findByShopDomain(shopDomain);
+      return Promise.all(organizations.map((org) => this.mapToResponseDto(org)));
+    } catch (error) {
+      this.logger.error(`Failed to find organization by shop domain: ${error.message}`, error.stack);
       throw error;
     }
   }
@@ -265,6 +277,8 @@ export class OrganizationService {
 
     return {
       id: entity.id,
+      name: entity.name,
+      shopifyShopDomain: entity.shopifyShopDomain,
       stripeCustomerId: entity.stripeCustomerId,
       stripePlanId: entity.stripePlanId,
       stripeSubscriptionId: entity.stripeSubscriptionId,

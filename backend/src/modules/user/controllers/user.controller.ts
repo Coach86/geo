@@ -9,6 +9,7 @@ import {
   Query,
   NotFoundException,
   BadRequestException,
+  UseGuards,
 } from '@nestjs/common';
 import { UserService } from '../services/user.service';
 import { CreateUserDto } from '../dto/create-user.dto';
@@ -17,9 +18,11 @@ import { UserResponseDto } from '../dto/user-response.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { OrganizationService } from '../../organization/services/organization.service';
 import { ConfigService } from '../../config/services/config.service';
+import { AdminGuard } from '../../auth/guards/admin.guard';
 
 @ApiTags('users')
 @Controller('admin/users')
+@UseGuards(AdminGuard)
 export class UserController {
   constructor(
     private readonly userService: UserService,

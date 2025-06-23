@@ -1,6 +1,24 @@
-import { IsOptional, IsObject, IsArray, IsString } from 'class-validator';
+import { IsOptional, IsObject, IsArray, IsString, IsNotEmpty } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateOrganizationDto {
+  @ApiProperty({
+    description: 'Organization name',
+    required: true,
+    example: 'My Company',
+  })
+  @IsString()
+  @IsNotEmpty()
+  name: string;
+
+  @ApiProperty({
+    description: 'Shopify shop domain (for Shopify app users)',
+    required: false,
+    example: 'myshop.myshopify.com',
+  })
+  @IsString()
+  @IsOptional()
+  shopifyShopDomain?: string;
   @IsOptional()
   @IsObject()
   planSettings?: {

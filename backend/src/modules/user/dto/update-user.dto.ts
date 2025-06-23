@@ -113,4 +113,32 @@ export class UpdateUserDto {
   @IsString()
   @IsOptional()
   organizationId?: string;
+
+  @ApiProperty({
+    description: 'Shopify shop domain (for Shopify app users)',
+    example: 'myshop.myshopify.com',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  shopifyShopDomain?: string;
+
+  @ApiProperty({
+    description: 'Shopify shop ID (for Shopify app users)',
+    example: '12345678',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  shopifyShopId?: string;
+
+  @ApiProperty({
+    description: 'Authentication type',
+    example: 'shopify',
+    enum: ['standard', 'shopify'],
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  authType?: string;
 }

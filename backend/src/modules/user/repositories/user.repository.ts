@@ -46,6 +46,16 @@ export class UserRepository {
   }
 
   /**
+   * Find a user by Shopify shop domain and email
+   */
+  async findByShopifyShop(shopDomain: string, email: string): Promise<UserDocument | null> {
+    return await this.userModel.findOne({ 
+      shopifyShopDomain: shopDomain,
+      email: email 
+    }).exec();
+  }
+
+  /**
    * Find all users
    */
   async findAll(): Promise<UserDocument[]> {
@@ -115,6 +125,9 @@ export class UserRepository {
       organizationId: document.organizationId,
       createdAt: document.createdAt instanceof Date ? document.createdAt : new Date(),
       updatedAt: document.updatedAt instanceof Date ? document.updatedAt : new Date(),
+      shopifyShopDomain: document.shopifyShopDomain,
+      shopifyShopId: document.shopifyShopId,
+      authType: document.authType,
     };
   }
 
