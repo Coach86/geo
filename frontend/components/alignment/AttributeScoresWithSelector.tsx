@@ -106,6 +106,11 @@ export function AttributeScoresWithSelector({
                     day: 'numeric',
                     year: 'numeric'
                   })}
+                  {" "}
+                  {new Date(report.generatedAt).toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
                 </SelectItem>
               ))}
             </SelectContent>

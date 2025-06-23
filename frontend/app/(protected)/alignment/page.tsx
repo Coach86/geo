@@ -202,21 +202,33 @@ export default function AlignmentPage() {
           description="Unlock alignment analysis to understand how well AI models perceive your brand attributes."
         >
           <div className="space-y-6 fade-in-section is-visible">
-            {/* First Row: 3 columns layout like visibility */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Alignment Score Card - 1 column */}
-              <div>
-                <AlignmentScoreCard
-                  brandName={brandName}
-                  averageScore={averageScore}
-                  scoreVariation={scoreVariation}
-                  loading={loadingAlignment}
-                  isAllTime={isAllTime}
-                />
+            {/* First Row: 3 columns grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 min-h-[400px]">
+              {/* Left Column: Table-like structure with 2 rows for cards - 1 column */}
+              <div className="flex flex-col gap-6 h-full">
+                {/* Row 1: Alignment Score */}
+                <div className="flex-1">
+                  <AlignmentScoreCard
+                    brandName={brandName}
+                    averageScore={averageScore}
+                    scoreVariation={scoreVariation}
+                    loading={loadingAlignment}
+                    isAllTime={isAllTime}
+                  />
+                </div>
+                
+                {/* Row 2: Sources Analysis */}
+                <div className="flex-1">
+                  <SourcesAnalysis
+                    citations={citations}
+                    type="alignment"
+                    loading={loadingAlignment}
+                  />
+                </div>
               </div>
 
-              {/* Alignment Trend Chart - Takes 2 columns */}
-              <div className="md:col-span-2">
+              {/* Right Column: Alignment Trend Chart - Takes 2 columns */}
+              <div className="md:col-span-2 h-full">
                 <AlignmentTrendChart
                   data={chartData}
                   brandName={brandName}
@@ -224,26 +236,14 @@ export default function AlignmentPage() {
               </div>
             </div>
 
-            {/* Second Row: 3 columns layout */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Sources Analysis - 1 column */}
-              <div>
-                <SourcesAnalysis
-                  citations={citations}
-                  type="alignment"
-                  loading={loadingAlignment}
-                />
-              </div>
-              
-              {/* Attribute Scores by Model - Takes 2 columns */}
-              <div className="md:col-span-2">
-                <AttributeScoresWithSelector
-                  reports={selectedReports}
-                  selectedReport={selectedAttributeReport}
-                  onReportSelect={setSelectedAttributeReport}
-                  token={token}
-                />
-              </div>
+            {/* Second Row: Attribute Scores by Model - Full width */}
+            <div className="grid grid-cols-1 gap-6">
+              <AttributeScoresWithSelector
+                reports={selectedReports}
+                selectedReport={selectedAttributeReport}
+                onReportSelect={setSelectedAttributeReport}
+                token={token}
+              />
             </div>
 
             {/* Sources Watchtower - Full width */}

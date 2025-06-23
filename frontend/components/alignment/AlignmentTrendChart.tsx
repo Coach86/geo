@@ -44,7 +44,7 @@ export function AlignmentTrendChart({ data, brandName }: AlignmentTrendChartProp
   };
 
   return (
-    <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
+    <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300 h-full">
       <CardHeader className="pb-4">
         <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
           <TrendingUp className="h-5 w-5 text-primary-600" />
@@ -55,7 +55,7 @@ export function AlignmentTrendChart({ data, brandName }: AlignmentTrendChartProp
         </p>
       </CardHeader>
       <CardContent>
-        <div className="h-64 w-full">
+        <div className="h-[280px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={chartData}

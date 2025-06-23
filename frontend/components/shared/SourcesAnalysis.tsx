@@ -75,15 +75,15 @@ export function SourcesAnalysis({ citations, type, loading }: SourcesAnalysisPro
 
   if (loading) {
     return (
-      <Card className="border-0 shadow-sm">
+      <Card className="border-0 shadow-sm h-full">
         <CardHeader className="pb-4">
           <div className="h-6 bg-gray-200 rounded w-32 animate-pulse"></div>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <div className="h-8 bg-gray-200 rounded w-20 animate-pulse"></div>
+        <CardContent className="flex-1 flex flex-col justify-center">
+          <div className="space-y-3 w-full">
+            <div className="h-8 bg-gray-200 rounded w-20 animate-pulse mx-auto"></div>
             <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
-            <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+            <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse mx-auto"></div>
           </div>
         </CardContent>
       </Card>
@@ -117,15 +117,15 @@ export function SourcesAnalysis({ citations, type, loading }: SourcesAnalysisPro
   };
 
   return (
-    <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
+    <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300 h-full">
       <CardHeader className="pb-2">
         <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
           <Globe className="h-5 w-5 text-blue-600" />
           Sources Analysis
         </CardTitle>
       </CardHeader>
-      <CardContent className="pt-2">
-        <div>
+      <CardContent className="pt-2 flex-1 flex flex-col justify-center">
+        <div className="w-full">
           {/* Main Metric */}
           <div className="text-center">
             <div className="flex items-center justify-center gap-2 mb-1">

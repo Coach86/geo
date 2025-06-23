@@ -81,16 +81,6 @@ export function CompetitorsList({ project, onEdit, onUpdate }: CompetitorsListPr
               >
                 <CompetitorFavicon website={detail?.website} name={name} />
                 <span>{name}</span>
-                {detail?.website && (
-                  <a 
-                    href={detail.website} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="ml-auto text-xs text-gray-500 hover:text-gray-700"
-                  >
-                    Visit
-                  </a>
-                )}
               </div>
             ))
           ) : (
@@ -140,16 +130,6 @@ export function CompetitorsList({ project, onEdit, onUpdate }: CompetitorsListPr
                     >
                       <CompetitorFavicon website={detail?.website} name={name} />
                       <span className="flex-1">{name}</span>
-                      {detail?.website && (
-                        <a 
-                          href={detail.website} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-xs text-gray-500 hover:text-gray-700"
-                        >
-                          Visit
-                        </a>
-                      )}
                     </div>
                   );
                 })
