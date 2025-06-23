@@ -76,6 +76,12 @@ export class Organization {
   // Promo code tracking
   @Prop({ type: String })
   promoCode?: string;
+
+  @Prop({ required: true })
+  name: string;
+
+  @Prop({ type: String, sparse: true, index: true })
+  shopifyShopDomain?: string;
 }
 
 export const OrganizationSchema = SchemaFactory.createForClass(Organization);
@@ -83,3 +89,4 @@ export const OrganizationSchema = SchemaFactory.createForClass(Organization);
 // Add indexes
 OrganizationSchema.index({ id: 1 });
 OrganizationSchema.index({ stripeCustomerId: 1 });
+OrganizationSchema.index({ shopifyShopDomain: 1 });
