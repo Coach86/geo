@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { validateToken, getUserProfile } from '@/lib/auth-api';
 import { clearAllSelectedReportIds } from '@/lib/report-selection';
+import { clearNavigationPersistence } from '@/lib/navigation-persistence';
 import { usePostHog } from 'posthog-js/react';
 
 interface AuthUser {
@@ -99,6 +100,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('authToken');
     localStorage.removeItem('userId');
     localStorage.removeItem('pendingUserId');
+    
+    // Clear navigation persistence
+    clearNavigationPersistence();
     
     // Reset PostHog identity
     if (posthog) {

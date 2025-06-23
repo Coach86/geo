@@ -46,10 +46,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
           return;
         }
       }
-      // If no valid persisted project, select first project
-      if (allProjects.length > 0) {
-        setSelectedProject(allProjects[0]);
-      }
+      // Don't automatically select a project - let the user choose
     }
   }, [allProjects, selectedProject]);
 

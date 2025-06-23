@@ -68,6 +68,7 @@ export default function Sidebar({
         projects={identityCards}
         selectedProject={selectedProject}
         onProjectSelect={onProjectSelect}
+        variant={variant}
       />
 
       {/* Home Link - Always visible */}
