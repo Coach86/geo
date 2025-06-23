@@ -1,13 +1,11 @@
 "use client"
 
 import { useNavigation } from "@/providers/navigation-provider"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus, Calendar, BarChart3, Globe } from "lucide-react"
+import { Plus } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import AddProjectModal from "@/components/AddProjectModal"
-import { formatDistanceToNow } from "date-fns"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/providers/auth-provider"
 import { createProjectFromUrl, ProjectResponse } from "@/lib/auth-api"
@@ -17,9 +15,12 @@ import { toast } from "@/hooks/use-toast"
 import { useAnalytics } from "@/hooks/use-analytics"
 import { useCelebration } from "@/hooks/use-celebration"
 import { CelebrationConfetti } from "@/components/ui/celebration-confetti"
+import { ProjectOverviewCard } from "@/components/home/ProjectOverviewCard"
+import { MintScoreCard } from "@/components/home/MintScoreCard"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 
 export default function HomePage() {
-  const { filteredProjects, allProjects, setSelectedProject } = useNavigation()
+  const { allProjects, setSelectedProject } = useNavigation()
   const { token } = useAuth()
   const router = useRouter()
   const analytics = useAnalytics()
@@ -59,6 +60,14 @@ export default function HomePage() {
     router.push("/project-settings")
   }
 
+  const handleGoToProject = (project: ProjectResponse) => {
+    analytics.trackProjectViewed(project.id, project.brandName)
+    setSelectedProject(project)
+    // Store the selected project ID in localStorage
+    localStorage.setItem('selectedProjectId', project.id)
+    router.push("/visibility") // Navigate to the project dashboard
+  }
+
   const handleAddProjectClick = () => {
     if (!organization) {
       setShowAddProjectModal(true)
@@ -95,18 +104,12 @@ export default function HomePage() {
     return (
       <div className="container mx-auto py-8">
         <h1 className="text-3xl font-bold mb-8">Projects</h1>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3].map((i) => (
-            <Card key={i} className="h-[200px]">
-              <CardHeader>
-                <Skeleton className="h-6 w-3/4 mb-2" />
-                <Skeleton className="h-4 w-1/2" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-4 w-full mb-2" />
-                <Skeleton className="h-4 w-5/6" />
-              </CardContent>
-            </Card>
+        <div className="space-y-6">
+          {[1, 2].map((i) => (
+            <div key={i} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Skeleton className="h-[200px] rounded-lg" />
+              <Skeleton className="h-[200px] rounded-lg" />
+            </div>
           ))}
         </div>
       </div>
@@ -117,93 +120,34 @@ export default function HomePage() {
     <div className="container mx-auto py-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Projects</h1>
-        <div className="text-sm text-muted-foreground">
-          {filteredProjects.length} project{filteredProjects.length !== 1 ? "s" : ""}
-        </div>
+        <Button onClick={handleAddProjectClick} size="default">
+          <Plus className="h-4 w-4 mr-2" />
+          Add Project
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* Project Cards */}
-        {filteredProjects.map((project) => (
-          <Card
-            key={project.id}
-            className="cursor-pointer hover:shadow-lg transition-shadow"
-            onClick={() => handleProjectClick(project)}
-          >
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <CardTitle className="text-xl mb-1">
-                    {project.name || project.brandName}
-                  </CardTitle>
-                  <CardDescription className="flex items-center gap-2 text-sm">
-                    <Globe className="h-3 w-3" />
-                    {project.market}
-                    {project.language && ` • ${project.language}`}
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
-                {project.shortDescription}
-              </p>
-
-              <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
-                <div className="flex items-center gap-1">
-                  <BarChart3 className="h-3 w-3" />
-                  <span>{project.keyBrandAttributes?.length || 0} attributes</span>
-                </div>
-
-                {project.generatedAt && (
-                  <div className="flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
-                    <span>
-                      {formatDistanceToNow(new Date(project.generatedAt), {
-                        addSuffix: true
-                      })}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Go to Project Button */}
-              <div className="flex justify-end">
-                <Button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleProjectClick(project)
-                  }}
-                  variant="default"
-                  size="sm"
-                  className="w-1/2 bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  Go to Project
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+      <div className="space-y-6">
+        {/* Project Cards - One per row with two columns */}
+        {allProjects.map((project) => (
+          <div key={project.id} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <ProjectOverviewCard 
+              project={project} 
+              onClick={() => handleProjectClick(project)}
+              onGoToProject={() => handleGoToProject(project)}
+            />
+            <MintScoreCard 
+              projectId={project.id} 
+              token={token!} 
+            />
+          </div>
         ))}
 
-        {/* Add Project Card - at the end */}
-        <Card
-          className="border-dashed cursor-pointer hover:bg-accent/50 transition-colors flex items-center justify-center min-h-[200px]"
-          onClick={handleAddProjectClick}
-        >
-          <div className="text-center">
-            <Plus className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-semibold">Add New Project</h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              Create a new brand analysis project
-            </p>
-          </div>
-        </Card>
       </div>
 
-      {filteredProjects.length === 0 && (
+      {allProjects.length === 0 && (
         <div className="text-center py-12">
           <p className="text-muted-foreground mb-4">
-            No projects found for the selected domain.
+            No projects yet. Create your first project to get started.
           </p>
           <Button onClick={handleAddProjectClick}>
             <Plus className="h-4 w-4 mr-2" />

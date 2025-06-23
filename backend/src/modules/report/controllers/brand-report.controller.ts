@@ -2,6 +2,12 @@ import { Controller, Get, Param, Query, Req, UnauthorizedException } from '@nest
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { BrandReportService } from '../services/brand-report.service';
 import { BrandReportResponseDto } from '../dto/brand-report-response.dto';
+import { AggregatedReportQueryDto } from '../dto/aggregated-report-query.dto';
+import { AggregatedVisibilityResponseDto } from '../dto/aggregated-visibility-response.dto';
+import { AggregatedAlignmentResponseDto } from '../dto/aggregated-alignment-response.dto';
+import { AggregatedSentimentResponseDto } from '../dto/aggregated-sentiment-response.dto';
+import { AggregatedExplorerResponseDto } from '../dto/aggregated-explorer-response.dto';
+import { AggregatedCompetitionResponseDto } from '../dto/aggregated-competition-response.dto';
 import { TokenRoute } from '../../auth/decorators/token-route.decorator';
 import { TokenService } from '../../auth/services/token.service';
 
@@ -99,5 +105,90 @@ export class BrandReportController {
   ) {
     // Token validation is handled by TokenAuthGuard via @TokenRoute decorator
     return this.brandReportService.getCompetitionData(reportId);
+  }
+
+  @Get('project/:projectId/visibility/aggregated')
+  @TokenRoute()
+  @ApiOperation({ summary: 'Get aggregated visibility data for a project' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Aggregated visibility data',
+    type: AggregatedVisibilityResponseDto 
+  })
+  async getAggregatedVisibility(
+    @Req() request: any,
+    @Param('projectId') projectId: string,
+    @Query() query: AggregatedReportQueryDto
+  ): Promise<AggregatedVisibilityResponseDto> {
+    // Token validation is handled by TokenAuthGuard via @TokenRoute decorator
+    return this.brandReportService.getAggregatedVisibility(projectId, query);
+  }
+
+  @Get('project/:projectId/alignment/aggregated')
+  @TokenRoute()
+  @ApiOperation({ summary: 'Get aggregated alignment data for a project' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Aggregated alignment data',
+    type: AggregatedAlignmentResponseDto 
+  })
+  async getAggregatedAlignment(
+    @Req() request: any,
+    @Param('projectId') projectId: string,
+    @Query() query: AggregatedReportQueryDto
+  ): Promise<AggregatedAlignmentResponseDto> {
+    // Token validation is handled by TokenAuthGuard via @TokenRoute decorator
+    return this.brandReportService.getAggregatedAlignment(projectId, query);
+  }
+
+  @Get('project/:projectId/sentiment/aggregated')
+  @TokenRoute()
+  @ApiOperation({ summary: 'Get aggregated sentiment data for a project' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Aggregated sentiment data',
+    type: AggregatedSentimentResponseDto 
+  })
+  async getAggregatedSentiment(
+    @Req() request: any,
+    @Param('projectId') projectId: string,
+    @Query() query: AggregatedReportQueryDto
+  ): Promise<AggregatedSentimentResponseDto> {
+    // Token validation is handled by TokenAuthGuard via @TokenRoute decorator
+    return this.brandReportService.getAggregatedSentiment(projectId, query);
+  }
+
+  @Get('project/:projectId/explorer/aggregated')
+  @TokenRoute()
+  @ApiOperation({ summary: 'Get aggregated explorer data for a project' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Aggregated explorer data',
+    type: AggregatedExplorerResponseDto 
+  })
+  async getAggregatedExplorer(
+    @Req() request: any,
+    @Param('projectId') projectId: string,
+    @Query() query: AggregatedReportQueryDto
+  ): Promise<AggregatedExplorerResponseDto> {
+    // Token validation is handled by TokenAuthGuard via @TokenRoute decorator
+    return this.brandReportService.getAggregatedExplorer(projectId, query);
+  }
+
+  @Get('project/:projectId/competition/aggregated')
+  @TokenRoute()
+  @ApiOperation({ summary: 'Get aggregated competition data for a project' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Aggregated competition data',
+    type: AggregatedCompetitionResponseDto 
+  })
+  async getAggregatedCompetition(
+    @Req() request: any,
+    @Param('projectId') projectId: string,
+    @Query() query: AggregatedReportQueryDto
+  ): Promise<AggregatedCompetitionResponseDto> {
+    // Token validation is handled by TokenAuthGuard via @TokenRoute decorator
+    return this.brandReportService.getAggregatedCompetition(projectId, query);
   }
 }

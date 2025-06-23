@@ -49,7 +49,7 @@ export class CompetitionPipelineService extends BasePipelineService {
    */
   async run(context: ProjectBatchContext): Promise<CompetitionResults> {
     this.logger.log(
-      `Running competition pipeline for ${context.projectId} (${context.brandName})`,
+      `[COMP-001] Running competition pipeline for ${context.projectId} (${context.brandName})`,
     );
 
     try {
@@ -73,8 +73,16 @@ export class CompetitionPipelineService extends BasePipelineService {
       const competitionResults = await this.runCompetition(context, competitionPrompts, competitors);
 
       this.logger.log(
-        `Completed competition pipeline for ${context.projectId} with ${competitionResults.results.length} results`,
+        `[COMP-002] Completed competition pipeline for ${context.projectId} with ${competitionResults.results.length} results`,
       );
+      
+      // Log detailed results
+      this.logger.log(`[COMP-003] Competition results structure: ${JSON.stringify({
+        resultsCount: competitionResults.results.length,
+        hasFirstResult: !!competitionResults.results[0],
+        firstResultHasLlmResponse: competitionResults.results[0]?.llmResponse ? true : false,
+        firstResultLlmResponseLength: competitionResults.results[0]?.llmResponse?.length || 0
+      })}`);
 
       return competitionResults;
     } catch (error) {
@@ -175,7 +183,7 @@ export class CompetitionPipelineService extends BasePipelineService {
     competitors: string[],
   ): Promise<CompetitionResults> {
     this.logger.log(
-      `Running competition for ${context.projectId} against ${competitors.length} competitors`,
+      `[COMP-004] Running competition for ${context.projectId} against ${competitors.length} competitors`,
     );
 
     // Get the enabled LLM models
@@ -198,6 +206,8 @@ export class CompetitionPipelineService extends BasePipelineService {
 
     // Create tasks for each model, prompt, and competitor
     const tasks = [];
+    
+    this.logger.log(`[COMP-005] Creating tasks for ${enabledModels.length} models, ${prompts.length} prompts, ${competitors.length} competitors`);
 
     for (const modelConfig of enabledModels) {
       for (let promptIndex = 0; promptIndex < prompts.length; promptIndex++) {
@@ -245,6 +255,7 @@ export class CompetitionPipelineService extends BasePipelineService {
                   brandStrengths: [],
                   brandWeaknesses: [],
                   originalPrompt: formattedPrompt,
+                  llmResponse: '', // Empty on error
                   error: error.message,
                 };
               }
@@ -256,6 +267,13 @@ export class CompetitionPipelineService extends BasePipelineService {
 
     // Run all tasks
     const results = await Promise.all(tasks);
+    
+    this.logger.log(`[COMP-006] Completed ${results.length} tasks. First result: ${JSON.stringify({
+      hasResult: !!results[0],
+      model: results[0]?.llmModel,
+      hasLlmResponse: !!results[0]?.llmResponse,
+      llmResponseLength: results[0]?.llmResponse?.length || 0
+    })}`);
 
     // Analyze and summarize competition results
     const competitorAnalyses = this.analyzeCompetitionResults(
@@ -271,7 +289,9 @@ export class CompetitionPipelineService extends BasePipelineService {
     // Generate web search summary
     const webSearchSummary = this.createWebSearchSummary(results);
 
-    return {
+    this.logger.log(`[COMP-007] Returning CompetitionResults with ${results.length} results, ${competitorAnalyses.length} competitor analyses`);
+    
+    const competitionResults = {
       results,
       summary: {
         competitorAnalyses,
@@ -280,6 +300,22 @@ export class CompetitionPipelineService extends BasePipelineService {
       },
       webSearchSummary,
     };
+    
+    // Log first result for debugging
+    if (results.length > 0) {
+      this.logger.log(`[COMP-008] First result: ${JSON.stringify({
+        model: results[0].llmModel,
+        competitor: results[0].competitor,
+        hasOriginalPrompt: !!results[0].originalPrompt,
+        hasLlmResponse: !!results[0].llmResponse,
+        hasError: !!results[0].error,
+        strengthsCount: results[0].brandStrengths?.length || 0,
+        weaknessesCount: results[0].brandWeaknesses?.length || 0,
+      })}`);
+    }
+    
+    this.logger.log(`[COMP-009] Final return - results count: ${competitionResults.results.length}, first result has llmResponse: ${competitionResults.results.length > 0 ? !!competitionResults.results[0].llmResponse : 'N/A'}`);
+    return competitionResults;
   }
 
   /**
@@ -320,7 +356,7 @@ export class CompetitionPipelineService extends BasePipelineService {
     error?: string;
   }> {
     this.logger.log(
-      `Analyzing competition response from ${modelConfig.provider}/${modelConfig.model} for ${brandName} vs ${competitor}`,
+      `[COMP-010] Analyzing competition response from ${modelConfig.provider}/${modelConfig.model} for ${brandName} vs ${competitor}`,
     );
 
     // Extract the text from the response object
@@ -331,6 +367,16 @@ export class CompetitionPipelineService extends BasePipelineService {
 
     // Extract metadata if available
     const metadata = typeof llmResponseObj === 'string' ? {} : llmResponseObj.metadata || {};
+    
+    // Debug logging
+    this.logger.log(`[COMP-011] Competition response metadata: ${JSON.stringify({
+      hasMetadata: !!metadata,
+      usedWebSearch: metadata.usedWebSearch,
+      annotationsCount: metadata.annotations?.length || 0,
+      toolUsageCount: metadata.toolUsage?.length || 0,
+      llmResponseLength: llmResponse?.length || 0,
+      llmResponsePreview: llmResponse?.substring(0, 50) + '...'
+    })}`);
 
     // Define the schema for structured output
     const schema = z.object({
@@ -367,7 +413,7 @@ export class CompetitionPipelineService extends BasePipelineService {
         `${modelConfig.model}_${competitor}`,
       );
 
-      return {
+      const competitionResult = {
         llmProvider: modelConfig.provider,
         llmModel: modelConfig.model,
         promptIndex,
@@ -381,6 +427,18 @@ export class CompetitionPipelineService extends BasePipelineService {
         citations: metadata.annotations || ([] as unknown[]),
         toolUsage: metadata.toolUsage || ([] as unknown[]),
       };
+      
+      // Debug logging
+      this.logger.log(`[COMP-012] Returning competition result: ${JSON.stringify({
+        model: competitionResult.llmModel,
+        competitor: competitionResult.competitor,
+        citationsCount: competitionResult.citations.length,
+        usedWebSearch: competitionResult.usedWebSearch,
+        hasLlmResponse: !!competitionResult.llmResponse,
+        llmResponseLength: competitionResult.llmResponse?.length || 0
+      })}`);
+      
+      return competitionResult;
     } catch (error) {
       this.logger.error(`All analyzers failed for competition analysis: ${error.message}`);
       throw error;

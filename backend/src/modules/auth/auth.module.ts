@@ -13,12 +13,14 @@ import { AuthController } from './controllers/auth.controller';
 import { PublicAuthController } from './controllers/public-auth.controller';
 import { TokenController } from './controllers/token.controller';
 import { ShopifyAuthController } from './controllers/shopify-auth.controller';
+import { UserAuthController } from './controllers/user-auth.controller';
 import { TokenAuthGuard } from './guards/token-auth.guard';
 import { Admin, AdminSchema } from './schemas/admin.schema';
 import { AccessToken, AccessTokenSchema } from './schemas/access-token.schema';
 import { ReportModule } from '../report/report.module';
 import { UserModule } from '../user/user.module';
 import { OrganizationModule } from '../organization/organization.module';
+import { PromoModule } from '../promo/promo.module';
 import { AdminRepository } from './repositories/admin.repository';
 import { AccessTokenRepository } from './repositories/access-token.repository';
 
@@ -39,17 +41,18 @@ import { AccessTokenRepository } from './repositories/access-token.repository';
     ]),
     forwardRef(() => ReportModule),
     forwardRef(() => UserModule),
+    forwardRef(() => PromoModule),
     forwardRef(() => OrganizationModule),
   ],
   providers: [
-    AuthService, 
-    TokenService, 
-    JwtTokenService, 
+    AuthService,
+    TokenService,
+    JwtTokenService,
     ShopifyAuthService,
-    LocalStrategy, 
-    JwtStrategy, 
+    LocalStrategy,
+    JwtStrategy,
     TokenAuthGuard,
-    AdminRepository, 
+    AdminRepository,
     AccessTokenRepository
   ],
   controllers: [AuthController, PublicAuthController, TokenController, ShopifyAuthController],

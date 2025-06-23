@@ -1,6 +1,6 @@
 import type React from "react";
 import type { Metadata } from "next";
-import { DM_Sans, Inconsolata } from "next/font/google";
+import { Inter, Inconsolata } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { AuthProvider } from "@/providers/auth-provider";
@@ -9,9 +9,9 @@ import { ReportProvider } from "@/providers/report-provider";
 import { PostHogProvider } from "@/providers/posthog-provider";
 import { NotificationProvider } from "@/providers/notification-provider";
 
-const dmSans = DM_Sans({
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-dm-sans",
+  variable: "--font-inter",
   display: "swap",
 });
 
@@ -34,7 +34,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${dmSans.variable} ${inconsolata.variable} font-sans`}>
+      <body className={`${inter.variable} ${inconsolata.variable} font-sans`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="light"

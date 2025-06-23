@@ -28,7 +28,6 @@ function DashboardLayoutContent({ children }: DashboardLayoutProps) {
     setAllProjects,
     selectedProject,
     setSelectedProject,
-    filteredProjects,
   } = useNavigation();
 
   useEffect(() => {

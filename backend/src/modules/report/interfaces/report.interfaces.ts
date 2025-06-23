@@ -22,10 +22,6 @@ export interface ExplorerData {
     totalCitations: number;
     uniqueSources: number;
   };
-  topMentions: {
-    mention: string;
-    count: number;
-  }[];
   topKeywords: {
     keyword: string;
     count: number;
@@ -59,21 +55,43 @@ export interface ExplorerData {
 
 // Visibility data - brand mention rates
 export interface VisibilityData {
-  overallMentionRate: number;
-  promptsTested: number;
+  brandName: string;
+  mentionRate: number;
+  topMentions: {
+    mention: string;
+    count: number;
+  }[];
+  competitorRanks: {
+    competitor: string;
+    count: number;
+    rank: number;
+  }[];
   modelVisibility: {
     model: string;
-    mentionRate: number;
+    mentioned: boolean;
+    brandMentionCount: number;
+    topOtherMentions: {
+      company: string;
+      count: number;
+    }[];
   }[];
-  // Arena metrics extracted for visibility page - competitor comparison data
   arenaMetrics: {
-    name: string;
-    size?: 'lg' | 'md' | 'sm';
-    global?: string;
-    modelsMentionsRate?: Array<{
-      model: string;
-      mentionsRate: number;
-    }>;
+    mentionRate: number;
+    avgRank: number;
+    modelsMentioningBrand: number;
+    totalModels: number;
+  };
+  allMentionedCompanies: string[];
+  detailedResults?: {
+    model: string;
+    promptIndex: number;
+    brandMentioned: boolean;
+    extractedCompanies: string[];
+    originalPrompt: string;
+    llmResponse: string;
+    usedWebSearch: boolean;
+    citations: any[];
+    toolUsage: any[];
   }[];
 }
 
@@ -101,7 +119,21 @@ export interface SentimentData {
       sentiment: 'positive' | 'neutral' | 'negative';
       status: 'green' | 'yellow' | 'red';
       llmResponse?: string;
+      citations?: any[];
+      toolUsage?: any[];
     }[];
+  }[];
+  detailedResults?: {
+    model: string;
+    promptIndex: number;
+    originalPrompt: string;
+    llmResponse: string;
+    sentiment: 'positive' | 'neutral' | 'negative';
+    extractedPositiveKeywords: string[];
+    extractedNegativeKeywords: string[];
+    usedWebSearch: boolean;
+    citations: any[];
+    toolUsage: any[];
   }[];
 }
 
@@ -157,6 +189,31 @@ export interface CompetitionData {
   }[];
   commonStrengths: string[];
   commonWeaknesses: string[];
+  // Detailed results with citations
+  detailedResults?: {
+    model: string;
+    promptIndex: number;
+    competitor: string;
+    originalPrompt: string;
+    llmResponse: string;
+    brandStrengths: string[];
+    brandWeaknesses: string[];
+    usedWebSearch: boolean;
+    citations: {
+      url: string;
+      title?: string;
+      text?: string;
+    }[];
+    toolUsage: {
+      type: string;
+      parameters?: Record<string, unknown>;
+      execution_details?: {
+        status: string;
+        result?: unknown;
+        error?: string;
+      };
+    }[];
+  }[];
 }
 
 // Main report structure
@@ -172,7 +229,7 @@ export interface ReportStructure {
   
   // Main analysis fields
   explorer: ExplorerData;
-  visibility: VisibilityData;
+  visibility: VisibilityData | any; // Allow both new interface and database structure
   sentiment: SentimentData;
   alignment: AlignmentData;
   competition: CompetitionData;

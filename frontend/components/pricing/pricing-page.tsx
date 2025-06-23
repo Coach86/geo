@@ -42,6 +42,7 @@ export default function PricingPage({
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [contactSalesOpen, setContactSalesOpen] = useState(false);
   const [contactPlanName, setContactPlanName] = useState<string>("");
+  const [hasPromoCode, setHasPromoCode] = useState(false);
 
   // Ensure data is loaded from localStorage
   useEffect(() => {
@@ -55,12 +56,17 @@ export default function PricingPage({
       (formData.prompts?.llmModels?.some((m: any) => m.selected));
     setIsDataLoaded(hasData);
 
+    // Check for promo code
+    const promoCode = localStorage.getItem("promoCode");
+    setHasPromoCode(!!promoCode);
+
     // Log data for debugging
     console.log("Onboarding data in pricing page:", {
       website: formData.project?.website,
       markets: formData.brand?.markets,
       modelCount: formData.prompts?.llmModels?.filter((m: any) => m.selected).length || 0,
       competitorCount: formData.brand?.competitors?.filter((c: any) => c.selected).length || 0,
+      hasPromoCode: !!promoCode,
     });
   }, []);
 
@@ -216,8 +222,9 @@ export default function PricingPage({
   const enterprisePlan = staticPlansWithActions.find(p => p.name.toLowerCase().includes('enterprise') || p.name.toLowerCase().includes('agencies'));
   
   // Regular pricing plans (excluding enterprise)
+  // Hide free plan if promo code is present
   const pricingPlans = loading ? [] : [
-    ...(freePlan ? [freePlan] : []),
+    ...(freePlan && !hasPromoCode ? [freePlan] : []),
     ...dynamicPlans
   ];
 
