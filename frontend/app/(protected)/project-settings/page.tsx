@@ -281,7 +281,7 @@ export default function Home() {
               projects={allProjects}
               selectedProject={selectedProject}
               onProjectSelect={setSelectedProject}
-              currentPage="Profile"
+              currentPage="Project Settings"
               showReportSelector={false}
             />
             

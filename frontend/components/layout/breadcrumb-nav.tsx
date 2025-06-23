@@ -25,8 +25,18 @@ export default function BreadcrumbNav({
 }: BreadcrumbNavProps) {
   return (
     <nav className="inline-flex items-center gap-2 text-sm bg-gray-50/50 backdrop-blur-sm rounded-lg px-3 py-2 border border-gray-200/50">
-      {/* Current Page */}
-      <span className="font-semibold text-gray-900 flex-shrink-0">{currentPage}</span>
+      {/* Project Name */}
+      {selectedProject && (
+        <>
+          <span className="text-gray-600 flex-shrink-0">
+            {selectedProject.name || selectedProject.brandName}
+          </span>
+          <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
+        </>
+      )}
+      
+      {/* Feature Name */}
+      <span className="text-gray-600 flex-shrink-0">{currentPage}</span>
 
       {/* Report Selector (if applicable) */}
       {showReportSelector && token && selectedProject && (

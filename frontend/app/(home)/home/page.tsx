@@ -2,7 +2,7 @@
 
 import { useNavigation } from "@/providers/navigation-provider"
 import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
+import { Plus, Settings } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import AddProjectModal from "@/components/AddProjectModal"
@@ -120,10 +120,20 @@ export default function HomePage() {
     <div className="container mx-auto py-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Projects</h1>
-        <Button onClick={handleAddProjectClick} size="default">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Project
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={handleAddProjectClick} size="default">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Project
+          </Button>
+          <Button 
+            onClick={() => router.push("/settings")} 
+            size="default" 
+            variant="outline"
+          >
+            <Settings className="h-4 w-4 mr-2" />
+            Settings
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-6">

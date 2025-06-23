@@ -349,9 +349,11 @@ export class BatchController {
           heatmapData: [],
         },
         alignment: {
-          overallAlignmentScore: 0,
-          averageAttributeScores: {},
-          attributeAlignmentSummary: [],
+          summary: {
+            overallAlignmentScore: 0,
+            averageAttributeScores: {},
+            attributeAlignmentSummary: [],
+          },
           detailedResults: [],
         },
         competition: {

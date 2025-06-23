@@ -47,7 +47,7 @@ export function CompetitorsList({ project, onEdit, onUpdate }: CompetitorsListPr
             displayedCompetitors.map((competitor, index) => (
               <div
                 key={index}
-                className="px-3 py-3 bg-gray-50 hover:bg-gray-100 rounded-md text-sm text-gray-700 transition-colors min-h-[2.75rem] flex items-center"
+                className="px-3 py-3 bg-gray-50 rounded-md text-sm text-gray-700 min-h-[2.75rem] flex items-center"
               >
                 {competitor}
               </div>

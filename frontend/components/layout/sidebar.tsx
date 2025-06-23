@@ -9,8 +9,8 @@ import {
   Swords,
   Lightbulb,
   Home,
-  Building2,
   SlidersHorizontal,
+  Settings,
 } from "lucide-react";
 import {
   ProjectResponse,
@@ -43,14 +43,12 @@ interface SidebarProps {
   identityCards: ProjectResponse[];
   selectedProject: ProjectResponse | null;
   onProjectSelect: (project: ProjectResponse) => void;
-  variant?: 'project' | 'global';
 }
 
 export default function Sidebar({
   identityCards,
   selectedProject,
   onProjectSelect,
-  variant = 'project',
 }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -68,7 +66,6 @@ export default function Sidebar({
         projects={identityCards}
         selectedProject={selectedProject}
         onProjectSelect={onProjectSelect}
-        variant={variant}
       />
 
       {/* Home Link - Always visible */}
@@ -94,139 +91,133 @@ export default function Sidebar({
       </div>
 
       {/* Navigation */}
-      {variant === 'project' && (
-        <nav className="flex-1 overflow-y-auto py-4 px-2">
+      <nav className="flex-1 overflow-y-auto py-4 px-2">
 
-          {/* Insights Section */}
-          <div className="mb-6">
-            <div className="px-3 mb-2 text-xs font-semibold text-dark-500 tracking-widest uppercase">
-              Insights
-            </div>
-            <ul className="space-y-1">
-              {insightsMenuItems.map((item) => {
-                const isActive = pathname === item.href;
-                const hasAccess = !item.feature || featureAccess[item.feature];
-                const isLocked = item.feature && !hasAccess && featureAccess.isFreePlan;
-                
-                return (
-                  <li key={item.label}>
-                    <Link
-                      href={item.href}
-                      onClick={undefined}
-                      className={`
-                        flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors
-                        ${
-                          isActive
-                            ? "bg-accent-50 text-accent-700"
-                            : isLocked
-                            ? "text-dark-600 hover:bg-dark-50 cursor-pointer"
-                            : "text-dark-600 hover:bg-dark-50"
-                        }
-                      `}
-                    >
-                      <item.icon
-                        className={`w-5 h-5 ${
-                          isActive ? "text-accent-600" : "text-dark-400"
-                        }`}
-                      />
-                      <span className="flex-1">{item.label}</span>
-                      {item.badge && (
-                        <span className="ml-auto inline-block rounded bg-accent-100 px-2 py-0.5 text-xs font-semibold text-accent-700">
-                          {item.badge}
-                        </span>
-                      )}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
+        {/* Insights Section */}
+        <div className="mb-6">
+          <div className="px-3 mb-2 text-xs font-semibold text-dark-500 tracking-widest uppercase">
+            Insights
           </div>
+          <ul className="space-y-1">
+            {insightsMenuItems.map((item) => {
+              const isActive = pathname === item.href;
+              const hasAccess = !item.feature || featureAccess[item.feature];
+              const isLocked = item.feature && !hasAccess && featureAccess.isFreePlan;
+              
+              return (
+                <li key={item.label}>
+                  <Link
+                    href={item.href}
+                    onClick={undefined}
+                    className={`
+                      flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors
+                      ${
+                        isActive
+                          ? "bg-accent-50 text-accent-700"
+                          : isLocked
+                          ? "text-dark-600 hover:bg-dark-50 cursor-pointer"
+                          : "text-dark-600 hover:bg-dark-50"
+                      }
+                    `}
+                  >
+                    <item.icon
+                      className={`w-5 h-5 ${
+                        isActive ? "text-accent-600" : "text-dark-400"
+                      }`}
+                    />
+                    <span className="flex-1">{item.label}</span>
+                    {item.badge && (
+                      <span className="ml-auto inline-block rounded bg-accent-100 px-2 py-0.5 text-xs font-semibold text-accent-700">
+                        {item.badge}
+                      </span>
+                    )}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
 
-          {/* Optimization Section */}
-          <div className="mb-4">
-            <div className="px-3 mb-2 text-xs font-semibold text-dark-500 tracking-widest uppercase">
-              Optimization
-            </div>
-            <ul className="space-y-1">
-              {optimizationMenuItems.map((item) => {
-                const isActive = pathname === item.href;
-                return (
-                  <li key={item.label}>
-                    <Link
-                      href={item.href}
-                      className={`
-                        flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors
-                        ${
-                          isActive
-                            ? "bg-accent-50 text-accent-700"
-                            : "text-dark-600 hover:bg-dark-50"
-                        }
-                      `}
-                    >
-                      <item.icon
-                        className={`w-5 h-5 ${
-                          isActive ? "text-accent-600" : "text-dark-400"
-                        }`}
-                      />
-                      <span className="flex-1">{item.label}</span>
-                      {item.badge && (
-                        <span className="ml-auto inline-block rounded bg-accent-100 px-2 py-0.5 text-xs font-semibold text-accent-700">
-                          {item.badge}
-                        </span>
-                      )}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
+        {/* Optimization Section */}
+        <div className="mb-4">
+          <div className="px-3 mb-2 text-xs font-semibold text-dark-500 tracking-widest uppercase">
+            Optimization
           </div>
-        </nav>
-      )}
-      {variant === 'global' && <div className="flex-1" />}
+          <ul className="space-y-1">
+            {optimizationMenuItems.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <li key={item.label}>
+                  <Link
+                    href={item.href}
+                    className={`
+                      flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors
+                      ${
+                        isActive
+                          ? "bg-accent-50 text-accent-700"
+                          : "text-dark-600 hover:bg-dark-50"
+                      }
+                    `}
+                  >
+                    <item.icon
+                      className={`w-5 h-5 ${
+                        isActive ? "text-accent-600" : "text-dark-400"
+                      }`}
+                    />
+                    <span className="flex-1">{item.label}</span>
+                    {item.badge && (
+                      <span className="ml-auto inline-block rounded bg-accent-100 px-2 py-0.5 text-xs font-semibold text-accent-700">
+                        {item.badge}
+                      </span>
+                    )}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </nav>
 
       {/* Bottom Actions - Fixed at bottom */}
       <div className="border-t">
         {/* Settings Links */}
         <div className="p-4 space-y-2">
-          {variant === 'project' ? (
-            <Link
-              href="/project-settings"
-              className={`
-                flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors
-                ${
-                  pathname === "/project-settings"
-                    ? "bg-purple-50 text-purple-700"
-                    : "text-dark-600 hover:bg-dark-50"
-                }
-              `}
-            >
-              <SlidersHorizontal
-                className={`w-5 h-5 ${
-                  pathname === "/project-settings" ? "text-purple-600" : "text-dark-400"
-                }`}
-              />
-              <span className="flex-1">Project Settings</span>
-            </Link>
-          ) : (
-            <Link
-              href="/settings"
-              className={`
-                flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors
-                ${
-                  pathname === "/settings"
-                    ? "bg-accent-50 text-accent-700"
-                    : "text-dark-600 hover:bg-dark-50"
-                }
-              `}
-            >
-              <Building2
-                className={`w-5 h-5 ${
-                  pathname === "/settings" ? "text-accent-600" : "text-dark-400"
-                }`}
-              />
-              <span className="flex-1">Account</span>
-            </Link>
-          )}
+          <Link
+            href="/project-settings"
+            className={`
+              flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors
+              ${
+                pathname === "/project-settings"
+                  ? "bg-purple-50 text-purple-700"
+                  : "text-dark-600 hover:bg-dark-50"
+              }
+            `}
+          >
+            <SlidersHorizontal
+              className={`w-5 h-5 ${
+                pathname === "/project-settings" ? "text-purple-600" : "text-dark-400"
+              }`}
+            />
+            <span className="flex-1">Project Settings</span>
+          </Link>
+          <Link
+            href="/settings"
+            className={`
+              flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors
+              ${
+                pathname === "/settings"
+                  ? "bg-accent-50 text-accent-700"
+                  : "text-dark-600 hover:bg-dark-50"
+              }
+            `}
+          >
+            <Settings
+              className={`w-5 h-5 ${
+                pathname === "/settings" ? "text-accent-600" : "text-dark-400"
+              }`}
+            />
+            <span className="flex-1">Account Settings</span>
+          </Link>
         </div>
       </div>
     </aside>

@@ -615,9 +615,11 @@ export class ReportBuilderService {
     });
 
     return {
-      overallAlignmentScore,
-      averageAttributeScores: finalAverageScores,
-      attributeAlignmentSummary,
+      summary: {
+        overallAlignmentScore,
+        averageAttributeScores: finalAverageScores,
+        attributeAlignmentSummary,
+      },
       detailedResults,
     };
   }

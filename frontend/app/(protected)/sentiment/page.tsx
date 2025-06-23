@@ -13,10 +13,10 @@ import { SentimentTrendChart } from "@/components/sentiment/SentimentTrendChart"
 import { SentimentHeatmap } from "@/components/sentiment/SentimentHeatmap";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import BreadcrumbNav from "@/components/layout/breadcrumb-nav";
 import { useNavigation } from "@/providers/navigation-provider";
 import { useReports } from "@/providers/report-provider";
 import { ProcessingLoader } from "@/components/shared/ProcessingLoader";
+import BreadcrumbNav from "@/components/layout/breadcrumb-nav";
 import { ReportRangeSelector } from "@/components/shared/ReportRangeSelector";
 import { useSentimentReports } from "@/hooks/use-sentiment-reports";
 import { getModelFriendlyName } from "@/utils/model-utils";
@@ -333,7 +333,7 @@ export default function SentimentPage() {
   return (
     <>
       <div className="space-y-6">
-        {/* Breadcrumb Navigation with new Report Range Selector */}
+        {/* Breadcrumb Navigation and Report Range Selector */}
         <div className="flex items-center justify-between">
           {token && allProjects.length > 0 && (
             <BreadcrumbNav

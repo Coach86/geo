@@ -149,13 +149,15 @@ export interface SentimentData {
 
 // Alignment data - brand attribute alignment
 export interface AlignmentData {
-  overallAlignmentScore: number;
-  averageAttributeScores: Record<string, number>;
-  attributeAlignmentSummary: {
-    name: string;
-    mentionRate: string;
-    alignment: string;
-  }[];
+  summary: {
+    overallAlignmentScore: number;
+    averageAttributeScores: Record<string, number>;
+    attributeAlignmentSummary: {
+      name: string;
+      mentionRate: string;
+      alignment: string;
+    }[];
+  };
   detailedResults: {
     model: string;
     promptIndex?: number;

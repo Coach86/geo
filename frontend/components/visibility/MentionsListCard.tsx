@@ -1,9 +1,8 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Brain } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 
 interface MentionsListCardProps {
   mentions: Array<{
@@ -15,14 +14,20 @@ interface MentionsListCardProps {
 }
 
 export function MentionsListCard({ mentions, loading }: MentionsListCardProps) {
-  const [expanded, setExpanded] = useState(false);
-
-  // Calculate total and percentages
+  // Always show 10 entries
   const { displayMentions, total } = useMemo(() => {
-    const displayItems = expanded ? mentions?.slice(0, 10) : mentions?.slice(0, 5);
-    const totalCount = displayItems?.reduce((sum, item) => sum + item.count, 0) || 0;
+    // Take first 10 mentions, or pad with empty entries if less than 10
+    const mentionsList = mentions || [];
+    const displayItems = mentionsList.slice(0, 10);
+    
+    // Pad with empty entries if less than 10
+    while (displayItems.length < 10) {
+      displayItems.push({ mention: '-', count: 0, percentage: 0 });
+    }
+    
+    const totalCount = mentionsList.reduce((sum, item) => sum + item.count, 0) || 0;
     return { displayMentions: displayItems, total: totalCount };
-  }, [mentions, expanded]);
+  }, [mentions]);
 
   if (loading) {
     return (
@@ -30,12 +35,12 @@ export function MentionsListCard({ mentions, loading }: MentionsListCardProps) {
         <CardHeader className="pb-4">
           <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
             <Brain className="h-5 w-5 text-accent-600" />
-            Top Mentions
+            Industry Share of Voice
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {[...Array(5)].map((_, i) => (
+            {[...Array(10)].map((_, i) => (
               <div key={i} className="h-10 bg-gray-100 rounded animate-pulse" />
             ))}
           </div>
@@ -49,7 +54,7 @@ export function MentionsListCard({ mentions, loading }: MentionsListCardProps) {
       <CardHeader className="pb-4">
         <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
           <Brain className="h-5 w-5 text-accent-600" />
-          Top {expanded ? '10' : '5'} Mentions
+          Industry Share of Voice
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -57,21 +62,9 @@ export function MentionsListCard({ mentions, loading }: MentionsListCardProps) {
           {displayMentions && displayMentions.length > 0 ? (
             <>
               {displayMentions.map((item, index) => {
-                const percentage = item.percentage ?? (total > 0 ? Math.round((item.count / total) * 100) : 0);
-                // Use gradient colors for visual appeal
-                const colors = [
-                  'from-blue-500 to-blue-600',
-                  'from-indigo-500 to-indigo-600',
-                  'from-purple-500 to-purple-600',
-                  'from-pink-500 to-pink-600',
-                  'from-rose-500 to-rose-600',
-                  'from-orange-500 to-orange-600',
-                  'from-amber-500 to-amber-600',
-                  'from-yellow-500 to-yellow-600',
-                  'from-lime-500 to-lime-600',
-                  'from-green-500 to-green-600',
-                ];
-                const colorClass = colors[index % colors.length];
+                const percentage = item.count > 0 ? (item.percentage ?? (total > 0 ? Math.round((item.count / total) * 100) : 0)) : 0;
+                // Single color with degradation from dark to light
+                const opacity = 100 - (index * 8); // Decreases from 100 to 20
 
                 return (
                   <div
@@ -98,8 +91,11 @@ export function MentionsListCard({ mentions, loading }: MentionsListCardProps) {
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                           <div
-                            className={`h-full bg-gradient-to-r ${colorClass} transition-all duration-500 ease-out`}
-                            style={{ width: `${percentage}%` }}
+                            className="h-full bg-blue-500 transition-all duration-500 ease-out"
+                            style={{ 
+                              width: `${percentage}%`,
+                              opacity: opacity / 100
+                            }}
                           />
                         </div>
                       </div>
@@ -107,16 +103,6 @@ export function MentionsListCard({ mentions, loading }: MentionsListCardProps) {
                   </div>
                 );
               })}
-              {mentions && mentions.length > 5 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setExpanded(!expanded)}
-                  className="w-full mt-2 text-gray-600 hover:text-gray-900"
-                >
-                  {expanded ? 'Show less' : `Show ${Math.min(5, mentions.length - 5)} more`}
-                </Button>
-              )}
             </>
           ) : (
             <p className="text-sm text-gray-400 italic">

@@ -586,8 +586,7 @@ export default function BrandIdentity({ initialData, onDataReady }: BrandIdentit
             </div>
 
             <p className="text-sm text-gray-500 mt-4">
-              These are your most likely competitors based on how LLMs mention them. We'll use them for head-to-head
-              comparisons in the final report. You can add or remove freely.
+              Win AI Share of Voice.
             </p>
           </CardContent>
         </Card>

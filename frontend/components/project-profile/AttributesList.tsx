@@ -47,7 +47,7 @@ export function AttributesList({ project, onEdit, onUpdate }: AttributesListProp
             displayedAttributes.map((attribute, index) => (
               <div
                 key={index}
-                className="px-3 py-3 bg-blue-50 hover:bg-blue-100 rounded-md text-sm text-gray-700 transition-colors min-h-[2.75rem] flex items-center"
+                className="px-3 py-3 bg-blue-50 rounded-md text-sm text-gray-700 min-h-[2.75rem] flex items-center"
               >
                 {attribute}
               </div>

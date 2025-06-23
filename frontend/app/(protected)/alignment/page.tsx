@@ -14,9 +14,9 @@ import { useAlignmentReports } from "@/hooks/use-alignment-reports";
 import { useReports } from "@/providers/report-provider";
 import { AlignmentScoreCard } from "@/components/alignment/AlignmentScoreCard";
 import { AlignmentTrendChart } from "@/components/alignment/AlignmentTrendChart";
-import BreadcrumbNav from "@/components/layout/breadcrumb-nav";
 import { useNavigation } from "@/providers/navigation-provider";
 import { ProcessingLoader } from "@/components/shared/ProcessingLoader";
+import BreadcrumbNav from "@/components/layout/breadcrumb-nav";
 import { FeatureLockedWrapper } from "@/components/shared/FeatureLockedWrapper";
 import { SourcesWatchtower } from "@/components/shared/SourcesWatchtower";
 import { SourcesAnalysis } from "@/components/shared/SourcesAnalysis";
@@ -145,7 +145,7 @@ export default function AlignmentPage() {
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumb Navigation with Report Range Selector */}
+      {/* Breadcrumb Navigation and Report Range Selector */}
       <div className="flex items-center justify-between">
         {token && allProjects.length > 0 && (
           <BreadcrumbNav
