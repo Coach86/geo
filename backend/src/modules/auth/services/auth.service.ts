@@ -47,6 +47,7 @@ export class AuthService {
     const payload = {
       email: admin.email,
       sub: admin.id,
+      isAdmin: true, // Add isAdmin flag for admin JWT tokens
     };
 
     return {
@@ -62,6 +63,7 @@ export class AuthService {
     const payload = {
       email: admin.email,
       sub: admin.id,
+      isAdmin: true, // Add isAdmin flag for admin JWT tokens
     };
 
     return {
