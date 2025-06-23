@@ -447,7 +447,7 @@ export class BatchService {
             version: '2.0.0',
           },
         },
-        explorer: this.reportBuilderService.buildExplorerData(visibilityResults, sentimentResults, alignmentResults, competitionResults),
+        explorer: this.reportBuilderService.buildExplorerData(visibilityResults, sentimentResults, alignmentResults, competitionResults, project.website),
         visibility: this.reportBuilderService.buildVisibilityData(visibilityResults, project.brandName, project.competitors || []),
         sentiment: this.reportBuilderService.buildSentimentData(sentimentResults),
         alignment: this.reportBuilderService.buildAlignmentData(alignmentResults),

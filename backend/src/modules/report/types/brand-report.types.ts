@@ -2,6 +2,9 @@
  * Type definitions for BrandReport documents
  */
 
+import { Citation } from './citation.types';
+import { ToolUsage } from './tool-usage.types';
+
 export interface ModelVisibilityItem {
   model: string;
   mentionRate: number;
@@ -36,8 +39,8 @@ export interface DetailedAlignmentResult {
   originalPrompt: string;
   llmResponse: string;
   attributeScores: AttributeScore[];
-  citations: any[];
-  toolUsage: any[];
+  citations: Citation[];
+  toolUsage: ToolUsage[];
 }
 
 export interface AlignmentData {
@@ -70,8 +73,8 @@ export interface DetailedSentimentResult {
     positive: string[];
     negative: string[];
   };
-  citations: any[];
-  toolUsage: any[];
+  citations: Citation[];
+  toolUsage: ToolUsage[];
 }
 
 export interface SentimentData {
@@ -160,6 +163,12 @@ export interface ExplorerData {
     totalResponses: number;
     successfulQueries: number;
     failedQueries: number;
+  };
+  domainSourceAnalysis?: {
+    brandDomainPercentage: number;
+    otherSourcesPercentage: number;
+    brandDomainCount: number;
+    otherSourcesCount: number;
   };
 }
 

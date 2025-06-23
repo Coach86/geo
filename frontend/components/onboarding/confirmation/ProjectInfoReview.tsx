@@ -43,7 +43,7 @@ export function ProjectInfoReview({ config }: ProjectInfoReviewProps) {
       <div>
         <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
           <Globe className="h-4 w-4 mr-2 text-mono-900" />
-          Markets & Languages
+          Primary Market & Language
         </h3>
         <div className="pl-6">
           {config.markets && config.markets.length > 0 ? (

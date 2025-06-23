@@ -308,7 +308,7 @@ export class PublicProjectController {
           },
         },
         // For free plans, build explorer data from visibility pipeline only
-        explorer: this.reportBuilderService.buildExplorerData(visibilityResults, sentimentResults, alignmentResults, competitionResults),
+        explorer: this.reportBuilderService.buildExplorerData(visibilityResults, sentimentResults, alignmentResults, competitionResults, project.website),
         visibility: await this.reportBuilderService.buildVisibilityData(visibilityResults, project.brandName, project.competitors || []),
         sentiment: {
           overallScore: 0,

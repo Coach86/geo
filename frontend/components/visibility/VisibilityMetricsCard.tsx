@@ -74,7 +74,9 @@ export function VisibilityMetricsCard({
         <div className="flex-1 flex flex-col justify-between">
           {/* Brand Score - Primary/Reference */}
           <div 
-            className={`pb-4 border-b border-gray-200 cursor-pointer transition-all duration-200 ${
+            className={`${
+              competitors.length >= 5 ? 'pb-3' : 'pb-4'
+            } border-b border-gray-200 cursor-pointer transition-all duration-200 ${
               hoveredEntity === 'Brand' ? 'opacity-100' : 'opacity-90 hover:opacity-100'
             }`}
             onMouseEnter={() => onEntityHover?.('Brand')}
@@ -82,21 +84,32 @@ export function VisibilityMetricsCard({
           >
             <div className="flex items-start justify-between">
               <div>
-                <h3 className={`text-2xl font-bold text-gray-900 transition-transform duration-200 ${
+                <h3 className={`${
+                  competitors.length >= 5 ? 'text-xl' : 'text-2xl'
+                } font-bold text-gray-900 transition-transform duration-200 ${
                   hoveredEntity === 'Brand' ? 'transform scale-105' : ''
                 }`}>{brandName}</h3>
-                <p className="text-sm text-gray-600 mt-1">Your brand</p>
+                <p className={`text-gray-600 ${
+                  competitors.length >= 5 ? 'text-xs mt-0.5' : 'text-sm mt-1'
+                }`}>Your brand</p>
               </div>
               <div className="text-right">
-                <div className={`text-4xl font-bold text-secondary-600 transition-transform duration-200 ${
+                <div className={`${
+                  competitors.length >= 5 ? 'text-3xl' : 'text-4xl'
+                } font-bold text-secondary-600 transition-transform duration-200 ${
                   hoveredEntity === 'Brand' ? 'transform scale-105' : ''
                 }`}>
                   {averageScore}%
                 </div>
                 {!isAllTime && (
-                  <div className={`flex items-center gap-1 mt-2 ${getVariationColor(scoreVariation)}`}>
+                  <div className={`flex items-center gap-1 ${
+                    competitors.length >= 5 ? 'mt-1' : 'mt-2'
+                  } ${getVariationColor(scoreVariation)}`}>
                     {getVariationIcon(scoreVariation)}
-                    <span className={`font-medium ${scoreVariation === 0 ? 'text-xs' : 'text-sm'}`}>
+                    <span className={`font-medium ${
+                      scoreVariation === 0 ? 'text-xs' : 
+                      competitors.length >= 5 ? 'text-xs' : 'text-sm'
+                    }`}>
                       {formatVariation(scoreVariation)}
                     </span>
                   </div>
@@ -106,14 +119,18 @@ export function VisibilityMetricsCard({
           </div>
 
           {/* Competitors - Same simple text design but with more spacing */}
-          <div className={`flex-1 overflow-y-auto ${competitors.length > 3 ? 'space-y-1' : 'space-y-2'}`}>
+          <div className={`flex-1 overflow-y-auto ${
+            competitors.length >= 5 ? 'space-y-0.5 mt-2' : competitors.length > 3 ? 'space-y-1 mt-3' : 'space-y-2 mt-3'
+          }`}>
             {competitors.map(competitor => {
               const isAhead = competitor.averageScore > averageScore;
 
               return (
                 <div 
                   key={competitor.name} 
-                  className={`flex items-start justify-between ${competitors.length > 3 ? 'py-0.5' : 'py-1'} px-2 -mx-2 rounded cursor-pointer transition-all duration-200 ${
+                  className={`flex items-start justify-between ${
+                    competitors.length >= 5 ? 'py-0' : competitors.length > 3 ? 'py-0.5' : 'py-1'
+                  } px-2 -mx-2 rounded cursor-pointer transition-all duration-200 ${
                     hoveredEntity === competitor.name 
                       ? 'bg-gray-50 shadow-sm' 
                       : 'hover:bg-gray-50'
@@ -122,23 +139,35 @@ export function VisibilityMetricsCard({
                   onMouseLeave={() => onEntityHover?.(null)}
                 >
                   <div>
-                    <h4 className={`font-medium text-gray-700 ${competitors.length > 3 ? 'text-sm' : 'text-base'}`}>
+                    <h4 className={`font-medium text-gray-700 ${
+                      competitors.length >= 5 ? 'text-sm' : competitors.length > 3 ? 'text-sm' : 'text-base'
+                    }`}>
                       {competitor.name}
                     </h4>
                     {isAhead && (
-                      <p className={`text-orange-600 ${competitors.length > 3 ? 'text-xs mt-0.5' : 'text-xs mt-1'}`}>Leading</p>
+                      <p className={`text-orange-600 ${
+                        competitors.length >= 5 ? 'text-xs mt-0' : competitors.length > 3 ? 'text-xs mt-0.5' : 'text-xs mt-1'
+                      }`}>Leading</p>
                     )}
                   </div>
                   <div className="text-right">
                     <div className={`font-semibold ${
                       isAhead ? "text-primary-600" : "text-gray-600"
-                    } ${competitors.length > 3 ? 'text-lg' : 'text-xl'}`}>
+                    } ${
+                      competitors.length >= 5 ? 'text-base' : competitors.length > 3 ? 'text-lg' : 'text-xl'
+                    }`}>
                       {competitor.averageScore}%
                     </div>
                     {!isAllTime && (
-                      <div className={`flex items-center gap-1 ${competitors.length > 3 ? 'mt-0.5' : 'mt-1'} ${getVariationColor(competitor.variation)}`}>
+                      <div className={`flex items-center gap-1 ${
+                        competitors.length >= 5 ? 'mt-0' : competitors.length > 3 ? 'mt-0.5' : 'mt-1'
+                      } ${getVariationColor(competitor.variation)}`}>
                         {getVariationIcon(competitor.variation)}
-                        <span className={competitor.variation === 0 ? 'text-xs' : competitors.length > 3 ? 'text-xs' : 'text-sm'}>
+                        <span className={
+                          competitor.variation === 0 ? 'text-xs' : 
+                          competitors.length >= 5 ? 'text-xs' : 
+                          competitors.length > 3 ? 'text-xs' : 'text-sm'
+                        }>
                           {formatVariation(competitor.variation)}
                         </span>
                       </div>

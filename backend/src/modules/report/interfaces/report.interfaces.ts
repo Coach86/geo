@@ -1,3 +1,7 @@
+import { Citation } from '../types/citation.types';
+import { ToolUsage } from '../types/tool-usage.types';
+import { VisibilityDataBuilder } from '../types/report-builder.types';
+
 // Metadata structure
 export interface ReportMetadata {
   url: string;
@@ -51,6 +55,12 @@ export interface ExplorerData {
     successfulQueries: number;
     failedQueries: number;
   };
+  domainSourceAnalysis?: {
+    brandDomainPercentage: number;
+    otherSourcesPercentage: number;
+    brandDomainCount: number;
+    otherSourcesCount: number;
+  };
 }
 
 // Visibility data - brand mention rates
@@ -90,8 +100,8 @@ export interface VisibilityData {
     originalPrompt: string;
     llmResponse: string;
     usedWebSearch: boolean;
-    citations: any[];
-    toolUsage: any[];
+    citations: Citation[];
+    toolUsage: ToolUsage[];
   }[];
 }
 
@@ -119,8 +129,8 @@ export interface SentimentData {
       sentiment: 'positive' | 'neutral' | 'negative';
       status: 'green' | 'yellow' | 'red';
       llmResponse?: string;
-      citations?: any[];
-      toolUsage?: any[];
+      citations?: Citation[];
+      toolUsage?: ToolUsage[];
     }[];
   }[];
   detailedResults?: {
@@ -132,8 +142,8 @@ export interface SentimentData {
     extractedPositiveKeywords: string[];
     extractedNegativeKeywords: string[];
     usedWebSearch: boolean;
-    citations: any[];
-    toolUsage: any[];
+    citations: Citation[];
+    toolUsage: ToolUsage[];
   }[];
 }
 
@@ -157,8 +167,8 @@ export interface AlignmentData {
       evaluation: string;
     }[];
     usedWebSearch?: boolean;
-    citations?: any[];
-    toolUsage?: any[];
+    citations?: Citation[];
+    toolUsage?: ToolUsage[];
     error?: string;
   }[];
 }
@@ -229,7 +239,7 @@ export interface ReportStructure {
   
   // Main analysis fields
   explorer: ExplorerData;
-  visibility: VisibilityData | any; // Allow both new interface and database structure
+  visibility: VisibilityData | VisibilityDataBuilder; // Support both stored and builder formats
   sentiment: SentimentData;
   alignment: AlignmentData;
   competition: CompetitionData;

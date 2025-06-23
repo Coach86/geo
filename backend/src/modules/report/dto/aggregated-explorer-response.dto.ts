@@ -80,6 +80,17 @@ export class AggregatedExplorerResponseDto {
   })
   webSearchResults?: WebSearchResultDto[];
 
+  @ApiProperty({ 
+    description: 'Domain source analysis',
+    required: false
+  })
+  domainSourceAnalysis?: {
+    brandDomainPercentage: number;
+    otherSourcesPercentage: number;
+    brandDomainCount: number;
+    otherSourcesCount: number;
+  };
+
   @ApiProperty({ description: 'Number of reports included in aggregation' })
   reportCount: number;
 

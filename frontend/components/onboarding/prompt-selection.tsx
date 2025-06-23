@@ -276,7 +276,7 @@ export default function PromptSelection({ initialData, onDataReady }: PromptSele
         <p className="text-mono-600 text-center max-w-md">
           {authLoading
             ? 'Please wait while we verify your authentication.'
-            : 'Our AI is analyzing your brand profile and generating relevant prompts to test your brand\'s visibility and perception.'
+            : 'We are automatically building your prompt portfolio to start monitoring based on your project parameters.'
           }
         </p>
         <div className="mt-6 flex flex-col items-center">
@@ -285,7 +285,7 @@ export default function PromptSelection({ initialData, onDataReady }: PromptSele
             <div className="h-2 w-2 rounded-full bg-accent-500 animate-pulse delay-100"></div>
             <div className="h-2 w-2 rounded-full bg-accent-500 animate-pulse delay-200"></div>
           </div>
-          <p className="text-sm text-mono-500">This may take a few seconds</p>
+          <p className="text-sm text-mono-500">Thank you for your patience</p>
         </div>
       </div>
     )

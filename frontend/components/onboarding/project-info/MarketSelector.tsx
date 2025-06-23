@@ -108,7 +108,7 @@ export function MarketSelector({
         <div>
           <div className="flex justify-between items-center mb-3">
             <label className="block text-sm font-medium text-gray-700">
-              Markets & Languages
+              Primary Market & Language
             </label>
           </div>
 
@@ -162,10 +162,7 @@ export function MarketSelector({
           <div className="mt-3 pl-3 border-l-4 border-l-accent-300 bg-gray-50/50 p-2 rounded-r-md flex">
             <Info className="h-4 w-4 text-accent-500 mr-2 flex-shrink-0 mt-0.5" />
             <p className="text-xs italic text-gray-500">
-              Select the markets you want to analyze and the languages for each
-              market. AI models evaluate and describe brands uniquely across
-              various markets and languages. Competitors, consumer perceptions,
-              and search queries can vary significantly by region and language.
+              Competitors, consumer perceptions, and prompt language can vary significantly across markets
             </p>
           </div>
         </div>

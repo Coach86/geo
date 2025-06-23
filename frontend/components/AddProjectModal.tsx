@@ -79,20 +79,20 @@ export default function AddProjectModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState("");
-  
+
   // URL usage tracking
   const [urlUsage, setUrlUsage] = useState<UrlUsageResponse | null>(null);
   const [isLoadingUsage, setIsLoadingUsage] = useState(false);
   const [showCustomUrlInput, setShowCustomUrlInput] = useState(false);
-  
+
   // Organization data for plan limits
   const [organization, setOrganization] = useState<Organization | null>(null);
-  
+
   // Step 1: Project Info
   const [website, setWebsite] = useState("");
   const [customUrl, setCustomUrl] = useState("");
   const [markets, setMarkets] = useState<Market[]>([]);
-  
+
   // Step 2: Brand Identity
   const [brandName, setBrandName] = useState("");
   const [description, setDescription] = useState("");
@@ -100,7 +100,7 @@ export default function AddProjectModal({
   const [attributes, setAttributes] = useState<string[]>([]);
   const [competitors, setCompetitors] = useState<string[]>([]);
   const [analyzedData, setAnalyzedData] = useState<any>(null);
-  
+
   // Step 3: Prompts
   const [visibilityPrompts, setVisibilityPrompts] = useState<{ id: string; text: string; selected: boolean }[]>([]);
   const [perceptionPrompts, setPerceptionPrompts] = useState<string[]>([]);
@@ -118,10 +118,10 @@ export default function AddProjectModal({
   const getMaxCompetitors = () => {
     // Default limits based on typical plan structure
     if (!organization) return 5; // Default if organization data not loaded
-    
+
     // maxProjects is used as a proxy for plan level
     // Starter: 1 project = 5 competitors
-    // Growth: 5 projects = 10 competitors  
+    // Growth: 5 projects = 10 competitors
     // Pro: 15 projects = 20 competitors
     // Enterprise: unlimited = 50 competitors
     const maxProjects = organization.planSettings.maxProjects;
@@ -226,11 +226,11 @@ export default function AddProjectModal({
       if (urlToUse && markets.length > 0) {
         setIsAnalyzing(true);
         setError("");
-        
+
         try {
           const primaryMarket = markets[0]?.country || "United States";
           const primaryLanguage = markets[0]?.languages?.[0] || "English";
-          
+
           const identityCard = await analyzeWebsite(
             {
               url: urlToUse,
@@ -239,7 +239,7 @@ export default function AddProjectModal({
             },
             token!
           );
-          
+
           // Pre-fill brand data from analysis
           setBrandName(identityCard.brandName || "");
           setDescription(identityCard.shortDescription || "");
@@ -247,7 +247,7 @@ export default function AddProjectModal({
           setAttributes(identityCard.keyBrandAttributes || []);
           setCompetitors(identityCard.competitors || []);
           setAnalyzedData(identityCard);
-          
+
           setIsAnalyzing(false);
           setCurrentStep(StepId.BRAND);
         } catch (error) {
@@ -268,7 +268,7 @@ export default function AddProjectModal({
   const generatePromptsForProject = async () => {
     setIsLoadingPrompts(true);
     setError("");
-    
+
     try {
       const request: GeneratePromptsRequest = {
         brandName: brandName,
@@ -285,10 +285,10 @@ export default function AddProjectModal({
       const response = await generatePrompts(request, token!);
 
       // Set visibility prompts with IDs and selected state
-      setVisibilityPrompts(response.visibility.map(text => ({ 
+      setVisibilityPrompts(response.visibility.map(text => ({
         id: generateId(),
-        text, 
-        selected: true 
+        text,
+        selected: true
       })));
       // Store other prompts but don't display them
       setPerceptionPrompts(response.sentiment);
@@ -403,17 +403,17 @@ export default function AddProjectModal({
       }
 
       const result = await createProject(projectRequest, token);
-      
+
       analytics.trackProjectCreated(result.id, brandName, 'wizard');
       toast.success("Project created successfully!");
-      
+
       // Extract domain from the new project and switch to it
       const newDomain = extractHostname(result.url);
       if (newDomain) {
         saveSelectedDomain(newDomain);
         saveSelectedProject(result.id);
       }
-      
+
       // Trigger analysis for the new project
       try {
         await runManualAnalysis(result.id, token);
@@ -423,12 +423,12 @@ export default function AddProjectModal({
         console.warn("Failed to trigger analysis:", analysisError);
         toast.info("Project created! You can manually trigger analysis from the project settings.");
       }
-      
+
       onSuccess(result.id);
       onClose();
     } catch (err: any) {
       console.error("Failed to create project:", err);
-      
+
       if (err.response?.data?.code === "PROJECT_LIMIT_EXCEEDED") {
         setError("You've reached your plan's project limit. Please upgrade to add more projects.");
       } else if (err.response?.data?.code === "URL_LIMIT_EXCEEDED") {
@@ -454,7 +454,7 @@ export default function AddProjectModal({
             Analyzing your website...
           </h2>
           <p className="text-mono-600 text-center max-w-md">
-            We're extracting key information about your brand, including attributes and competitors.
+            We are configuring your project project profile and your prompts portfolio.
           </p>
         </div>
       );
@@ -516,7 +516,7 @@ export default function AddProjectModal({
                       </SelectItem>
                     </SelectContent>
                   </Select>
-                  
+
                   {showCustomUrlInput && (
                     <Input
                       type="url"
@@ -533,7 +533,7 @@ export default function AddProjectModal({
                 Select an existing URL or add a new one to monitor
               </p>
             </div>
-            
+
             <MarketSelector
               markets={markets}
               onMarketsChange={setMarkets}
@@ -665,7 +665,7 @@ export default function AddProjectModal({
       case StepId.PROMPTS:
         const selectedPromptsCount = visibilityPrompts.filter(p => p.selected).length;
         const maxPrompts = getMaxPrompts();
-        
+
         return (
           <div className="space-y-6">
             <div>
@@ -822,7 +822,7 @@ export default function AddProjectModal({
                   </div>
                 </div>
               )}
-              
+
               {visibilityPrompts.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
                   <p>No prompts generated yet. Please complete the brand information first.</p>
@@ -854,7 +854,7 @@ export default function AddProjectModal({
               const Icon = step.icon;
               const isActive = step.id === currentStep;
               const isCompleted = step.id < currentStep;
-              
+
               return (
                 <div key={step.id} className="flex items-center">
                   <div className={`flex items-center ${
@@ -862,15 +862,15 @@ export default function AddProjectModal({
                   }`}>
                     <div className={`
                       flex items-center justify-center w-10 h-10 rounded-full
-                      ${isActive ? 'bg-accent-500 text-white' : 
-                        isCompleted ? 'bg-accent-100 text-accent-600' : 
+                      ${isActive ? 'bg-accent-500 text-white' :
+                        isCompleted ? 'bg-accent-100 text-accent-600' :
                         'bg-gray-200 text-gray-400'}
                     `}>
                       <Icon className="h-5 w-5" />
                     </div>
                     <span className={`ml-2 font-medium ${
-                      isActive ? 'text-accent-600' : 
-                      isCompleted ? 'text-gray-700' : 
+                      isActive ? 'text-accent-600' :
+                      isCompleted ? 'text-gray-700' :
                       'text-gray-400'
                     }`}>
                       {step.name}
@@ -937,7 +937,7 @@ export default function AddProjectModal({
                     Creating Project...
                   </>
                 ) : currentStep === StepId.PROMPTS ? (
-                  <>Create Project</>  
+                  <>Create Project</>
                 ) : (
                   <>
                     Next
