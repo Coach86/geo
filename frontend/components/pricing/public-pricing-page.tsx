@@ -12,12 +12,12 @@ import { FeatureExampleDialog } from "@/components/shared/dialogs/feature-exampl
 import { ContactSalesDialog } from "@/components/shared/ContactSalesDialog";
 import { PricingCard } from "@/components/pricing/pricing-card";
 import { usePlans } from "@/hooks/use-plans";
-import { FaqSection } from "./faq-section";
 import { calculateSavings } from "./pricing-utils";
 import {
   trustSafetyItems
 } from "./pricing-constants";
 import { staticPlans } from "./static-plans";
+import { PricingHeader } from "@/components/shared/pricing-header";
 
 interface PublicPricingPageProps {
   forcedRecommendedPlan?: string;
@@ -162,7 +162,9 @@ export default function PublicPricingPage({
   }
 
   return (
-    <div className="py-12 animate-fade-in">
+    <div className="min-h-screen bg-white">
+      <PricingHeader />
+      <div className="py-12 animate-fade-in">
       {/* Hero Section */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 mb-16 text-center">
         <h1 className="text-4xl md:text-5xl font-bold mb-4 text-mono-900 tracking-tight">
@@ -294,8 +296,6 @@ export default function PublicPricingPage({
         </div>
       </section>
 
-      {/* FAQ Accordion */}
-      <FaqSection />
 
 
       {/* Feature Example Dialog */}
@@ -311,6 +311,7 @@ export default function PublicPricingPage({
         onOpenChange={setContactSalesOpen}
         planName={contactPlanName}
       />
+      </div>
     </div>
   );
 }
