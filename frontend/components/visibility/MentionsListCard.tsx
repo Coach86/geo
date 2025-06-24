@@ -1,8 +1,10 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Brain } from "lucide-react";
+import { Brain, Download } from "lucide-react";
 import { useMemo } from "react";
+import { Button } from "@/components/ui/button";
+import { exportToCSV, formatMentionsDataForCSV } from "@/utils/csv-export";
 
 interface MentionsListCardProps {
   mentions: Array<{
@@ -49,13 +51,31 @@ export function MentionsListCard({ mentions, loading }: MentionsListCardProps) {
     );
   }
 
+  const handleExportCSV = () => {
+    // Filter out empty entries before exporting
+    const validMentions = mentions.filter(m => m.mention !== '-' && m.count > 0);
+    const csvData = formatMentionsDataForCSV(validMentions);
+    exportToCSV(csvData, `industry-share-of-voice-${new Date().toISOString().split('T')[0]}`);
+  };
+
   return (
     <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
       <CardHeader className="pb-4">
-        <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-          <Brain className="h-5 w-5 text-blue-500" />
-          Industry Share of Voice
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <Brain className="h-5 w-5 text-blue-500" />
+            Industry Share of Voice
+          </CardTitle>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={handleExportCSV}
+            title="Export to CSV"
+          >
+            <Download className="h-4 w-4" />
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-2">

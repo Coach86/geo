@@ -172,7 +172,14 @@ export default function AttributeScoresByModelTable({
   return (
     <>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[600px] border-collapse">
+        <table className="w-full min-w-[600px] border-collapse table-fixed">
+          <colgroup>
+            <col className="w-[200px]" />
+            {tableModels.map((modelName) => (
+              <col key={modelName} className="w-[120px]" />
+            ))}
+            <col className="w-[120px]" />
+          </colgroup>
           <thead>
             <tr>
               <th className="px-4 py-3 text-left text-sm font-semibold text-mono-700 border-b-2 border-mono-200">

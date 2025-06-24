@@ -55,6 +55,7 @@ interface CitationItem {
   prompts: string[];
   sentiments?: string[];
   scores?: number[];
+  attributes?: string[]; // Added for alignment attributes
   models: string[];
   count: number;
   text?: string;
@@ -68,6 +69,7 @@ interface AggregatedCitation {
   prompts: string[];
   sentiments?: string[];
   scores?: number[];
+  attributes?: string[]; // Added for alignment attributes
   models: string[];
   totalCount: number;
 }
@@ -367,6 +369,78 @@ export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowe
             },
             filterFn: numericFilter,
             enableSorting: true,
+          }),
+          
+          // Add Attribute column for alignment type
+          columnHelper.accessor("attributes", {
+            header: ({ column }) => {
+              const sortedUniqueValues = React.useMemo(
+                () => {
+                  const uniqueValues = new Set<string>();
+                  table.getPreFilteredRowModel().rows.forEach(row => {
+                    const attributes = row.getValue("attributes") as string[] | undefined;
+                    if (attributes && Array.isArray(attributes)) {
+                      attributes.forEach(attr => {
+                        if (attr) uniqueValues.add(attr);
+                      });
+                    }
+                  });
+                  return Array.from(uniqueValues).sort();
+                },
+                [table.getPreFilteredRowModel().rows]
+              );
+
+              return (
+                <div className="space-y-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+                    className="h-auto p-0 font-semibold text-gray-700 hover:text-gray-900"
+                  >
+                    Attribute
+                    {column.getIsSorted() === "asc" ? (
+                      <ArrowUp className="ml-2 h-4 w-4" />
+                    ) : column.getIsSorted() === "desc" ? (
+                      <ArrowDown className="ml-2 h-4 w-4" />
+                    ) : (
+                      <ArrowUpDown className="ml-2 h-4 w-4" />
+                    )}
+                  </Button>
+                  <MultiSelectFilter
+                    title="Attribute"
+                    options={sortedUniqueValues}
+                    selectedValues={(column.getFilterValue() as string[]) || []}
+                    onSelectionChange={(values) => column.setFilterValue(values.length > 0 ? values : undefined)}
+                    placeholder={`Filter attributes... (${sortedUniqueValues.length})`}
+                  />
+                </div>
+              );
+            },
+            cell: ({ getValue }) => {
+              const attributes = getValue() as string[] | undefined;
+              if (!attributes || attributes.length === 0) {
+                return <span className="text-xs text-gray-400">All attributes</span>;
+              }
+              
+              return (
+                <div className="flex flex-wrap gap-1">
+                  {attributes.slice(0, 2).map((attr, index) => (
+                    <Badge key={index} variant="outline" className="text-xs">
+                      {attr}
+                    </Badge>
+                  ))}
+                  {attributes.length > 2 && (
+                    <Badge variant="outline" className="text-xs">
+                      +{attributes.length - 2}
+                    </Badge>
+                  )}
+                </div>
+              );
+            },
+            filterFn: multiSelectFilter,
+            enableSorting: true,
+            enableColumnFilter: true,
           })]
         : []),
 
@@ -589,7 +663,7 @@ export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowe
         <CardHeader>
           <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
             <Globe className="h-5 w-5 text-blue-600" />
-            Sources Watchtower
+            Sources Analysis
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -609,7 +683,7 @@ export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowe
         <CardHeader>
           <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
             <Globe className="h-5 w-5 text-blue-600" />
-            Sources Watchtower
+            Sources Analysis
           </CardTitle>
           <p className="text-sm text-gray-500 mt-1">
             Track sources cited across all reports in the selected period
@@ -636,7 +710,7 @@ export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowe
           <div>
             <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
               <Globe className="h-5 w-5 text-blue-600" />
-              Sources Watchtower
+              Sources Analysis
             </CardTitle>
             <p className="text-sm text-gray-500 mt-1">
               {citations.uniqueDomains} unique domains • {citations.totalCitations} total citations
@@ -662,9 +736,11 @@ export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowe
             <table className="w-full min-w-[1000px] border-collapse table-fixed">
               <colgroup>
                 <col className="w-[20%]" />
-                {type !== 'competition' && <col className="w-[12%]" />}
-                <col className={type === 'competition' ? "w-[30%]" : "w-[25%]"} />
-                <col className={type === 'competition' ? "w-[35%]" : "w-[28%]"} />
+                {type === 'alignment' && <col className="w-[10%]" />}
+                {type === 'alignment' && <col className="w-[15%]" />}
+                {type === 'sentiment' && <col className="w-[12%]" />}
+                <col className={type === 'competition' ? "w-[30%]" : type === 'alignment' ? "w-[20%]" : "w-[25%]"} />
+                <col className={type === 'competition' ? "w-[35%]" : type === 'alignment' ? "w-[20%]" : "w-[28%]"} />
                 <col className="w-[15%]" />
               </colgroup>
               <thead>
