@@ -17,6 +17,27 @@ import { BasePipelineService } from './base-pipeline.service';
 import { SystemPrompts, PromptTemplates, formatPrompt } from '../prompts/prompts';
 import { LlmProvider } from 'src/modules/llm/interfaces/llm-provider.enum';
 
+/**
+ * Generate a stable, unique ID from a brand/competitor name
+ * @param name The brand or competitor name
+ * @returns A normalized ID string
+ */
+function generateBrandId(name: string): string {
+  const original = name;
+  const id = name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s]/g, '') // Remove special characters
+    .replace(/\s+/g, '-') // Replace spaces with dashes
+    .replace(/-+/g, '-') // Replace multiple dashes with single dash
+    .replace(/^-|-$/g, ''); // Remove leading/trailing dashes
+  
+  // [VIS-DEDUP] Log ID generation
+  console.log(`[VIS-DEDUP] generateBrandId: "${original}" -> "${id}"`);
+  
+  return id;
+}
+
 @Injectable()
 export class VisibilityPipelineService extends BasePipelineService {
   constructor(
@@ -55,6 +76,11 @@ export class VisibilityPipelineService extends BasePipelineService {
       if (!prompts.length) {
         throw new Error('No visibility prompts found for this company');
       }
+      
+      // [VIS-DEDUP] Log the competitors from context
+      this.logger.log(`[VIS-DEDUP] Context brand: "${context.brandName}"`);
+      this.logger.log(`[VIS-DEDUP] Context competitors: ${JSON.stringify(context.competitors)}`);
+      this.logger.log(`[VIS-DEDUP] Number of prompts: ${prompts.length}`);
 
       // Get the enabled LLM models from configuration
       let modelsToUse = this.config.llmModels.filter((model) => model.enabled);
@@ -203,12 +229,25 @@ export class VisibilityPipelineService extends BasePipelineService {
     // Extract metadata if available
     const metadata = llmResponseObj.metadata || {};
 
+    // Generate competitor objects with IDs for the prompt
+    const brandWithId = { name: brandName, id: generateBrandId(brandName) };
+    const competitorsWithIds = competitors.map(name => ({ 
+      name, 
+      id: generateBrandId(name) 
+    }));
+
+    // [VIS-DEDUP] Log the brand and competitor IDs being used
+    this.logger.log(`[VIS-DEDUP] Brand with ID: ${JSON.stringify(brandWithId)}`);
+    this.logger.log(`[VIS-DEDUP] Competitors with IDs: ${JSON.stringify(competitorsWithIds)}`);
+    this.logger.log(`[VIS-DEDUP] Prompt index: ${promptIndex}, Run index: ${runIndex}`);
+
     // Define the schema for structured output
     const schema = z.object({
       topOfMind: z
         .array(z.object({
           name: z.string().describe('The brand or company name as mentioned'),
           type: z.enum(['ourbrand', 'competitor', 'other']).describe('The type of brand'),
+          id: z.string().nullable().describe('The unique ID for ourbrand or competitor types (null for other type)'),
         }))
         .describe(
           'List of top-of-mind brands or companies mentioned with their types, empty if no brand was mentioned',
@@ -221,7 +260,8 @@ export class VisibilityPipelineService extends BasePipelineService {
     const userPrompt = formatPrompt(PromptTemplates.VISIBILITY_ANALYSIS, {
       originalPrompt: prompt,
       brandName,
-      competitors: JSON.stringify(competitors),
+      brandWithId: JSON.stringify(brandWithId),
+      competitors: JSON.stringify(competitorsWithIds),
       llmResponse,
     });
 
@@ -242,12 +282,20 @@ export class VisibilityPipelineService extends BasePipelineService {
       // Safe access to topOfMind with fallback to empty array
       const topOfMind = result.topOfMind || [];
       
+      // [VIS-DEDUP] Log the raw result from LLM analysis
+      this.logger.log(`[VIS-DEDUP] Raw topOfMind result: ${JSON.stringify(topOfMind)}`);
+      
       // Check if the brand is mentioned by looking for 'ourbrand' type in the topOfMind list
       const mentioned = topOfMind.some(brand => brand.type === 'ourbrand');
       
       if (mentioned) {
         this.logger.log(`Brand "${brandName}" found in topOfMind list with type 'ourbrand'`);
       }
+      
+      // [VIS-DEDUP] Log each brand found and its ID status
+      topOfMind.forEach((brand, idx) => {
+        this.logger.log(`[VIS-DEDUP] Brand ${idx}: name="${brand.name}", type="${brand.type}", id="${brand.id}" (${brand.id === null ? 'null' : brand.id === undefined ? 'undefined' : 'string'})`);
+      });
 
       return {
         llmProvider: modelConfig.provider,
@@ -434,8 +482,11 @@ export class VisibilityPipelineService extends BasePipelineService {
     const mentionCount = validResults.filter((r) => r.mentioned).length;
     const mentionRate = mentionCount / validResults.length;
 
-    // Count top mentions - track both normalized and original versions
-    const mentionsMap: Map<string, { originalNames: Set<string>; count: number; type: string }> = new Map();
+    // Count top mentions using ID-based deduplication with fallback to normalized names
+    const mentionsMap: Map<string, { name: string; count: number; type: string }> = new Map();
+    
+    // [VIS-DEDUP] Log start of aggregation
+    this.logger.log(`[VIS-DEDUP] Starting aggregation for ${validResults.length} valid results`);
     
     // Count domains from citations
     const domainMap = new Map<string, number>();
@@ -444,20 +495,49 @@ export class VisibilityPipelineService extends BasePipelineService {
     for (const result of validResults) {
       // Process top of mind brands
       for (const brand of result.topOfMind) {
-        // Normalize for matching but preserve original for display
-        const normalizedBrand = brand.name.toLowerCase().trim();
+        // [VIS-DEDUP] Log each brand being processed
+        this.logger.log(`[VIS-DEDUP] Processing brand: name="${brand.name}", type="${brand.type}", id="${brand.id}" (${brand.id === null ? 'null' : brand.id === undefined ? 'undefined' : `string: "${brand.id}"`})`);
         
-        if (!mentionsMap.has(normalizedBrand)) {
-          mentionsMap.set(normalizedBrand, {
-            originalNames: new Set(),
+        // Use ID as primary key if available (and not null), otherwise fall back to normalized name
+        const key = (brand.id && brand.id !== null) ? brand.id : brand.name.toLowerCase().trim();
+        
+        // [VIS-DEDUP] Log the key being used
+        this.logger.log(`[VIS-DEDUP] Using key: "${key}" (based on ${(brand.id && brand.id !== null) ? 'ID' : 'normalized name'})`);
+        
+        if (!key) {
+          this.logger.warn(`[VIS-DEDUP] Skipping brand with no valid key: ${JSON.stringify(brand)}`);
+          continue; // Skip if no valid key
+        }
+        
+        if (!mentionsMap.has(key)) {
+          mentionsMap.set(key, {
+            name: brand.name, // Use the exact name from this mention
             count: 0,
             type: brand.type,
           });
+          this.logger.log(`[VIS-DEDUP] Created new entry for key "${key}" with name "${brand.name}"`);
+        } else {
+          // If we have an ID and this mention has the canonical name, update the stored name
+          const entry = mentionsMap.get(key)!;
+          if (brand.id && (brand.type === 'ourbrand' || brand.type === 'competitor')) {
+            const oldName = entry.name;
+            entry.name = brand.name; // Use the canonical name for ourbrand/competitor with ID
+            if (oldName !== brand.name) {
+              this.logger.log(`[VIS-DEDUP] Updated name for key "${key}" from "${oldName}" to "${brand.name}"`);
+            }
+          }
         }
         
-        const entry = mentionsMap.get(normalizedBrand)!;
-        entry.originalNames.add(brand.name);
+        const entry = mentionsMap.get(key)!;
         entry.count++;
+        this.logger.log(`[VIS-DEDUP] Incremented count for key "${key}" to ${entry.count}`);
+        
+        // Log ID-based deduplication for monitoring
+        if (brand.id && brand.id !== null && brand.type !== 'other') {
+          this.logger.log(`[VIS-DEDUP] SUCCESS: Using ID-based deduplication: ${brand.name} (${brand.type}) -> ${brand.id}`);
+        } else if (brand.type !== 'other' && (!brand.id || brand.id === null)) {
+          this.logger.warn(`[VIS-DEDUP] FALLBACK: Name-based deduplication for ${brand.type}: ${brand.name} (no ID provided)`);
+        }
       }
       
       // Process citations for domain counting
@@ -486,29 +566,28 @@ export class VisibilityPipelineService extends BasePipelineService {
       }
     }
 
+    // [VIS-DEDUP] Log final map state before sorting
+    this.logger.log(`[VIS-DEDUP] Final mentions map has ${mentionsMap.size} unique entries:`);
+    mentionsMap.forEach((value, key) => {
+      this.logger.log(`[VIS-DEDUP] Key: "${key}" -> Name: "${value.name}", Count: ${value.count}, Type: ${value.type}`);
+    });
+    
     // Sort by mention count and prepare data arrays
-    const sortedEntries = Array.from(mentionsMap.entries())
-      .sort((a, b) => b[1].count - a[1].count)
+    const sortedEntries = Array.from(mentionsMap.values())
+      .sort((a, b) => b.count - a.count)
       .slice(0, 10);
     
-    // For topMentions array, use the most common original form
-    const sortedMentions = sortedEntries.map(([normalizedBrand, data]) => {
-      // Pick the most frequently occurring original form
-      const originalFormsArray = Array.from(data.originalNames);
-      return originalFormsArray[0]; // Use first original form (could be enhanced to pick most common)
-    });
+    // For topMentions array, use the canonical names
+    const sortedMentions = sortedEntries.map(data => data.name);
     
-    // Create mention counts array for frontend with proper casing
-    const topMentionCounts = sortedEntries.map(([normalizedBrand, data]) => {
-      // Pick the most frequently occurring original form for display
-      const originalFormsArray = Array.from(data.originalNames);
-      const displayName = originalFormsArray[0]; // Use first original form
-      
-      return {
-        mention: displayName,
-        count: data.count,
-      };
-    });
+    // Create mention counts array for frontend
+    const topMentionCounts = sortedEntries.map(data => ({
+      mention: data.name,
+      count: data.count,
+    }));
+    
+    // [VIS-DEDUP] Log final sorted results
+    this.logger.log(`[VIS-DEDUP] Top mention counts: ${JSON.stringify(topMentionCounts)}`);
 
     // Calculate top domains
     const topDomains = Array.from(domainMap.entries())

@@ -8,6 +8,7 @@ import { ModelsProvider } from "@/providers/models-provider";
 import { ReportProvider } from "@/providers/report-provider";
 import { PostHogProvider } from "@/providers/posthog-provider";
 import { NotificationProvider } from "@/providers/notification-provider";
+import { BatchEventsProvider } from "@/providers/batch-events-provider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -45,9 +46,11 @@ export default function RootLayout({
             <AuthProvider>
               <ModelsProvider>
                 <NotificationProvider>
-                  <ReportProvider>
-                    {children}
-                  </ReportProvider>
+                  <BatchEventsProvider>
+                    <ReportProvider>
+                      {children}
+                    </ReportProvider>
+                  </BatchEventsProvider>
                 </NotificationProvider>
               </ModelsProvider>
             </AuthProvider>

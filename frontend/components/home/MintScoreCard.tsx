@@ -9,6 +9,7 @@ import { getProjectReports, getReportVisibility, getReportSentiment, getReportAl
 import { RefreshCw, Info } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { useNotificationContext } from "@/providers/notification-provider"
+import { useBatchEventsContext } from "@/providers/batch-events-provider"
 import {
   Tooltip,
   TooltipContent,
@@ -49,6 +50,7 @@ export function MintScoreCard({ projectId, token, onGoToProject }: MintScoreCard
   })
   const [isProcessing, setIsProcessing] = useState(false)
   const { notifications } = useNotificationContext()
+  const { isProcessing: isBatchProcessing, getBatchStatus, getProgress } = useBatchEventsContext()
 
   useEffect(() => {
     const fetchLatestScores = async () => {
@@ -61,10 +63,9 @@ export function MintScoreCard({ projectId, token, onGoToProject }: MintScoreCard
             new Date(b.generatedAt).getTime() - new Date(a.generatedAt).getTime()
           )[0]
 
-          // Check if a batch might be running (report is less than 10 minutes old)
-          const reportAge = Date.now() - new Date(latestReport.generatedAt).getTime()
-          const tenMinutes = 10 * 60 * 1000
-          setIsProcessing(reportAge < tenMinutes)
+          // Check batch processing status from real-time events
+          const batchProcessing = isBatchProcessing(projectId)
+          setIsProcessing(batchProcessing)
 
           // Fetch detailed data for each section
           const [visibilityData, sentimentData, alignmentData] = await Promise.all([
@@ -96,9 +97,10 @@ export function MintScoreCard({ projectId, token, onGoToProject }: MintScoreCard
             reportDate: new Date(latestReport.generatedAt)
           })
         } else {
-          // No reports yet, likely processing
+          // No reports yet, check if batch is processing
+          const batchProcessing = isBatchProcessing(projectId)
           setScores(prev => ({ ...prev, loading: false, hasData: false, mintScore: null }))
-          setIsProcessing(true)
+          setIsProcessing(batchProcessing)
         }
       } catch (error) {
         console.error("Failed to fetch scores:", error)
@@ -107,7 +109,13 @@ export function MintScoreCard({ projectId, token, onGoToProject }: MintScoreCard
     }
 
     fetchLatestScores()
-  }, [projectId, token])
+  }, [projectId, token, isBatchProcessing])
+
+  // Update processing status when batch events change
+  useEffect(() => {
+    const batchProcessing = isBatchProcessing(projectId)
+    setIsProcessing(batchProcessing)
+  }, [projectId, isBatchProcessing])
 
   const getSentimentColor = (sentiment: string) => {
     switch (sentiment?.toLowerCase()) {
@@ -214,7 +222,15 @@ export function MintScoreCard({ projectId, token, onGoToProject }: MintScoreCard
         <div className="absolute top-3 right-3">
           <div className="flex items-center gap-2 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
             <RefreshCw className="h-3 w-3 animate-spin" />
-            <span>Refreshing</span>
+            <span>
+              {(() => {
+                const batchStatus = getBatchStatus(projectId)
+                if (batchStatus?.eventType === 'batch_started') return 'Starting analysis...'
+                if (batchStatus?.eventType === 'pipeline_started') return `Processing ${batchStatus.pipelineType || 'analysis'}...`
+                if (batchStatus?.eventType === 'pipeline_completed') return 'Finalizing...'
+                return 'Processing...'
+              })()}
+            </span>
           </div>
         </div>
       )}

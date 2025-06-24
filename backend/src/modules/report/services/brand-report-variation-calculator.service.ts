@@ -72,7 +72,7 @@ export class BrandReportVariationCalculatorService {
 
     if (previousScore === 0) return 0;
 
-    return Math.round(((currentScore - previousScore) / previousScore) * 100);
+    return Math.round(currentScore - previousScore);
   }
 
   async calculateCompetitorVariation(
@@ -120,7 +120,7 @@ export class BrandReportVariationCalculatorService {
 
     if (previousScore === 0) return 0;
 
-    return Math.round(((currentScore - previousScore) / previousScore) * 100);
+    return Math.round(currentScore - previousScore);
   }
 
   async calculateSentimentVariation(
@@ -207,7 +207,7 @@ export class BrandReportVariationCalculatorService {
 
     if (previousScore === 0) return 0;
 
-    return Math.round(((currentScore - previousScore) / previousScore) * 100);
+    return Math.round(currentScore - previousScore);
   }
 
   private async handleSinglePointCompetitorVariation(
@@ -233,7 +233,7 @@ export class BrandReportVariationCalculatorService {
 
     if (previousScore === 0) return 0;
 
-    return Math.round(((currentScore - previousScore) / previousScore) * 100);
+    return Math.round(currentScore - previousScore);
   }
 
   private calculatePeriodScore(

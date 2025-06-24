@@ -38,6 +38,7 @@ export interface ProjectBatchContext {
 export interface TopOfMindBrand {
   name: string;
   type: 'ourbrand' | 'competitor' | 'other';
+  id?: string | null; // ID for deduplication (used for ourbrand and competitor types, null for other)
 }
 
 /**
