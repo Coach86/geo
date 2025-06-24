@@ -250,22 +250,15 @@ export class ProjectCreatedBatchListener {
         this.batchService.saveSinglePipelineResult(batchExecutionId, 'competition', competitionResults),
       ]);
 
-      // Get project details for report metadata
-      const project = await this.projectService.findById(projectContext.projectId);
-      if (!project) {
-        throw new Error(`Project ${projectContext.projectId} not found`);
-      }
-
-      // Save the report (BatchService will handle the report creation and email notification)
-      await this.batchService.completeBatchExecution(batchExecutionId, {
+      // Create and save the visibility-only report
+      await this.batchService.createVisibilityOnlyReport(
         batchExecutionId,
-        results: {
-          visibility: visibilityResults,
-          sentiment: sentimentResults,
-          alignment: alignmentResults,
-          competition: competitionResults,
-        },
-      });
+        visibilityResults,
+        sentimentResults,
+        alignmentResults,
+        competitionResults,
+        contextWithExecId
+      );
       
       return {
         batchExecutionId,

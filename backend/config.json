@@ -214,7 +214,7 @@
   },
   "defaultModels": [
     "openai-gpt4o",
-    "anthropic-claude-4-sonnet",
-    "google-gemini2.0"
+    "google-gemini2.0",
+    "anthropic-claude-4-sonnet"
   ]
 }

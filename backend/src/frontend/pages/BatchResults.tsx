@@ -348,18 +348,20 @@ const BatchResults: React.FC = () => {
                           />
                         </ListItem>
                       )}
-                      {accuracyResults && (
+                      {accuracyResults && accuracyResults.summary && (
                         <ListItem>
                           <ListItemText
                             primary="Alignment — Brand Compliance"
                             secondary={(() => {
-                              const scores = Object.values(
-                                accuracyResults.summary.averageAttributeScores,
-                              );
-                              if (scores.length > 0) {
-                                const avg =
-                                  scores.reduce((sum, score) => sum + score, 0) / scores.length;
-                                return `Average alignment: ${(avg * 100).toFixed(1)}%`;
+                              if (accuracyResults.summary.averageAttributeScores) {
+                                const scores = Object.values(
+                                  accuracyResults.summary.averageAttributeScores,
+                                );
+                                if (scores.length > 0) {
+                                  const avg =
+                                    scores.reduce((sum, score) => sum + score, 0) / scores.length;
+                                  return `Average alignment: ${(avg * 100).toFixed(1)}%`;
+                                }
                               }
                               return 'Attribute-based alignment analysis';
                             })()}

@@ -875,4 +875,100 @@ export class BatchService {
     return count;
   }
 
+  /**
+   * Create and save a report from visibility-only results (for free plan)
+   * @param batchExecutionId The batch execution ID
+   * @param visibilityResults The visibility pipeline results
+   * @param sentimentResults Empty sentiment results
+   * @param alignmentResults Empty alignment results
+   * @param competitionResults Empty competition results
+   * @param context Project context
+   */
+  async createVisibilityOnlyReport(
+    batchExecutionId: string,
+    visibilityResults: any,
+    sentimentResults: any,
+    alignmentResults: any,
+    competitionResults: any,
+    context: ProjectBatchContext
+  ): Promise<void> {
+    try {
+      // Get project details for report metadata
+      const project = await this.projectService.findById(context.projectId);
+      if (!project) {
+        throw new Error(`Project ${context.projectId} not found`);
+      }
+
+      // Create the new report structure
+      const reportDate = new Date();
+      const brandReport: ReportStructure = {
+        id: batchExecutionId, // Use batch execution ID as report ID
+        projectId: project.projectId,
+        reportDate,
+        generatedAt: new Date(),
+        batchExecutionId,
+        brandName: project.brandName,
+        metadata: {
+          url: project.website || '',
+          market: project.market || '',
+          countryCode: project.market || 'US', // Default to US if not specified
+          competitors: project.competitors || [],
+          modelsUsed: this.extractModelsUsed(visibilityResults, sentimentResults, alignmentResults, competitionResults),
+          promptsExecuted: this.countPromptsExecuted(visibilityResults, sentimentResults, alignmentResults, competitionResults),
+          executionContext: {
+            batchId: batchExecutionId,
+            pipeline: 'brand-report',
+            version: '2.0.0',
+          },
+        },
+        explorer: this.reportBuilderService.buildExplorerData(visibilityResults, sentimentResults, alignmentResults, competitionResults, project.website),
+        visibility: this.reportBuilderService.buildVisibilityData(visibilityResults, project.brandName, project.competitors || []),
+        sentiment: this.reportBuilderService.buildSentimentData(sentimentResults),
+        alignment: this.reportBuilderService.buildAlignmentData(alignmentResults),
+        competition: this.reportBuilderService.buildCompetitionData(competitionResults, project.brandName, project.competitors || []),
+      };
+
+      // Save the report using the new persistence service
+      await this.brandReportPersistenceService.saveReport(brandReport);
+      this.logger.log(`Successfully saved visibility-only brand report for project ${context.projectId}`);
+
+      // Mark the batch execution as completed
+      await this.batchExecutionService.updateBatchExecutionStatus(batchExecutionId, 'completed');
+
+      // Get user information for email notification
+      if (context.organizationId) {
+        try {
+          const organization = await this.organizationService.findOne(context.organizationId);
+          const users = await this.userService.findByOrganizationId(context.organizationId);
+          
+          // Determine trigger type based on context
+          let triggerType: 'manual' | 'cron' | 'new_project' = 'new_project';
+          if (context.isManualRefresh) {
+            triggerType = 'manual';
+          }
+
+          // Emit report completed event for each user in the organization
+          for (const user of users) {
+            this.eventEmitter.emit('report.completed', new ReportCompletedEvent(
+              context.projectId,
+              project.brandName,
+              batchExecutionId, // Use batch execution ID as report ID
+              batchExecutionId,
+              user.id,
+              user.email,
+              triggerType,
+            ));
+          }
+          
+          this.logger.log(`Emitted report.completed event for ${users.length} users for visibility-only report ${brandReport.id}`);
+        } catch (error) {
+          this.logger.warn(`Failed to emit report completion event: ${error.message}`);
+        }
+      }
+    } catch (error) {
+      this.logger.error(`Failed to create visibility-only report: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
 }
