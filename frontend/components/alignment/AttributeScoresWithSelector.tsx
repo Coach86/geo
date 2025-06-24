@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TableProperties } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -81,7 +82,8 @@ export function AttributeScoresWithSelector({
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-lg font-semibold text-mono-700">
+            <CardTitle className="text-lg font-semibold text-mono-700 flex items-center gap-2">
+              <TableProperties className="h-5 w-5 text-amber-600" />
               Attribute Scores by Model
             </CardTitle>
             <p className="text-sm text-mono-400 mt-1">

@@ -121,7 +121,7 @@ export function SourcesAnalysis({ citations, type, loading }: SourcesAnalysisPro
       <CardHeader className="pb-2">
         <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
           <Globe className="h-5 w-5 text-blue-600" />
-          Sources Analysis
+          Sources Watchtower
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-2 flex-1 flex flex-col justify-center">
