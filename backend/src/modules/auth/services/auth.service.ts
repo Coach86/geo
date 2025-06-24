@@ -9,10 +9,10 @@ import { Admin, AdminDocument } from '../schemas/admin.schema';
 import { AdminRepository } from '../repositories/admin.repository';
 import { UserService } from '../../user/services/user.service';
 import { TokenService } from './token.service';
-import { MagicLinkEmail } from '../../report/email';
 import { PromoCodeService } from '../../promo/services/promo-code.service';
 import { OrganizationService } from '../../organization/services/organization.service';
 import { MagicLinkResponseDto } from '../dto/magic-link.dto';
+import { MagicLinkEmail } from '../../email/templates/MagicLinkEmail';
 
 @Injectable()
 export class AuthService {

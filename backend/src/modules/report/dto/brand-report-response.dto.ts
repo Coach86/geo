@@ -68,7 +68,6 @@ export class BrandReportResponseDto {
     }[];
     arenaMetrics: {
       name: string;
-      size: string;
       global: string;
     }[];
     topMentions?: { mention: string; count: number }[];

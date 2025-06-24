@@ -17,7 +17,6 @@ import { toast } from "sonner";
 import { useAuth } from "@/providers/auth-provider";
 import { useAnalytics } from "@/hooks/use-analytics";
 import { analyzeWebsite, createProject, getUserUrlUsage, generatePrompts, type CreateFullProjectRequest, type UrlUsageResponse, type GeneratePromptsRequest } from "@/lib/auth-api";
-import { runManualAnalysis } from "@/lib/api/project";
 import { extractHostname } from "@/utils/url-utils";
 import { saveSelectedDomain, saveSelectedProject } from "@/lib/navigation-persistence";
 import { getMyOrganization, type Organization } from "@/lib/organization-api";
@@ -414,15 +413,8 @@ export default function AddProjectModal({
         saveSelectedProject(result.id);
       }
 
-      // Trigger analysis for the new project
-      try {
-        await runManualAnalysis(result.id, token);
-        toast.success("Analysis started for your new project!");
-      } catch (analysisError) {
-        // Don't block project creation if analysis fails
-        console.warn("Failed to trigger analysis:", analysisError);
-        toast.info("Project created! You can manually trigger analysis from the project settings.");
-      }
+      // Analysis will be triggered automatically by the backend after project creation
+      toast.success("Analysis will start automatically for your new project!");
 
       onSuccess(result.id);
       onClose();

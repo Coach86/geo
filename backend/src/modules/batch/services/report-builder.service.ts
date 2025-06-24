@@ -408,7 +408,6 @@ export class ReportBuilderService {
 
       return {
         name: brandNameMetric,
-        size: globalRate > 20 ? 'lg' : globalRate > 10 ? 'md' : 'sm' as 'lg' | 'md' | 'sm',
         global: `${globalRate}%`,
         modelsMentionsRate,
       };

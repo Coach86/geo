@@ -104,7 +104,6 @@ export interface AttributeItem {
 
 export interface Competitor {
   name: string;
-  size: 'sm' | 'md' | 'lg' | string;
   global: string;
   modelsMentionsRate: {
     model: string;

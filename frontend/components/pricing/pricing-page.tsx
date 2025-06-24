@@ -20,7 +20,7 @@ import {
   trustSafetyItems
 } from "./pricing-constants";
 import { staticPlans } from "./static-plans";
-import { getUserProjects, runManualAnalysis } from "@/lib/auth-api";
+import { getUserProjects } from "@/lib/auth-api";
 import { toast } from "@/hooks/use-toast";
 
 interface PricingPageProps {
@@ -103,29 +103,22 @@ export default function PricingPage({
         const projects = await getUserProjects(user.token!);
         
         if (projects && projects.length > 0) {
-          // User already has projects, trigger batch analysis for the first project
-          try {
-            const firstProject = projects[0];
-            await runManualAnalysis(firstProject.id, user.token!);
-            
-            // Show success message
-            toast({
-              title: "Free Plan Activated",
-              description: "Your visibility analysis has been started. You'll be redirected to your dashboard.",
-              variant: "success" as any,
-              duration: 5000,
-            });
-            
-            // Set celebration flag and redirect to home after a short delay
-            sessionStorage.setItem('celebrate_plan_activation', 'true');
-            setTimeout(() => {
-              router.push("/home?plan_activated=true");
-            }, 2000);
-          } catch (analysisError) {
-            console.error("Failed to trigger analysis:", analysisError);
-            // Still redirect to home even if analysis fails
-            router.push("/");
-          }
+          // User already has projects, redirect to dashboard
+          // The batch analysis will be triggered automatically by the backend
+          
+          // Show success message
+          toast({
+            title: "Free Plan Activated",
+            description: "Your visibility analysis is being prepared. You'll be redirected to your dashboard.",
+            variant: "success" as any,
+            duration: 5000,
+          });
+          
+          // Set celebration flag and redirect to home after a short delay
+          sessionStorage.setItem('celebrate_plan_activation', 'true');
+          setTimeout(() => {
+            router.push("/home?plan_activated=true");
+          }, 2000);
         } else {
           // No projects yet, redirect to onboarding
           router.push("/onboarding");

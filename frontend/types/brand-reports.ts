@@ -81,7 +81,6 @@ export interface VisibilityData {
   // Arena metrics extracted for visibility page - competitor comparison data
   arenaMetrics: {
     name: string;
-    size?: 'lg' | 'md' | 'sm';
     global?: string;
     modelsMentionsRate?: Array<{
       model: string;
