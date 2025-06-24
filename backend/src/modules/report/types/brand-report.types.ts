@@ -14,6 +14,10 @@ export interface ArenaMetric {
   name: string;
   size: string;
   global: string; // e.g., "48%"
+  modelsMentionsRate?: Array<{
+    model: string;
+    mentionsRate: number;
+  }>;
 }
 
 export interface VisibilityData {

@@ -131,6 +131,10 @@ export class BrandReport {
       name: string;
       size: string;
       global: string;
+      modelsMentionsRate?: {
+        model: string;
+        mentionsRate: number;
+      }[];
     }[];
     topMentions?: {
       mention: string;
