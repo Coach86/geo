@@ -110,7 +110,7 @@ export class BrandReportVisibilityAggregationService {
     if (query.latestOnly) {
       const latestReport = await this.brandReportModel
         .findOne({ projectId })
-        .select('id reportDate generatedAt visibility visibility.detailedResults explorer')
+        .select('id reportDate generatedAt visibility explorer')
         .sort({ reportDate: -1 })
         .lean();
 
@@ -132,7 +132,7 @@ export class BrandReportVisibilityAggregationService {
 
     const reports = await this.brandReportModel
       .find(dateFilter)
-      .select('id reportDate generatedAt visibility visibility.detailedResults explorer')
+      .select('id reportDate generatedAt visibility explorer')
       .sort({ reportDate: -1 })
       .limit(10)
       .lean();
