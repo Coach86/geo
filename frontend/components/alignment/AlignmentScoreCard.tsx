@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Minus, Target } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface AlignmentScoreCardProps {
   brandName: string;
@@ -37,7 +38,20 @@ export function AlignmentScoreCard({
     return (
       <Card className="border-0 shadow-sm h-full">
         <CardHeader className="pb-4">
-          <div className="h-6 bg-gray-200 rounded w-32 animate-pulse"></div>
+          <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <Target className="h-5 w-5 text-orange-600" />
+           Your Alignment Score
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-xs text-gray-500 cursor-help">ⓘ</span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Average of all alignment sub-scores</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col">
           <div className="flex-1 flex flex-col justify-center">
@@ -55,7 +69,17 @@ export function AlignmentScoreCard({
       <CardHeader className="pb-4">
         <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
           <Target className="h-5 w-5 text-orange-600" />
-          Alignment Score
+         Your Alignment Score
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="text-xs text-gray-500 cursor-help">ⓘ</span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Average of all alignment sub-scores</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col">

@@ -5,6 +5,7 @@ import { Brain, Download } from "lucide-react";
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { exportToCSV, formatMentionsDataForCSV } from "@/utils/csv-export";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface MentionsListCardProps {
   mentions: Array<{
@@ -38,6 +39,16 @@ export function MentionsListCard({ mentions, loading }: MentionsListCardProps) {
           <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
             <Brain className="h-5 w-5 text-blue-500" />
             Industry Share of Voice
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-xs text-gray-500 cursor-help">ⓘ</span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>% of unique mentions across Visibility answers for each top 10 player</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -65,6 +76,16 @@ export function MentionsListCard({ mentions, loading }: MentionsListCardProps) {
           <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
             <Brain className="h-5 w-5 text-blue-500" />
             Industry Share of Voice
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-xs text-gray-500 cursor-help">ⓘ</span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>% of unique mentions across Visibility answers for each top 10 player</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </CardTitle>
           <Button
             variant="ghost"

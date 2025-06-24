@@ -203,10 +203,9 @@ export default function ExplorerPage() {
     
     // Filter webSearchResults by selected models if models are selected
     let filteredWebSearchResults = webSearchResults || [];
-    let filteredSummary = { ...summary };
     
     if (selectedModels.length > 0 && availableModels.length > 0) {
-      // Filter webSearchResults
+      // Filter webSearchResults for display purposes only
       if (webSearchResults) {
         filteredWebSearchResults = webSearchResults.map(result => ({
           ...result,
@@ -215,48 +214,14 @@ export default function ExplorerPage() {
           ) : []
         })).filter(result => result.citations.length > 0); // Remove results with no citations
       }
-      
-      // Calculate filtered summary statistics
-      const uniqueSourcesSet = new Set<string>();
-      let totalFilteredCitations = 0;
-      let totalFilteredPrompts = 0;
-      const promptsWithWebAccessSet = new Set<string>();
-      
-      // Count from filtered citations
-      citationsWithPromptText.forEach(citation => {
-        if (citation.website || citation.domain) {
-          uniqueSourcesSet.add(citation.website || citation.domain);
-        }
-        totalFilteredCitations++;
-      });
-      
-      // Count from filtered webSearchResults
-      filteredWebSearchResults.forEach(result => {
-        if (result.query) {
-          totalFilteredPrompts++;
-          if (result.citations && result.citations.length > 0) {
-            promptsWithWebAccessSet.add(result.query);
-          }
-        }
-      });
-      
-      // Update summary with filtered counts
-      filteredSummary = {
-        totalPrompts: totalFilteredPrompts || citationsWithPromptText.length,
-        promptsWithWebAccess: promptsWithWebAccessSet.size,
-        webAccessPercentage: totalFilteredPrompts > 0 
-          ? Math.round((promptsWithWebAccessSet.size / totalFilteredPrompts) * 100) 
-          : 0,
-        totalCitations: totalFilteredCitations,
-        uniqueSources: uniqueSourcesSet.size,
-      };
     }
     
+    // Use the backend-calculated summary statistics directly - they are already filtered correctly
     return {
-      summary: filteredSummary,
+      summary: summary, // Backend already handles model filtering correctly
       topKeywords,
       topSources,
-      citations: citationsWithPromptText, // Use filtered citations
+      citations: citationsWithPromptText,
       webSearchResults: filteredWebSearchResults
     };
   }, [selectedReports, summary, topKeywords, topSources, citationsWithPromptText, webSearchResults, selectedModels, availableModels]);

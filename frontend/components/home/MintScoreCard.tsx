@@ -271,7 +271,7 @@ export function MintScoreCard({ projectId, token, onGoToProject }: MintScoreCard
             {scores.loading ? (
               <Skeleton className="h-5 w-16" />
             ) : scores.visibility !== null ? (
-              <span className="text-sm font-semibold">{scores.visibility.toFixed(1)}%</span>
+              <span className="text-sm font-semibold">{Math.round(scores.visibility)}%</span>
             ) : (
               <span className="text-sm text-muted-foreground">{isProcessing ? "Processing..." : scores.hasData ? "--" : "No data"}</span>
             )}
@@ -287,7 +287,7 @@ export function MintScoreCard({ projectId, token, onGoToProject }: MintScoreCard
               <Skeleton className="h-5 w-20" />
             ) : scores.sentiment ? (
               <span className={`text-sm font-semibold ${scores.sentiment.score < 0 ? 'text-red-600' : ''}`}>
-                {scores.sentiment.score.toFixed(1)}%
+                {Math.round(scores.sentiment.score)}%
               </span>
             ) : (
               <span className="text-sm text-muted-foreground">{isProcessing ? "Processing..." : scores.hasData ? "--" : "No data"}</span>
@@ -305,7 +305,7 @@ export function MintScoreCard({ projectId, token, onGoToProject }: MintScoreCard
             ) : scores.alignment ? (
               <div className="flex items-center gap-2">
                 <span className={`text-sm font-semibold ${getAlignmentColor(scores.alignment.score)}`}>
-                  {scores.alignment.score.toFixed(1)}%
+                  {Math.round(scores.alignment.score)}%
                 </span>
               </div>
             ) : (
@@ -316,7 +316,7 @@ export function MintScoreCard({ projectId, token, onGoToProject }: MintScoreCard
         
         {/* Go to Project Button */}
         {onGoToProject && (
-          <div className="pt-3 border-t mt-auto">
+          <div className="pt-3 mt-auto">
             <Button 
               variant="outline" 
               size="sm" 

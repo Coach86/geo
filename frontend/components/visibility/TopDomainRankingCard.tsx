@@ -6,6 +6,7 @@ import { useMemo } from "react";
 import { useFavicons } from "@/hooks/use-favicon";
 import { Button } from "@/components/ui/button";
 import { exportToCSV, formatDomainDataForCSV } from "@/utils/csv-export";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface TopDomainRankingCardProps {
   domains: Array<{
@@ -44,6 +45,16 @@ export function TopDomainRankingCard({ domains, loading }: TopDomainRankingCardP
           <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
             <Globe className="h-5 w-5 text-accent-600" />
             Top Domain Ranking
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-xs text-gray-500 cursor-help">ⓘ</span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>% of total sources owned consulted by models to formulate Visibility answers (grouped at domain level)</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -71,6 +82,16 @@ export function TopDomainRankingCard({ domains, loading }: TopDomainRankingCardP
           <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
             <Globe className="h-5 w-5 text-accent-600" />
             Top Domain Ranking
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-xs text-gray-500 cursor-help">ⓘ</span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>% of total sources owned consulted by models to formulate Visibility answers (grouped at domain level)</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </CardTitle>
           <Button
             variant="ghost"

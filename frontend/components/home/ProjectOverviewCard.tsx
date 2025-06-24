@@ -103,7 +103,7 @@ export function ProjectOverviewCard({ project, onClick, onGoToProject, onProject
         
         {/* Project Settings Button */}
         {onProjectSettings && (
-          <div className="pt-3 border-t mt-auto">
+          <div className="pt-3 mt-auto">
             <Button 
               variant="outline" 
               size="sm" 

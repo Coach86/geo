@@ -152,11 +152,18 @@ export default function SentimentPage() {
       (ms: any) => ms.model === model
     );
     
-    // Combine full result with model sentiment data for keywords
+    // Find detailed result data that includes citations and tool usage
+    const detailedResult = heatmapSentimentData?.detailedResults?.find(
+      (result: any) => result.model === model && result.originalPrompt === question
+    );
+    
+    // Combine full result with model sentiment data for keywords and detailed data for citations/toolUsage
     const combinedData = {
       ...fullResult,
       positiveKeywords: modelSentimentData?.positiveKeywords || [],
       negativeKeywords: modelSentimentData?.negativeKeywords || [],
+      citations: detailedResult?.citations || [],
+      toolUsage: detailedResult?.toolUsage || [],
     };
     
     setSelectedModelData(combinedData || modelData || null);

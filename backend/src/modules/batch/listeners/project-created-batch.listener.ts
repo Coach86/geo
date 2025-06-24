@@ -27,11 +27,8 @@ export class ProjectCreatedBatchListener {
     try {
       this.logger.log(`Handling project.created event for batch processing: ${event.projectId}`);
       
-      // Wait a bit to ensure prompts are generated
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Get project context
-      const projectContext = await this.batchService.getProjectBatchContext(event.projectId);
+      // Wait for prompt sets to be created with retry mechanism
+      const projectContext = await this.waitForPromptSets(event.projectId);
       if (!projectContext) {
         this.logger.warn(`Project context not found for ID: ${event.projectId}`);
         return;
@@ -138,6 +135,38 @@ export class ProjectCreatedBatchListener {
     } catch (error) {
       this.logger.error(`Failed to initiate batch processing for new project ${event.projectId}: ${error.message}`, error.stack);
     }
+  }
+
+  private async waitForPromptSets(projectId: string, maxRetries: number = 10): Promise<any> {
+    let retries = 0;
+    const baseDelay = 1000; // Start with 1 second
+    
+    while (retries < maxRetries) {
+      try {
+        // Try to get project context (this will throw if no prompt sets exist)
+        const projectContext = await this.batchService.getProjectBatchContext(projectId);
+        this.logger.log(`Successfully found prompt sets for project ${projectId} after ${retries} retries`);
+        return projectContext;
+      } catch (error) {
+        if (error.message?.includes('has no prompt sets')) {
+          retries++;
+          const delay = baseDelay * Math.pow(1.5, retries - 1); // Exponential backoff with 1.5 factor
+          
+          if (retries < maxRetries) {
+            this.logger.debug(`Prompt sets not ready for project ${projectId}, retrying in ${delay}ms (attempt ${retries}/${maxRetries})`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          } else {
+            this.logger.error(`Failed to find prompt sets for project ${projectId} after ${maxRetries} retries`);
+            throw new Error(`Prompt sets not available for project ${projectId} after ${maxRetries} retries`);
+          }
+        } else {
+          // Different error, don't retry
+          throw error;
+        }
+      }
+    }
+    
+    return null;
   }
 
   // Background processing method for visibility-only batch (free plan)

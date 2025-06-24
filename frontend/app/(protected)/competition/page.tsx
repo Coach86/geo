@@ -6,6 +6,7 @@ import { useFeatureGate } from "@/hooks/use-feature-access";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ModelDisplay } from "@/components/shared/ModelDisplay";
 import type { CompetitionData as CompetitionTypeData } from "@/types/competition";
 import { useNavigation } from "@/providers/navigation-provider";
@@ -286,8 +287,18 @@ function CompetitionTable({
   return (
     <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
       <CardHeader className="pb-4">
-        <CardTitle className="text-lg font-semibold text-mono-700">
-          Competition Analysis vs Pre‑selected Competitors
+        <CardTitle className="text-lg font-semibold text-mono-700 flex items-center gap-2">
+          Competitive Analysis
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="text-xs text-gray-500 cursor-help">ⓘ</span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Summary of your strengths and weaknesses when compared to selected competitors across models' answers</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </CardTitle>
         <p className="text-sm text-mono-400 mt-1">
           "Can you tell me the strengths and weaknesses of {brand} vs.

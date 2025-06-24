@@ -110,7 +110,7 @@ export class BrandReportVisibilityAggregationService {
     if (query.latestOnly) {
       const latestReport = await this.brandReportModel
         .findOne({ projectId })
-        .select('id reportDate generatedAt visibility explorer')
+        .select('id reportDate generatedAt visibility visibility.detailedResults explorer')
         .sort({ reportDate: -1 })
         .lean();
 
@@ -132,7 +132,7 @@ export class BrandReportVisibilityAggregationService {
 
     const reports = await this.brandReportModel
       .find(dateFilter)
-      .select('id reportDate generatedAt visibility explorer')
+      .select('id reportDate generatedAt visibility visibility.detailedResults explorer')
       .sort({ reportDate: -1 })
       .limit(10)
       .lean();
@@ -185,8 +185,8 @@ export class BrandReportVisibilityAggregationService {
       const visData = report.visibility;
       if (!visData) return;
 
-      this.trackMentions(visData, mentionTracker);
-      this.trackDomains(visData, domainTracker);
+      this.trackMentions(visData, mentionTracker, selectedModels);
+      this.trackDomains(visData, domainTracker, selectedModels);
 
       const reportResult = this.processReportVisibility(
         visData,
@@ -229,31 +229,63 @@ export class BrandReportVisibilityAggregationService {
 
   private trackMentions(
     visData: any,
-    mentionTracker: Map<string, { displayName: string; count: number }>
+    mentionTracker: Map<string, { displayName: string; count: number }>,
+    selectedModels?: string[]
   ): void {
     // Debug logging
     this.logger.debug(`[trackMentions] Processing visibility data:`, {
       hasTopMentions: !!visData.topMentions,
       topMentionsLength: visData.topMentions?.length || 0,
-      topMentionsSample: visData.topMentions?.slice(0, 3) || []
+      hasDetailedResults: !!visData.detailedResults,
+      detailedResultsLength: visData.detailedResults?.length || 0,
+      selectedModels: selectedModels || 'all'
     });
 
-    if (visData.topMentions) {
-      visData.topMentions.forEach((mentionItem: any) => {
-        if (mentionItem.mention && mentionItem.count) {
-          const normalizedMention = mentionItem.mention.toLowerCase().trim();
-          
-          if (!mentionTracker.has(normalizedMention)) {
-            mentionTracker.set(normalizedMention, {
-              displayName: mentionItem.mention,
-              count: 0
-            });
-          }
-          
-          const tracker = mentionTracker.get(normalizedMention)!;
-          tracker.count += mentionItem.count;
+    // Use detailedResults for model-specific filtering if available and models are selected
+    if (selectedModels && selectedModels.length > 0 && visData.detailedResults) {
+      this.logger.debug(`[trackMentions] Using detailedResults for model filtering`);
+      
+      visData.detailedResults.forEach((result: any) => {
+        // Only process results from selected models
+        if (selectedModels.includes(result.model) && result.extractedCompanies) {
+          result.extractedCompanies.forEach((company: string) => {
+            if (company && company.trim()) {
+              const normalizedMention = company.toLowerCase().trim();
+              
+              if (!mentionTracker.has(normalizedMention)) {
+                mentionTracker.set(normalizedMention, {
+                  displayName: company,
+                  count: 0
+                });
+              }
+              
+              const tracker = mentionTracker.get(normalizedMention)!;
+              tracker.count += 1; // Each mention from detailedResults counts as 1
+            }
+          });
         }
       });
+    } else {
+      // Fallback to aggregated topMentions if no model filtering or no detailedResults
+      this.logger.debug(`[trackMentions] Using aggregated topMentions`);
+      
+      if (visData.topMentions) {
+        visData.topMentions.forEach((mentionItem: any) => {
+          if (mentionItem.mention && mentionItem.count) {
+            const normalizedMention = mentionItem.mention.toLowerCase().trim();
+            
+            if (!mentionTracker.has(normalizedMention)) {
+              mentionTracker.set(normalizedMention, {
+                displayName: mentionItem.mention,
+                count: 0
+              });
+            }
+            
+            const tracker = mentionTracker.get(normalizedMention)!;
+            tracker.count += mentionItem.count;
+          }
+        });
+      }
     }
 
     // Debug log final state
@@ -265,17 +297,59 @@ export class BrandReportVisibilityAggregationService {
 
   private trackDomains(
     visData: any,
-    domainTracker: Map<string, number>
+    domainTracker: Map<string, number>,
+    selectedModels?: string[]
   ): void {
-    // Track domains from topDomains if available in visibility data
-    if (visData.topDomains && Array.isArray(visData.topDomains)) {
-      visData.topDomains.forEach((domainItem: any) => {
-        if (domainItem.domain && domainItem.count) {
-          const currentCount = domainTracker.get(domainItem.domain) || 0;
-          domainTracker.set(domainItem.domain, currentCount + domainItem.count);
+    // Debug logging
+    this.logger.debug(`[trackDomains] Processing visibility data:`, {
+      hasTopDomains: !!visData.topDomains,
+      topDomainsLength: visData.topDomains?.length || 0,
+      hasDetailedResults: !!visData.detailedResults,
+      detailedResultsLength: visData.detailedResults?.length || 0,
+      selectedModels: selectedModels || 'all'
+    });
+
+    // Use detailedResults for model-specific filtering if available and models are selected
+    if (selectedModels && selectedModels.length > 0 && visData.detailedResults) {
+      this.logger.debug(`[trackDomains] Using detailedResults for model filtering`);
+      
+      visData.detailedResults.forEach((result: any) => {
+        // Only process results from selected models
+        if (selectedModels.includes(result.model) && result.citations) {
+          result.citations.forEach((citation: any) => {
+            if (citation.url) {
+              try {
+                const url = new URL(citation.url);
+                const domain = url.hostname.toLowerCase();
+                const currentCount = domainTracker.get(domain) || 0;
+                domainTracker.set(domain, currentCount + 1);
+              } catch (error) {
+                // Invalid URL, skip
+                this.logger.debug(`[trackDomains] Invalid URL skipped: ${citation.url}`);
+              }
+            }
+          });
         }
       });
+    } else {
+      // Fallback to aggregated topDomains if no model filtering or no detailedResults
+      this.logger.debug(`[trackDomains] Using aggregated topDomains`);
+      
+      if (visData.topDomains && Array.isArray(visData.topDomains)) {
+        visData.topDomains.forEach((domainItem: any) => {
+          if (domainItem.domain && domainItem.count) {
+            const currentCount = domainTracker.get(domainItem.domain) || 0;
+            domainTracker.set(domainItem.domain, currentCount + domainItem.count);
+          }
+        });
+      }
     }
+
+    // Debug log final state
+    this.logger.debug(`[trackDomains] Domain tracker state:`, {
+      trackerSize: domainTracker.size,
+      trackerEntries: Array.from(domainTracker.entries()).slice(0, 5)
+    });
   }
 
   private processReportVisibility(

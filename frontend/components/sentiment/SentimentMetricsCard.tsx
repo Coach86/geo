@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Minus, BarChart3 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface SentimentMetricsCardProps {
   averageScore: number;
@@ -45,7 +46,7 @@ export function SentimentMetricsCard({
     if (variation === null || variation === undefined || variation === 0) return "text-gray-500";
     return variation > 0 ? "text-accent-600" : "text-destructive-600";
   };
-  
+
   const formatVariation = (variation: number | null | undefined) => {
     if (variation === null || variation === undefined) return "";
     return `${variation > 0 ? "+" : ""}${variation}%`;
@@ -56,7 +57,17 @@ export function SentimentMetricsCard({
       <CardHeader className="pb-4">
         <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
           <BarChart3 className="h-5 w-5 text-indigo-600" />
-          Sentiment Score
+          Your Sentiment Score
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="text-xs text-gray-500 cursor-help">ⓘ</span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>(# of positive answers - # of negative answers) / total prompt answers</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col">
@@ -64,7 +75,7 @@ export function SentimentMetricsCard({
           {/* Average Score Section */}
           <div className="text-center">
             <div className="flex items-center justify-center gap-6">
-              <div 
+              <div
                 className={`cursor-pointer transition-all duration-200 ${
                   hoveredMetric === 'score' ? 'opacity-100' : 'opacity-90 hover:opacity-100'
                 }`}
@@ -87,20 +98,20 @@ export function SentimentMetricsCard({
                   )}
                 </div>
               </div>
-              
+
               {/* Distribution on the right */}
               <div className="border-l border-gray-200 pl-6">
                 <div className="space-y-3">
                   {/* Positive */}
-                  <div 
+                  <div
                     className={`flex items-center justify-between px-2 py-1 -mx-2 rounded cursor-pointer transition-all duration-200 ${
                       hoveredMetric === 'positive' ? 'bg-accent-50 shadow-sm' : 'hover:bg-gray-50'
                     }`}
                     onMouseEnter={() => onMetricHover?.('positive')}
                     onMouseLeave={() => onMetricHover?.(null)}
                   >
-                    <div className="flex items-center gap-3">
-                      <p className="text-sm text-gray-500 w-16">Positive</p>
+                    <div className="flex items-center gap-3 justify-start">
+                      <p className="text-sm text-gray-500">Positive</p>
                       <div className="text-xl font-semibold text-accent-600">
                         {distribution.positive}%
                       </div>
@@ -112,17 +123,17 @@ export function SentimentMetricsCard({
                       </div>
                     )}
                   </div>
-                  
+
                   {/* Neutral */}
-                  <div 
+                  <div
                     className={`flex items-center justify-between px-2 py-1 -mx-2 rounded cursor-pointer transition-all duration-200 ${
                       hoveredMetric === 'neutral' ? 'bg-primary-50 shadow-sm' : 'hover:bg-gray-50'
                     }`}
                     onMouseEnter={() => onMetricHover?.('neutral')}
                     onMouseLeave={() => onMetricHover?.(null)}
                   >
-                    <div className="flex items-center gap-3">
-                      <p className="text-sm text-gray-500 w-16">Neutral</p>
+                    <div className="flex items-center gap-3 justify-start">
+                      <p className="text-sm text-gray-500">Neutral</p>
                       <div className="text-xl font-semibold text-primary-600">
                         {distribution.neutral}%
                       </div>
@@ -134,17 +145,17 @@ export function SentimentMetricsCard({
                       </div>
                     )}
                   </div>
-                  
+
                   {/* Negative */}
-                  <div 
+                  <div
                     className={`flex items-center justify-between px-2 py-1 -mx-2 rounded cursor-pointer transition-all duration-200 ${
                       hoveredMetric === 'negative' ? 'bg-destructive-50 shadow-sm' : 'hover:bg-gray-50'
                     }`}
                     onMouseEnter={() => onMetricHover?.('negative')}
                     onMouseLeave={() => onMetricHover?.(null)}
                   >
-                    <div className="flex items-center gap-3">
-                      <p className="text-sm text-gray-500 w-16">Negative</p>
+                    <div className="flex items-center gap-3 justify-start">
+                      <p className="text-sm text-gray-500">Negative</p>
                       <div className="text-xl font-semibold text-destructive-600">
                         {distribution.negative}%
                       </div>

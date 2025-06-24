@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { X, Plus, Check, Users, Tag, LineChart } from "lucide-react"
+import { X, Plus, Check, Users, Tag, LineChart, PenTool } from "lucide-react"
 
 interface AttributeItem {
   id: string;
@@ -370,7 +370,7 @@ export default function BrandIdentity({ initialData, onDataReady }: BrandIdentit
             </div>
             <p className="text-sm text-gray-500 mb-4">
               {analyzedAttributes.length > 0
-                ? "Edit your main properties to verify that AI accurately portrays your key differentiators, tone, and positioning"
+                ? <>Edit your main properties to verify that AI accurately portrays your key differentiators, tone, and positioning. Click on any property with the <PenTool className="inline h-3 w-3 text-accent-500 mx-1" /> icon to edit it.</>
                 : "Select up to 5 key brand attributes"
               }
             </p>
@@ -381,7 +381,8 @@ export default function BrandIdentity({ initialData, onDataReady }: BrandIdentit
                 <div key={item.id} className="group">
                   {editingId === item.id ? (
                     <div className="p-3 rounded-lg border border-accent-300 bg-accent-50">
-                      <div className="flex items-center">
+                      <div className="flex items-center gap-2">
+                        <PenTool className="h-3 w-3 text-accent-500 flex-shrink-0" />
                         <Input
                           value={editableValue}
                           onChange={(e) => setEditableValue(e.target.value)}
@@ -433,7 +434,7 @@ export default function BrandIdentity({ initialData, onDataReady }: BrandIdentit
                       }`}
                     >
                       <span
-                        className="text-sm text-mono-800 cursor-pointer hover:text-accent-600 flex-1"
+                        className="text-sm text-mono-800 cursor-pointer hover:text-accent-600 flex-1 flex items-start gap-2"
                         onClick={() => {
                           if (item.selected) {
                             setEditingId(item.id)
@@ -443,6 +444,7 @@ export default function BrandIdentity({ initialData, onDataReady }: BrandIdentit
                           }
                         }}
                       >
+                        <PenTool className="h-3 w-3 text-accent-500 mt-0.5 flex-shrink-0" />
                         {item.value}
                       </span>
                       <div

@@ -130,19 +130,25 @@ export function useVisibilityReports(
     }
 
     // Transform chart data to match existing format
-    const chartData = aggregatedData.chartData.map((point: any) => {
-      const transformedPoint: any = {
-        date: new Date(point.date).toLocaleDateString(),
-        Brand: point.brand,
-      };
-      
-      // Add competitor data
-      Object.entries(point.competitors || {}).forEach(([name, score]) => {
-        transformedPoint[name] = score;
-      });
-      
-      return transformedPoint;
-    });
+    const chartData = aggregatedData.chartData
+      .map((point: any) => {
+        const transformedPoint: any = {
+          date: new Date(point.date).toLocaleDateString(),
+          dateObj: new Date(point.date), // Keep the Date object for sorting
+          Brand: point.brand,
+        };
+        
+        // Add competitor data
+        Object.entries(point.competitors || {}).forEach(([name, score]) => {
+          transformedPoint[name] = score;
+        });
+        
+        return transformedPoint;
+      })
+      // Sort by date in ascending order
+      .sort((a: any, b: any) => a.dateObj.getTime() - b.dateObj.getTime())
+      // Remove the dateObj as it's not needed in the final output
+      .map(({ dateObj, ...rest }: any) => rest);
 
     // Process model breakdown if needed
     const modelBreakdown = aggregatedData.modelBreakdown?.map((mb: any) => ({

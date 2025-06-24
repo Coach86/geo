@@ -16,13 +16,13 @@ interface VisibilityTrendChartProps {
 }
 
 const CHART_COLORS = [
-  "#7C3AED", // Brand color (purple)
-  "#3B82F6", // Blue
-  "#10B981", // Green
-  "#F59E0B", // Orange
-  "#EF4444", // Red
-  "#8B5CF6", // Violet
-  "#EC4899", // Pink
+  "#8B5CF6", // Brand color (vibrant purple)
+  "#3B82F6", // Vibrant Blue
+  "#10B981", // Vibrant Emerald
+  "#F59E0B", // Vibrant Amber
+  "#EF4444", // Vibrant Red
+  "#06B6D4", // Vibrant Cyan
+  "#EC4899", // Vibrant Pink
 ];
 
 export function VisibilityTrendChart({

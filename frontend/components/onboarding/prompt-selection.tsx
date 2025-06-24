@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useAuth } from "@/providers/auth-provider"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Info, MessageSquare, TrendingUp, AlertCircle, Plus, Check, X } from "lucide-react"
+import { Info, MessageSquare, TrendingUp, AlertCircle, Plus, Check, X, PenTool } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
@@ -353,7 +353,7 @@ export default function PromptSelection({ initialData, onDataReady }: PromptSele
           </div>
           <p className="text-sm text-gray-500 mb-4">
             Monitor where and how your brand is organically mentioned in AI responses, and how it compares to selected competitors.
-            Feel free to edit prompts below.
+            Click on any prompt with the <PenTool className="inline h-3 w-3 text-accent-500 mx-1" /> icon to edit it.
           </p>
 
           {/* List of prompts */}
@@ -362,7 +362,8 @@ export default function PromptSelection({ initialData, onDataReady }: PromptSele
               <div key={item.id} className="group">
                 {editingId === item.id ? (
                   <div className="p-3 rounded-lg border border-accent-300 bg-accent-50">
-                    <div className="flex items-center">
+                    <div className="flex items-center gap-2">
+                      <PenTool className="h-3 w-3 text-accent-500 flex-shrink-0" />
                       <Input
                         value={editableValue}
                         onChange={(e) => setEditableValue(e.target.value)}
@@ -414,7 +415,7 @@ export default function PromptSelection({ initialData, onDataReady }: PromptSele
                     }`}
                   >
                     <span
-                      className="text-sm text-mono-800 cursor-pointer hover:text-accent-600 flex-1"
+                      className="text-sm text-mono-800 cursor-pointer hover:text-accent-600 flex-1 flex items-start gap-2"
                       onClick={() => {
                         if (item.selected) {
                           setEditingId(item.id)
@@ -424,6 +425,7 @@ export default function PromptSelection({ initialData, onDataReady }: PromptSele
                         }
                       }}
                     >
+                      <PenTool className="h-3 w-3 text-accent-500 mt-0.5 flex-shrink-0" />
                       {item.text}
                     </span>
                     <div
