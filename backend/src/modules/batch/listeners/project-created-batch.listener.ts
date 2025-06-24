@@ -134,6 +134,32 @@ export class ProjectCreatedBatchListener {
       }
     } catch (error) {
       this.logger.error(`Failed to initiate batch processing for new project ${event.projectId}: ${error.message}`, error.stack);
+      
+      // Notify frontend of batch initialization failure
+      try {
+        // Get project details for the notification, fallback if not available
+        let projectName = 'Unknown Project';
+        try {
+          const project = await this.projectService.findById(event.projectId);
+          projectName = project?.brandName || 'Unknown Project';
+        } catch (projectError) {
+          this.logger.warn(`Could not fetch project name for notification: ${projectError.message}`);
+        }
+
+        // Emit batch failed event with a placeholder execution ID
+        const placeholderExecutionId = `failed-init-${event.projectId}-${Date.now()}`;
+        this.batchEventsGateway.emitBatchFailed(
+          placeholderExecutionId,
+          event.projectId,
+          projectName,
+          'visibility', // Default to visibility for free plans
+          `Failed to start batch processing: ${error.message}`
+        );
+        
+        this.logger.log(`Notified frontend of batch initialization failure for project ${event.projectId}`);
+      } catch (notificationError) {
+        this.logger.error(`Failed to notify frontend of batch failure: ${notificationError.message}`);
+      }
     }
   }
 

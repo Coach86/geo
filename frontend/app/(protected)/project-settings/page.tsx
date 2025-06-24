@@ -23,7 +23,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { AlertCircle, RefreshCw, Info } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import BreadcrumbNav from "@/components/layout/breadcrumb-nav";
@@ -371,7 +371,19 @@ export default function Home() {
               <Card className="p-6">
                 <div className="grid grid-cols-12 gap-6">
                   <div className="col-span-2">
-                    <h2 className="text-lg font-semibold text-gray-900">Visibility</h2>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-lg font-semibold text-gray-900">Visibility</h2>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-4 w-4 text-gray-400 cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p>Track your organic visibility and brand mentions</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                   </div>
                   <div className="col-span-5">
                     <CompetitorsList
@@ -440,7 +452,19 @@ export default function Home() {
               <Card className="p-6">
                 <div className="grid grid-cols-12 gap-6">
                   <div className="col-span-2">
-                    <h2 className="text-lg font-semibold text-gray-900">Alignment</h2>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-lg font-semibold text-gray-900">Alignment</h2>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-4 w-4 text-gray-400 cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p>Verify that AI accurately portrays your key differentiators, information, and positioning</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                   </div>
                   <div className="col-span-5">
                     <AttributesList
@@ -494,7 +518,19 @@ export default function Home() {
               <Card className="p-6">
                 <div className="grid grid-cols-12 gap-6">
                   <div className="col-span-2">
-                    <h2 className="text-lg font-semibold text-gray-900">Sentiment</h2>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-lg font-semibold text-gray-900">Sentiment</h2>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-4 w-4 text-gray-400 cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p>Discover how AI perceives your brand and track shifts over time</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                   </div>
                   <div className="col-span-5">
                     {/* Empty column */}

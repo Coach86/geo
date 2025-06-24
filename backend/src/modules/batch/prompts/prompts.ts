@@ -171,31 +171,26 @@ export const PromptTemplates = {
   VISIBILITY_ANALYSIS: `
   Analyze the following response to the question: "{originalPrompt}"
 
-  Our brand: "{brandName}"
+  Our brand: {brandWithId}
   Competitors: {competitors}
 
   Extract all companies or brands that are mentioned and classify each one as:
-  - 'ourbrand': if it matches our brand "{brandName}"
+  - 'ourbrand': if it matches our brand
   - 'competitor': if it matches one of the competitors listed above
   - 'other': if it's any other brand or company
 
-  Return the list as an array of objects with 'name' and 'type' properties.
-  The list should be empty if no brand was mentioned.
+  Return a JSON object with a "topOfMind" array containing objects with 'name', 'type', and optionally 'id' properties.
 
-  # CRITICAL NAMING RULES:
-  1. For our brand "{brandName}": Use EXACTLY "{brandName}" - no variations allowed
-  2. For competitors: Use EXACTLY the competitor names as listed above - no variations allowed
-  3. For 'other' brands: Use the most common/official name
+  # CRITICAL RULES:
+  1. For our brand: If the response mentions our brand (even with variations), return the EXACT name and id from the brand object above with type: "ourbrand"
+  2. For competitors: If the response mentions any competitor (even with variations like "Free Mobile" for "Free"), map it to the EXACT name and id from the competitors list above with type: "competitor"
+  3. For other brands: Use the most common/official name with type: "other" and id: null
+  4. The "id" field must be the exact id string for "ourbrand" and "competitor" types, and must be null for "other" types
 
-  # MATCHING RULES:
-  When you encounter brand mentions in the response, you must:
-  - If it refers to our brand (even with variations like abbreviations, full names, etc.), return: name: "{brandName}", type: "ourbrand"
-  - If it refers to any competitor (even with variations), map it to the EXACT competitor name from the list above and return: name: "[exact_competitor_name]", type: "competitor"
-  - For any other brand, use: name: "[normalized_name]", type: "other"
-
-  EXAMPLE:
-  If competitors list contains "Free" and the response mentions "Free Mobile", "Free (Iliad)", or "Iliad Free", 
-  you MUST return: name: "Free", type: "competitor"
+  # MATCHING EXAMPLES:
+  - If competitors contains {{"name": "Free", "id": "free"}} and response mentions "Free Mobile" or "Iliad Free", return: {{"name": "Free", "id": "free", "type": "competitor"}}
+  - If our brand is {{"name": "Orange", "id": "orange"}} and response mentions "Orange S.A.", return: {{"name": "Orange", "id": "orange", "type": "ourbrand"}}
+  - If response mentions "Apple" (not in our lists), return: {{"name": "Apple", "type": "other", "id": null}}
 
   Response: {llmResponse}
   `,
