@@ -32,7 +32,18 @@ interface AccuracyTabProps {
 }
 
 const AccuracyTab: React.FC<AccuracyTabProps> = ({ results }) => {
-  const { summary, results: detailedResults } = results;
+  const { summary, results: detailedResults } = results || {};
+
+  // Handle missing summary
+  if (!summary || !summary.averageAttributeScores) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Typography variant="body1" color="text.secondary">
+          No accuracy data available for this report.
+        </Typography>
+      </Box>
+    );
+  }
 
   return (
     <>
@@ -56,10 +67,12 @@ const AccuracyTab: React.FC<AccuracyTabProps> = ({ results }) => {
               </Typography>
               <Typography variant="h3" color="primary" sx={{ mb: 2 }}>
                 {(() => {
-                  const scores = Object.values(summary.averageAttributeScores);
-                  if (scores.length > 0) {
-                    const avg = scores.reduce((sum, score) => sum + score, 0) / scores.length;
-                    return (avg * 100).toFixed(1) + '%';
+                  if (summary && summary.averageAttributeScores) {
+                    const scores = Object.values(summary.averageAttributeScores);
+                    if (scores.length > 0) {
+                      const avg = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+                      return (avg * 100).toFixed(1) + '%';
+                    }
                   }
                   return 'N/A';
                 })()}
@@ -72,9 +85,11 @@ const AccuracyTab: React.FC<AccuracyTabProps> = ({ results }) => {
                 <LinearProgress
                   variant="determinate"
                   value={(() => {
-                    const scores = Object.values(summary.averageAttributeScores);
-                    if (scores.length > 0) {
-                      return (scores.reduce((sum, score) => sum + score, 0) / scores.length) * 100;
+                    if (summary && summary.averageAttributeScores) {
+                      const scores = Object.values(summary.averageAttributeScores);
+                      if (scores.length > 0) {
+                        return (scores.reduce((sum, score) => sum + score, 0) / scores.length) * 100;
+                      }
                     }
                     return 0;
                   })()}
@@ -93,7 +108,9 @@ const AccuracyTab: React.FC<AccuracyTabProps> = ({ results }) => {
               </Typography>
               {(() => {
                 // Get all unique attributes
-                const attributes = Object.keys(summary.averageAttributeScores);
+                const attributes = (summary && summary.averageAttributeScores) 
+                  ? Object.keys(summary.averageAttributeScores) 
+                  : [];
 
                 // Get all unique models
                 const modelSet = new Set<string>();
@@ -196,7 +213,7 @@ const AccuracyTab: React.FC<AccuracyTabProps> = ({ results }) => {
                                 sx={{
                                   display: 'inline-block',
                                   backgroundColor: (() => {
-                                    const avgScore = summary.averageAttributeScores[attr] || 0;
+                                    const avgScore = (summary && summary.averageAttributeScores && summary.averageAttributeScores[attr]) || 0;
                                     // Color scale from red to green
                                     if (avgScore >= 0.8) return '#4caf50'; // Good
                                     if (avgScore >= 0.6) return '#8bc34a'; // Acceptable
@@ -205,13 +222,13 @@ const AccuracyTab: React.FC<AccuracyTabProps> = ({ results }) => {
                                     return '#f44336'; // Bad
                                   })(),
                                   color:
-                                    summary.averageAttributeScores[attr] > 0.5 ? 'white' : 'black',
+                                    (summary && summary.averageAttributeScores && summary.averageAttributeScores[attr] > 0.5) ? 'white' : 'black',
                                   borderRadius: '4px',
                                   padding: '2px 6px',
                                   minWidth: '40px',
                                 }}
                               >
-                                {((summary.averageAttributeScores[attr] || 0) * 100).toFixed(0)}%
+                                {(((summary && summary.averageAttributeScores && summary.averageAttributeScores[attr]) || 0) * 100).toFixed(0)}%
                               </Box>
                             </TableCell>
                           </TableRow>

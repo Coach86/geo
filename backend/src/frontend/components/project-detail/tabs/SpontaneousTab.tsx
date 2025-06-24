@@ -194,7 +194,7 @@ const SpontaneousTab: React.FC<SpontaneousTabProps> = ({ results, projectId }) =
                     summary.topMentions.map((mention, index) => (
                       <Chip
                         key={index}
-                        label={mention}
+                        label={typeof mention === 'object' ? (mention as any)?.name || JSON.stringify(mention) : mention}
                         color={index < 3 ? "primary" : "default"}
                         variant={index < 3 ? "filled" : "outlined"}
                       />
@@ -261,7 +261,7 @@ const SpontaneousTab: React.FC<SpontaneousTabProps> = ({ results, projectId }) =
                       {result.topOfMind.map((brand, idx) => (
                         <Chip
                           key={idx}
-                          label={brand}
+                          label={typeof brand === 'object' ? (brand as any)?.name || JSON.stringify(brand) : brand}
                           size="small"
                           sx={{ mr: 0.5, mb: 0.5 }}
                         />
