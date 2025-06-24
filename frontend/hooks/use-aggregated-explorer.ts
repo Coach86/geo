@@ -30,13 +30,15 @@ interface UseAggregatedExplorerReturn {
     brandDomainCount: number;
     otherSourcesCount: number;
   };
+  availableModels?: string[];
 }
 
 export function useAggregatedExplorer(
   projectId: string | null,
   token: string | null,
   dateRange?: { startDate: Date; endDate: Date },
-  isLatest: boolean = false
+  isLatest: boolean = false,
+  selectedModels: string[] = []
 ): UseAggregatedExplorerReturn {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,6 +57,7 @@ export function useAggregatedExplorer(
     citations: [],
     webSearchResults: [],
     domainSourceAnalysis: undefined,
+    availableModels: [],
   });
 
   useEffect(() => {
@@ -75,6 +78,7 @@ export function useAggregatedExplorer(
           citations: [],
           webSearchResults: [],
           domainSourceAnalysis: undefined,
+          availableModels: [],
         });
         return;
       }
@@ -83,7 +87,9 @@ export function useAggregatedExplorer(
       setError(null);
 
       try {
-        const queryParams: any = {};
+        const queryParams: any = {
+          models: selectedModels, // Send the array as-is (empty array means all models)
+        };
         
         if (isLatest) {
           queryParams.latestOnly = true;
@@ -107,6 +113,10 @@ export function useAggregatedExplorer(
           percentage: item.percentage,
         }));
 
+        // Use available models from backend response
+        const availableModels = response.availableModels || [];
+        console.log('[useAggregatedExplorer] Available models from backend:', availableModels);
+
         setData({
           loading: false,
           error: null,
@@ -116,6 +126,7 @@ export function useAggregatedExplorer(
           citations: response.citations || [],
           webSearchResults: response.webSearchResults || [],
           domainSourceAnalysis: response.domainSourceAnalysis,
+          availableModels,
         });
       } catch (err) {
         console.error("Failed to fetch aggregated explorer data:", err);
@@ -135,6 +146,7 @@ export function useAggregatedExplorer(
           citations: [],
           webSearchResults: [],
           domainSourceAnalysis: undefined,
+          availableModels: [],
         });
       } finally {
         setLoading(false);
@@ -142,7 +154,7 @@ export function useAggregatedExplorer(
     };
 
     fetchAggregatedExplorer();
-  }, [projectId, dateRange, token, isLatest]);
+  }, [projectId, dateRange, token, isLatest, selectedModels]);
 
   return {
     loading,
@@ -153,5 +165,6 @@ export function useAggregatedExplorer(
     citations: data.citations,
     webSearchResults: data.webSearchResults,
     domainSourceAnalysis: data.domainSourceAnalysis,
+    availableModels: data.availableModels || [],
   };
 }

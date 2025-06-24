@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ExternalLink, RefreshCw, ArrowRight } from "lucide-react"
+import { ExternalLink, RefreshCw, Settings } from "lucide-react"
 import { ProjectResponse } from "@/lib/auth-api"
 import { useEffect, useState } from "react"
 import { getProjectReports } from "@/lib/api/report"
@@ -14,9 +14,10 @@ interface ProjectOverviewCardProps {
   project: ProjectResponse
   onClick: () => void
   onGoToProject?: () => void
+  onProjectSettings?: () => void
 }
 
-export function ProjectOverviewCard({ project, onClick, onGoToProject }: ProjectOverviewCardProps) {
+export function ProjectOverviewCard({ project, onClick, onGoToProject, onProjectSettings }: ProjectOverviewCardProps) {
   const [isProcessing, setIsProcessing] = useState(false)
   const { token } = useAuth()
   const { notifications } = useNotificationContext()
@@ -63,7 +64,7 @@ export function ProjectOverviewCard({ project, onClick, onGoToProject }: Project
   }, [notifications, project.id])
   return (
     <Card
-      className="cursor-pointer hover:shadow-lg transition-shadow relative"
+      className="cursor-pointer hover:shadow-lg transition-shadow relative flex flex-col h-full"
       onClick={onClick}
     >
       {isProcessing && (
@@ -90,33 +91,33 @@ export function ProjectOverviewCard({ project, onClick, onGoToProject }: Project
           {project.url}
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
+      <CardContent className="flex-1 flex flex-col">
+        <div className="flex-1">
           {project.objectives && (
             <div>
               <h4 className="text-sm font-medium text-muted-foreground mb-1">Objectives</h4>
               <p className="text-sm line-clamp-2">{project.objectives}</p>
             </div>
           )}
-          
-          {/* Go to Project Button */}
-          {onGoToProject && (
-            <div className="pt-3 border-t">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="w-full" 
-                onClick={(e) => {
-                  e.stopPropagation(); // Prevent card click
-                  onGoToProject();
-                }}
-              >
-                <ArrowRight className="h-3 w-3 mr-2" />
-                Go to project
-              </Button>
-            </div>
-          )}
         </div>
+        
+        {/* Project Settings Button */}
+        {onProjectSettings && (
+          <div className="pt-3 border-t mt-auto">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full" 
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent card click
+                onProjectSettings();
+              }}
+            >
+              <Settings className="h-3 w-3 mr-2" />
+              Project Settings
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

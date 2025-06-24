@@ -20,6 +20,9 @@ interface SentimentReportData {
   generatedAt: Date;
   sentiment: SentimentData;
   explorer?: ExplorerData;
+  alignment?: any;
+  competition?: any;
+  visibility?: any;
 }
 
 interface ModelSentiment {
@@ -73,10 +76,6 @@ export class BrandReportSentimentAggregationService {
     if (reports.length === 0) {
       return this.createEmptySentimentResponse();
     }
-
-    // Fetch project prompts for citation mapping
-    // TODO: Implement project prompts loading if needed
-    // await this.loadProjectPrompts(projectId);
 
     const availableModels = this.extractAvailableModels(reports);
     const selectedModels = this.filterSelectedModels(query.models, availableModels);
@@ -147,11 +146,11 @@ export class BrandReportSentimentAggregationService {
     if (query.latestOnly) {
       const latestReport = await this.brandReportModel
         .findOne({ projectId })
-        .select('id reportDate generatedAt sentiment explorer')
+        .select('id reportDate generatedAt sentiment explorer alignment competition visibility')
         .sort({ reportDate: -1 })
         .lean();
 
-      return latestReport ? [latestReport as SentimentReportData] : [];
+      return latestReport ? [latestReport as any] : [];
     }
 
     const dateFilter: Record<string, unknown> = { projectId };
@@ -169,12 +168,12 @@ export class BrandReportSentimentAggregationService {
 
     const reports = await this.brandReportModel
       .find(dateFilter)
-      .select('id reportDate generatedAt sentiment explorer')
+      .select('id reportDate generatedAt sentiment explorer alignment competition visibility')
       .sort({ reportDate: -1 })
       .limit(10)
       .lean();
 
-    return reports as SentimentReportData[];
+    return reports as any[];
   }
 
   private extractAvailableModels(reports: SentimentReportData[]): string[] {
@@ -237,7 +236,8 @@ export class BrandReportSentimentAggregationService {
         sentData,
         report.explorer,
         selectedModels,
-        citationMap
+        citationMap,
+        report
       );
     });
 
@@ -314,7 +314,8 @@ export class BrandReportSentimentAggregationService {
     sentData: SentimentData,
     explorer: ExplorerData | undefined,
     selectedModels: string[],
-    citationMap: Map<string, CitationItemDto>
+    citationMap: Map<string, CitationItemDto>,
+    fullReport?: any
   ): void {
     // Extract from detailed results
     if (sentData.detailedResults) {
@@ -330,7 +331,7 @@ export class BrandReportSentimentAggregationService {
     if (explorer?.webSearchResults) {
       explorer.webSearchResults.forEach(searchResult => {
         if (searchResult.citations) {
-          this.extractFromExplorerData(searchResult.citations, selectedModels, citationMap, sentData);
+          this.extractFromExplorerData(searchResult.citations, selectedModels, citationMap, sentData, fullReport);
         }
       });
     }
@@ -388,21 +389,80 @@ export class BrandReportSentimentAggregationService {
     citations: ExplorerCitation[],
     selectedModels: string[],
     citationMap: Map<string, CitationItemDto>,
-    sentData?: SentimentData
+    sentData?: SentimentData,
+    fullReport?: any
   ): void {
     citations
       .filter((c: ExplorerCitation) => selectedModels.length === 0 || selectedModels.includes(c.model))
       .forEach((citation: ExplorerCitation) => {
         if (citation.link) {
           // Try to get the actual prompt from detailedResults using promptType and promptIndex
-          let actualPrompt = `${citation.promptType} prompt`;
+          let actualPrompt = '';
           
+          // Check sentiment data
           if (sentData?.detailedResults && citation.promptType === 'sentiment') {
             const detailedResult = sentData.detailedResults.find(
               r => r.model === citation.model && r.promptIndex === citation.promptIndex
             );
             if (detailedResult && detailedResult.originalPrompt) {
               actualPrompt = detailedResult.originalPrompt;
+            }
+          }
+          
+          // Check alignment data if we have the full report
+          if (!actualPrompt && fullReport?.alignment?.detailedResults && citation.promptType === 'alignment') {
+            const alignmentResult = fullReport.alignment.detailedResults.find(
+              (r: any) => r.model === citation.model && r.promptIndex === citation.promptIndex
+            );
+            if (alignmentResult && alignmentResult.originalPrompt) {
+              actualPrompt = alignmentResult.originalPrompt;
+            }
+          }
+          
+          // Check competition data if we have the full report
+          if (!actualPrompt && fullReport?.competition?.detailedResults && citation.promptType === 'competition') {
+            const competitionResult = fullReport.competition.detailedResults.find(
+              (r: any) => r.model === citation.model && r.promptIndex === citation.promptIndex
+            );
+            if (competitionResult && competitionResult.originalPrompt) {
+              actualPrompt = competitionResult.originalPrompt;
+            }
+          }
+          
+          // Check visibility data if we have the full report
+          if (!actualPrompt && fullReport?.visibility && citation.promptType === 'visibility') {
+            // Check if visibility has detailedResults array (VisibilityData format)
+            if ('detailedResults' in fullReport.visibility && 
+                fullReport.visibility.detailedResults && 
+                Array.isArray(fullReport.visibility.detailedResults)) {
+              const visibilityResult = fullReport.visibility.detailedResults.find(
+                (r: any) => r.model === citation.model && r.promptIndex === citation.promptIndex
+              );
+              if (visibilityResult && visibilityResult.originalPrompt) {
+                actualPrompt = visibilityResult.originalPrompt;
+              }
+            }
+          }
+          
+          // If we still couldn't find the actual prompt, use a more descriptive fallback
+          if (!actualPrompt) {
+            // Generate more meaningful fallback text based on prompt type
+            const promptNumber = citation.promptIndex + 1;
+            switch (citation.promptType) {
+              case 'visibility':
+                actualPrompt = `Brand visibility query #${promptNumber}`;
+                break;
+              case 'alignment':
+                actualPrompt = `Brand attribute alignment query #${promptNumber}`;
+                break;
+              case 'competition':
+                actualPrompt = `Competitive analysis query #${promptNumber}`;
+                break;
+              case 'sentiment':
+                actualPrompt = `Brand sentiment query #${promptNumber}`;
+                break;
+              default:
+                actualPrompt = `${citation.promptType} query #${promptNumber}`;
             }
           }
           

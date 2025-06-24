@@ -30,13 +30,6 @@ export class CitationItemDto {
   })
   scores?: number[];
 
-  @ApiProperty({ 
-    description: 'Attributes associated with alignment scores', 
-    required: false,
-    type: [String]
-  })
-  attributes?: string[];
-
   @ApiProperty({ description: 'Number of times this URL was cited' })
   count: number;
 

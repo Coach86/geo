@@ -29,6 +29,22 @@ export interface VisibilityDataBuilder {
   }>;
   arenaMetrics: ArenaMetricBuilder[];
   topMentions: MentionCount[];
+  topDomains?: Array<{
+    domain: string;
+    count: number;
+    percentage: number;
+  }>;
+  detailedResults?: Array<{
+    model: string;
+    promptIndex: number;
+    brandMentioned: boolean;
+    extractedCompanies: string[];
+    originalPrompt: string;
+    llmResponse: string;
+    usedWebSearch: boolean;
+    citations: any[];
+    toolUsage: any[];
+  }>;
 }
 
 // This matches the interfaces/report.interfaces.ts VisibilityData

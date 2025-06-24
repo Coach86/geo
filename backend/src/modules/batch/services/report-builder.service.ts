@@ -432,6 +432,21 @@ export class ReportBuilderService {
       this.logger.log(`Top domains sample: ${JSON.stringify(topDomains.slice(0, 3))}`);
     }
 
+    // Build detailed results with original prompts
+    const detailedResults = visibilityResults.results.map((result: any) => ({
+      model: result.llmModel,
+      promptIndex: result.promptIndex,
+      brandMentioned: result.mentioned,
+      extractedCompanies: result.topOfMind.map((brand: any) => 
+        typeof brand === 'string' ? brand : brand.name
+      ),
+      originalPrompt: result.originalPrompt || '',
+      llmResponse: result.llmResponse || '',
+      usedWebSearch: result.usedWebSearch || false,
+      citations: result.citations || [],
+      toolUsage: result.toolUsage || [],
+    }));
+
     return {
       overallMentionRate,
       promptsTested: visibilityResults.results.length,
@@ -439,6 +454,7 @@ export class ReportBuilderService {
       arenaMetrics,
       topMentions,
       topDomains,
+      detailedResults,
     };
   }
 

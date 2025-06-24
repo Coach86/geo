@@ -286,13 +286,6 @@ export class BrandReportAlignmentAggregationService {
                 if (!existing.scores.includes(result.avgScore)) {
                   existing.scores.push(result.avgScore);
                 }
-                // Add attributes
-                if (!existing.attributes) existing.attributes = [];
-                result.attributeNames.forEach(attr => {
-                  if (existing.attributes && !existing.attributes.includes(attr)) {
-                    existing.attributes.push(attr);
-                  }
-                });
                 if (result.model && !existing.models.includes(result.model)) {
                   existing.models.push(result.model);
                 }
@@ -303,7 +296,6 @@ export class BrandReportAlignmentAggregationService {
                   title: citation.title || '',
                   prompts: result.originalPrompt ? [result.originalPrompt] : [],
                   scores: [result.avgScore],
-                  attributes: [...result.attributeNames], // Add attributes
                   count: 1,
                   models: result.model ? [result.model] : [],
                   text: citation.text

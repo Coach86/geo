@@ -93,7 +93,7 @@ export function SourcesAnalysis({ citations, type, loading }: SourcesAnalysisPro
   const getStatusColor = () => {
     if (analysis.percentage >= 30) return "destructive";
     if (analysis.percentage >= 15) return "secondary";
-    return "accent";
+    return "default";
   };
 
   const getStatusIcon = () => {
@@ -119,10 +119,23 @@ export function SourcesAnalysis({ citations, type, loading }: SourcesAnalysisPro
   return (
     <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300 h-full">
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-          <Globe className="h-5 w-5 text-blue-600" />
-          Sources Watchtower
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <Globe className="h-5 w-5 text-blue-600" />
+            Sources Watchtower
+          </CardTitle>
+          <div 
+            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors border ${
+              getStatusColor() === "destructive" 
+                ? "bg-destructive-50 text-destructive-700 border-destructive-200" 
+                : getStatusColor() === "secondary"
+                ? "bg-orange-50 text-orange-700 border-orange-200"
+                : "bg-green-50 text-green-700 border-green-200"
+            }`}
+          >
+            {analysis.percentage}% • {getStatusText()}
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="pt-2 flex-1 flex flex-col justify-center">
         <div className="w-full">

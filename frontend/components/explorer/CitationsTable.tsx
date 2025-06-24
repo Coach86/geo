@@ -301,18 +301,17 @@ export function CitationsTable({ citations, webSearchResults, onExport, searchQu
         cell: ({ getValue }) => {
           const query = getValue() as string;
           return (
-            <div className="space-y-1">
-              <Badge
-                variant="outline"
-                className="text-xs bg-blue-50 text-blue-700 border-blue-200"
-              >
-                <Search className="h-3 w-3 mr-1" />
-                {query === "No search query" ? (
-                  <span className="italic">{query}</span>
-                ) : (
-                  query
-                )}
-              </Badge>
+            <div className="flex items-start gap-2">
+              <Search className="h-3 w-3 mt-1 text-blue-600 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-gray-700 break-words">
+                  {query === "No search query" ? (
+                    <span className="italic text-gray-400">{query}</span>
+                  ) : (
+                    query
+                  )}
+                </p>
+              </div>
             </div>
           );
         },
@@ -695,144 +694,109 @@ export function CitationsTable({ citations, webSearchResults, onExport, searchQu
             ))}
           </thead>
           <tbody>
-            {(() => {
-              const filteredRows = table.getRowModel().rows;
-              const processedGroups = new Map<string, typeof filteredRows>();
-              
-              // Group filtered rows by search query
-              filteredRows.forEach((row) => {
-                const query = row.original.searchQuery;
-                if (!processedGroups.has(query)) {
-                  processedGroups.set(query, []);
-                }
-                processedGroups.get(query)!.push(row);
-              });
-
-              const renderedRows: JSX.Element[] = [];
-              
-              processedGroups.forEach((rows, query) => {
-                rows.forEach((row, index) => {
-                  const isFirstInGroup = index === 0;
-                  const isLastInGroup = index === rows.length - 1;
-                  
-                  renderedRows.push(
-                    <tr key={row.id} className="hover:bg-gray-50">
-                      <td 
-                        className={`px-4 py-3 border-b ${isLastInGroup ? 'border-gray-300' : 'border-gray-200'}`}
-                        rowSpan={isFirstInGroup ? rows.length : undefined}
-                        style={isFirstInGroup ? {} : { display: 'none' }}
+            {table.getRowModel().rows.length > 0 ? (
+              table.getRowModel().rows.map((row) => (
+                <tr key={row.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 border-b border-gray-200">
+                    <div className="flex items-start gap-2">
+                      <Search className="h-3 w-3 mt-1 text-blue-600 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-gray-700 break-words">
+                          {row.original.searchQuery === "No search query" ? (
+                            <span className="italic text-gray-400">{row.original.searchQuery}</span>
+                          ) : (
+                            row.original.searchQuery
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 border-b border-gray-200">
+                    <div className="flex items-center gap-2 min-w-0">
+                      {row.original.domain !== "No link" && favicons[row.original.domain] ? (
+                        <img
+                          src={favicons[row.original.domain]}
+                          alt={`${row.original.domain} favicon`}
+                          className="w-4 h-4 rounded-sm flex-shrink-0"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <LinkIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                      )}
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="font-medium text-gray-900 truncate cursor-default">
+                              {row.original.source}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="max-w-xs break-all">{row.original.source}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 border-b border-gray-200">
+                    {row.original.domain === "No link" ? (
+                      <span className="text-sm text-gray-400 italic">No link</span>
+                    ) : (
+                      <a
+                        href={row.original.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-blue-600 hover:text-blue-800 transition-colors duration-200"
                       >
-                        {isFirstInGroup && (
-                          <div className="space-y-1">
-                            <Badge
-                              variant="outline"
-                              className="text-xs bg-blue-50 text-blue-700 border-blue-200"
-                            >
-                              <Search className="h-3 w-3 mr-1" />
-                              {query === "No search query" ? (
-                                <span className="italic">{query}</span>
-                              ) : (
-                                query
-                              )}
-                            </Badge>
-                            {rows.length > 1 && (
-                              <div className="text-xs text-gray-500 mt-1">
-                                {rows.length} results
+                        <span className="text-sm">{row.original.domain}</span>
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 border-b border-gray-200">
+                    <span className="text-sm text-gray-900">{getModelFriendlyName(row.original.model)}</span>
+                  </td>
+                  <td className="px-4 py-3 border-b border-gray-200">
+                    <Badge variant="outline" className="text-xs">
+                      {getPromptTypeFriendlyName(row.original.promptType)}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-3 border-b border-gray-200">
+                    <div className="max-w-xs">
+                      {row.original.promptText ? (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="text-sm text-gray-700 cursor-help line-clamp-2 overflow-hidden">
+                                {row.original.promptText}
                               </div>
-                            )}
-                          </div>
-                        )}
-                      </td>
-                      <td className={`px-4 py-3 border-b ${isLastInGroup ? 'border-gray-300' : 'border-gray-200'}`}>
-                        <div className="flex items-center gap-2 min-w-0">
-                          {row.original.domain !== "No link" && favicons[row.original.domain] ? (
-                            <img
-                              src={favicons[row.original.domain]}
-                              alt={`${row.original.domain} favicon`}
-                              className="w-4 h-4 rounded-sm flex-shrink-0"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                              }}
-                            />
-                          ) : (
-                            <LinkIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                          )}
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span className="font-medium text-gray-900 truncate cursor-default">
-                                  {row.original.source}
-                                </span>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs break-all">{row.original.source}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </div>
-                      </td>
-                      <td className={`px-4 py-3 border-b ${isLastInGroup ? 'border-gray-300' : 'border-gray-200'}`}>
-                        {row.original.domain === "No link" ? (
-                          <span className="text-sm text-gray-400 italic">No link</span>
-                        ) : (
-                          <a
-                            href={row.original.link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1 text-blue-600 hover:text-blue-800 transition-colors duration-200"
-                          >
-                            <span className="text-sm">{row.original.domain}</span>
-                            <ExternalLink className="h-3 w-3" />
-                          </a>
-                        )}
-                      </td>
-                      <td className={`px-4 py-3 border-b ${isLastInGroup ? 'border-gray-300' : 'border-gray-200'}`}>
-                        <span className="text-sm text-gray-900">{getModelFriendlyName(row.original.model)}</span>
-                      </td>
-                      <td className={`px-4 py-3 border-b ${isLastInGroup ? 'border-gray-300' : 'border-gray-200'}`}>
-                        <Badge variant="outline" className="text-xs">
-                          {getPromptTypeFriendlyName(row.original.promptType)}
-                        </Badge>
-                      </td>
-                      <td className={`px-4 py-3 border-b ${isLastInGroup ? 'border-gray-300' : 'border-gray-200'}`}>
-                        <div className="max-w-xs">
-                          {row.original.promptText ? (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div className="text-sm text-gray-700 cursor-help line-clamp-2 overflow-hidden">
-                                    {row.original.promptText}
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent side="left" className="max-w-md">
-                                  <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                                    {row.original.promptText}
-                                  </p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          ) : (
-                            <span className="text-sm text-gray-400 italic">N/A</span>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                });
-              });
-              
-              return renderedRows.length > 0 ? renderedRows : (
-                <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
-                    <div className="flex flex-col items-center gap-2">
-                      <Database className="h-8 w-8 text-gray-300" />
-                      <p className="text-sm">No citations match your filters</p>
-                      <p className="text-xs text-gray-400">Try adjusting your search criteria</p>
+                            </TooltipTrigger>
+                            <TooltipContent side="left" className="max-w-md">
+                              <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                                {row.original.promptText}
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      ) : (
+                        <span className="text-sm text-gray-400 italic">N/A</span>
+                      )}
                     </div>
                   </td>
                 </tr>
-              );
-            })()}
+              ))
+            ) : (
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                  <div className="flex flex-col items-center gap-2">
+                    <Database className="h-8 w-8 text-gray-300" />
+                    <p className="text-sm">No citations match your filters</p>
+                    <p className="text-xs text-gray-400">Try adjusting your search criteria</p>
+                  </div>
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

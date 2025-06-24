@@ -91,6 +91,13 @@ export class AggregatedExplorerResponseDto {
     otherSourcesCount: number;
   };
 
+  @ApiProperty({ 
+    description: 'Available models found in the aggregated data',
+    type: [String],
+    required: false
+  })
+  availableModels?: string[];
+
   @ApiProperty({ description: 'Number of reports included in aggregation' })
   reportCount: number;
 
