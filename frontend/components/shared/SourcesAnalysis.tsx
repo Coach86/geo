@@ -3,7 +3,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Shield, Globe, TrendingDown } from "lucide-react";
+import { Globe } from "lucide-react";
 
 interface CitationItem {
   domain: string;
@@ -96,11 +96,6 @@ export function SourcesAnalysis({ citations, type, loading }: SourcesAnalysisPro
     return "default";
   };
 
-  const getStatusIcon = () => {
-    if (analysis.percentage >= 30) return <AlertTriangle className="h-4 w-4 text-destructive-600" />;
-    if (analysis.percentage >= 15) return <TrendingDown className="h-4 w-4 text-orange-600" />;
-    return <Shield className="h-4 w-4 text-accent-600" />;
-  };
 
   const getStatusText = () => {
     if (analysis.percentage >= 30) return "High Risk";
@@ -142,7 +137,6 @@ export function SourcesAnalysis({ citations, type, loading }: SourcesAnalysisPro
           {/* Main Metric */}
           <div className="text-center">
             <div className="flex items-center justify-center gap-2 mb-1">
-              {getStatusIcon()}
               <span className="text-2xl font-bold text-gray-900">
                 {analysis.riskyUrls}
               </span>

@@ -40,7 +40,7 @@ export const staticPlans: StaticPlan[] = [
       "Community support",
     ],
     ctaText: "Start Free",
-    ctaColor: "bg-green-600 hover:bg-green-700",
+    ctaColor: "bg-gray-600 hover:bg-gray-700",
     checkColor: "text-green-500",
     plusColor: "text-green-500",
     isPopular: false,

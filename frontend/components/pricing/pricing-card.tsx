@@ -197,6 +197,11 @@ export function PricingCard({
               Cancel anytime
             </p>
           )}
+          {ctaText === "Start Free" && (
+            <p className="text-xs text-center text-transparent mt-2">
+              &nbsp;
+            </p>
+          )}
         </div>
       </div>
     </div>

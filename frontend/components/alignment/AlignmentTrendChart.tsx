@@ -48,7 +48,7 @@ export function AlignmentTrendChart({ data, brandName }: AlignmentTrendChartProp
       <CardHeader className="pb-4">
         <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
           <TrendingUp className="h-5 w-5 text-primary-600" />
-          Alignment Trend
+          Alignment Score Evolution
         </CardTitle>
         <p className="text-sm text-gray-600 mt-1">
           {brandName} alignment scores over time

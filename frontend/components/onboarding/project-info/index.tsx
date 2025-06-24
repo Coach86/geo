@@ -4,8 +4,6 @@ import { useState, useEffect } from "react";
 import { Building } from "lucide-react";
 import { WebsiteAnalyzer } from "./WebsiteAnalyzer";
 import { MarketSelector } from "./MarketSelector";
-import { calculatePlanImpact } from "./utils";
-import type { PlanType } from "./types";
 import type { Market } from "@/app/onboarding/types/form-data";
 
 interface ProjectInfoComponentProps {
@@ -50,16 +48,6 @@ export default function ProjectInfo({ initialData, onDataReady }: ProjectInfoCom
     initialData?.brand?.markets || []
   );
 
-  // UI state
-  const [planImpact, setPlanImpact] = useState<PlanType>("Starter");
-  const [showPricingDialog, setShowPricingDialog] = useState(false);
-
-  // Calculate plan impact whenever markets change
-  useEffect(() => {
-    if (markets.length > 0) {
-      setPlanImpact(calculatePlanImpact(markets));
-    }
-  }, [markets]);
 
   // Notify parent when data changes (for validation purposes)
   useEffect(() => {
@@ -106,8 +94,6 @@ export default function ProjectInfo({ initialData, onDataReady }: ProjectInfoCom
         <MarketSelector
           markets={markets}
           onMarketsChange={handleMarketsChange}
-          planImpact={planImpact}
-          onShowPricingDialog={() => setShowPricingDialog(true)}
         />
 
         {/* Project Info Fields - moved to separate step */}

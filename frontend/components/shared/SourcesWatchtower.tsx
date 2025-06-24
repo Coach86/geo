@@ -634,8 +634,7 @@ export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowe
     return (
       <Card className="border-0 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <Globe className="h-5 w-5 text-blue-600" />
+          <CardTitle className="text-lg font-semibold text-gray-900">
             Sources Analysis
           </CardTitle>
         </CardHeader>
@@ -654,8 +653,7 @@ export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowe
     return (
       <Card className="border-0 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <Globe className="h-5 w-5 text-blue-600" />
+          <CardTitle className="text-lg font-semibold text-gray-900">
             Sources Analysis
           </CardTitle>
           <p className="text-sm text-gray-500 mt-1">

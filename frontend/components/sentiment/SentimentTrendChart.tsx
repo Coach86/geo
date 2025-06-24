@@ -26,11 +26,11 @@ interface SentimentTrendChartProps {
   onMetricHover?: (metric: string | null) => void;
 }
 
-export function SentimentTrendChart({ 
-  data, 
+export function SentimentTrendChart({
+  data,
   brandName,
   hoveredMetric,
-  onMetricHover 
+  onMetricHover
 }: SentimentTrendChartProps) {
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -80,7 +80,7 @@ export function SentimentTrendChart({
       <CardHeader className="pb-4">
         <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
           <TrendingUp className="h-5 w-5 text-green-600" />
-          Sentiment Trend Analysis
+          Sentiment Score Evolution
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -104,7 +104,7 @@ export function SentimentTrendChart({
                 tickFormatter={(value) => Math.round(value).toString()}
               />
               <Tooltip content={<CustomTooltip />} />
-              <Legend 
+              <Legend
                 wrapperStyle={{ fontSize: '12px' }}
                 iconType="line"
                 formatter={(value) => {
@@ -123,19 +123,19 @@ export function SentimentTrendChart({
                 }}
                 onMouseLeave={() => onMetricHover?.(null)}
               />
-              
+
               {/* Main sentiment score line */}
               <Line
                 type="monotone"
                 dataKey="score"
                 stroke="#7C3AED"
                 strokeWidth={
-                  hoveredMetric === 'score' ? 4 : 
+                  hoveredMetric === 'score' ? 4 :
                   hoveredMetric && hoveredMetric !== 'score' ? 1 : 3
                 }
                 strokeOpacity={hoveredMetric && hoveredMetric !== 'score' ? 0.3 : 1}
-                dot={{ 
-                  fill: "#7C3AED", 
+                dot={{
+                  fill: "#7C3AED",
                   r: hoveredMetric === 'score' ? 6 : 4,
                   strokeWidth: hoveredMetric === 'score' ? 2 : 0,
                   stroke: '#fff'
@@ -148,24 +148,24 @@ export function SentimentTrendChart({
                 name="score"
                 onMouseEnter={() => onMetricHover?.('score')}
                 onMouseLeave={() => onMetricHover?.(null)}
-                style={{ 
+                style={{
                   cursor: 'pointer',
                   transition: 'all 0.2s ease-in-out'
                 }}
               />
-              
+
               {/* Sentiment distribution lines */}
               <Line
                 type="monotone"
                 dataKey="positive"
                 stroke="#10B981"
                 strokeWidth={
-                  hoveredMetric === 'positive' ? 4 : 
+                  hoveredMetric === 'positive' ? 4 :
                   hoveredMetric && hoveredMetric !== 'positive' ? 1 : 2
                 }
                 strokeOpacity={hoveredMetric && hoveredMetric !== 'positive' ? 0.3 : 1}
-                dot={{ 
-                  fill: "#10B981", 
+                dot={{
+                  fill: "#10B981",
                   r: hoveredMetric === 'positive' ? 6 : 4,
                   strokeWidth: hoveredMetric === 'positive' ? 2 : 0,
                   stroke: '#fff'
@@ -178,7 +178,7 @@ export function SentimentTrendChart({
                 name="positive"
                 onMouseEnter={() => onMetricHover?.('positive')}
                 onMouseLeave={() => onMetricHover?.(null)}
-                style={{ 
+                style={{
                   cursor: 'pointer',
                   transition: 'all 0.2s ease-in-out'
                 }}
@@ -188,12 +188,12 @@ export function SentimentTrendChart({
                 dataKey="neutral"
                 stroke="#F59E0B"
                 strokeWidth={
-                  hoveredMetric === 'neutral' ? 4 : 
+                  hoveredMetric === 'neutral' ? 4 :
                   hoveredMetric && hoveredMetric !== 'neutral' ? 1 : 2
                 }
                 strokeOpacity={hoveredMetric && hoveredMetric !== 'neutral' ? 0.3 : 1}
-                dot={{ 
-                  fill: "#F59E0B", 
+                dot={{
+                  fill: "#F59E0B",
                   r: hoveredMetric === 'neutral' ? 6 : 4,
                   strokeWidth: hoveredMetric === 'neutral' ? 2 : 0,
                   stroke: '#fff'
@@ -206,7 +206,7 @@ export function SentimentTrendChart({
                 name="neutral"
                 onMouseEnter={() => onMetricHover?.('neutral')}
                 onMouseLeave={() => onMetricHover?.(null)}
-                style={{ 
+                style={{
                   cursor: 'pointer',
                   transition: 'all 0.2s ease-in-out'
                 }}
@@ -216,12 +216,12 @@ export function SentimentTrendChart({
                 dataKey="negative"
                 stroke="#EF4444"
                 strokeWidth={
-                  hoveredMetric === 'negative' ? 4 : 
+                  hoveredMetric === 'negative' ? 4 :
                   hoveredMetric && hoveredMetric !== 'negative' ? 1 : 2
                 }
                 strokeOpacity={hoveredMetric && hoveredMetric !== 'negative' ? 0.3 : 1}
-                dot={{ 
-                  fill: "#EF4444", 
+                dot={{
+                  fill: "#EF4444",
                   r: hoveredMetric === 'negative' ? 6 : 4,
                   strokeWidth: hoveredMetric === 'negative' ? 2 : 0,
                   stroke: '#fff'
@@ -234,7 +234,7 @@ export function SentimentTrendChart({
                 name="negative"
                 onMouseEnter={() => onMetricHover?.('negative')}
                 onMouseLeave={() => onMetricHover?.(null)}
-                style={{ 
+                style={{
                   cursor: 'pointer',
                   transition: 'all 0.2s ease-in-out'
                 }}

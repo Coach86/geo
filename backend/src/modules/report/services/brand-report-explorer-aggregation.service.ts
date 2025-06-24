@@ -209,14 +209,22 @@ export class BrandReportExplorerAggregationService {
       otherSourcesCount: totalOtherSourcesCount,
     } : undefined;
 
+    // Deduplicate web search results
+    const deduplicatedWebSearchResults = this.deduplicateWebSearchResults(allWebSearchResults);
+    
+    // Recalculate citation count based on deduplicated results to match what will be shown in the table
+    const finalCitationCount = deduplicatedWebSearchResults.reduce((count, result) => {
+      return count + (result.citations?.length || 0);
+    }, 0);
+
     return {
       totalPrompts,
       promptsWithWebAccess,
-      actualCitationCount,
+      actualCitationCount: finalCitationCount, // Use count from deduplicated results
       uniqueSourcesCount: uniqueSourcesSet.size,
       topKeywords,
       topSources,
-      allWebSearchResults: this.deduplicateWebSearchResults(allWebSearchResults),
+      allWebSearchResults: deduplicatedWebSearchResults,
       domainSourceAnalysis,
       availableModels: Array.from(availableModelsSet).sort()
     };
@@ -236,27 +244,26 @@ export class BrandReportExplorerAggregationService {
         updateCallback(currentData);
       }
     } else {
-      // When filtering by models, we need to count prompts differently
-      // Total prompts should be the count of all web search results that have at least one citation with a matching model
+      // When filtering by models, count unique prompts (model + promptType + promptIndex combinations)
       if (explorerData.webSearchResults && Array.isArray(explorerData.webSearchResults)) {
-        let filteredPromptsCount = 0;
-        let filteredPromptsWithAccess = 0;
+        const uniquePrompts = new Set<string>();
+        const uniquePromptsWithAccess = new Set<string>();
         
         explorerData.webSearchResults.forEach(searchResult => {
           if (searchResult.citations && Array.isArray(searchResult.citations)) {
-            const matchingCitations = searchResult.citations.filter(citation => 
-              modelFilter.includes(citation.model)
-            );
-            
-            if (matchingCitations.length > 0) {
-              filteredPromptsCount++;
-              filteredPromptsWithAccess++;
-            }
+            searchResult.citations.forEach(citation => {
+              if (modelFilter.includes(citation.model)) {
+                // Create unique key for this prompt execution
+                const promptKey = `${citation.model}-${citation.promptType}-${citation.promptIndex}`;
+                uniquePrompts.add(promptKey);
+                uniquePromptsWithAccess.add(promptKey);
+              }
+            });
           }
         });
         
-        currentData.totalPrompts += filteredPromptsCount;
-        currentData.promptsWithWebAccess += filteredPromptsWithAccess;
+        currentData.totalPrompts += uniquePrompts.size;
+        currentData.promptsWithWebAccess += uniquePromptsWithAccess.size;
         updateCallback(currentData);
       }
     }
