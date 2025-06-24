@@ -183,11 +183,11 @@ export default function AuthPage() {
         <div className="px-8 py-4 bg-gray-50 text-center text-xs text-mono-500">
           <p>
             By continuing, you agree to our{" "}
-            <Link href="#" className="text-accent-600 hover:underline">
+            <Link href="https://drive.google.com/file/d/1EFWiFhEj0yxiR--dk6HOdPYMj68n4_dJ/view"  target={'_blank'} className="text-accent-600 hover:underline">
               Terms and Conditions
             </Link>{" "}
             and{" "}
-            <Link href="#" className="text-accent-600 hover:underline">
+            <Link href="https://drive.google.com/file/d/1CoFh2VFLhakeJL89KXy8bZEoy_YIEpix/view" target={'_blank'} className="text-accent-600 hover:underline">
               Privacy Policy
             </Link>
             .

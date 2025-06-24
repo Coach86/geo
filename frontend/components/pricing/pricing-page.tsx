@@ -14,7 +14,6 @@ import { PricingCard } from "@/components/pricing/pricing-card";
 import { usePlans } from "@/hooks/use-plans";
 import { redirectToStripeCheckout } from "@/lib/stripe-utils";
 import { useAuth } from "@/providers/auth-provider";
-import { FaqSection } from "./faq-section";
 import { calculateSavings } from "./pricing-utils";
 import {
   trustSafetyItems
@@ -22,6 +21,7 @@ import {
 import { staticPlans } from "./static-plans";
 import { getUserProjects, activateFreePlan } from "@/lib/auth-api";
 import { toast } from "@/hooks/use-toast";
+import { PricingHeader } from "@/components/shared/pricing-header";
 
 interface PricingPageProps {
   forcedRecommendedPlan?: string;
@@ -267,7 +267,9 @@ export default function PricingPage({
   }
 
   return (
-    <div className="py-12 animate-fade-in">
+    <div className="min-h-screen bg-white">
+      <PricingHeader />
+      <div className="py-12 animate-fade-in">
       {/* Hero Section */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 mb-16 text-center">
         <h1 className="text-4xl md:text-5xl font-bold mb-4 text-mono-900 tracking-tight">
@@ -399,8 +401,6 @@ export default function PricingPage({
         </div>
       </section>
 
-      {/* FAQ Accordion */}
-      <FaqSection />
 
 
       {/* Feature Example Dialog */}
@@ -416,6 +416,7 @@ export default function PricingPage({
         onOpenChange={setContactSalesOpen}
         planName={contactPlanName}
       />
+      </div>
     </div>
   );
 }
