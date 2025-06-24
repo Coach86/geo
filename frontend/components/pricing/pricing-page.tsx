@@ -20,7 +20,7 @@ import {
   trustSafetyItems
 } from "./pricing-constants";
 import { staticPlans } from "./static-plans";
-import { getUserProjects } from "@/lib/auth-api";
+import { getUserProjects, activateFreePlan } from "@/lib/auth-api";
 import { toast } from "@/hooks/use-toast";
 
 interface PricingPageProps {
@@ -103,22 +103,47 @@ export default function PricingPage({
         const projects = await getUserProjects(user.token!);
         
         if (projects && projects.length > 0) {
-          // User already has projects, redirect to dashboard
-          // The batch analysis will be triggered automatically by the backend
-          
-          // Show success message
-          toast({
-            title: "Free Plan Activated",
-            description: "Your visibility analysis is being prepared. You'll be redirected to your dashboard.",
-            variant: "success" as any,
-            duration: 5000,
-          });
-          
-          // Set celebration flag and redirect to home after a short delay
-          sessionStorage.setItem('celebrate_plan_activation', 'true');
-          setTimeout(() => {
-            router.push("/home?plan_activated=true");
-          }, 2000);
+          // User already has projects, activate free plan and trigger batch processing
+          try {
+            const result = await activateFreePlan(user.token!);
+            
+            if (result.success) {
+              // Show success message
+              toast({
+                title: "Free Plan Activated",
+                description: "Your visibility analysis is being prepared. You'll be redirected to your dashboard.",
+                variant: "success" as any,
+                duration: 5000,
+              });
+              
+              // Set celebration flag and redirect to home after a short delay
+              sessionStorage.setItem('celebrate_plan_activation', 'true');
+              setTimeout(() => {
+                router.push("/home?plan_activated=true");
+              }, 2000);
+            } else {
+              // Handle case where free plan was already activated
+              toast({
+                title: "Already Activated",
+                description: result.message || "Free plan has already been activated.",
+                variant: "default" as any,
+                duration: 5000,
+              });
+              
+              // Still redirect to dashboard
+              setTimeout(() => {
+                router.push("/");
+              }, 2000);
+            }
+          } catch (error) {
+            console.error("Failed to activate free plan:", error);
+            toast({
+              title: "Activation Failed",
+              description: "Failed to activate free plan. Please try again.",
+              variant: "destructive" as any,
+              duration: 5000,
+            });
+          }
         } else {
           // No projects yet, redirect to onboarding
           router.push("/onboarding");

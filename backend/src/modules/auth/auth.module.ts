@@ -55,7 +55,7 @@ import { AccessTokenRepository } from './repositories/access-token.repository';
     AdminRepository,
     AccessTokenRepository
   ],
-  controllers: [AuthController, PublicAuthController, TokenController, ShopifyAuthController],
+  controllers: [AuthController, PublicAuthController, TokenController, ShopifyAuthController, UserAuthController],
   exports: [AuthService, TokenService, JwtTokenService, ShopifyAuthService, TokenAuthGuard, AdminRepository, AccessTokenRepository, JwtModule],
 })
 export class AuthModule {}

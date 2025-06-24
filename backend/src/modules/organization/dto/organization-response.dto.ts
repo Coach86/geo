@@ -30,4 +30,8 @@ export class OrganizationResponseDto {
 
   // Promo code tracking
   promoCode?: string;
+
+  // Free plan activation tracking
+  hasActivatedFreePlan?: boolean;
+  freePlanActivatedAt?: string;
 }

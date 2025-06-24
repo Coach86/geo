@@ -1,11 +1,15 @@
-import { Controller, Post, UseGuards, Request, Inject, forwardRef, Logger } from '@nestjs/common';
+import { Controller, Post, UseGuards, Request, Inject, forwardRef, Logger, UnauthorizedException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { TokenAuthGuard } from '../guards/token-auth.guard';
+import { TokenRoute } from '../decorators/token-route.decorator';
 import { PublicRoute } from '../decorators/public-route.decorator';
+import { TokenService } from '../services/token.service';
 import { OrganizationService } from '../../organization/services/organization.service';
 import { PromoCodeService } from '../../promo/services/promo-code.service';
 import { UserService } from '../../user/services/user.service';
 import { DiscountType } from '../../promo/schemas/promo-code.schema';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { FreePlanActivatedEvent } from '../../organization/events/free-plan-activated.event';
 
 @ApiTags('user-auth')
 @Controller('users/auth')
@@ -19,6 +23,8 @@ export class UserAuthController {
     private readonly promoCodeService: PromoCodeService,
     @Inject(forwardRef(() => UserService))
     private readonly userService: UserService,
+    private readonly eventEmitter: EventEmitter2,
+    private readonly tokenService: TokenService,
   ) {}
 
   @PublicRoute()
@@ -124,6 +130,75 @@ export class UserAuthController {
         message: 'Failed to complete login',
         appliedPromo: false,
         appliedTrial: false,
+      };
+    }
+  }
+
+  @Post('activate-free-plan')
+  @TokenRoute()
+  @ApiOperation({ summary: 'Activate free plan for the user' })
+  @ApiResponse({
+    status: 200,
+    description: 'Free plan activated successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        message: { type: 'string' },
+      },
+    },
+  })
+  async activateFreePlan(@Request() req: any) {
+    try {
+      // Validate user authentication
+      if (!req.userId) {
+        if (req.token) {
+          const validation = await this.tokenService.validateAccessToken(req.token);
+          if (validation.valid && validation.userId) {
+            req.userId = validation.userId;
+          } else {
+            throw new UnauthorizedException('Invalid or expired token');
+          }
+        } else {
+          throw new UnauthorizedException('User not authenticated');
+        }
+      }
+      
+      const userId = req.userId;
+      this.logger.log(`Activating free plan for user ${userId}`);
+      
+      // Get user to find their organization
+      const user = await this.userService.findOne(userId);
+      
+      // Check if organization has already activated free plan
+      const organization = await this.organizationService.findOne(user.organizationId);
+      
+      if (organization.hasActivatedFreePlan) {
+        this.logger.warn(`User ${userId} attempted to activate free plan again for organization ${user.organizationId}`);
+        return {
+          success: false,
+          message: 'Free plan has already been activated for this organization',
+        };
+      }
+      
+      // Mark organization as having activated free plan
+      await this.organizationService.update(user.organizationId, {
+        hasActivatedFreePlan: true,
+        freePlanActivatedAt: new Date(),
+      });
+      
+      // Emit event for batch processing
+      this.eventEmitter.emit('free-plan.activated', new FreePlanActivatedEvent(user.organizationId, userId));
+      
+      return {
+        success: true,
+        message: 'Free plan activated successfully',
+      };
+    } catch (error) {
+      this.logger.error(`Failed to activate free plan: ${error.message}`, error.stack);
+      return {
+        success: false,
+        message: 'Failed to activate free plan',
       };
     }
   }

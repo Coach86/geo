@@ -14,6 +14,7 @@ export {
   generateTokenAndSendEmail,
   validateToken,
   sendMagicLink,
+  activateFreePlan,
 } from './auth';
 
 // Export user functions

@@ -82,6 +82,13 @@ export class Organization {
 
   @Prop({ type: String, sparse: true, index: true })
   shopifyShopDomain?: string;
+
+  // Free plan activation tracking
+  @Prop({ type: Boolean, default: false })
+  hasActivatedFreePlan?: boolean;
+
+  @Prop({ type: Date })
+  freePlanActivatedAt?: Date;
 }
 
 export const OrganizationSchema = SchemaFactory.createForClass(Organization);

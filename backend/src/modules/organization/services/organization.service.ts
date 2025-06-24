@@ -296,6 +296,8 @@ export class OrganizationService {
       isOnTrial: entity.isOnTrial,
       trialPlanId: entity.trialPlanId,
       promoCode: entity.promoCode,
+      hasActivatedFreePlan: entity.hasActivatedFreePlan,
+      freePlanActivatedAt: entity.freePlanActivatedAt?.toISOString(),
     };
   }
 
