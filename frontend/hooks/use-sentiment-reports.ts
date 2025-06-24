@@ -188,14 +188,14 @@ export function useSentimentReports(
         ? Math.round((positive - negative) / total * 100)
         : 0;
 
-      // Calculate overall score variation using the same formula
-      const posVariation = aggregatedData.sentimentVariation?.positive || 0;
-      const neuVariation = aggregatedData.sentimentVariation?.neutral || 0;
-      const negVariation = aggregatedData.sentimentVariation?.negative || 0;
+      // Use the overall variation from the backend
+      const scoreVariation = aggregatedData.overallVariation || null;
       
-      // For variation, we need to consider the change in the score formula
-      // This is simplified - in reality we'd need the previous period's values
-      const scoreVariation = aggregatedData.sentimentVariation?.positive || null;
+      console.log('[DEBUG] Sentiment variations from backend:', {
+        overallVariation: aggregatedData.overallVariation,
+        sentimentVariation: aggregatedData.sentimentVariation,
+        sentimentBreakdown: aggregatedData.sentimentBreakdown
+      });
 
       // Transform chart data
       const chartData = aggregatedData.chartData.map((point: any) => {
