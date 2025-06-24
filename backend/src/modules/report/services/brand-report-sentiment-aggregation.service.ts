@@ -83,19 +83,24 @@ export class BrandReportSentimentAggregationService {
     const aggregationResult = this.aggregateSentimentData(reports, selectedModels);
 
     let sentimentVariation = { positive: 0, neutral: 0, negative: 0 };
+    let overallVariation = 0;
     if (query.includeVariation) {
-      // TODO: Calculate variation per sentiment type
-      const overallVariation = await this.variationCalculator.calculateSentimentVariation(
+      // Calculate overall sentiment variation
+      overallVariation = await this.variationCalculator.calculateSentimentVariation(
         projectId,
         query,
         selectedModels
       );
-      // For now, apply the same variation to all types
-      sentimentVariation = {
-        positive: overallVariation,
-        neutral: overallVariation,
-        negative: overallVariation
-      };
+      
+      // Calculate variation per sentiment type
+      sentimentVariation = await this.calculateSentimentTypeVariations(
+        projectId,
+        query,
+        selectedModels
+      );
+      
+      this.logger.log(`[DEBUG] Overall variation: ${overallVariation}`);
+      this.logger.log(`[DEBUG] Sentiment variations: positive=${sentimentVariation.positive}, neutral=${sentimentVariation.neutral}, negative=${sentimentVariation.negative}`);
     }
 
     const overallSentiment = this.determineOverallSentiment(
@@ -110,6 +115,7 @@ export class BrandReportSentimentAggregationService {
       positivePercentage: aggregationResult.positivePercentage,
       neutralPercentage: aggregationResult.neutralPercentage,
       negativePercentage: aggregationResult.negativePercentage,
+      overallVariation: query.includeVariation ? overallVariation : undefined,
       sentimentVariation,
       availableModels,
       chartData: aggregationResult.chartData,
@@ -260,9 +266,11 @@ export class BrandReportSentimentAggregationService {
     reportDate: Date
   ): { positive: number; neutral: number; negative: number } | null {
     if (sentData.detailedResults && sentData.detailedResults.length > 0) {
-      const filteredResults = sentData.detailedResults.filter(
-        (r: DetailedSentimentResult) => selectedModels.includes(r.model)
-      );
+      const filteredResults = selectedModels.length > 0 
+        ? sentData.detailedResults.filter(
+            (r: DetailedSentimentResult) => selectedModels.includes(r.model)
+          )
+        : sentData.detailedResults; // If no models selected, use all results
 
       if (filteredResults.length > 0) {
         let reportPositive = 0;
@@ -502,6 +510,7 @@ export class BrandReportSentimentAggregationService {
       positivePercentage: 0,
       neutralPercentage: 0,
       negativePercentage: 0,
+      overallVariation: undefined,
       sentimentVariation: { positive: 0, neutral: 0, negative: 0 },
       availableModels: [],
       chartData: [],
@@ -513,5 +522,112 @@ export class BrandReportSentimentAggregationService {
       reportCount: 0,
       dateRange: { start: '', end: '' }
     };
+  }
+
+  private async calculateSentimentTypeVariations(
+    projectId: string,
+    query: AggregatedReportQueryDto,
+    selectedModels: string[]
+  ): Promise<{ positive: number; neutral: number; negative: number }> {
+    const dateFilter = this.buildDateFilter(projectId, query);
+    const currentReports = await this.brandReportModel
+      .find(dateFilter)
+      .select('reportDate sentiment')
+      .sort({ reportDate: 1 })
+      .lean();
+
+    if (currentReports.length === 0) {
+      return { positive: 0, neutral: 0, negative: 0 };
+    }
+
+    // Calculate period dates for previous period
+    const { previousStartDate, previousEndDate } = this.calculatePeriodDates(query, currentReports);
+
+    if (!previousStartDate || !previousEndDate) {
+      return { positive: 0, neutral: 0, negative: 0 };
+    }
+
+    const previousReports = await this.brandReportModel
+      .find({
+        projectId,
+        reportDate: { $gte: previousStartDate, $lt: previousEndDate }
+      })
+      .select('reportDate sentiment')
+      .lean();
+
+    if (previousReports.length === 0) {
+      return { positive: 0, neutral: 0, negative: 0 };
+    }
+
+    // Calculate current period percentages
+    const currentAgg = this.aggregateSentimentData(currentReports as SentimentReportData[], selectedModels);
+    
+    // Calculate previous period percentages
+    const previousAgg = this.aggregateSentimentData(previousReports as SentimentReportData[], selectedModels);
+
+    // Calculate variations as simple differences
+    const variations = {
+      positive: Math.round(currentAgg.positivePercentage - previousAgg.positivePercentage),
+      neutral: Math.round(currentAgg.neutralPercentage - previousAgg.neutralPercentage),
+      negative: Math.round(currentAgg.negativePercentage - previousAgg.negativePercentage)
+    };
+    
+    this.logger.log(`[DEBUG] calculateSentimentTypeVariations - Current: pos=${currentAgg.positivePercentage}%, neu=${currentAgg.neutralPercentage}%, neg=${currentAgg.negativePercentage}%`);
+    this.logger.log(`[DEBUG] calculateSentimentTypeVariations - Previous: pos=${previousAgg.positivePercentage}%, neu=${previousAgg.neutralPercentage}%, neg=${previousAgg.negativePercentage}%`);
+    this.logger.log(`[DEBUG] calculateSentimentTypeVariations - Variations: pos=${variations.positive}, neu=${variations.neutral}, neg=${variations.negative}`);
+    
+    return variations;
+  }
+
+  private buildDateFilter(
+    projectId: string,
+    query: AggregatedReportQueryDto
+  ): Record<string, unknown> {
+    const dateFilter: Record<string, unknown> = { projectId };
+    
+    if (query.startDate || query.endDate) {
+      dateFilter.reportDate = {};
+      if (query.startDate) {
+        (dateFilter.reportDate as Record<string, unknown>).$gte = new Date(query.startDate);
+      }
+      if (query.endDate) {
+        const endDate = new Date(query.endDate);
+        endDate.setDate(endDate.getDate() + 1);
+        (dateFilter.reportDate as Record<string, unknown>).$lt = endDate;
+      }
+    }
+    
+    return dateFilter;
+  }
+
+  private calculatePeriodDates(
+    query: AggregatedReportQueryDto,
+    allReports: any[]
+  ): { previousStartDate?: Date; previousEndDate?: Date } {
+    let periodLength: number;
+    let previousStartDate: Date | undefined;
+    let previousEndDate: Date | undefined;
+
+    if (query.startDate && query.endDate) {
+      const queryStart = new Date(query.startDate);
+      const queryEnd = new Date(query.endDate);
+      periodLength = queryEnd.getTime() - queryStart.getTime();
+      
+      if (periodLength > 0) {
+        previousEndDate = queryStart;
+        previousStartDate = new Date(queryStart.getTime() - periodLength);
+      }
+    } else {
+      const startDate = allReports[0].reportDate;
+      const endDate = allReports[allReports.length - 1].reportDate;
+      periodLength = endDate.getTime() - startDate.getTime();
+
+      if (periodLength > 0) {
+        previousEndDate = startDate;
+        previousStartDate = new Date(startDate.getTime() - periodLength);
+      }
+    }
+
+    return { previousStartDate, previousEndDate };
   }
 }

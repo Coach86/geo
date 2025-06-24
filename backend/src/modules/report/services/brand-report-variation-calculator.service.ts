@@ -132,7 +132,47 @@ export class BrandReportVariationCalculatorService {
     query: AggregatedReportQueryDto,
     selectedModels: string[]
   ): Promise<number> {
-    return this.calculateVariation(projectId, query, selectedModels, 'alignment');
+    this.logger.log(`[calculateSentimentVariation] Starting for projectId: ${projectId}`);
+    
+    const dateFilter = this.buildDateFilter(projectId, query);
+    const allReports = await this.brandReportModel
+      .find(dateFilter)
+      .select('reportDate sentiment')
+      .sort({ reportDate: 1 })
+      .lean();
+
+    if (allReports.length === 0) return 0;
+
+    const { previousStartDate, previousEndDate } = this.calculatePeriodDates(
+      query, 
+      allReports
+    );
+
+    if (!previousStartDate || !previousEndDate) {
+      return await this.handleSinglePointSentimentVariation(
+        projectId,
+        query,
+        allReports,
+        selectedModels
+      );
+    }
+
+    const previousReports = await this.brandReportModel
+      .find({
+        projectId,
+        reportDate: { $gte: previousStartDate, $lt: previousEndDate }
+      })
+      .select('reportDate sentiment')
+      .lean();
+
+    if (previousReports.length === 0) return 0;
+
+    const currentScore = this.calculateSentimentPeriodScore(allReports, selectedModels);
+    const previousScore = this.calculateSentimentPeriodScore(previousReports, selectedModels);
+
+    // Calculate the variation as a simple difference
+    const variation = currentScore - previousScore;
+    return Math.round(variation);
   }
 
   private buildDateFilter(
@@ -327,5 +367,72 @@ export class BrandReportVariationCalculatorService {
     });
 
     return scoreCount > 0 ? totalScore / scoreCount : 0;
+  }
+
+  private calculateSentimentPeriodScore(
+    reports: any[],
+    selectedModels: string[]
+  ): number {
+    let totalPositive = 0;
+    let totalNeutral = 0;
+    let totalNegative = 0;
+    let reportCount = 0;
+
+    reports.forEach(report => {
+      if (report.sentiment && report.sentiment.distribution) {
+        const dist = report.sentiment.distribution;
+        if (dist.total > 0) {
+          // Calculate percentages for this report
+          const positive = (dist.positive / dist.total) * 100;
+          const neutral = (dist.neutral / dist.total) * 100;
+          const negative = (dist.negative / dist.total) * 100;
+          
+          totalPositive += positive;
+          totalNeutral += neutral;
+          totalNegative += negative;
+          reportCount++;
+        }
+      }
+    });
+
+    if (reportCount === 0) return 0;
+    
+    // Calculate average percentages
+    const avgPositive = totalPositive / reportCount;
+    const avgNeutral = totalNeutral / reportCount;
+    const avgNegative = totalNegative / reportCount;
+    const total = avgPositive + avgNeutral + avgNegative;
+    
+    // Use the same formula as frontend: (positive - negative) / total * 100
+    return total > 0 ? Math.round((avgPositive - avgNegative) / total * 100) : 0;
+  }
+
+  private async handleSinglePointSentimentVariation(
+    projectId: string,
+    query: AggregatedReportQueryDto,
+    allReports: any[],
+    selectedModels: string[]
+  ): Promise<number> {
+    const referenceDate = query.startDate 
+      ? new Date(query.startDate)
+      : allReports[0].reportDate;
+
+    const olderReport = await this.brandReportModel
+      .findOne({
+        projectId,
+        reportDate: { $lt: referenceDate }
+      })
+      .select('reportDate sentiment')
+      .sort({ reportDate: -1 })
+      .lean();
+
+    if (!olderReport || !olderReport.sentiment) return 0;
+
+    const currentScore = this.calculateSentimentPeriodScore(allReports, selectedModels);
+    const previousScore = this.calculateSentimentPeriodScore([olderReport], selectedModels);
+
+    // Calculate the variation as a simple difference
+    const variation = currentScore - previousScore;
+    return Math.round(variation);
   }
 }

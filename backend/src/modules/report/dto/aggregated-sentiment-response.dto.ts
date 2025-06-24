@@ -36,6 +36,9 @@ export class AggregatedSentimentResponseDto {
   @ApiProperty({ description: 'Average negative sentiment percentage' })
   negativePercentage: number;
 
+  @ApiProperty({ description: 'Overall sentiment score variation compared to previous period' })
+  overallVariation?: number;
+
   @ApiProperty({ description: 'Sentiment score variation percentage compared to previous period' })
   sentimentVariation: {
     positive: number;
