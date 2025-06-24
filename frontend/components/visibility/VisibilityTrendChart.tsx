@@ -33,13 +33,13 @@ export function VisibilityTrendChart({
   onEntityHover,
 }: VisibilityTrendChartProps) {
   // Get unique keys from data (excluding 'date')
-  const allKeys = data.length > 0 
+  const allKeys = data.length > 0
     ? Object.keys(data[0]).filter(key => key !== 'date')
     : [];
 
   // Filter to show only brand and selected competitors
   // The brand data is stored with key "Brand" in the chart data
-  const keysToShow = ['Brand', ...selectedCompetitors].filter(key => 
+  const keysToShow = ['Brand', ...selectedCompetitors].filter(key =>
     allKeys.includes(key)
   );
 
@@ -50,7 +50,7 @@ export function VisibilityTrendChart({
       <CardHeader className="pb-4">
         <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
           <TrendingUp className="h-5 w-5 text-green-600" />
-          Visibility Trend Analysis
+          Visibility Score Evolution
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -62,20 +62,20 @@ export function VisibilityTrendChart({
                 margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis 
-                  dataKey="date" 
+                <XAxis
+                  dataKey="date"
                   tick={{ fontSize: 12, fill: '#666' }}
                   tickLine={{ stroke: '#e0e0e0' }}
                 />
-                <YAxis 
+                <YAxis
                   tick={{ fontSize: 12, fill: '#666' }}
                   tickLine={{ stroke: '#e0e0e0' }}
                   width={30}
                   tickMargin={5}
                   tickFormatter={(value) => Math.round(value).toString()}
                 />
-                <Tooltip 
-                  contentStyle={{ 
+                <Tooltip
+                  contentStyle={{
                     backgroundColor: 'rgba(255, 255, 255, 0.95)',
                     border: '1px solid #e0e0e0',
                     borderRadius: '6px',
@@ -84,7 +84,7 @@ export function VisibilityTrendChart({
                   labelStyle={{ color: '#333', fontWeight: 'bold' }}
                   formatter={(value: number) => Math.round(value)}
                 />
-                <Legend 
+                <Legend
                   wrapperStyle={{ fontSize: '12px' }}
                   iconType="line"
                   formatter={(value: string) => {
@@ -101,7 +101,7 @@ export function VisibilityTrendChart({
                 {keysToShow.map((key, index) => {
                   const isHovered = hoveredEntity === key;
                   const isOtherHovered = hoveredEntity && hoveredEntity !== key;
-                  
+
                   return (
                     <Line
                       key={key}
@@ -109,13 +109,13 @@ export function VisibilityTrendChart({
                       dataKey={key}
                       stroke={getColor(index)}
                       strokeWidth={
-                        isHovered ? 4 : 
-                        isOtherHovered ? 1 : 
+                        isHovered ? 4 :
+                        isOtherHovered ? 1 :
                         (index === 0 ? 3 : 2)
                       }
                       strokeOpacity={isOtherHovered ? 0.3 : 1}
-                      dot={{ 
-                        fill: getColor(index), 
+                      dot={{
+                        fill: getColor(index),
                         r: isHovered ? 6 : 4,
                         strokeWidth: isHovered ? 2 : 0,
                         stroke: '#fff'
@@ -127,7 +127,7 @@ export function VisibilityTrendChart({
                       isAnimationActive={false}
                       onMouseEnter={() => onEntityHover?.(key)}
                       onMouseLeave={() => onEntityHover?.(null)}
-                      style={{ 
+                      style={{
                         cursor: 'pointer',
                         transition: 'all 0.2s ease-in-out'
                       }}
