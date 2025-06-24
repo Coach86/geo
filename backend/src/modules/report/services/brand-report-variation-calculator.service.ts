@@ -78,9 +78,12 @@ export class BrandReportVariationCalculatorService {
   async calculateCompetitorVariation(
     projectId: string,
     query: AggregatedReportQueryDto,
-    competitorName: string
+    competitorName: string,
+    selectedModels?: string[]
   ): Promise<number> {
-    this.logger.log(`[calculateCompetitorVariation] Starting for: ${competitorName}`);
+    this.logger.log(`[calculateCompetitorVariation] Starting for: ${competitorName}`, {
+      selectedModels: selectedModels || 'all'
+    });
     
     const dateFilter = this.buildDateFilter(projectId, query);
     const allReports = await this.brandReportModel
@@ -101,7 +104,8 @@ export class BrandReportVariationCalculatorService {
         projectId,
         query,
         allReports,
-        competitorName
+        competitorName,
+        selectedModels
       );
     }
 
@@ -115,8 +119,8 @@ export class BrandReportVariationCalculatorService {
 
     if (previousReports.length === 0) return 0;
 
-    const currentScore = this.calculateCompetitorPeriodScore(allReports, competitorName);
-    const previousScore = this.calculateCompetitorPeriodScore(previousReports, competitorName);
+    const currentScore = this.calculateCompetitorPeriodScore(allReports, competitorName, selectedModels);
+    const previousScore = this.calculateCompetitorPeriodScore(previousReports, competitorName, selectedModels);
 
     if (previousScore === 0) return 0;
 
@@ -214,7 +218,8 @@ export class BrandReportVariationCalculatorService {
     projectId: string,
     query: AggregatedReportQueryDto,
     allReports: BrandReportDocument[],
-    competitorName: string
+    competitorName: string,
+    selectedModels?: string[]
   ): Promise<number> {
     const referenceDate = query.startDate
       ? new Date(query.startDate)
@@ -228,8 +233,8 @@ export class BrandReportVariationCalculatorService {
 
     if (!previousReport) return 0;
 
-    const currentScore = this.calculateCompetitorPeriodScore(allReports, competitorName);
-    const previousScore = this.calculateCompetitorPeriodScore([previousReport], competitorName);
+    const currentScore = this.calculateCompetitorPeriodScore(allReports, competitorName, selectedModels);
+    const previousScore = this.calculateCompetitorPeriodScore([previousReport], competitorName, selectedModels);
 
     if (previousScore === 0) return 0;
 
@@ -281,7 +286,8 @@ export class BrandReportVariationCalculatorService {
 
   private calculateCompetitorPeriodScore(
     reports: BrandReportDocument[],
-    competitorName: string
+    competitorName: string,
+    selectedModels?: string[]
   ): number {
     let totalScore = 0;
     let scoreCount = 0;
@@ -292,10 +298,28 @@ export class BrandReportVariationCalculatorService {
           (metric: ArenaMetric) => metric.name === competitorName
         );
         
-        if (competitor && competitor.global) {
-          const globalScore = parseInt(competitor.global.replace('%', ''), 10);
-          if (!isNaN(globalScore)) {
-            totalScore += globalScore;
+        if (competitor) {
+          let score: number;
+          
+          // If models are selected and modelsMentionsRate is available, calculate filtered score
+          if (selectedModels && selectedModels.length > 0 && competitor.modelsMentionsRate) {
+            const filteredRates = competitor.modelsMentionsRate.filter(mmr => 
+              selectedModels.includes(mmr.model)
+            );
+            
+            if (filteredRates.length > 0) {
+              const totalRate = filteredRates.reduce((sum, mmr) => sum + (mmr.mentionsRate || 0), 0);
+              score = Math.round(totalRate / filteredRates.length);
+            } else {
+              score = 0;
+            }
+          } else {
+            // Otherwise use the global score
+            score = parseInt(competitor.global.replace('%', ''), 10);
+          }
+          
+          if (!isNaN(score)) {
+            totalScore += score;
             scoreCount++;
           }
         }

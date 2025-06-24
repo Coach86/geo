@@ -203,7 +203,8 @@ export class BrandReportVisibilityAggregationService {
           report.reportDate,
           avgScore,
           visData,
-          competitorMap
+          competitorMap,
+          selectedModels
         );
         chartData.push(dataPoint);
       }
@@ -384,7 +385,8 @@ export class BrandReportVisibilityAggregationService {
     reportDate: Date,
     avgScore: number,
     visData: any,
-    competitorMap: Record<string, { scores: number[]; dates: string[] }>
+    competitorMap: Record<string, { scores: number[]; dates: string[] }>,
+    selectedModels?: string[]
   ): VisibilityChartDataDto {
     const dataPoint: VisibilityChartDataDto = {
       date: new Date(reportDate).toISOString().split('T')[0],
@@ -394,21 +396,46 @@ export class BrandReportVisibilityAggregationService {
 
     if (visData.arenaMetrics && Array.isArray(visData.arenaMetrics)) {
       visData.arenaMetrics.forEach((competitor: ArenaMetric) => {
-        if (competitor.name && competitor.global) {
-          const globalScore = parseInt(competitor.global.replace('%', ''), 10);
+        if (competitor.name) {
+          let competitorScore: number;
+          
+          // If models are selected, calculate filtered score
+          if (selectedModels && selectedModels.length > 0 && competitor.modelsMentionsRate) {
+            competitorScore = this.calculateFilteredCompetitorScore(
+              competitor.modelsMentionsRate,
+              selectedModels
+            );
+          } else {
+            // Otherwise use the global score
+            competitorScore = parseInt(competitor.global.replace('%', ''), 10);
+          }
           
           if (!competitorMap[competitor.name]) {
             competitorMap[competitor.name] = { scores: [], dates: [] };
           }
-          competitorMap[competitor.name].scores.push(globalScore);
+          competitorMap[competitor.name].scores.push(competitorScore);
           competitorMap[competitor.name].dates.push(reportDate.toISOString());
           
-          dataPoint.competitors[competitor.name] = globalScore;
+          dataPoint.competitors[competitor.name] = competitorScore;
         }
       });
     }
 
     return dataPoint;
+  }
+
+  private calculateFilteredCompetitorScore(
+    modelsMentionsRate: Array<{ model: string; mentionsRate: number }>,
+    selectedModels: string[]
+  ): number {
+    const filteredRates = modelsMentionsRate.filter(mmr => 
+      selectedModels.includes(mmr.model)
+    );
+    
+    if (filteredRates.length === 0) return 0;
+    
+    const totalRate = filteredRates.reduce((sum, mmr) => sum + (mmr.mentionsRate || 0), 0);
+    return Math.round(totalRate / filteredRates.length);
   }
 
   private async processCompetitors(
@@ -426,7 +453,8 @@ export class BrandReportVisibilityAggregationService {
         variation = await this.variationCalculator.calculateCompetitorVariation(
           projectId,
           query,
-          name
+          name,
+          query.models
         );
       }
 
