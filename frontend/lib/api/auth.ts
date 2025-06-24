@@ -60,3 +60,15 @@ export async function sendMagicLink(email: string, promoCode?: string): Promise<
     );
   }
 }
+
+/**
+ * Activate free plan for the user
+ */
+export async function activateFreePlan(token: string): Promise<{ success: boolean; message: string }> {
+  return apiFetch<{ success: boolean; message: string }>('/users/auth/activate-free-plan', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+}

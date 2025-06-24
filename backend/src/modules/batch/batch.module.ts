@@ -30,6 +30,7 @@ import { RawResponseRepository } from './repositories/raw-response.repository';
 import { BatchEventsGateway } from './gateways/batch-events.gateway';
 import { UserNotificationsGateway } from './gateways/user-notifications.gateway';
 import { ProjectCreatedBatchListener } from './listeners/project-created-batch.listener';
+import { FreePlanActivatedListener } from './listeners/free-plan-activated.listener';
 import { OrganizationModule } from '../organization/organization.module';
 import { ConfigModule } from '../config/config.module';
 import { PlanModule } from '../plan/plan.module';
@@ -77,6 +78,7 @@ import { JwtModule } from '@nestjs/jwt';
     BatchEventsGateway,
     UserNotificationsGateway,
     ProjectCreatedBatchListener,
+    FreePlanActivatedListener,
   ],
   exports: [
     BatchService,
