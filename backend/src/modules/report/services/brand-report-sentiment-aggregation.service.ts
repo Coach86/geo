@@ -393,14 +393,18 @@ export class BrandReportSentimentAggregationService {
     fullReport?: any
   ): void {
     citations
-      .filter((c: ExplorerCitation) => selectedModels.length === 0 || selectedModels.includes(c.model))
+      .filter((c: ExplorerCitation) => 
+        // Only include sentiment citations for the sentiment page
+        c.promptType === 'sentiment' && 
+        (selectedModels.length === 0 || selectedModels.includes(c.model))
+      )
       .forEach((citation: ExplorerCitation) => {
         if (citation.link) {
           // Try to get the actual prompt from detailedResults using promptType and promptIndex
           let actualPrompt = '';
           
-          // Check sentiment data
-          if (sentData?.detailedResults && citation.promptType === 'sentiment') {
+          // Check sentiment data - we only process sentiment citations now
+          if (sentData?.detailedResults) {
             const detailedResult = sentData.detailedResults.find(
               r => r.model === citation.model && r.promptIndex === citation.promptIndex
             );
@@ -409,61 +413,11 @@ export class BrandReportSentimentAggregationService {
             }
           }
           
-          // Check alignment data if we have the full report
-          if (!actualPrompt && fullReport?.alignment?.detailedResults && citation.promptType === 'alignment') {
-            const alignmentResult = fullReport.alignment.detailedResults.find(
-              (r: any) => r.model === citation.model && r.promptIndex === citation.promptIndex
-            );
-            if (alignmentResult && alignmentResult.originalPrompt) {
-              actualPrompt = alignmentResult.originalPrompt;
-            }
-          }
-          
-          // Check competition data if we have the full report
-          if (!actualPrompt && fullReport?.competition?.detailedResults && citation.promptType === 'competition') {
-            const competitionResult = fullReport.competition.detailedResults.find(
-              (r: any) => r.model === citation.model && r.promptIndex === citation.promptIndex
-            );
-            if (competitionResult && competitionResult.originalPrompt) {
-              actualPrompt = competitionResult.originalPrompt;
-            }
-          }
-          
-          // Check visibility data if we have the full report
-          if (!actualPrompt && fullReport?.visibility && citation.promptType === 'visibility') {
-            // Check if visibility has detailedResults array (VisibilityData format)
-            if ('detailedResults' in fullReport.visibility && 
-                fullReport.visibility.detailedResults && 
-                Array.isArray(fullReport.visibility.detailedResults)) {
-              const visibilityResult = fullReport.visibility.detailedResults.find(
-                (r: any) => r.model === citation.model && r.promptIndex === citation.promptIndex
-              );
-              if (visibilityResult && visibilityResult.originalPrompt) {
-                actualPrompt = visibilityResult.originalPrompt;
-              }
-            }
-          }
-          
           // If we still couldn't find the actual prompt, use a more descriptive fallback
           if (!actualPrompt) {
-            // Generate more meaningful fallback text based on prompt type
+            // Since we only process sentiment citations, use sentiment-specific fallback
             const promptNumber = citation.promptIndex + 1;
-            switch (citation.promptType) {
-              case 'visibility':
-                actualPrompt = `Brand visibility query #${promptNumber}`;
-                break;
-              case 'alignment':
-                actualPrompt = `Brand attribute alignment query #${promptNumber}`;
-                break;
-              case 'competition':
-                actualPrompt = `Competitive analysis query #${promptNumber}`;
-                break;
-              case 'sentiment':
-                actualPrompt = `Brand sentiment query #${promptNumber}`;
-                break;
-              default:
-                actualPrompt = `${citation.promptType} query #${promptNumber}`;
-            }
+            actualPrompt = `Brand sentiment query #${promptNumber}`;
           }
           
           this.addCitationToMap(
