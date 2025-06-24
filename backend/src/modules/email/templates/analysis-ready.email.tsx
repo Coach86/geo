@@ -13,7 +13,7 @@ import {
   Img,
 } from '@react-email/components';
 import * as React from 'react';
-import { colors } from '../../report/email/utils/colors';
+import { colors } from '../utils/colors';
 
 interface AnalysisReadyEmailProps {
   brandName: string;

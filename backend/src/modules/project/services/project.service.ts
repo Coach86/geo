@@ -183,8 +183,8 @@ export class ProjectService {
 
       this.logger.log(`Created project ${saved.id} with nextManualAnalysisAllowedAt set to ${dbData.nextManualAnalysisAllowedAt.toISOString()}`);
 
-      // Emit project created event
-      this.eventEmitter.emit('project.created', new ProjectCreatedEvent(saved.id));
+      // Don't emit project created event here - wait until plan is selected
+      // this.eventEmitter.emit('project.created', new ProjectCreatedEvent(saved.id));
 
       return this.projectRepository.mapToEntity(saved);
     } catch (error) {

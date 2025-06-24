@@ -15,7 +15,6 @@ export interface ModelMentionRate {
 
 export interface ArenaMetricBuilder {
   name: string;
-  size: 'lg' | 'md' | 'sm';
   global: string; // e.g., "48%"
   modelsMentionsRate: ModelMentionRate[];
 }

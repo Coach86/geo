@@ -586,11 +586,10 @@ export class UserProjectController {
           this.logger.error(`Failed to save custom prompts: ${promptError.message}`, promptError.stack);
           // Don't fail the project creation if prompt saving fails
         }
-      } else {
-        // Only emit the event if no custom prompts were provided
-        // This will trigger automatic prompt generation
-        this.eventEmitter.emit('project.created', new ProjectCreatedEvent(projectId));
       }
+      
+      // Don't emit project created event here - wait until plan is selected
+      // The batch processing will be triggered after the user selects a plan
 
       this.logger.log(`Project saved successfully with ID: ${projectId}`);
 

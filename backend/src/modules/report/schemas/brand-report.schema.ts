@@ -129,7 +129,6 @@ export class BrandReport {
     }[];
     arenaMetrics: {
       name: string;
-      size: string;
       global: string;
       modelsMentionsRate?: {
         model: string;

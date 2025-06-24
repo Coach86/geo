@@ -11,7 +11,6 @@ import ProjectCreation from './pages/ProjectCreation';
 import BatchResults from './pages/BatchResults';
 import UserList from './pages/UserList';
 import UserCreation from './pages/UserCreation';
-import EmailPreview from './pages/email-preview';
 import Config from './pages/Config';
 import PlanManagement from './pages/PlanManagement';
 import OrganizationSettings from './pages/OrganizationSettings';
@@ -91,7 +90,6 @@ const App: React.FC = () => {
             <Route path="batch-results/:id" element={<BatchResults />} />
             <Route path="users" element={<UserList />} />
             <Route path="users/new" element={<UserCreation />} />
-            <Route path="email-preview" element={<EmailPreview />} />
             <Route path="config" element={<Config />} />
             <Route path="plans" element={<PlanManagement />} />
             <Route path="organization" element={<OrganizationSettings />} />
