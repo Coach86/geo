@@ -143,11 +143,12 @@ export default function HomePage() {
             <ProjectOverviewCard 
               project={project} 
               onClick={() => handleProjectClick(project)}
-              onGoToProject={() => handleGoToProject(project)}
+              onProjectSettings={() => handleProjectClick(project)}
             />
             <MintScoreCard 
               projectId={project.id} 
               token={token!} 
+              onGoToProject={() => handleGoToProject(project)}
             />
           </div>
         ))}

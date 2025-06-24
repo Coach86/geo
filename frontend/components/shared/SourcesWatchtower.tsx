@@ -55,7 +55,6 @@ interface CitationItem {
   prompts: string[];
   sentiments?: string[];
   scores?: number[];
-  attributes?: string[]; // Added for alignment attributes
   models: string[];
   count: number;
   text?: string;
@@ -69,7 +68,6 @@ interface AggregatedCitation {
   prompts: string[];
   sentiments?: string[];
   scores?: number[];
-  attributes?: string[]; // Added for alignment attributes
   models: string[];
   totalCount: number;
 }
@@ -179,6 +177,17 @@ function NumericFilter({ column, label }: NumericFilterProps) {
       />
     </div>
   );
+}
+
+// Helper function to convert alignment score to evaluation string
+function scoreToEvaluation(score: number): { text: string; color: string } {
+  if (score >= 0.7) {
+    return { text: 'Aligned', color: 'accent' };
+  } else if (score >= 0.4) {
+    return { text: 'Partially Aligned', color: 'warning' };
+  } else {
+    return { text: 'Misaligned', color: 'destructive' };
+  }
 }
 
 export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowerProps) {
@@ -327,65 +336,19 @@ export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowe
           })]
         : type === 'alignment'
         ? [columnHelper.accessor("scores", {
-            header: ({ column }) => (
-              <div className="space-y-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                  className="h-auto p-0 font-semibold text-gray-700 hover:text-gray-900"
-                >
-                  Score
-                  {column.getIsSorted() === "asc" ? (
-                    <ArrowUp className="ml-2 h-4 w-4" />
-                  ) : column.getIsSorted() === "desc" ? (
-                    <ArrowDown className="ml-2 h-4 w-4" />
-                  ) : (
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                  )}
-                </Button>
-                <NumericFilter column={column} label="Score %" />
-              </div>
-            ),
-            cell: ({ getValue }) => {
-              const scores = getValue() as number[] | undefined;
-              if (!scores || scores.length === 0) return null;
-              
-              // Calculate average score
-              const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
-              const percentage = Math.round(avgScore * 100);
-              
-              return (
-                <div className="flex items-center gap-1">
-                  {avgScore >= 0.8 ? (
-                    <Badge className="bg-accent-50 text-accent-700 border border-accent-200 text-xs">{percentage}%</Badge>
-                  ) : avgScore >= 0.6 ? (
-                    <Badge className="bg-primary-50 text-primary-700 border border-primary-200 text-xs">{percentage}%</Badge>
-                  ) : (
-                    <Badge className="bg-destructive-50 text-destructive-700 border border-destructive-200 text-xs">{percentage}%</Badge>
-                  )}
-                </div>
-              );
-            },
-            filterFn: numericFilter,
-            enableSorting: true,
-          }),
-          
-          // Add Attribute column for alignment type
-          columnHelper.accessor("attributes", {
             header: ({ column }) => {
               const sortedUniqueValues = React.useMemo(
                 () => {
-                  const uniqueValues = new Set<string>();
+                  const evaluations = new Set<string>();
                   table.getPreFilteredRowModel().rows.forEach(row => {
-                    const attributes = row.getValue("attributes") as string[] | undefined;
-                    if (attributes && Array.isArray(attributes)) {
-                      attributes.forEach(attr => {
-                        if (attr) uniqueValues.add(attr);
-                      });
+                    const scores = row.getValue("scores") as number[] | undefined;
+                    if (scores && scores.length > 0) {
+                      const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
+                      const evaluation = scoreToEvaluation(avgScore);
+                      evaluations.add(evaluation.text);
                     }
                   });
-                  return Array.from(uniqueValues).sort();
+                  return Array.from(evaluations).sort();
                 },
                 [table.getPreFilteredRowModel().rows]
               );
@@ -398,7 +361,7 @@ export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowe
                     onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
                     className="h-auto p-0 font-semibold text-gray-700 hover:text-gray-900"
                   >
-                    Attribute
+                    Evaluation
                     {column.getIsSorted() === "asc" ? (
                       <ArrowUp className="ml-2 h-4 w-4" />
                     ) : column.getIsSorted() === "desc" ? (
@@ -408,39 +371,49 @@ export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowe
                     )}
                   </Button>
                   <MultiSelectFilter
-                    title="Attribute"
+                    title="Evaluation"
                     options={sortedUniqueValues}
                     selectedValues={(column.getFilterValue() as string[]) || []}
                     onSelectionChange={(values) => column.setFilterValue(values.length > 0 ? values : undefined)}
-                    placeholder={`Filter attributes... (${sortedUniqueValues.length})`}
+                    placeholder={`Filter evaluation...`}
                   />
                 </div>
               );
             },
             cell: ({ getValue }) => {
-              const attributes = getValue() as string[] | undefined;
-              if (!attributes || attributes.length === 0) {
-                return <span className="text-xs text-gray-400">All attributes</span>;
-              }
+              const scores = getValue() as number[] | undefined;
+              if (!scores || scores.length === 0) return null;
+              
+              // Calculate average score
+              const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
+              const evaluation = scoreToEvaluation(avgScore);
               
               return (
-                <div className="flex flex-wrap gap-1">
-                  {attributes.slice(0, 2).map((attr, index) => (
-                    <Badge key={index} variant="outline" className="text-xs">
-                      {attr}
-                    </Badge>
-                  ))}
-                  {attributes.length > 2 && (
-                    <Badge variant="outline" className="text-xs">
-                      +{attributes.length - 2}
-                    </Badge>
-                  )}
-                </div>
+                <Badge 
+                  className={`${
+                    evaluation.color === 'accent' 
+                      ? 'bg-accent-50 text-accent-700 border border-accent-200' 
+                      : evaluation.color === 'warning'
+                      ? 'bg-orange-50 text-orange-700 border border-orange-200'
+                      : 'bg-destructive-50 text-destructive-700 border border-destructive-200'
+                  } text-xs px-2 py-0.5 whitespace-nowrap`}
+                >
+                  {evaluation.text}
+                </Badge>
               );
             },
-            filterFn: multiSelectFilter,
+            filterFn: (row, columnId, value) => {
+              if (!value || !Array.isArray(value) || value.length === 0) return true;
+              
+              const scores = row.getValue(columnId) as number[] | undefined;
+              if (!scores || scores.length === 0) return false;
+              
+              const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
+              const evaluation = scoreToEvaluation(avgScore);
+              
+              return value.includes(evaluation.text);
+            },
             enableSorting: true,
-            enableColumnFilter: true,
           })]
         : []),
 
@@ -713,7 +686,7 @@ export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowe
               Sources Analysis
             </CardTitle>
             <p className="text-sm text-gray-500 mt-1">
-              {citations.uniqueDomains} unique domains • {citations.totalCitations} total citations
+              {citations.uniqueDomains} unique domains
             </p>
           </div>
           <div className="flex items-center space-x-2">
@@ -736,11 +709,10 @@ export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowe
             <table className="w-full min-w-[1000px] border-collapse table-fixed">
               <colgroup>
                 <col className="w-[20%]" />
-                {type === 'alignment' && <col className="w-[10%]" />}
-                {type === 'alignment' && <col className="w-[15%]" />}
+                {type === 'alignment' && <col className="w-[12%]" />}
                 {type === 'sentiment' && <col className="w-[12%]" />}
-                <col className={type === 'competition' ? "w-[30%]" : type === 'alignment' ? "w-[20%]" : "w-[25%]"} />
-                <col className={type === 'competition' ? "w-[35%]" : type === 'alignment' ? "w-[20%]" : "w-[28%]"} />
+                <col className={type === 'competition' ? "w-[30%]" : type === 'alignment' ? "w-[25%]" : "w-[25%]"} />
+                <col className={type === 'competition' ? "w-[35%]" : type === 'alignment' ? "w-[28%]" : "w-[28%]"} />
                 <col className="w-[15%]" />
               </colgroup>
               <thead>

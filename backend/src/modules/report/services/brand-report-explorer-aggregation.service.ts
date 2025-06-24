@@ -49,7 +49,7 @@ export class BrandReportExplorerAggregationService {
       return this.createEmptyExplorerResponse();
     }
 
-    const aggregationResult = this.aggregateExplorerData(reports);
+    const aggregationResult = this.aggregateExplorerData(reports, query.models);
 
     const webAccessPercentage = aggregationResult.totalPrompts > 0
       ? Math.round((aggregationResult.promptsWithWebAccess / aggregationResult.totalPrompts) * 100)
@@ -67,6 +67,7 @@ export class BrandReportExplorerAggregationService {
       topSources: aggregationResult.topSources,
       webSearchResults: aggregationResult.allWebSearchResults,
       domainSourceAnalysis: aggregationResult.domainSourceAnalysis,
+      availableModels: aggregationResult.availableModels,
       reportCount: reports.length,
       dateRange: {
         start: reports[0].reportDate.toISOString(),
@@ -110,11 +111,12 @@ export class BrandReportExplorerAggregationService {
       .lean();
   }
 
-  private aggregateExplorerData(reports: BrandReportExplorerSelect[]) {
+  private aggregateExplorerData(reports: BrandReportExplorerSelect[], modelFilter?: string[]) {
     const keywordCounts: Record<string, number> = {};
     const sourceCounts: Record<string, number> = {};
     const allWebSearchResults: WebSearchResult[] = [];
     const uniqueSourcesSet = new Set<string>();
+    const availableModelsSet = new Set<string>();
     
     let totalPrompts = 0;
     let promptsWithWebAccess = 0;
@@ -135,31 +137,62 @@ export class BrandReportExplorerAggregationService {
         (data) => {
           totalPrompts = data.totalPrompts;
           promptsWithWebAccess = data.promptsWithWebAccess;
-        }
+        },
+        modelFilter
       );
 
-      // Aggregate keywords
+      // Aggregate keywords (not filtered by model)
       this.aggregateKeywords(explorerData, keywordCounts);
 
-      // Aggregate sources
-      this.aggregateSources(explorerData, sourceCounts, uniqueSourcesSet);
+      // When filtering by model, don't aggregate sources from topSources
+      // Only count sources from actual citations that match the model filter
+      if (!modelFilter || modelFilter.length === 0) {
+        // No filter - aggregate all sources normally
+        this.aggregateSources(explorerData, sourceCounts, uniqueSourcesSet);
+      }
 
       // Process web search results and citations
       const citationResult = this.processCitations(
         explorerData,
         sourceCounts,
-        uniqueSourcesSet
+        uniqueSourcesSet,
+        modelFilter
       );
       actualCitationCount += citationResult.citationCount;
 
       if (explorerData.webSearchResults) {
-        allWebSearchResults.push(...explorerData.webSearchResults);
+        // Collect available models
+        explorerData.webSearchResults.forEach(result => {
+          if (result.citations) {
+            result.citations.forEach(citation => {
+              if (citation.model) {
+                availableModelsSet.add(citation.model);
+              }
+            });
+          }
+        });
+        
+        // Filter web search results by model if modelFilter is provided
+        if (modelFilter && modelFilter.length > 0) {
+          const filteredResults = explorerData.webSearchResults.map(result => ({
+            ...result,
+            citations: result.citations.filter(citation => 
+              modelFilter.includes(citation.model)
+            )
+          })).filter(result => result.citations.length > 0);
+          allWebSearchResults.push(...filteredResults);
+        } else {
+          allWebSearchResults.push(...explorerData.webSearchResults);
+        }
       }
       
       // Aggregate domain source analysis
-      if (explorerData.domainSourceAnalysis) {
-        totalBrandDomainCount += explorerData.domainSourceAnalysis.brandDomainCount || 0;
-        totalOtherSourcesCount += explorerData.domainSourceAnalysis.otherSourcesCount || 0;
+      // When filtering by model, we should recalculate domain analysis from filtered citations
+      if (!modelFilter || modelFilter.length === 0) {
+        if (explorerData.domainSourceAnalysis) {
+          totalBrandDomainCount += explorerData.domainSourceAnalysis.brandDomainCount || 0;
+          totalOtherSourcesCount += explorerData.domainSourceAnalysis.otherSourcesCount || 0;
+        }
       }
     });
 
@@ -184,19 +217,48 @@ export class BrandReportExplorerAggregationService {
       topKeywords,
       topSources,
       allWebSearchResults: this.deduplicateWebSearchResults(allWebSearchResults),
-      domainSourceAnalysis
+      domainSourceAnalysis,
+      availableModels: Array.from(availableModelsSet).sort()
     };
   }
 
   private aggregateSummaryData(
     explorerData: ExplorerData,
     currentData: { totalPrompts: number; promptsWithWebAccess: number },
-    updateCallback: (data: { totalPrompts: number; promptsWithWebAccess: number }) => void
+    updateCallback: (data: { totalPrompts: number; promptsWithWebAccess: number }) => void,
+    modelFilter?: string[]
   ): void {
-    if (explorerData.summary) {
-      currentData.totalPrompts += explorerData.summary.totalPrompts || 0;
-      currentData.promptsWithWebAccess += explorerData.summary.promptsWithWebAccess || 0;
-      updateCallback(currentData);
+    // If no model filter, use the pre-aggregated summary
+    if (!modelFilter || modelFilter.length === 0) {
+      if (explorerData.summary) {
+        currentData.totalPrompts += explorerData.summary.totalPrompts || 0;
+        currentData.promptsWithWebAccess += explorerData.summary.promptsWithWebAccess || 0;
+        updateCallback(currentData);
+      }
+    } else {
+      // When filtering by models, we need to count prompts differently
+      // Total prompts should be the count of all web search results that have at least one citation with a matching model
+      if (explorerData.webSearchResults && Array.isArray(explorerData.webSearchResults)) {
+        let filteredPromptsCount = 0;
+        let filteredPromptsWithAccess = 0;
+        
+        explorerData.webSearchResults.forEach(searchResult => {
+          if (searchResult.citations && Array.isArray(searchResult.citations)) {
+            const matchingCitations = searchResult.citations.filter(citation => 
+              modelFilter.includes(citation.model)
+            );
+            
+            if (matchingCitations.length > 0) {
+              filteredPromptsCount++;
+              filteredPromptsWithAccess++;
+            }
+          }
+        });
+        
+        currentData.totalPrompts += filteredPromptsCount;
+        currentData.promptsWithWebAccess += filteredPromptsWithAccess;
+        updateCallback(currentData);
+      }
     }
   }
 
@@ -231,7 +293,8 @@ export class BrandReportExplorerAggregationService {
   private processCitations(
     explorerData: ExplorerData,
     sourceCounts: Record<string, number>,
-    uniqueSourcesSet: Set<string>
+    uniqueSourcesSet: Set<string>,
+    modelFilter?: string[]
   ): { citationCount: number } {
     let citationCount = 0;
 
@@ -239,9 +302,14 @@ export class BrandReportExplorerAggregationService {
     if (explorerData.webSearchResults && Array.isArray(explorerData.webSearchResults)) {
       explorerData.webSearchResults.forEach(searchResult => {
         if (searchResult.citations && Array.isArray(searchResult.citations)) {
-          citationCount += searchResult.citations.length;
+          // Filter citations by model if modelFilter is provided
+          const citations = modelFilter && modelFilter.length > 0
+            ? searchResult.citations.filter(citation => modelFilter.includes(citation.model))
+            : searchResult.citations;
           
-          searchResult.citations.forEach((citation) => {
+          citationCount += citations.length;
+          
+          citations.forEach((citation) => {
             if (citation.website) {
               const domain = citation.website.toLowerCase();
               uniqueSourcesSet.add(domain);

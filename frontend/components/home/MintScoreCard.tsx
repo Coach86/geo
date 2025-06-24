@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Eye, Heart, Shield } from "lucide-react"
+import { Eye, Heart, Shield, ArrowRight } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Button } from "@/components/ui/button"
 import { getProjectReports, getReportVisibility, getReportSentiment, getReportAlignment } from "@/lib/api/report"
 import { RefreshCw, Info } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
@@ -18,6 +19,7 @@ import {
 interface MintScoreCardProps {
   projectId: string
   token: string
+  onGoToProject?: () => void
 }
 
 interface ScoreData {
@@ -35,7 +37,7 @@ interface ScoreData {
   reportDate: Date | null
 }
 
-export function MintScoreCard({ projectId, token }: MintScoreCardProps) {
+export function MintScoreCard({ projectId, token, onGoToProject }: MintScoreCardProps) {
   const [scores, setScores] = useState<ScoreData>({
     visibility: null,
     sentiment: null,
@@ -207,7 +209,7 @@ export function MintScoreCard({ projectId, token }: MintScoreCardProps) {
   }, [notifications, projectId, token])
 
   return (
-    <Card className="hover:shadow-lg transition-shadow relative">
+    <Card className="hover:shadow-lg transition-shadow relative flex flex-col h-full">
       {isProcessing && (
         <div className="absolute top-3 right-3">
           <div className="flex items-center gap-2 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
@@ -258,8 +260,8 @@ export function MintScoreCard({ projectId, token }: MintScoreCardProps) {
           )}
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
+      <CardContent className="flex-1 flex flex-col">
+        <div className="space-y-4 flex-1">
           {/* Visibility Score */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -311,6 +313,24 @@ export function MintScoreCard({ projectId, token }: MintScoreCardProps) {
             )}
           </div>
         </div>
+        
+        {/* Go to Project Button */}
+        {onGoToProject && (
+          <div className="pt-3 border-t mt-auto">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full" 
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent card click
+                onGoToProject();
+              }}
+            >
+              <ArrowRight className="h-3 w-3 mr-2" />
+              Go to project
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

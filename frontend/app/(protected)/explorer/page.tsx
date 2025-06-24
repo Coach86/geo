@@ -82,7 +82,8 @@ export default function ExplorerPage() {
     summary,
     citations,
     webSearchResults,
-  } = useAggregatedExplorer(selectedProjectId, token, memoizedDateRange, isLatest);
+    availableModels: explorerAvailableModels,
+  } = useAggregatedExplorer(selectedProjectId, token, memoizedDateRange, isLatest, selectedModels);
 
   // Handle date range change
   const handleRangeChange = useCallback((start: Date, end: Date, reports: ReportResponse[], isAllTimeRange?: boolean, isLatestReport?: boolean) => {
@@ -107,6 +108,29 @@ export default function ExplorerPage() {
     setIsAllTime(isAllTimeRange || false);
     setIsLatest(isLatestReport || false);
   }, []);
+
+  // Update available models from explorer data - only when they actually change
+  useEffect(() => {
+    if (explorerAvailableModels && explorerAvailableModels.length > 0) {
+      setAvailableModels(prev => {
+        // Only update if the models have actually changed
+        const modelsChanged = JSON.stringify(prev) !== JSON.stringify(explorerAvailableModels);
+        if (modelsChanged) {
+          console.log('[ExplorerPage] Updating available models:', explorerAvailableModels);
+          return explorerAvailableModels;
+        }
+        return prev;
+      });
+    }
+  }, [explorerAvailableModels]);
+  
+  // Auto-select all models when they first become available
+  useEffect(() => {
+    if (availableModels.length > 0 && selectedModels.length === 0) {
+      console.log('[ExplorerPage] Auto-selecting all models:', availableModels);
+      setSelectedModels(availableModels);
+    }
+  }, [availableModels.length]); // Only depend on length to avoid re-running
 
   // Handle model filter change
   const handleModelFilterChange = useCallback((models: string[]) => {
@@ -173,24 +197,69 @@ export default function ExplorerPage() {
     }));
   }, [citations, promptSet]);
 
-  // Create explorer data structure
+  // Create explorer data structure with filtered data
   const explorerData = useMemo(() => {
     if (!selectedReports.length || !summary) return null;
     
+    // Filter webSearchResults by selected models if models are selected
+    let filteredWebSearchResults = webSearchResults || [];
+    let filteredSummary = { ...summary };
+    
+    if (selectedModels.length > 0 && availableModels.length > 0) {
+      // Filter webSearchResults
+      if (webSearchResults) {
+        filteredWebSearchResults = webSearchResults.map(result => ({
+          ...result,
+          citations: result.citations ? result.citations.filter((citation: any) => 
+            citation.model && selectedModels.includes(citation.model)
+          ) : []
+        })).filter(result => result.citations.length > 0); // Remove results with no citations
+      }
+      
+      // Calculate filtered summary statistics
+      const uniqueSourcesSet = new Set<string>();
+      let totalFilteredCitations = 0;
+      let totalFilteredPrompts = 0;
+      const promptsWithWebAccessSet = new Set<string>();
+      
+      // Count from filtered citations
+      citationsWithPromptText.forEach(citation => {
+        if (citation.website || citation.domain) {
+          uniqueSourcesSet.add(citation.website || citation.domain);
+        }
+        totalFilteredCitations++;
+      });
+      
+      // Count from filtered webSearchResults
+      filteredWebSearchResults.forEach(result => {
+        if (result.query) {
+          totalFilteredPrompts++;
+          if (result.citations && result.citations.length > 0) {
+            promptsWithWebAccessSet.add(result.query);
+          }
+        }
+      });
+      
+      // Update summary with filtered counts
+      filteredSummary = {
+        totalPrompts: totalFilteredPrompts || citationsWithPromptText.length,
+        promptsWithWebAccess: promptsWithWebAccessSet.size,
+        webAccessPercentage: totalFilteredPrompts > 0 
+          ? Math.round((promptsWithWebAccessSet.size / totalFilteredPrompts) * 100) 
+          : 0,
+        totalCitations: totalFilteredCitations,
+        uniqueSources: uniqueSourcesSet.size,
+      };
+    }
+    
     return {
-      summary: {
-        totalPrompts: summary.totalPrompts,
-        promptsWithWebAccess: summary.promptsWithWebAccess,
-        webAccessPercentage: summary.webAccessPercentage,
-        totalCitations: summary.totalCitations,
-        uniqueSources: summary.uniqueSources,
-      },
+      summary: filteredSummary,
       topKeywords,
       topSources,
-      citations: citations || [],
-      webSearchResults: webSearchResults || []
+      citations: citationsWithPromptText, // Use filtered citations
+      webSearchResults: filteredWebSearchResults
     };
-  }, [selectedReports, summary, topKeywords, topSources, citations, webSearchResults]);
+  }, [selectedReports, summary, topKeywords, topSources, citationsWithPromptText, webSearchResults, selectedModels, availableModels]);
 
   // Export citations to CSV
   const exportToCSV = useCallback(() => {
@@ -301,13 +370,16 @@ export default function ExplorerPage() {
           />
         )}
         {projectReports.length > 0 && selectedProjectId && (
-          <ReportRangeSelector
-            reports={projectReports}
-            projectId={selectedProjectId}
-            availableModels={availableModels}
-            onRangeChange={handleRangeChange}
-            onModelFilterChange={handleModelFilterChange}
-          />
+          <>
+            {console.log('[ExplorerPage] Rendering ReportRangeSelector with models:', availableModels)}
+            <ReportRangeSelector
+              reports={projectReports}
+              projectId={selectedProjectId}
+              availableModels={availableModels}
+              onRangeChange={handleRangeChange}
+              onModelFilterChange={handleModelFilterChange}
+            />
+          </>
         )}
       </div>
 

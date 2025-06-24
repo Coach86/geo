@@ -287,7 +287,10 @@ export async function getAggregatedExplorer(
     const params = new URLSearchParams();
     if (query?.startDate) params.append('startDate', query.startDate);
     if (query?.endDate) params.append('endDate', query.endDate);
-    // Explorer doesn't use models filter, but we can include it for consistency
+    if (query?.models !== undefined) {
+      // Send models parameter even if empty array (empty means all models)
+      params.append('models', query.models.join(','));
+    }
     if (query?.includeVariation !== undefined) params.append('includeVariation', String(query.includeVariation));
     if (query?.latestOnly !== undefined) params.append('latestOnly', String(query.latestOnly));
 

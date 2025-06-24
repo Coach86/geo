@@ -69,14 +69,12 @@ export default function VisibilityPage() {
     topDomains,
   } = useVisibilityReports(selectedProjectId, selectedModels, token, isAllTime, memoizedDateRange, isLatest);
 
+  // Only get domainSourceAnalysis from explorer hook - other data comes from visibility hook
   const {
     loading: loadingExplorer,
     error: explorerError,
-    topMentions,
-    topKeywords,
-    topSources,
     domainSourceAnalysis,
-  } = useAggregatedExplorer(selectedProjectId, token, memoizedDateRange, isLatest);
+  } = useAggregatedExplorer(selectedProjectId, token, memoizedDateRange, isLatest, selectedModels);
 
   // Show all competitors by default
   const selectedCompetitors = competitors.map(c => c.name);

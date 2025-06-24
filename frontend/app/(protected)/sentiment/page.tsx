@@ -551,9 +551,6 @@ export default function SentimentPage() {
                   {/* Model Overview */}
                   <div>
                     <div className="flex items-center justify-between mb-4">
-                      <h4 className="font-semibold text-mono-900">
-                        {getModelFriendlyName(selectedModel || '')}
-                      </h4>
                       <div
                         className="px-3 py-1 rounded-full text-sm font-medium"
                         style={{
