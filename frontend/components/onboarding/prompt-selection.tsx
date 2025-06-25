@@ -415,7 +415,7 @@ export default function PromptSelection({ initialData, onDataReady }: PromptSele
                     }`}
                   >
                     <span
-                      className="text-sm text-mono-800 cursor-pointer hover:text-accent-600 flex-1 flex items-start gap-2"
+                      className="text-sm text-mono-800 cursor-pointer hover:text-accent-600 flex-1 flex items-start justify-between gap-2"
                       onClick={() => {
                         if (item.selected) {
                           setEditingId(item.id)
@@ -425,8 +425,8 @@ export default function PromptSelection({ initialData, onDataReady }: PromptSele
                         }
                       }}
                     >
-                      <PenTool className="h-3 w-3 text-accent-500 mt-0.5 flex-shrink-0" />
-                      {item.text}
+                      <span>{item.text}</span>
+                      <PenTool className="h-3 w-3 text-accent-500 mt-0.5 flex-shrink-0 mr-2" />
                     </span>
                     <div
                       className={`w-5 h-5 rounded-sm border flex items-center justify-center cursor-pointer transition-colors ${

@@ -238,18 +238,10 @@ export function MintScoreCard({ projectId, token, onGoToProject }: MintScoreCard
       onClick={handleCardClick}
     >
       {isProcessing && (
-        <div className="absolute top-3 right-3">
+        <div className="absolute top-3 left-1/2 transform -translate-x-1/2">
           <div className="flex items-center gap-2 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
             <RefreshCw className="h-3 w-3 animate-spin" />
-            <span>
-              {(() => {
-                const batchStatus = getBatchStatus(projectId)
-                if (batchStatus?.eventType === 'batch_started') return 'Starting analysis...'
-                if (batchStatus?.eventType === 'pipeline_started') return `Processing ${batchStatus.pipelineType || 'analysis'}...`
-                if (batchStatus?.eventType === 'pipeline_completed') return 'Finalizing...'
-                return 'Processing...'
-              })()}
-            </span>
+            <span>Analyzing</span>
           </div>
         </div>
       )}

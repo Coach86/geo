@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +28,7 @@ export function ModelsSection({
   modelsLoading,
   token,
 }: ModelsSectionProps) {
+  const router = useRouter();
   const [isUpdatingModels, setIsUpdatingModels] = useState(false);
   const [localSelectedModels, setLocalSelectedModels] = useState(selectedModels);
 
@@ -143,14 +145,8 @@ export function ModelsSection({
                             : 'cursor-pointer'
                         }`}
                       >
-                        <span className="font-medium flex items-center gap-2">
+                        <span className="font-medium">
                           {model.name}
-                          {model.premium && (
-                            <Crown className="h-4 w-4 text-yellow-500" />
-                          )}
-                          {isPremiumLocked && (
-                            <Lock className="h-3 w-3 text-muted-foreground" />
-                          )}
                         </span>
                         <Badge variant="outline" className="text-xs">
                           {model.provider}
@@ -165,17 +161,20 @@ export function ModelsSection({
                     <div className="flex items-center gap-2">
                       <Badge 
                         variant={model.webAccess ? "default" : "secondary"} 
-                        className="text-xs"
+                        className="text-xs pointer-events-none"
                       >
                         {model.webAccess ? "Web" : "No Web"}
                       </Badge>
                       {isPremiumLocked ? (
-                        <Badge variant="secondary" className="text-xs">
-                          <Lock className="h-3 w-3 mr-1" />
-                          Requires Upgrade
+                        <Badge 
+                          variant="secondary" 
+                          className="px-2 py-1 text-xs bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 cursor-pointer hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
+                          onClick={() => router.push('/update-plan')}
+                        >
+                          Upgrade
                         </Badge>
                       ) : (
-                        <Badge variant="default" className="text-xs">
+                        <Badge variant="default" className="text-xs pointer-events-none">
                           <Check className="h-3 w-3 mr-1" />
                           Available
                         </Badge>

@@ -19,6 +19,7 @@ import { useReports } from "@/providers/report-provider";
 import { useNavigation } from "@/providers/navigation-provider";
 import { ProcessingLoader } from "@/components/shared/ProcessingLoader";
 import BreadcrumbNav from "@/components/layout/breadcrumb-nav";
+import { PageTransition } from "@/components/shared/PageTransition";
 
 
 export default function VisibilityPage() {
@@ -147,7 +148,8 @@ export default function VisibilityPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <PageTransition loading={loading}>
+      <div className="space-y-6">
       {/* Breadcrumb Navigation and Report Range Selector */}
       <div className="flex items-center justify-between">
         {token && allProjects.length > 0 && (
@@ -180,33 +182,6 @@ export default function VisibilityPage() {
         </Alert>
       )}
 
-      {/* Loading State */}
-      {loading && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="md:col-span-3">
-              <CardHeader>
-                <Skeleton className="h-6 w-48" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-32 w-full" />
-              </CardContent>
-            </Card>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[...Array(3)].map((_, i) => (
-              <Card key={i}>
-                <CardHeader>
-                  <Skeleton className="h-6 w-48" />
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-48 w-full" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Main Content */}
       {!loading && selectedReports.length > 0 && (
@@ -290,6 +265,7 @@ export default function VisibilityPage() {
           </Card>
         </div>
       )}
-    </div>
+      </div>
+    </PageTransition>
   );
 }
