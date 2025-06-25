@@ -10,6 +10,7 @@ type VisibilityUserPromptParams = {
   brandName: string;
   count: number;
   competitors: string[];
+  keywords: string[];
 };
 export function visibilityUserPrompt({
   market,
@@ -19,12 +20,14 @@ export function visibilityUserPrompt({
   brandName,
   count,
   competitors,
+  keywords,
 }: VisibilityUserPromptParams): string {
-  return `
+  const prompt = `
       ## USER
       ### Context:
       - Website URL: ${websiteUrl}
-      - Company/Brandname: ${brandName} in the ${industry} industry.
+      - Keywords of the website, to reuse in prompt, but translated: ${keywords.join(', ')}
+      - Company/Brandname: ${brandName} in the ${industry} industry
       - Market that needs to be targeted: ${market}
       - Current date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
       - Competitors: ${competitors.join(', ')}
@@ -44,7 +47,7 @@ export function visibilityUserPrompt({
         • **Never mention any brand names, company names, or the target URL in the prompt itself.**
         • Keep prompts concise (max 20 words each).
         • Avoid duplicate meanings.
-        • **Use a very casual, almost familiar and conversational tone, like most users talk to a LLM. Use abbreviations and slangs.**
+        • **Use a very casual, almost familiar and conversational tone, like most users talk to a LLM.**
         • **Use questions that force the LLM to list brands, companies, or products.**
         • **Without never mentioning any brand names, company names, use the competitors of the target brand to tailor the prompts.**
 
@@ -58,4 +61,5 @@ export function visibilityUserPrompt({
       ## OUTPUT LANGUAGE:
       **Language to generate prompts MUST BE ${language}**
     `;
+  return prompt;
 }

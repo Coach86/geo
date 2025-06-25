@@ -138,6 +138,7 @@ export class PromptService implements OnModuleInit {
     const websiteUrl = project.website;
     const market = project.market;
     const language = project.language;
+    const scrapedKeywords = project.scrapedKeywords || [];
     // Generate all prompts using LLM
     const [visibility, sentiment, competition, alignment] = await Promise.all([
       this.generateVisibilityPrompts(
@@ -148,6 +149,7 @@ export class PromptService implements OnModuleInit {
         language,
         this.visibilityPromptCount,
         competitors,
+        scrapedKeywords,
       ),
       this.generateSentimentPrompts(
         brandName,
@@ -186,6 +188,7 @@ export class PromptService implements OnModuleInit {
     language: string,
     count: number,
     competitors: string[],
+    keywords: string[] = [],
   ): Promise<string[]> {
     // Define our schema for the LLM output
     const promptsSchema = z.object({
@@ -203,6 +206,7 @@ export class PromptService implements OnModuleInit {
         count,
         competitors,
         language,
+        keywords,
       }),
       promptsSchema,
       { systemPrompt: visibilitySystemPrompt },

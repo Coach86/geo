@@ -34,6 +34,7 @@ interface PromptSelectionProps {
         keyBrandAttributes?: string[];
         competitors?: string[];
         fullDescription?: string;
+        scrapedKeywords?: string[];
       };
     };
   };
@@ -171,6 +172,7 @@ export default function PromptSelection({ initialData, onDataReady }: PromptSele
           language: initialData?.brandData?.markets?.[0]?.languages?.[0] || 'English',
           keyBrandAttributes: keyBrandAttributes,
           competitors: competitors,
+          scrapedKeywords: initialData?.brandData?.analyzedData?.scrapedKeywords || [],
           shortDescription: initialData?.projectData?.description || '',
           fullDescription: initialData?.brandData?.analyzedData?.fullDescription ||
                           initialData?.projectData?.description || ''

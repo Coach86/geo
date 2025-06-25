@@ -73,7 +73,7 @@ export class ProjectService {
    */
   private stripUrlProtocol(url: string): string {
     if (!url) return '';
-    
+
     // Remove common protocols and normalize
     return url
       .replace(/^https?:\/\//i, '')  // Remove http:// or https://
@@ -117,6 +117,8 @@ export class ProjectService {
         if (!createProjectDto.data || !createProjectDto.data.market) {
           throw new BadRequestException('Market is required');
         }
+
+        this.logger.error(scrapedData);
 
         // Summarize with LLM using web search + scraped data
         project = await this.generateProjectWithCompetitors(
@@ -166,6 +168,7 @@ export class ProjectService {
         fullDescription: project.fullDescription,
         objectives: project.objectives,
         keyBrandAttributes: project.keyBrandAttributes,
+        scrapedKeywords: project.scrapedKeywords || [],
         competitors: project.competitors,
         language: project.language,
         data: {},
@@ -246,7 +249,7 @@ export class ProjectService {
 
       // Update the project
       const updatedProject = await this.projectRepository.update(projectId, updateObj);
-      
+
       // Emit event if competitors were updated
       if (updateData.competitors !== undefined) {
         const project = await this.projectRepository.findById(projectId);
@@ -256,7 +259,7 @@ export class ProjectService {
           organizationId: project.organizationId,
         });
       }
-      
+
       return this.projectRepository.mapToEntity(updatedProject);
     } catch (error) {
       this.logger.error(`Failed to update project: ${error.message}`, error.stack);
@@ -298,6 +301,8 @@ export class ProjectService {
           url: url,
         };
       }
+
+      this.logger.error(scrapedData);
 
       // Generate project data without saving
       const project = await this.generateProjectWithCompetitors(
@@ -351,6 +356,7 @@ export class ProjectService {
         fullDescription: mainProject.fullDescription,
         objectives: mainProject.objectives,
         keyBrandAttributes: mainProject.keyBrandAttributes,
+        scrapedKeywords: scrapedData.keywords,
         competitors: competitors,
         language: language,
         organizationId: organizationId,
@@ -482,14 +488,14 @@ export class ProjectService {
   async isManualAnalysisAllowed(projectId: string): Promise<{ allowed: boolean; nextAllowedTime?: Date; formattedTime?: string }> {
     try {
       const project = await this.projectRepository.findById(projectId);
-      
+
       if (!project.nextManualAnalysisAllowedAt) {
         return { allowed: true };
       }
 
       const now = new Date();
       const nextAllowedTime = new Date(project.nextManualAnalysisAllowedAt);
-      
+
       if (now >= nextAllowedTime) {
         return { allowed: true };
       }
@@ -505,8 +511,8 @@ export class ProjectService {
       };
       const formattedTime = nextAllowedTime.toLocaleDateString('en-US', dateOptions);
 
-      return { 
-        allowed: false, 
+      return {
+        allowed: false,
         nextAllowedTime,
         formattedTime: `Analysis will be available ${formattedTime}`
       };
@@ -524,18 +530,18 @@ export class ProjectService {
     try {
       const project = await this.projectRepository.findById(projectId);
       this.logger.log(`Refreshing competitor websites for project ${projectId}`);
-      
+
       // Clear existing competitor details to force refresh
       await this.projectRepository.update(projectId, {
         competitorDetails: []
       });
-      
+
       // Emit event to trigger the competitor website listener
       this.eventEmitter.emit('project.competitors.updated', {
         projectId: project.id,
         competitors: project.competitors,
       } as ProjectCompetitorsUpdatedEvent);
-      
+
       this.logger.log(`Competitor website refresh triggered for project ${projectId}`);
     } catch (error) {
       this.logger.error(`Failed to refresh competitor websites: ${error.message}`, error.stack);

@@ -728,6 +728,7 @@ export class UserProjectController {
     response.longDescription = project.fullDescription;
     response.objectives = project.objectives;
     response.keyBrandAttributes = project.keyBrandAttributes;
+    response.scrapedKeywords = project.scrapedKeywords;
     response.competitors = project.competitors;
     response.competitorDetails = project.competitorDetails;
     response.organizationId = project.organizationId;
