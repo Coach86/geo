@@ -280,7 +280,7 @@ export default function PricingPage({
       billedAnnually: billingPeriod === "yearly",
       savings: savingsAmount,
       included: plan.included,
-      ctaText: "Get Started",
+      ctaText: promoInfo ? `${promoInfo.trialDays} days free trial` : "Get Started",
       ctaAction: () => handleStartTrial(plan.id, plan.name),
       ctaColor:
         index === 0
@@ -381,7 +381,11 @@ export default function PricingPage({
 
       {/* Pricing Plan Cards - Dynamic grid structure */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 mb-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
+        <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch ${
+          pricingPlans.length === 3 
+            ? "lg:grid-cols-3 max-w-5xl mx-auto" 
+            : "lg:grid-cols-4"
+        }`}>
           {pricingPlans.map((plan, index) => (
             <PricingCard
               key={index}

@@ -191,7 +191,7 @@ const PromoCodeManagement: React.FC = () => {
   };
 
   const copyToClipboard = (code: string) => {
-    const url = `${window.location.origin.replace('admin.', 'app.')}/auth?code=${code}`;
+    const url = `https://app.getmint.ai/auth?code=${code}`;
     navigator.clipboard.writeText(url);
     setSuccessMessage(`URL copied: ${url}`);
   };
