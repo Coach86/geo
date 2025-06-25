@@ -117,6 +117,7 @@ export interface ProjectResponse {
   longDescription: string;
   objectives?: string;
   keyBrandAttributes: string[];
+  scrapedKeywords?: string[];
   competitors: string[];
   competitorDetails?: Array<{
     name: string;
@@ -170,6 +171,7 @@ export interface GeneratePromptsRequest {
   language?: string;
   keyBrandAttributes: string[];
   competitors: string[];
+  scrapedKeywords?: string[];
   shortDescription?: string;
   fullDescription?: string;
 }

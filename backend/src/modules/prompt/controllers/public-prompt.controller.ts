@@ -33,6 +33,7 @@ export interface GeneratePromptsRequest {
   language?: string;
   keyBrandAttributes: string[];
   competitors: string[];
+  scrapedKeywords?: string[];
   shortDescription?: string;
   fullDescription?: string;
   objectives?: string;
@@ -155,6 +156,11 @@ export class PublicPromptController {
           items: { type: 'string' },
           example: ['Competitor A', 'Competitor B', 'Competitor C'],
         },
+        scrapedKeywords: {
+          type: 'array',
+          items: { type: 'string' },
+          example: ['innovation', 'technology', 'solutions'],
+        },
         shortDescription: { type: 'string', example: 'A leading provider of innovative solutions' },
         fullDescription: { type: 'string', example: 'Detailed company description...' },
       },
@@ -221,6 +227,7 @@ export class PublicPromptController {
         language: body.language || 'en',
         keyBrandAttributes: body.keyBrandAttributes,
         competitors: body.competitors,
+        scrapedKeywords: body.scrapedKeywords || [],
         shortDescription: body.shortDescription || '',
         fullDescription: body.fullDescription || body.shortDescription || '',
         objectives: body.objectives || '',

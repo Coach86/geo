@@ -96,6 +96,7 @@ export class PromptSetController {
           brandName: project.brandName,
           count: spontPromptCount,
           competitors: project.competitors,
+          keywords: []
         }),
       };
 

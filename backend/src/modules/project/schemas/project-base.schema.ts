@@ -56,6 +56,12 @@ export class Project {
 
   @Prop({
     type: [String],
+    default: [],
+  })
+  scrapedKeywords: string[];
+
+  @Prop({
+    type: [String],
     required: true,
     default: [],
   })

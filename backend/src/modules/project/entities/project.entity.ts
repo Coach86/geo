@@ -36,6 +36,9 @@ export class Project {
   @ApiProperty({ description: 'List of key features or offerings of the company', type: [String] })
   keyBrandAttributes: string[];
 
+  @ApiProperty({ description: 'Keywords scraped from the website', type: [String], required: false })
+  scrapedKeywords?: string[];
+
   @ApiProperty({ description: 'List of competitors', type: [String] })
   competitors: string[];
 

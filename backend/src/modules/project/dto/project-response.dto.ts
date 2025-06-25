@@ -47,6 +47,9 @@ export class ProjectResponseDto {
   @ApiProperty({ description: 'List of key features or offerings of the company', type: [String] })
   keyBrandAttributes: string[];
 
+  @ApiPropertyOptional({ description: 'Keywords scraped from the website', type: [String] })
+  scrapedKeywords?: string[];
+
   @ApiProperty({ description: 'List of competitors', type: [String] })
   competitors: string[];
 

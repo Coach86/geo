@@ -8,6 +8,7 @@ export interface ProjectData {
     keyBrandAttributes: string[];
     competitors: string[];
     fullDescription?: string;
+    scrapedKeywords?: string[];
   };
 }
 

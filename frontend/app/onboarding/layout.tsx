@@ -121,6 +121,7 @@ function NavigationButtons() {
                 keyBrandAttributes: identityCard.keyBrandAttributes || [],
                 competitors: identityCard.competitors || [],
                 fullDescription: identityCard.fullDescription || identityCard.longDescription || "",
+                scrapedKeywords: identityCard.scrapedKeywords || [],
               },
             }
           });
