@@ -12,6 +12,12 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 interface MultiSelectFilterProps {
@@ -126,7 +132,9 @@ export function MultiSelectFilter({
             ) : (
               filteredOptions.map((option) => {
                 const isSelected = selectedValues.includes(option);
-                return (
+                const isTruncated = option.length > 50; // Adjust threshold as needed
+                
+                const optionContent = (
                   <div
                     key={option}
                     className={cn(
@@ -146,6 +154,27 @@ export function MultiSelectFilter({
                       <Check className="h-3 w-3 text-primary" />
                     )}
                   </div>
+                );
+                
+                return isTruncated ? (
+                  <TooltipProvider key={option} delayDuration={300}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        {optionContent}
+                      </TooltipTrigger>
+                      <TooltipContent 
+                        side="right" 
+                        className="max-w-sm p-2"
+                        sideOffset={5}
+                      >
+                        <p className="text-sm whitespace-pre-wrap break-words">
+                          {option}
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ) : (
+                  optionContent
                 );
               })
             )}
