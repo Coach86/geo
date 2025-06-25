@@ -119,6 +119,10 @@
         {
           "name": "GROK_API_KEY",
           "valueFrom": "arn:aws:secretsmanager:eu-west-1:767828741433:secret:GROQ_API_KEY-EJNQMR"
+        },
+        {
+          "name": "LOOPS_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-west-1:767828741433:secret:LOOPS_API_KEY-OY96GV"
         }
       ],
       "environmentFiles": [],

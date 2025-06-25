@@ -1,4 +1,5 @@
 import { Injectable, Logger, NotFoundException, forwardRef, Inject } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { v4 as uuidv4 } from 'uuid';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
@@ -11,6 +12,9 @@ import { User as UserEntity } from '../entities/user.entity';
 import { Project } from '../../project/entities/project.entity';
 import { OrganizationService } from '../../organization/services/organization.service';
 import { PostHogService } from '../../analytics/services/posthog.service';
+import { UserCreatedEvent } from '../events/user-created.event';
+import { UserUpdatedEvent } from '../events/user-updated.event';
+import { UserDeletedEvent } from '../events/user-deleted.event';
 
 @Injectable()
 export class UserService {
@@ -21,6 +25,7 @@ export class UserService {
     @Inject(forwardRef(() => OrganizationService))
     private organizationService: OrganizationService,
     private postHogService: PostHogService,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   /**
@@ -78,6 +83,18 @@ export class UserService {
           `org_${organizationId}` // Use organization ID as name since orgs don't have names
         );
       }
+
+      // Emit user created event
+      this.eventEmitter.emit(
+        'user.created',
+        new UserCreatedEvent(
+          savedUser.id,
+          savedUser.email,
+          savedUser.organizationId,
+          savedUser.language,
+          savedUser.createdAt.toISOString()
+        )
+      );
 
       return this.mapToResponseDto(savedUser);
     } catch (error) {
@@ -230,6 +247,18 @@ export class UserService {
       const updatedUser = await this.userRepository.update(id, updateData);
       this.logger.log(`Phone number updated successfully for user: ${id}`);
 
+      // Emit user updated event
+      this.eventEmitter.emit(
+        'user.updated',
+        new UserUpdatedEvent(
+          updatedUser.id,
+          updatedUser.email,
+          {
+            phoneNumber: updatePhoneDto.phoneNumber,
+          }
+        )
+      );
+
       return this.mapToResponseDto(updatedUser);
     } catch (error) {
       this.logger.error(`Failed to update phone number: ${error.message}`, error.stack);
@@ -247,8 +276,9 @@ export class UserService {
     try {
       this.logger.log(`Updating email for user: ${id}`);
 
-      // Check if user exists
-      await this.findOne(id);
+      // Check if user exists and get current email
+      const currentUser = await this.findOne(id);
+      const oldEmail = currentUser.email;
 
       // Check if email is already taken by another user
       const existingUser = await this.userRepository.findByEmail(updateEmailDto.email);
@@ -262,6 +292,22 @@ export class UserService {
 
       const updatedUser = await this.userRepository.update(id, updateData);
       this.logger.log(`Email updated successfully for user: ${id}`);
+
+      // Emit user updated event
+      this.eventEmitter.emit(
+        'user.updated',
+        new UserUpdatedEvent(
+          updatedUser.id,
+          updatedUser.email,
+          {
+            email: updatedUser.email,
+            organizationId: updatedUser.organizationId,
+            language: updatedUser.language,
+            phoneNumber: updatedUser.phoneNumber,
+          },
+          oldEmail // Previous email for Loops to handle the change
+        )
+      );
 
       return this.mapToResponseDto(updatedUser);
     } catch (error) {
@@ -282,6 +328,12 @@ export class UserService {
 
       // Delete the user
       await this.userRepository.remove(id);
+
+      // Emit user deleted event
+      this.eventEmitter.emit(
+        'user.deleted',
+        new UserDeletedEvent(user.id, user.email)
+      );
 
       return user;
     } catch (error) {

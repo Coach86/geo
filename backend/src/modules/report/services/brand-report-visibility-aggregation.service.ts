@@ -506,14 +506,28 @@ export class BrandReportVisibilityAggregationService {
   private processTopDomains(
     domainTracker: Map<string, number>
   ): TopDomainDto[] {
-    const domainEntries = Array.from(domainTracker.entries())
+    const allDomainEntries = Array.from(domainTracker.entries())
       .map(([domain, count]) => ({ domain, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
+      .sort((a, b) => b.count - a.count);
     
-    const totalCitations = domainEntries.reduce((sum, item) => sum + item.count, 0);
+    // Get top 9 domains
+    const topNineDomains = allDomainEntries.slice(0, 9);
     
-    return domainEntries.map(item => ({
+    // Calculate "Others" count - sum of all domains beyond the top 9
+    const othersCount = allDomainEntries
+      .slice(9)
+      .reduce((sum, item) => sum + item.count, 0);
+    
+    // Include "Others" only if there are domains beyond the top 9
+    const finalDomains = [...topNineDomains];
+    if (othersCount > 0) {
+      finalDomains.push({ domain: 'Others', count: othersCount });
+    }
+    
+    // Calculate total citations for percentage calculation
+    const totalCitations = allDomainEntries.reduce((sum, item) => sum + item.count, 0);
+    
+    return finalDomains.map(item => ({
       domain: item.domain,
       count: item.count,
       percentage: totalCitations > 0 ? Math.round((item.count / totalCitations) * 100 * 10) / 10 : 0 // Round to 1 decimal

@@ -39,7 +39,7 @@ export function DomainSourceChart({
         <CardHeader className="pb-4">
           <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
             <BarChart3 className="h-5 w-5 text-purple-600" />
-            Domain Sources
+            Sources Attribution
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -60,7 +60,7 @@ export function DomainSourceChart({
       <CardHeader className="pb-4">
         <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
           <BarChart3 className="h-5 w-5 text-purple-600" />
-          Domain Sources
+          Sources Attribution
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
