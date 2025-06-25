@@ -20,6 +20,7 @@ import BreadcrumbNav from "@/components/layout/breadcrumb-nav";
 import { FeatureLockedWrapper } from "@/components/shared/FeatureLockedWrapper";
 import { SourcesWatchtower } from "@/components/shared/SourcesWatchtower";
 import { SourcesAnalysis } from "@/components/shared/SourcesAnalysis";
+import { PageTransition } from "@/components/shared/PageTransition";
 
 
 export default function AlignmentPage() {
@@ -116,14 +117,6 @@ export default function AlignmentPage() {
   const loading = loadingReports[selectedProjectId || ''] || loadingAlignment;
   const error = alignmentError;
 
-  // Check feature access
-  if (accessLoading) {
-    return (
-      <div className="flex items-center justify-center h-[50vh]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-500"></div>
-      </div>
-    );
-  }
 
   if (!selectedProjectId) {
     return (
@@ -144,7 +137,8 @@ export default function AlignmentPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <PageTransition loading={loading || accessLoading}>
+      <div className="space-y-6">
       {/* Breadcrumb Navigation and Report Range Selector */}
       <div className="flex items-center justify-between">
         {token && allProjects.length > 0 && (
@@ -278,6 +272,7 @@ export default function AlignmentPage() {
           </Card>
         </div>
       )}
-    </div>
+      </div>
+    </PageTransition>
   );
 }

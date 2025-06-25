@@ -27,6 +27,7 @@ import BreadcrumbNav from "@/components/layout/breadcrumb-nav";
 import { useNavigation } from "@/providers/navigation-provider";
 import { ProcessingLoader } from "@/components/shared/ProcessingLoader";
 import { useNotificationContext } from "@/providers/notification-provider";
+import { PageTransition } from "@/components/shared/PageTransition";
 
 
 export default function ExplorerPage() {
@@ -321,7 +322,8 @@ export default function ExplorerPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <PageTransition loading={loading}>
+      <div className="space-y-6">
       {/* Breadcrumb Navigation with new Report Range Selector */}
       <div className="flex items-center justify-between">
         {token && allProjects.length > 0 && (
@@ -513,6 +515,7 @@ export default function ExplorerPage() {
           </Card>
         </div>
       )}
-    </div>
+      </div>
+    </PageTransition>
   );
 }

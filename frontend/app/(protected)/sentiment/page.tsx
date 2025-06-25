@@ -24,6 +24,7 @@ import { FeatureLockedWrapper } from "@/components/shared/FeatureLockedWrapper";
 import { getMockSentimentData } from "@/lib/mock-data";
 import { SourcesWatchtower } from "@/components/shared/SourcesWatchtower";
 import { SourcesAnalysis } from "@/components/shared/SourcesAnalysis";
+import { PageTransition } from "@/components/shared/PageTransition";
 
 export default function SentimentPage() {
   const { token } = useAuth();
@@ -310,14 +311,6 @@ export default function SentimentPage() {
   const loading = loadingReports[selectedProjectId || ''] || loadingSentiment;
   const error = sentimentError;
 
-  // Check feature access
-  if (accessLoading) {
-    return (
-      <div className="flex items-center justify-center h-[50vh]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-500"></div>
-      </div>
-    );
-  }
 
   if (!selectedProjectId) {
     return (
@@ -338,7 +331,7 @@ export default function SentimentPage() {
   }
 
   return (
-    <>
+    <PageTransition loading={loading || accessLoading}>
       <div className="space-y-6">
         {/* Breadcrumb Navigation and Report Range Selector */}
         <div className="flex items-center justify-between">
@@ -371,41 +364,6 @@ export default function SentimentPage() {
           </Alert>
         )}
 
-        {/* Loading State */}
-        {loading && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <Skeleton className="h-6 w-48" />
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-32 w-full" />
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <Skeleton className="h-6 w-48" />
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-32 w-full" />
-                </CardContent>
-              </Card>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {[...Array(2)].map((_, i) => (
-                <Card key={i}>
-                  <CardHeader>
-                    <Skeleton className="h-6 w-48" />
-                  </CardHeader>
-                  <CardContent>
-                    <Skeleton className="h-48 w-full" />
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Main Content */}
         {!loading && selectedReports.length > 0 && (
@@ -704,6 +662,6 @@ export default function SentimentPage() {
           </div>
         </div>
       </div>
-    </>
+    </PageTransition>
   );
 }

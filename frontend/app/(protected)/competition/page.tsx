@@ -19,6 +19,7 @@ import { CompetitionWatchtower } from "@/components/competition/CompetitionWatch
 import { useReports } from "@/providers/report-provider";
 import { SingleReportSelector } from "@/components/shared/SingleReportSelector";
 import type { ReportResponse } from "@/types/reports";
+import { PageTransition } from "@/components/shared/PageTransition";
 
 interface ProcessedReport {
   id: string;
@@ -122,14 +123,9 @@ export default function CompetitionPage() {
     setSelectedModels(models.length === 0 ? availableModels : models);
   }, [availableModels]);
 
-  // Check feature access
-  if (accessLoading) {
-    return (
-      <div className="flex items-center justify-center h-[50vh]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-500"></div>
-      </div>
-    );
-  }
+  // Combined loading state
+  const loading = loadingReports[selectedProjectId || ''] || loadingCompetition || reportLoading;
+
 
   if (!selectedProjectId) {
     return (
@@ -150,7 +146,8 @@ export default function CompetitionPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <PageTransition loading={loading || accessLoading}>
+      <div className="space-y-6">
       {/* Breadcrumb Navigation and Report Selector */}
       <div className="flex items-center justify-between">
         {token && allProjects.length > 0 && (
@@ -256,7 +253,8 @@ export default function CompetitionPage() {
           </Card>
         </div>
       )}
-    </div>
+      </div>
+    </PageTransition>
   );
 }
 

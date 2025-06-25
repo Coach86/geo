@@ -67,14 +67,6 @@ export function ProjectOverviewCard({ project, onClick, onGoToProject, onProject
       className="cursor-pointer hover:shadow-lg transition-shadow relative flex flex-col h-full"
       onClick={onClick}
     >
-      {isProcessing && (
-        <div className="absolute top-3 right-3">
-          <div className="flex items-center gap-2 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
-            <RefreshCw className="h-3 w-3 animate-spin" />
-            <span>Analyzing</span>
-          </div>
-        </div>
-      )}
       <CardHeader>
         <CardTitle className="text-xl flex items-center gap-2">
           {faviconUrl && (
