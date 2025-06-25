@@ -1,10 +1,11 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import Stripe from 'stripe';
 import { OrganizationService } from '../../organization/services/organization.service';
 import { PlanService } from './plan.service';
 import { UserService } from '../../user/services/user.service';
+import { PromoCodeService } from '../../promo/services/promo-code.service';
 
 @Injectable()
 export class StripeWebhookService {
@@ -16,6 +17,7 @@ export class StripeWebhookService {
     private readonly organizationService: OrganizationService,
     private readonly planService: PlanService,
     private readonly userService: UserService,
+    @Inject(forwardRef(() => PromoCodeService)) private readonly promoCodeService: PromoCodeService,
     private readonly eventEmitter: EventEmitter2,
   ) {
     const stripeApiKey = this.configService.get<string>('STRIPE_API_KEY');
@@ -66,6 +68,10 @@ export class StripeWebhookService {
 
       // Update organization with new plan settings
       const organizationId = user.organizationId.toString();
+      
+      // Get current organization to check for promo code
+      const currentOrg = await this.organizationService.findOne(organizationId);
+      const promoCode = currentOrg.promoCode;
 
       // Extract customer ID from the session (it might be an object or string)
       const customerId = typeof session.customer === 'string'
@@ -78,11 +84,13 @@ export class StripeWebhookService {
         : (session.subscription as Stripe.Subscription)?.id;
 
       // Update Stripe customer ID, plan ID, and subscription ID
+      // Also remove promo code since it has been used
       await this.organizationService.update(organizationId, {
         stripeCustomerId: customerId,
         stripePlanId: planId,
         stripeSubscriptionId: subscriptionId,
         subscriptionStatus: 'active',
+        promoCode: undefined, // Remove promo code after successful checkout
       });
 
       // Update plan settings with plan limits
@@ -94,10 +102,21 @@ export class StripeWebhookService {
         maxUsers: plan.maxUsers,
         maxCompetitors: plan.maxCompetitors,
       });
+      
+      // Track promo code usage if one was used
+      if (promoCode) {
+        try {
+          await this.promoCodeService.apply(promoCode, userId, organizationId, subscriptionId);
+          console.log(`Tracked promo code ${promoCode} usage for organization ${organizationId}`);
+        } catch (error) {
+          console.error(`Failed to track promo code usage: ${error.message}`);
+          // Don't fail the checkout if promo tracking fails
+        }
+      }
 
       // If upgrading from free plan, automatically expand selected models to take advantage of higher limit
-      const currentOrg = await this.organizationService.findOne(organizationId);
-      if (currentOrg.selectedModels.length < plan.maxModels) {
+      const updatedOrg = await this.organizationService.findOne(organizationId);
+      if (updatedOrg.selectedModels.length < plan.maxModels) {
         // Get all available enabled models from config
         const configService = new (await import('../../config/services/config.service')).ConfigService();
         const availableModels = configService.getLlmModels()
@@ -105,17 +124,17 @@ export class StripeWebhookService {
           .map((model: any) => model.id);
         
         // Take up to maxModels from available models, keeping existing selections
-        const currentModelsSet = new Set(currentOrg.selectedModels);
+        const currentModelsSet = new Set(updatedOrg.selectedModels);
         const additionalModels = availableModels
           .filter((modelId: string) => !currentModelsSet.has(modelId))
-          .slice(0, plan.maxModels - currentOrg.selectedModels.length);
+          .slice(0, plan.maxModels - updatedOrg.selectedModels.length);
         
-        const updatedModels = [...currentOrg.selectedModels, ...additionalModels];
+        const updatedModels = [...updatedOrg.selectedModels, ...additionalModels];
         
         // Update the organization with expanded model selection
         await this.organizationService.updateSelectedModels(organizationId, updatedModels);
         
-        console.log(`Expanded selected models from ${currentOrg.selectedModels.length} to ${updatedModels.length} for organization ${organizationId}`);
+        console.log(`Expanded selected models from ${updatedOrg.selectedModels.length} to ${updatedModels.length} for organization ${organizationId}`);
       }
 
       console.log(`Successfully updated organization ${organizationId} with plan ${plan.name}`);
@@ -237,10 +256,12 @@ export class StripeWebhookService {
     }
 
     // Update subscription details (whether new or ensuring data consistency)
+    // Also remove promo code since it has been used
     await this.organizationService.update(organization.id, {
       stripeSubscriptionId: subscription.id,
       subscriptionStatus: subscription.status,
       subscriptionCurrentPeriodEnd: new Date((subscription as any).current_period_end * 1000),
+      promoCode: undefined, // Remove promo code after successful subscription
     });
 
     console.log(`Updated organization ${organization.id} with subscription ${subscription.id}`);

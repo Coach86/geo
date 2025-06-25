@@ -33,5 +33,6 @@ export class PromoCodeValidationResponseDto {
     durationInMonths?: number;
     trialPlanId?: string;
     description?: string;
+    validPlanIds?: string[];
   };
 }

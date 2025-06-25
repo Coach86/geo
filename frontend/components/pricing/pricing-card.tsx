@@ -30,6 +30,10 @@ interface PricingCardProps {
   previousPlanName?: string;
   tagBgColor?: string;
   tagTextColor?: string;
+  promoInfo?: {
+    code: string;
+    trialDays: number;
+  } | null;
 }
 
 export function PricingCard({
@@ -53,6 +57,7 @@ export function PricingCard({
   previousPlanName,
   tagBgColor = "bg-gray-100",
   tagTextColor = "text-gray-600",
+  promoInfo,
 }: PricingCardProps) {
   const showPlusIcon = previousPlanName !== undefined;
 
@@ -81,6 +86,13 @@ export function PricingCard({
       {isRecommended && (
         <div className="absolute -top-3 left-4 px-3 py-1 text-white text-xs font-medium rounded-full shadow-sm z-10 bg-accent-500">
           Recommended for You
+        </div>
+      )}
+
+      {/* Promo Code Badge */}
+      {promoInfo && (
+        <div className="absolute -top-3 right-4 px-3 py-1 text-white text-xs font-medium rounded-full shadow-sm z-10 bg-green-500">
+          {promoInfo.trialDays} days free trial
         </div>
       )}
 
@@ -126,6 +138,11 @@ export function PricingCard({
               <div className="mt-1 text-xs text-green-600 font-medium flex items-center">
                 <ArrowRight className="h-3 w-3 mr-1 rotate-45" />
                 Save €{savings} per year
+              </div>
+            )}
+            {promoInfo && (
+              <div className="mt-2 text-xs font-medium bg-green-50 text-green-700 px-2 py-1 rounded-md inline-block">
+                🎉 Promo "{promoInfo.code}" applied: {promoInfo.trialDays}-day free trial
               </div>
             )}
           </div>

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 import { PlanRepository } from '../repositories/plan.repository';
@@ -6,6 +6,10 @@ import { CreatePlanDto } from '../dto/create-plan.dto';
 import { UpdatePlanDto } from '../dto/update-plan.dto';
 import { PlanResponseDto, PlanPriceDto } from '../dto/plan-response.dto';
 import { PlanDocument } from '../schemas/plan.schema';
+import { UserService } from '../../user/services/user.service';
+import { OrganizationService } from '../../organization/services/organization.service';
+import { PromoCodeService } from '../../promo/services/promo-code.service';
+import { DiscountType } from '../../promo/schemas/promo-code.schema';
 
 @Injectable()
 export class PlanService {
@@ -14,6 +18,9 @@ export class PlanService {
   constructor(
     private readonly planRepository: PlanRepository,
     private readonly configService: ConfigService,
+    @Inject(forwardRef(() => UserService)) private readonly userService: UserService,
+    @Inject(forwardRef(() => OrganizationService)) private readonly organizationService: OrganizationService,
+    @Inject(forwardRef(() => PromoCodeService)) private readonly promoCodeService: PromoCodeService,
   ) {
     const stripeApiKey = this.configService.get<string>('STRIPE_API_KEY');
     if (stripeApiKey) {
@@ -138,6 +145,48 @@ export class PlanService {
       success_url: `${frontendUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${frontendUrl}/cancel`,
     };
+
+    // Check if user's organization has a promo code with trial days
+    try {
+      const user = await this.userService.findOne(userId);
+      if (user && user.organizationId) {
+        const organization = await this.organizationService.findOne(user.organizationId);
+        if (organization && organization.promoCode) {
+          // Get promo code details (without usage validation)
+          const promo = await this.promoCodeService.findByCode(organization.promoCode);
+          
+          if (promo && promo.isActive) {
+            // For trial_days promo codes, check if this plan matches the trialPlanId
+            let isValidForPlan = false;
+            
+            if (promo.discountType === DiscountType.TRIAL_DAYS) {
+              // Use trialPlanId for trial_days type promos
+              isValidForPlan = promo.trialPlanId === planId;
+            } else {
+              // For other promo types, use validPlanIds
+              isValidForPlan = !promo.validPlanIds || 
+                             promo.validPlanIds.length === 0 || 
+                             promo.validPlanIds.includes(planId);
+            }
+            
+            // Apply trial days if promo code provides them and is valid for this plan
+            if (isValidForPlan && promo.discountType === DiscountType.TRIAL_DAYS && promo.discountValue > 0) {
+              sessionConfig.subscription_data = {
+                trial_period_days: promo.discountValue,
+                metadata: {
+                  promoCode: organization.promoCode,
+                  organizationId: user.organizationId,
+                },
+              };
+              console.log(`Applied ${promo.discountValue} trial days from promo code ${organization.promoCode} for user ${userId}`);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error(`Error checking promo code for user ${userId}:`, error);
+      // Continue without promo code if there's an error
+    }
 
     // Allow promotion codes for all environments
     sessionConfig.allow_promotion_codes = true;

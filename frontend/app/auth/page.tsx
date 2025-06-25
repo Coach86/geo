@@ -16,7 +16,7 @@ export default function AuthPage() {
   const searchParams = useSearchParams();
   const analytics = useAnalytics();
   const urlParam = searchParams.get("url") || "";
-  const codeParam = searchParams.get("code") || "";
+  const promoParam = searchParams.get("promo") || searchParams.get("code") || "";
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isMagicLinkSent, setIsMagicLinkSent] = useState(false);
@@ -24,11 +24,11 @@ export default function AuthPage() {
 
   useEffect(() => {
     // Store promo code in localStorage if present
-    if (codeParam) {
-      localStorage.setItem("promoCode", codeParam);
-      analytics.track('promo_code_captured', { code: codeParam });
+    if (promoParam) {
+      localStorage.setItem("promoCode", promoParam);
+      analytics.track('promo_code_captured', { code: promoParam });
     }
-  }, [codeParam, analytics]);
+  }, [promoParam, analytics]);
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
