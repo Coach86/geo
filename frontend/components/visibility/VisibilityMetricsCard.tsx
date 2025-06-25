@@ -73,53 +73,41 @@ export function VisibilityMetricsCard({
   return (
     <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300 h-full">
       <CardHeader className="pb-4">
-        <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-          <Eye className="h-5 w-5 text-primary-600" />
-          Your Visibility Score
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="text-xs text-gray-500 cursor-help">ⓘ</span>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Share of answers to visibility prompts with unique mention of your brand</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+        <CardTitle className="text-lg font-semibold text-gray-900 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Eye className="h-5 w-5 text-primary-600" />
+            Your Visibility Score
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-xs text-gray-500 cursor-help">ⓘ</span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Share of answers to visibility prompts with unique mention of your brand</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="text-4xl font-bold text-secondary-600">
+              {averageScore}%
+            </div>
+            {!isAllTime && scoreVariation !== 0 && (
+              <div className={`flex items-center gap-1 ${getVariationColor(scoreVariation)}`}>
+                {getVariationIcon(scoreVariation)}
+                <span className="font-medium text-sm">
+                  {formatVariation(scoreVariation)}
+                </span>
+              </div>
+            )}
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="h-[300px] flex flex-col">
-        <div className="flex-1 flex flex-col">
-          {/* Brand Score - Primary/Reference */}
-          <div
-            className="pb-4 border-b border-gray-200 cursor-pointer transition-all duration-200"
-            onMouseEnter={() => onEntityHover?.('Brand')}
-            onMouseLeave={() => onEntityHover?.(null)}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-2xl font-bold text-gray-900">
-                  {brandName}
-                </h3>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="text-4xl font-bold text-secondary-600">
-                  {averageScore}%
-                </div>
-                {!isAllTime && scoreVariation !== 0 && (
-                  <div className={`flex items-center gap-1 ${getVariationColor(scoreVariation)}`}>
-                    {getVariationIcon(scoreVariation)}
-                    <span className="font-medium text-sm">
-                      {formatVariation(scoreVariation)}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+        <div className="flex-1 flex flex-col justify-center">
 
           {/* Competitors Bar Charts */}
-          <div className="flex-1 overflow-y-auto mt-4 space-y-2">
+          <div className="overflow-y-auto space-y-2 max-h-[250px]">
             {sortedEntities.map((entity, index) => {
               const isHovered = hoveredEntity === (entity.isBrand ? 'Brand' : entity.name);
               const isLeading = entity === sortedEntities[0];

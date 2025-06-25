@@ -30,7 +30,7 @@ export function TopDomainRankingCard({ domains, loading }: TopDomainRankingCardP
     }
     
     const totalCount = domainsList.reduce((sum, item) => sum + item.count, 0) || 0;
-    const domainNames = displayItems.map(item => item.domain === '-' ? null : item.domain);
+    const domainNames = displayItems.map(item => (item.domain === '-' || item.domain === 'Others') ? null : item.domain);
     
     return { displayDomains: displayItems, total: totalCount, domainNames };
   }, [domains]);
@@ -44,7 +44,7 @@ export function TopDomainRankingCard({ domains, loading }: TopDomainRankingCardP
         <CardHeader className="pb-4">
           <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
             <Globe className="h-5 w-5 text-accent-600" />
-            Top Domain Ranking
+            Top Domains Consulted
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -69,8 +69,8 @@ export function TopDomainRankingCard({ domains, loading }: TopDomainRankingCardP
   }
 
   const handleExportCSV = () => {
-    // Filter out empty entries before exporting
-    const validDomains = domains.filter(d => d.domain !== '-' && d.count > 0);
+    // Filter out empty entries and "Others" before exporting
+    const validDomains = domains.filter(d => d.domain !== '-' && d.domain !== 'Others' && d.count > 0);
     const csvData = formatDomainDataForCSV(validDomains);
     exportToCSV(csvData, `top-domains-${new Date().toISOString().split('T')[0]}`);
   };
@@ -81,7 +81,7 @@ export function TopDomainRankingCard({ domains, loading }: TopDomainRankingCardP
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
             <Globe className="h-5 w-5 text-accent-600" />
-            Top Domain Ranking
+            Top Domains Consulted
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -125,7 +125,7 @@ export function TopDomainRankingCard({ domains, loading }: TopDomainRankingCardP
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
                           <div className="flex items-center gap-2 min-w-0 flex-1">
-                            {item.domain !== '-' && favicons[item.domain] && (
+                            {item.domain !== '-' && item.domain !== 'Others' && favicons[item.domain] && (
                               <img 
                                 src={favicons[item.domain]} 
                                 alt={`${item.domain} favicon`}

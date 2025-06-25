@@ -590,14 +590,31 @@ export class VisibilityPipelineService extends BasePipelineService {
     this.logger.log(`[VIS-DEDUP] Top mention counts: ${JSON.stringify(topMentionCounts)}`);
 
     // Calculate top domains
-    const topDomains = Array.from(domainMap.entries())
+    const allDomainEntries = Array.from(domainMap.entries())
       .map(([domain, count]) => ({
         domain,
         count,
         percentage: totalCitations > 0 ? Math.round((count / totalCitations) * 100 * 10) / 10 : 0, // Round to 1 decimal
       }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
+      .sort((a, b) => b.count - a.count);
+    
+    // Get top 9 domains
+    const topNineDomains = allDomainEntries.slice(0, 9);
+    
+    // Calculate "Others" count and percentage
+    const othersCount = allDomainEntries
+      .slice(9)
+      .reduce((sum, item) => sum + item.count, 0);
+    
+    // Build final domains list
+    const topDomains = [...topNineDomains];
+    if (othersCount > 0) {
+      topDomains.push({
+        domain: 'Others',
+        count: othersCount,
+        percentage: totalCitations > 0 ? Math.round((othersCount / totalCitations) * 100 * 10) / 10 : 0
+      });
+    }
 
     this.logger.log(`Analyzed visibility results: ${validResults.length} valid results, ${mentionCount} mentions, ${topMentionCounts.length} unique brands`);
     if (topMentionCounts.length > 0) {
