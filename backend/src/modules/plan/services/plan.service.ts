@@ -265,4 +265,38 @@ export class PlanService {
     
     return this.mapPlanToResponse(freePlan);
   }
+
+  async cancelUserSubscription(userId: string): Promise<void> {
+    if (!this.stripe) {
+      throw new BadRequestException('Stripe is not configured');
+    }
+
+    // Get user and organization
+    const user = await this.userService.findOne(userId);
+    if (!user || !user.organizationId) {
+      throw new NotFoundException('User or organization not found');
+    }
+
+    const organization = await this.organizationService.findOne(user.organizationId);
+    if (!organization.stripeSubscriptionId) {
+      throw new BadRequestException('No active subscription found');
+    }
+
+    try {
+      // Cancel the subscription at the end of the billing period
+      await this.stripe.subscriptions.update(organization.stripeSubscriptionId, {
+        cancel_at_period_end: true,
+      });
+
+      // Update organization subscription status
+      await this.organizationService.update(user.organizationId, {
+        subscriptionStatus: 'canceling',
+      });
+
+      console.log(`Subscription ${organization.stripeSubscriptionId} marked for cancellation for user ${userId}`);
+    } catch (error) {
+      console.error('Error canceling subscription:', error);
+      throw new BadRequestException('Failed to cancel subscription');
+    }
+  }
 }

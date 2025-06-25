@@ -7,6 +7,7 @@ import { CreateProjectDto } from '../dto/create-project.dto';
 import { ProjectCreatedEvent } from '../events/project-created.event';
 import { ProjectCompetitorsUpdatedEvent } from '../events/project-competitors-updated.event';
 import { LlmService } from '../../llm/services/llm.service';
+import { LlmProvider } from '../../llm/interfaces/llm-provider.enum';
 import {
   LlmSummaryResult,
   CompetitorsSummaryResult,
@@ -372,7 +373,7 @@ export class ProjectService {
   }
 
   /**
-   * Generate the main project fields using the default LLM provider
+   * Generate the main project fields using the default LLM provider with fallback to OpenAI
    */
   private async generateMainProject(
     scrapedData: ScrapedWebsite,
@@ -384,18 +385,38 @@ export class ProjectService {
       const prompt = buildProjectPrompt({ url, scrapedData, language });
       const systemPrompt = getProjectSystemPrompt();
 
-      // Call the LLM with structured output
-      const result = await this.llmService.getStructuredOutput(
-        DEFAULT_PROJECT_LLM_PROVIDER,
-        prompt,
-        projectSummarySchema,
-        { systemPrompt },
-      );
+      // Try with default provider first (Perplexity)
+      try {
+        const result = await this.llmService.getStructuredOutput(
+          DEFAULT_PROJECT_LLM_PROVIDER,
+          prompt,
+          projectSummarySchema,
+          { systemPrompt },
+        );
 
-      this.logger.log(
-        `Generated main project for ${url} with ${DEFAULT_PROJECT_LLM_PROVIDER}`,
-      );
-      return result;
+        this.logger.log(
+          `Generated main project for ${url} with ${DEFAULT_PROJECT_LLM_PROVIDER}`,
+        );
+        return result;
+      } catch (perplexityError) {
+        // Log the Perplexity error
+        this.logger.warn(
+          `Failed to generate main project with ${DEFAULT_PROJECT_LLM_PROVIDER}: ${perplexityError.message}. Falling back to OpenAI.`,
+        );
+
+        // Fallback to OpenAI
+        const result = await this.llmService.getStructuredOutput(
+          LlmProvider.OpenAI,
+          prompt,
+          projectSummarySchema,
+          { systemPrompt },
+        );
+
+        this.logger.log(
+          `Generated main project for ${url} with OpenAI (fallback)`,
+        );
+        return result;
+      }
     } catch (error) {
       this.logger.error(`Failed to generate main project: ${error.message}`, error.stack);
       throw error;
@@ -403,7 +424,7 @@ export class ProjectService {
   }
 
   /**
-   * Generate competitors using the Perplexity LLM
+   * Generate competitors using the Perplexity LLM with fallback to OpenAI
    */
   private async generateCompetitors(
     scrapedData: ScrapedWebsite,
@@ -425,18 +446,38 @@ export class ProjectService {
       });
       const systemPrompt = getCompetitorsSystemPrompt();
 
-      // Call Perplexity LLM with structured output
-      const result = await this.llmService.getStructuredOutput(
-        DEFAULT_COMPETITORS_LLM_PROVIDER,
-        prompt,
-        competitorsSummarySchema,
-        { systemPrompt },
-      );
+      // Try with default provider first (Perplexity)
+      try {
+        const result = await this.llmService.getStructuredOutput(
+          DEFAULT_COMPETITORS_LLM_PROVIDER,
+          prompt,
+          competitorsSummarySchema,
+          { systemPrompt },
+        );
 
-      this.logger.log(
-        `Generated competitors for ${brandName} with ${DEFAULT_COMPETITORS_LLM_PROVIDER}`,
-      );
-      return result.competitors;
+        this.logger.log(
+          `Generated competitors for ${brandName} with ${DEFAULT_COMPETITORS_LLM_PROVIDER}`,
+        );
+        return result.competitors;
+      } catch (perplexityError) {
+        // Log the Perplexity error
+        this.logger.warn(
+          `Failed to generate competitors with ${DEFAULT_COMPETITORS_LLM_PROVIDER}: ${perplexityError.message}. Falling back to OpenAI.`,
+        );
+
+        // Fallback to OpenAI
+        const result = await this.llmService.getStructuredOutput(
+          LlmProvider.OpenAI,
+          prompt,
+          competitorsSummarySchema,
+          { systemPrompt },
+        );
+
+        this.logger.log(
+          `Generated competitors for ${brandName} with OpenAI (fallback)`,
+        );
+        return result.competitors;
+      }
     } catch (error) {
       this.logger.error(`Failed to generate competitors: ${error.message}`, error.stack);
       // Return empty array if we fail to generate competitors
