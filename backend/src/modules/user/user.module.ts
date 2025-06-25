@@ -12,6 +12,7 @@ import { AccessToken, AccessTokenSchema } from '../auth/schemas/access-token.sch
 import { OrganizationModule } from '../organization/organization.module';
 import { ConfigModule } from '../config/config.module';
 import { AnalyticsModule } from '../analytics/analytics.module';
+import { PlanModule } from '../plan/plan.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { AnalyticsModule } from '../analytics/analytics.module';
       { name: AccessToken.name, schema: AccessTokenSchema },
     ]),
     forwardRef(() => OrganizationModule),
+    forwardRef(() => PlanModule),
     ConfigModule,
     AnalyticsModule,
   ],

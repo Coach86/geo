@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Post,
   Patch,
   Body,
   Req,
@@ -17,6 +18,7 @@ import { TokenRoute } from '../../auth/decorators/token-route.decorator';
 import { TokenService } from '../../auth/services/token.service';
 import { OrganizationService } from '../../organization/services/organization.service';
 import { ConfigService } from '../../config/services/config.service';
+import { PlanService } from '../../plan/services/plan.service';
 
 @ApiTags('user-profile')
 @Controller('user/profile')
@@ -28,6 +30,7 @@ export class UserProfileController {
     private readonly tokenService: TokenService,
     private readonly organizationService: OrganizationService,
     private readonly configService: ConfigService,
+    private readonly planService: PlanService,
   ) {}
 
   @Get()
@@ -346,6 +349,41 @@ export class UserProfileController {
       }
       this.logger.error(`Failed to update selected models: ${error.message}`, error.stack);
       throw new BadRequestException(`Failed to update selected models: ${error.message}`);
+    }
+  }
+
+  @Post('cancel-subscription')
+  @TokenRoute() // Mark this route as token-authenticated
+  @ApiOperation({ summary: 'Cancel user subscription' })
+  @ApiResponse({
+    status: 200,
+    description: 'Subscription canceled successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Subscription will be canceled at the end of the billing period' },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'No active subscription found' })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Token required' })
+  async cancelSubscription(@Req() request: any): Promise<{ success: boolean; message: string }> {
+    try {
+      this.logger.log(`Canceling subscription for user: ${request.userId}`);
+      await this.planService.cancelUserSubscription(request.userId);
+
+      this.logger.log(`Subscription canceled successfully for user: ${request.userId}`);
+      return {
+        success: true,
+        message: 'Your subscription will be canceled at the end of the current billing period',
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof UnauthorizedException) {
+        throw error;
+      }
+      this.logger.error(`Failed to cancel subscription: ${error.message}`, error.stack);
+      throw new BadRequestException(`Failed to cancel subscription: ${error.message}`);
     }
   }
 }
