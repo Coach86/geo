@@ -89,12 +89,6 @@ export function PricingCard({
         </div>
       )}
 
-      {/* Promo Code Badge */}
-      {promoInfo && (
-        <div className="absolute -top-3 right-4 px-3 py-1 text-white text-xs font-medium rounded-full shadow-sm z-10 bg-green-500">
-          {promoInfo.trialDays} days free trial
-        </div>
-      )}
 
       <div className="p-6 flex flex-col h-full">
         {/* Section 1: Plan Header - Dynamic height with min-height */}
@@ -209,7 +203,7 @@ export function PricingCard({
               </>
             )}
           </Button>
-          {ctaText === "Get Started" && (
+          {(ctaText === "Get Started" || promoInfo) && (
             <p className="text-xs text-center text-mono-500 mt-2">
               Cancel anytime
             </p>
