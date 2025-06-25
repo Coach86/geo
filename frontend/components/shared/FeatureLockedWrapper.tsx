@@ -21,7 +21,7 @@ export function FeatureLockedWrapper({
   }
 
   return (
-    <div className="relative min-h-[calc(100vh-8rem)]">
+    <div className="relative min-h-[400px]">
       <div className="pointer-events-none select-none opacity-60 blur-[2px]">
         {children}
       </div>

@@ -311,18 +311,8 @@ export class UserOrganizationController {
       throw new NotFoundException('User organization not found');
     }
     
-    const organization = await this.organizationService.findOne(user.organizationId);
-    
-    // Validate number of models
-    if (body.selectedModels.length > organization.planSettings.maxAIModels) {
-      throw new BadRequestException(
-        `Cannot select more than ${organization.planSettings.maxAIModels} models for your current plan`
-      );
-    }
-    
-    await this.organizationService.update(organization.id, {
-      selectedModels: body.selectedModels,
-    });
+    // Use updateSelectedModels method which includes premium validation
+    await this.organizationService.updateSelectedModels(user.organizationId, body.selectedModels);
     
     return { success: true };
   }

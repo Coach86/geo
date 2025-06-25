@@ -4,6 +4,7 @@ export interface AIModel {
   provider: string;
   enabled: boolean;
   webAccess: boolean;
+  premium: boolean;
 }
 
 export interface UserProfile {

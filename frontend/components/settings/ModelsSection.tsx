@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Cpu, Check } from "lucide-react";
+import { Cpu, Check, Crown, Lock } from "lucide-react";
 import { toast } from "sonner";
 import type { AIModel } from "./types";
 import type { Organization } from "@/lib/organization-api";
@@ -32,7 +32,15 @@ export function ModelsSection({
 
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
-  const handleModelToggle = (modelId: string, checked: boolean) => {
+  const handleModelToggle = (modelId: string, checked: boolean, model: AIModel) => {
+    // Check if this is a premium model and user is on free plan
+    // Free plans are identified by having no stripe subscription or inactive subscription
+    const isPaidPlan = !!organization.stripeSubscriptionId && organization.subscriptionStatus === 'active';
+    if (checked && model.premium && !isPaidPlan) {
+      toast.error(`${model.name} is a premium model. Please upgrade your plan to access it.`);
+      return;
+    }
+
     if (checked) {
       if (localSelectedModels.length < organization.planSettings.maxAIModels) {
         setLocalSelectedModels([...localSelectedModels, modelId]);
@@ -58,14 +66,15 @@ export function ModelsSection({
       );
       
       if (!response.ok) {
-        throw new Error("Failed to update models");
+        const errorData = await response.json().catch(() => ({ message: "Failed to update models" }));
+        throw new Error(errorData.message || "Failed to update models");
       }
       
       onSelectedModelsChange(localSelectedModels);
       toast.success("AI models updated successfully");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to update models:", err);
-      toast.error("Failed to update AI models");
+      toast.error(err.message || "Failed to update AI models");
     } finally {
       setIsUpdatingModels(false);
     }
@@ -100,31 +109,57 @@ export function ModelsSection({
             <div className="space-y-2">
               {availableModels
                 .filter((model) => model.enabled)
-                .map((model) => (
+                .map((model) => {
+                  const isPaidPlan = !!organization.stripeSubscriptionId && organization.subscriptionStatus === 'active';
+                  const isPremiumLocked = model.premium && !isPaidPlan;
+                  
+                  return (
                   <div
                     key={model.id}
-                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50"
+                    className={`flex items-center justify-between p-3 border rounded-lg transition-colors ${
+                      isPremiumLocked
+                        ? 'opacity-60 bg-muted/30'
+                        : 'hover:bg-muted/50'
+                    }`}
                   >
                     <div className="flex items-center gap-3">
                       <Checkbox
                         id={model.id}
                         checked={localSelectedModels.includes(model.id)}
                         onCheckedChange={(checked) => 
-                          handleModelToggle(model.id, checked as boolean)
+                          handleModelToggle(model.id, checked as boolean, model)
                         }
                         disabled={
-                          !localSelectedModels.includes(model.id) &&
-                          localSelectedModels.length >= organization.planSettings.maxAIModels
+                          isPremiumLocked ||
+                          (!localSelectedModels.includes(model.id) &&
+                          localSelectedModels.length >= organization.planSettings.maxAIModels)
                         }
                       />
                       <Label
                         htmlFor={model.id}
-                        className="flex items-center gap-2 cursor-pointer"
+                        className={`flex items-center gap-2 ${
+                          isPremiumLocked
+                            ? 'cursor-not-allowed'
+                            : 'cursor-pointer'
+                        }`}
                       >
-                        <span className="font-medium">{model.name}</span>
+                        <span className="font-medium flex items-center gap-2">
+                          {model.name}
+                          {model.premium && (
+                            <Crown className="h-4 w-4 text-yellow-500" />
+                          )}
+                          {isPremiumLocked && (
+                            <Lock className="h-3 w-3 text-muted-foreground" />
+                          )}
+                        </span>
                         <Badge variant="outline" className="text-xs">
                           {model.provider}
                         </Badge>
+                        {model.premium && (
+                          <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-200">
+                            Premium
+                          </Badge>
+                        )}
                       </Label>
                     </div>
                     <div className="flex items-center gap-2">
@@ -134,13 +169,21 @@ export function ModelsSection({
                       >
                         {model.webAccess ? "Web" : "No Web"}
                       </Badge>
-                      <Badge variant="default" className="text-xs">
-                        <Check className="h-3 w-3 mr-1" />
-                        Available
-                      </Badge>
+                      {isPremiumLocked ? (
+                        <Badge variant="secondary" className="text-xs">
+                          <Lock className="h-3 w-3 mr-1" />
+                          Requires Upgrade
+                        </Badge>
+                      ) : (
+                        <Badge variant="default" className="text-xs">
+                          <Check className="h-3 w-3 mr-1" />
+                          Available
+                        </Badge>
+                      )}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
             </div>
 
             <div className="flex justify-end pt-4">

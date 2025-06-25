@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
+import { AvailableModel, LLMModelConfig } from '../interfaces/config.interfaces';
 
 @Injectable()
 export class ConfigService {
@@ -29,14 +30,15 @@ export class ConfigService {
     return this.config.llmModels || [];
   }
 
-  getAvailableModels() {
-    return (this.config.llmModels || []).map((model: any) => ({
+  getAvailableModels(): AvailableModel[] {
+    return (this.config.llmModels || []).map((model: LLMModelConfig): AvailableModel => ({
       id: model.id,
       model: model.model, // Include the actual model identifier used in the database
       name: model.name,
       provider: model.provider,
       enabled: model.enabled || false,
       webAccess: model.webAccess !== undefined ? model.webAccess : true,
+      premium: model.premium || false,
     }));
   }
 
