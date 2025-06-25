@@ -73,6 +73,18 @@
         {
           "name": "POSTHOG_HOST",
           "value": "https://eu.i.posthog.com"
+        },
+        {
+          "name": "LOG_LEVEL",
+          "value": "info"
+        },
+        {
+          "name": "LOG_FORMAT",
+          "value": "json"
+        },
+        {
+          "name": "ENABLE_CLOUDWATCH_LOGS",
+          "value": "true"
         }
       ],
       "secrets": [
@@ -116,12 +128,13 @@
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
-          "awslogs-group": "/ecs/brandinsight-server-task-def",
-          "mode": "non-blocking",
+          "awslogs-group": "/ecs/brandinsight-server",
           "awslogs-create-group": "true",
-          "max-buffer-size": "25m",
           "awslogs-region": "eu-west-1",
-          "awslogs-stream-prefix": "ecs"
+          "awslogs-stream-prefix": "ecs",
+          "awslogs-datetime-format": "\\[%Y-%m-%d %H:%M:%S\\]",
+          "mode": "non-blocking",
+          "max-buffer-size": "25m"
         },
         "secretOptions": []
       },

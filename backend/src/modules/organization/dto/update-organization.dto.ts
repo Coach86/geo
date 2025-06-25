@@ -30,4 +30,8 @@ export class UpdateOrganizationDto extends PartialType(CreateOrganizationDto) {
   @IsOptional()
   @IsDate()
   freePlanActivatedAt?: Date;
+
+  @IsOptional()
+  @IsString()
+  promoCode?: string;
 }

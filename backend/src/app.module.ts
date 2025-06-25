@@ -24,6 +24,8 @@ import { OrganizationModule } from './modules/organization/organization.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { EmailModule } from './modules/email/email.module';
 import { getWinstonConfig } from './utils/logger.config';
+import { getCloudWatchLoggerConfig } from './utils/cloudwatch-logger.config';
+import { LoggerModule } from './utils/logger.module';
 
 @Module({
   imports: [
@@ -35,6 +37,14 @@ import { getWinstonConfig } from './utils/logger.config';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
         const environment = configService.get<string>('NODE_ENV', 'development');
+        const useCloudWatch = configService.get<boolean>('ENABLE_CLOUDWATCH_LOGS', false);
+        
+        // Use CloudWatch optimized config in production or when explicitly enabled
+        if (environment === 'production' || useCloudWatch) {
+          return getCloudWatchLoggerConfig(environment, 'brand-insights');
+        }
+        
+        // Use standard config for development
         return getWinstonConfig(environment, 'brand-insights');
       },
     }),
@@ -80,6 +90,7 @@ import { getWinstonConfig } from './utils/logger.config';
     PlanModule,
     AnalyticsModule,
     EmailModule,
+    LoggerModule,
   ],
   controllers: [AppController],
   providers: [

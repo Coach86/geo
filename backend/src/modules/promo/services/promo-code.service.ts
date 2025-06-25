@@ -102,6 +102,7 @@ export class PromoCodeService {
           durationInMonths: promoCode.durationInMonths,
           trialPlanId: promoCode.trialPlanId,
           description: promoCode.description,
+          validPlanIds: promoCode.validPlanIds,
         },
       };
     } catch (error) {
@@ -158,6 +159,10 @@ export class PromoCodeService {
     return this.promoCodeRepository.findAll();
   }
 
+  async findByCode(code: string): Promise<PromoCodeDocument | null> {
+    return this.promoCodeRepository.findByCode(code);
+  }
+
   async findActive(): Promise<PromoCodeDocument[]> {
     return this.promoCodeRepository.findActive();
   }
@@ -197,5 +202,20 @@ export class PromoCodeService {
 
   async getOrganizationPromoCodes(organizationId: string): Promise<PromoUsageDocument[]> {
     return this.promoUsageRepository.findActiveByOrganization(organizationId);
+  }
+
+  async hasUserUsedPromo(userId: string, promoCode: string): Promise<boolean> {
+    try {
+      const promo = await this.promoCodeRepository.findByCode(promoCode);
+      if (!promo) {
+        return false;
+      }
+      
+      const usage = await this.promoUsageRepository.findByUserAndPromoCode(userId, promo.id);
+      return !!usage;
+    } catch (error) {
+      this.logger.error(`Failed to check promo usage: ${error.message}`, error.stack);
+      return false;
+    }
   }
 }

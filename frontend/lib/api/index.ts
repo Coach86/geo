@@ -15,6 +15,7 @@ export {
   validateToken,
   sendMagicLink,
   activateFreePlan,
+  getPromoInfo,
 } from './auth';
 
 // Export user functions

@@ -19,7 +19,7 @@ import {
   trustSafetyItems
 } from "./pricing-constants";
 import { staticPlans } from "./static-plans";
-import { getUserProjects, activateFreePlan } from "@/lib/auth-api";
+import { getUserProjects, activateFreePlan, getPromoInfo } from "@/lib/auth-api";
 import { toast } from "@/hooks/use-toast";
 import { PricingHeader } from "@/components/shared/pricing-header";
 
@@ -43,6 +43,13 @@ export default function PricingPage({
   const [contactSalesOpen, setContactSalesOpen] = useState(false);
   const [contactPlanName, setContactPlanName] = useState<string>("");
   const [hasPromoCode, setHasPromoCode] = useState(false);
+  const [promoDetails, setPromoDetails] = useState<{
+    code: string;
+    discountType: string;
+    discountValue: number;
+    trialPlanId?: string;
+    validPlanIds?: string[];
+  } | null>(null);
 
   // Ensure data is loaded from localStorage
   useEffect(() => {
@@ -69,6 +76,37 @@ export default function PricingPage({
       hasPromoCode: !!promoCode,
     });
   }, []);
+
+  // Fetch promo code details if user is authenticated
+  useEffect(() => {
+    const fetchPromoInfo = async () => {
+      if (user?.token) {
+        try {
+          const promoInfo = await getPromoInfo(user.token);
+          console.log("Promo info from API:", promoInfo);
+          
+          // If organization has a promo code stored, hide free plan even if validation fails
+          if (promoInfo.promoCode) {
+            setHasPromoCode(true);
+            
+            // Only set promo details if validation passed
+            if (promoInfo.hasPromoCode && promoInfo.promoDetails) {
+              setPromoDetails({
+                code: promoInfo.promoCode,
+                ...promoInfo.promoDetails
+              });
+            } else {
+              console.warn("Promo code stored but validation failed:", promoInfo.validationError || "Unknown error");
+            }
+          }
+        } catch (error) {
+          console.error("Failed to fetch promo info:", error);
+        }
+      }
+    };
+    
+    fetchPromoInfo();
+  }, [user]);
 
   // Set the selected plan to growth by default
   const [selectedPlan, setSelectedPlan] = useState<
@@ -192,6 +230,10 @@ export default function PricingPage({
     setFeatureDialogOpen(true);
   };
 
+  // Check if any plan has a promo code
+  const planWithPromo = promoDetails && promoDetails.discountType === 'trial_days' ? 
+    plans.find(plan => promoDetails.trialPlanId === plan.id) : null;
+
   // Dynamic pricing plans from API
   const dynamicPlans = plans.map((plan, index) => {
     const monthlyPrice = plan.prices?.monthly || 0;
@@ -200,6 +242,30 @@ export default function PricingPage({
       billingPeriod === "monthly" ? Math.round(monthlyPrice) : Math.round(yearlyPrice / 12);
     const savingsAmount =
       billingPeriod === "yearly" ? calculateSavings(monthlyPrice).amount : null;
+
+    // Check if this plan has a promo code applied
+    let promoInfo = null;
+    if (promoDetails && promoDetails.discountType === 'trial_days') {
+      // For trial_days type, use trialPlanId to determine which plan gets the trial
+      const isValidForPlan = promoDetails.trialPlanId === plan.id;
+      
+      if (isValidForPlan) {
+        promoInfo = {
+          code: promoDetails.code,
+          trialDays: promoDetails.discountValue,
+        };
+      }
+    }
+
+    // Determine if this plan should be recommended
+    let isRecommended;
+    if (planWithPromo) {
+      // If there's a plan with promo, only that plan is recommended
+      isRecommended = promoInfo ? true : false;
+    } else {
+      // Otherwise use the default recommendation
+      isRecommended = plan.isRecommended;
+    }
 
     return {
       name: plan.name,
@@ -225,7 +291,8 @@ export default function PricingPage({
       checkColor: index === 0 ? "text-green-500" : index === 1 ? "text-accent-500" : "text-blue-500",
       plusColor: index === 0 ? "" : index === 1 ? "text-accent-500" : "text-blue-500",
       isPopular: plan.isMostPopular,
-      isRecommended: plan.isRecommended,
+      isRecommended: isRecommended,
+      promoInfo: promoInfo,
     };
   });
 
@@ -340,6 +407,7 @@ export default function PricingPage({
               }
               tagBgColor={plan.tagBgColor}
               tagTextColor={plan.tagTextColor}
+              promoInfo={plan.promoInfo}
             />
           ))}
         </div>

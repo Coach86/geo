@@ -1,4 +1,4 @@
-import { Controller, Post, UseGuards, Request, Inject, forwardRef, Logger, UnauthorizedException } from '@nestjs/common';
+import { Controller, Post, Get, UseGuards, Request, Inject, forwardRef, Logger, UnauthorizedException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { TokenAuthGuard } from '../guards/token-auth.guard';
 import { TokenRoute } from '../decorators/token-route.decorator';
@@ -130,6 +130,84 @@ export class UserAuthController {
         message: 'Failed to complete login',
         appliedPromo: false,
         appliedTrial: false,
+      };
+    }
+  }
+
+  @Get('promo-info')
+  @TokenRoute()
+  @UseGuards(TokenAuthGuard)
+  @ApiOperation({ summary: 'Get user organization promo code information' })
+  @ApiResponse({
+    status: 200,
+    description: 'Promo code information retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        hasPromoCode: { type: 'boolean' },
+        promoCode: { type: 'string', nullable: true },
+        promoDetails: {
+          type: 'object',
+          nullable: true,
+          properties: {
+            discountType: { type: 'string' },
+            discountValue: { type: 'number' },
+            trialPlanId: { type: 'string', nullable: true },
+            validPlanIds: { type: 'array', items: { type: 'string' } },
+          },
+        },
+      },
+    },
+  })
+  async getPromoInfo(@Request() req: any) {
+    try {
+      const userId = req.user?.userId || req.userId;
+      
+      if (!userId) {
+        throw new UnauthorizedException('User not authenticated');
+      }
+
+      // Get user and organization
+      const user = await this.userService.findOne(userId);
+      const organization = await this.organizationService.findOne(user.organizationId);
+
+      // Check if organization has a promo code
+      if (!organization.promoCode) {
+        return {
+          hasPromoCode: false,
+          promoCode: null,
+          promoDetails: null,
+        };
+      }
+
+      // Get promo code details WITHOUT checking if user has used it
+      // This is just for display purposes
+      const promo = await this.promoCodeService.findByCode(organization.promoCode);
+      
+      if (!promo || !promo.isActive) {
+        return {
+          hasPromoCode: true,
+          promoCode: organization.promoCode,
+          promoDetails: null,
+        };
+      }
+
+      return {
+        hasPromoCode: true,
+        promoCode: organization.promoCode,
+        promoDetails: {
+          discountType: promo.discountType,
+          discountValue: promo.discountValue,
+          trialPlanId: promo.trialPlanId,
+          validPlanIds: promo.validPlanIds || [],
+        },
+      };
+    } catch (error) {
+      this.logger.error(`Failed to get promo info: ${error.message}`, error.stack);
+      return {
+        hasPromoCode: false,
+        promoCode: null,
+        promoDetails: null,
       };
     }
   }

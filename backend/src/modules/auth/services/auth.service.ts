@@ -104,27 +104,46 @@ export class AuthService {
         this.logger.log(`Created new user: ${user.id}`);
       }
 
-      // Apply promo code only for new users
-      if (isNewUser && promoCode && promoValidation?.valid && promoValidation.promoCode) {
+      // Apply promo code to the user's organization
+      if (promoCode && promoValidation?.valid && promoValidation.promoCode) {
         const promoDetails = promoValidation.promoCode;
         
-        // Apply trial if promo code provides trial days
-        if (promoDetails.discountType === 'trial_days' && promoDetails.trialPlanId) {
-          await this.organizationService.activateTrial(
-            user.organizationId,
-            promoDetails.trialPlanId,
-            promoDetails.discountValue,
-            promoCode
-          );
-          
-          // Track promo code usage
-          await this.promoCodeService.apply(
-            promoCode,
-            user.id,
-            user.organizationId
-          );
-          
-          this.logger.log(`Applied promo code ${promoCode} with ${promoDetails.discountValue} trial days for user ${user.id}`);
+        // Check if user has already used this promo code
+        const hasUsedPromo = !isNewUser && await this.promoCodeService.hasUserUsedPromo(user.id, promoCode);
+        
+        if (!hasUsedPromo) {
+          // Apply trial if promo code provides trial days
+          if (promoDetails.discountType === 'trial_days' && promoDetails.trialPlanId) {
+            await this.organizationService.activateTrial(
+              user.organizationId,
+              promoDetails.trialPlanId,
+              promoDetails.discountValue,
+              promoCode
+            );
+            
+            // Track promo code usage
+            await this.promoCodeService.apply(
+              promoCode,
+              user.id,
+              user.organizationId
+            );
+            
+            this.logger.log(`Applied promo code ${promoCode} with ${promoDetails.discountValue} trial days for user ${user.id}`);
+          } else {
+            // For non-trial promo codes, just store the promo code in the organization
+            await this.organizationService.update(user.organizationId, { promoCode });
+            
+            // Track promo code usage
+            await this.promoCodeService.apply(
+              promoCode,
+              user.id,
+              user.organizationId
+            );
+            
+            this.logger.log(`Applied promo code ${promoCode} for user ${user.id}`);
+          }
+        } else {
+          this.logger.log(`User ${user.id} has already used promo code ${promoCode}`);
         }
       }
 

@@ -72,3 +72,33 @@ export async function activateFreePlan(token: string): Promise<{ success: boolea
     },
   });
 }
+
+/**
+ * Get promo code information for the user
+ */
+export async function getPromoInfo(token: string): Promise<{
+  hasPromoCode: boolean;
+  promoCode: string | null;
+  promoDetails: {
+    discountType: string;
+    discountValue: number;
+    trialPlanId?: string;
+    validPlanIds?: string[];
+  } | null;
+}> {
+  return apiFetch<{
+    hasPromoCode: boolean;
+    promoCode: string | null;
+    promoDetails: {
+      discountType: string;
+      discountValue: number;
+      trialPlanId?: string;
+      validPlanIds?: string[];
+    } | null;
+  }>('/users/auth/promo-info', {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+}
