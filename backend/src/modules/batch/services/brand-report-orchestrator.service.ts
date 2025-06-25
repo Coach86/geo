@@ -1,9 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { BatchService } from './batch.service';
 import { BatchExecutionService } from './batch-execution.service';
 import { BrandReportPersistenceService } from '../../report/services/brand-report-persistence.service';
 import { ProjectService } from '../../project/services/project.service';
 import { ReportBuilderService } from './report-builder.service';
+import { OrganizationService } from '../../organization/services/organization.service';
+import { UserService } from '../../user/services/user.service';
+import { ReportCompletedEvent } from '../events/report-completed.event';
 import {
   AccuracyResults,
   ProjectBatchContext,
@@ -33,6 +37,9 @@ export class BrandReportOrchestratorService {
     private readonly brandReportPersistenceService: BrandReportPersistenceService,
     private readonly projectService: ProjectService,
     private readonly reportBuilderService: ReportBuilderService,
+    private readonly eventEmitter: EventEmitter2,
+    private readonly organizationService: OrganizationService,
+    private readonly userService: UserService,
   ) {}
 
   /**
@@ -192,6 +199,30 @@ export class BrandReportOrchestratorService {
 
       // Mark the batch execution as completed
       await this.batchExecutionService.updateBatchExecutionStatus(batchExecutionId, 'completed');
+
+      // Send email notifications to users in the organization
+      if (projectContext.organizationId) {
+        try {
+          const users = await this.userService.findByOrganizationId(projectContext.organizationId);
+          
+          // Emit report completed event for each user in the organization
+          for (const user of users) {
+            this.eventEmitter.emit('report.completed', new ReportCompletedEvent(
+              projectId,
+              project.brandName,
+              batchExecutionId, // Use batch execution ID as report ID
+              batchExecutionId,
+              user.id,
+              user.email,
+              'new_project', // Trigger type for post-checkout batch
+            ));
+          }
+          
+          this.logger.log(`Emitted report.completed event for ${users.length} users in organization ${projectContext.organizationId}`);
+        } catch (error) {
+          this.logger.warn(`Failed to emit report.completed event: ${error.message}`);
+        }
+      }
 
       this.logger.log(`Successfully created brand report ${savedReport.id} for project ${projectId}`);
 

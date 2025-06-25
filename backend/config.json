@@ -215,6 +215,6 @@
   "defaultModels": [
     "openai-gpt4o",
     "google-gemini2.0",
-    "anthropic-claude3.7sonnet"
+    "perplexity-sonar-pro"
   ]
 }
