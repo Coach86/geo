@@ -215,6 +215,29 @@ export class OrganizationService {
         );
       }
 
+      // Get available models from configuration
+      const availableModels = this.configService.getAvailableModels();
+      const availableModelIds = availableModels.filter(m => m.enabled).map(m => m.id);
+
+      // Validate that all selected models are available and enabled
+      const invalidModels = selectedModels.filter(id => !availableModelIds.includes(id));
+      if (invalidModels.length > 0) {
+        throw new BadRequestException(`Invalid models selected: ${invalidModels.join(', ')}`);
+      }
+
+      // Check for premium models if organization is not on a paid plan
+      // Free plans are identified by having no stripe subscription
+      const isPaidPlan = !!organization.stripeSubscriptionId && organization.subscriptionStatus === 'active';
+      if (!isPaidPlan) {
+        const premiumModels = availableModels.filter(m => m.premium && selectedModels.includes(m.id));
+        if (premiumModels.length > 0) {
+          const premiumModelNames = premiumModels.map(m => m.name).join(', ');
+          throw new BadRequestException(
+            `Premium models (${premiumModelNames}) are only available for paid plans. Please upgrade your plan to access these models.`
+          );
+        }
+      }
+
       const updatedOrganization = await this.organizationRepository.update(id, { selectedModels });
       if (!updatedOrganization) {
         throw new NotFoundException(`Organization with ID ${id} not found`);

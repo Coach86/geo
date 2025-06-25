@@ -2,14 +2,17 @@
 
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Eye, Heart, Shield, ArrowRight } from "lucide-react"
+import { Eye, Heart, Shield, ArrowRight, Lock } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { getProjectReports, getReportVisibility, getReportSentiment, getReportAlignment } from "@/lib/api/report"
 import { RefreshCw, Info } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { useNotificationContext } from "@/providers/notification-provider"
 import { useBatchEventsContext } from "@/providers/batch-events-provider"
+import { useRouter } from "next/navigation"
+import { useFeatureAccess } from "@/hooks/use-feature-access"
 import {
   Tooltip,
   TooltipContent,
@@ -51,6 +54,8 @@ export function MintScoreCard({ projectId, token, onGoToProject }: MintScoreCard
   const [isProcessing, setIsProcessing] = useState(false)
   const { notifications } = useNotificationContext()
   const { isProcessing: isBatchProcessing, getBatchStatus, getProgress } = useBatchEventsContext()
+  const router = useRouter()
+  const featureAccess = useFeatureAccess()
 
   useEffect(() => {
     const fetchLatestScores = async () => {
@@ -216,8 +221,22 @@ export function MintScoreCard({ projectId, token, onGoToProject }: MintScoreCard
     }
   }, [notifications, projectId, token])
 
+  const handleCardClick = () => {
+    if (onGoToProject) {
+      onGoToProject();
+    }
+  };
+
+  const handleUnlockClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click
+    router.push('/update-plan');
+  };
+
   return (
-    <Card className="hover:shadow-lg transition-shadow relative flex flex-col h-full">
+    <Card 
+      className="hover:shadow-lg transition-shadow relative flex flex-col h-full cursor-pointer" 
+      onClick={handleCardClick}
+    >
       {isProcessing && (
         <div className="absolute top-3 right-3">
           <div className="flex items-center gap-2 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
@@ -245,7 +264,15 @@ export function MintScoreCard({ projectId, token, onGoToProject }: MintScoreCard
               }
             </CardDescription>
           </div>
-          {scores.mintScore !== null && (
+          {featureAccess.isFreePlan ? (
+            <Badge 
+              variant="secondary" 
+              className="px-2 py-1 text-xs bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 cursor-pointer hover:bg-purple-200 dark:hover:bg-purple-800"
+              onClick={handleUnlockClick}
+            >
+              Unlock
+            </Badge>
+          ) : scores.mintScore !== null && (
             <div className="flex items-center gap-2">
               <span className={`text-2xl font-bold ${getMintScoreColor(scores.mintScore).split(' ')[0]}`}>
                 {scores.mintScore}
@@ -301,6 +328,14 @@ export function MintScoreCard({ projectId, token, onGoToProject }: MintScoreCard
             </div>
             {scores.loading ? (
               <Skeleton className="h-5 w-20" />
+            ) : featureAccess.isFreePlan ? (
+              <Badge 
+                variant="secondary" 
+                className="px-2 py-1 text-xs bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 cursor-pointer hover:bg-purple-200 dark:hover:bg-purple-800"
+                onClick={handleUnlockClick}
+              >
+                Unlock
+              </Badge>
             ) : scores.sentiment ? (
               <span className={`text-sm font-semibold ${scores.sentiment.score < 0 ? 'text-red-600' : ''}`}>
                 {Math.round(scores.sentiment.score)}%
@@ -318,6 +353,14 @@ export function MintScoreCard({ projectId, token, onGoToProject }: MintScoreCard
             </div>
             {scores.loading ? (
               <Skeleton className="h-5 w-16" />
+            ) : featureAccess.isFreePlan ? (
+              <Badge 
+                variant="secondary" 
+                className="px-2 py-1 text-xs bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 cursor-pointer hover:bg-purple-200 dark:hover:bg-purple-800"
+                onClick={handleUnlockClick}
+              >
+                Unlock
+              </Badge>
             ) : scores.alignment ? (
               <div className="flex items-center gap-2">
                 <span className={`text-sm font-semibold ${getAlignmentColor(scores.alignment.score)}`}>
@@ -337,10 +380,6 @@ export function MintScoreCard({ projectId, token, onGoToProject }: MintScoreCard
               variant="outline" 
               size="sm" 
               className="w-full" 
-              onClick={(e) => {
-                e.stopPropagation(); // Prevent card click
-                onGoToProject();
-              }}
             >
               <ArrowRight className="h-3 w-3 mr-2" />
               Go to project
