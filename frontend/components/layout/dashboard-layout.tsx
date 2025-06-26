@@ -7,7 +7,7 @@ import Sidebar from "./sidebar";
 import { getUserProjects, ProjectResponse } from "@/lib/auth-api";
 import { SvgLoader } from "@/components/ui/svg-loader";
 import { NavigationProvider, useNavigation } from "@/providers/navigation-provider";
-import { Toaster } from "@/components/ui/toaster";
+import { Toaster } from "@/components/ui/sonner";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
