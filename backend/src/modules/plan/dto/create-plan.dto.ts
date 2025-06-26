@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsBoolean, IsArray, IsOptional, IsObject } from 'class-validator';
+import { IsString, IsNumber, IsBoolean, IsArray, IsOptional, IsObject, Min } from 'class-validator';
 
 export class CreatePlanDto {
   @IsString()
@@ -22,6 +22,10 @@ export class CreatePlanDto {
 
   @IsNumber()
   maxProjects: number;
+
+  @IsNumber()
+  @Min(-1)
+  maxUsers: number;
 
   @IsNumber()
   @IsOptional()

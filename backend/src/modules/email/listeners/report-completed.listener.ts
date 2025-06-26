@@ -1,13 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { OnEvent } from '@nestjs/event-emitter';
+import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
 import { ReportCompletedEvent } from '../../batch/events/report-completed.event';
-import { EmailService } from '../services/email.service';
+import { SendReportReadyEmailEvent } from '../events/email.events';
 
 @Injectable()
 export class ReportCompletedListener {
   private readonly logger = new Logger(ReportCompletedListener.name);
 
-  constructor(private readonly emailService: EmailService) {}
+  constructor(private readonly eventEmitter: EventEmitter2) {}
 
   @OnEvent('report.completed', { async: true })
   async handleReportCompleted(event: ReportCompletedEvent) {
@@ -16,16 +16,18 @@ export class ReportCompletedListener {
         `Handling report.completed event for project ${event.projectId} (${event.brandName})`,
       );
 
-      // Send email notification
-      await this.emailService.sendAnalysisReadyEmail(
-        event.userEmail,
-        event.brandName,
-        event.projectId,
-        event.reportId,
+      // Emit email.report.ready event instead of directly sending email
+      this.eventEmitter.emit(
+        'email.report.ready',
+        new SendReportReadyEmailEvent(
+          event.userId,
+          event.projectId,
+          event.reportId,
+        ),
       );
 
       this.logger.log(
-        `Successfully sent report completion email for project ${event.projectId} to ${event.userEmail}`,
+        `Successfully emitted email.report.ready event for project ${event.projectId}`,
       );
     } catch (error) {
       // Don't throw - we don't want email failures to affect the system

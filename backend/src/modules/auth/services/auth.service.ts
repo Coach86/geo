@@ -1,9 +1,7 @@
 import { Injectable, BadRequestException, Inject, Logger, forwardRef } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { Resend } from 'resend';
-import { renderAsync } from '@react-email/render';
-import React from 'react';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import * as bcrypt from 'bcrypt';
 import { Admin, AdminDocument } from '../schemas/admin.schema';
 import { AdminRepository } from '../repositories/admin.repository';
@@ -12,7 +10,7 @@ import { TokenService } from './token.service';
 import { PromoCodeService } from '../../promo/services/promo-code.service';
 import { OrganizationService } from '../../organization/services/organization.service';
 import { MagicLinkResponseDto } from '../dto/magic-link.dto';
-import { MagicLinkEmail } from '../../email/templates/MagicLinkEmail';
+import { SendMagicLinkEmailEvent } from '../../email/events/email.events';
 
 @Injectable()
 export class AuthService {
@@ -22,6 +20,7 @@ export class AuthService {
     private readonly adminRepository: AdminRepository,
     private jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly eventEmitter: EventEmitter2,
     @Inject(UserService) private readonly userService: UserService,
     @Inject(TokenService) private readonly tokenService: TokenService,
     @Inject(forwardRef(() => PromoCodeService)) private readonly promoCodeService: PromoCodeService,
@@ -155,8 +154,11 @@ export class AuthService {
       
       const token = await this.tokenService.generateAccessToken(user.id, tokenMetadata);
 
-      // Send magic link email with promo parameters
-      await this.sendMagicLinkEmail(email, token, promoCode);
+      // Emit event to send magic link email
+      this.eventEmitter.emit(
+        'email.magic-link',
+        new SendMagicLinkEmailEvent(email, token, promoCode),
+      );
 
       return {
         success: true,
@@ -172,42 +174,4 @@ export class AuthService {
     }
   }
 
-  private async sendMagicLinkEmail(email: string, token: string, promoCode?: string): Promise<void> {
-    try {
-      const resendApiKey = this.configService.get<string>('RESEND_API_KEY');
-      if (!resendApiKey) {
-        this.logger.warn('RESEND_API_KEY not configured, skipping email notification');
-        return;
-      }
-
-      const baseUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
-      let accessUrl = `${baseUrl}/auth/login?token=${token}`;
-      
-      // Add promo parameter if provided
-      if (promoCode !== undefined) {
-        accessUrl += `&promo=${encodeURIComponent(promoCode)}`;
-      }
-
-      const resend = new Resend(resendApiKey);
-
-      const emailResponse = await resend.emails.send({
-        from: 'Mint <mint-ai@getmint.ai>',
-        to: email,
-        subject: 'Sign in to Mint - Your magic link is ready',
-        react: React.createElement(MagicLinkEmail, {
-          email,
-          accessUrl,
-        }),
-      });
-
-      if (emailResponse.error) {
-        throw new Error(`Failed to send email: ${emailResponse.error.message}`);
-      }
-
-      this.logger.log(`Magic link email sent to ${email} with token ${token.substring(0, 8)}...`);
-    } catch (error) {
-      this.logger.error(`Failed to send magic link email: ${error.message}`, error.stack);
-      throw error;
-    }
-  }
 }

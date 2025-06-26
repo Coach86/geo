@@ -158,4 +158,96 @@ export class EmailService {
       // Don't throw - we don't want email failures to affect the system
     }
   }
+
+  async sendMagicLinkEmail(
+    email: string,
+    token: string,
+    promoCode?: string,
+  ): Promise<void> {
+    if (!this.resend) {
+      this.logger.warn('Email service not configured, skipping magic link email to ' + email);
+      return;
+    }
+
+    try {
+      const baseUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+      let accessUrl = `${baseUrl}/auth/login?token=${token}`;
+      
+      // Add promo parameter if provided
+      if (promoCode !== undefined) {
+        accessUrl += `&promo=${encodeURIComponent(promoCode)}`;
+      }
+
+      this.logger.log('Sending magic link email:', {
+        email,
+        tokenPreview: token.substring(0, 8) + '...',
+        promoCode,
+      });
+
+      const MagicLinkEmail = await import('../templates/MagicLinkEmail').then(m => m.default);
+
+      const { error } = await this.resend.emails.send({
+        from: 'Mint <mint-ai@getmint.ai>',
+        to: email,
+        subject: 'Sign in to Mint - Your magic link is ready',
+        react: React.createElement(MagicLinkEmail, {
+          email,
+          accessUrl,
+        }),
+      });
+
+      if (error) {
+        throw new Error(`Failed to send magic link email: ${error.message}`);
+      }
+
+      this.logger.log(`Magic link email sent to ${email}`);
+    } catch (error) {
+      this.logger.error(`Failed to send magic link email: ${error.message}`, error.stack);
+      // Don't throw - we don't want email failures to affect the system
+    }
+  }
+
+  async sendInviteEmail(
+    email: string,
+    inviterName: string,
+    organizationName: string,
+    inviteToken: string,
+  ): Promise<void> {
+    if (!this.resend) {
+      this.logger.warn('Email service not configured, skipping invite email to ' + email);
+      return;
+    }
+
+    try {
+      this.logger.log('Sending invite email:', {
+        email,
+        inviterName,
+        organizationName,
+        tokenPreview: inviteToken.substring(0, 8) + '...',
+      });
+
+      const InviteEmail = await import('../templates/invite.email').then(m => m.default);
+
+      const { error } = await this.resend.emails.send({
+        from: 'Mint <notifications@getmint.ai>',
+        to: email,
+        subject: `You've been invited to join ${organizationName} on Mint AI`,
+        react: React.createElement(InviteEmail, {
+          inviteEmail: email,
+          inviterName,
+          organizationName,
+          inviteToken,
+        }),
+      });
+
+      if (error) {
+        throw new Error(`Failed to send invite email: ${error.message}`);
+      }
+
+      this.logger.log(`Invite email sent to ${email}`);
+    } catch (error) {
+      this.logger.error(`Failed to send invite email: ${error.message}`, error.stack);
+      // Don't throw - we don't want email failures to affect the system
+    }
+  }
 }

@@ -25,22 +25,13 @@ export class EmailEventListener {
     private readonly projectService: ProjectService,
   ) {}
 
-  @OnEvent('email.send')
-  async handleSendEmail(event: SendEmailEvent) {
-    try {
-      // Generic email sending would need to be implemented in EmailService
-      this.logger.warn('Generic email sending not implemented yet');
-    } catch (error) {
-      this.logger.error('Failed to send email', error);
-    }
-  }
 
   @OnEvent('email.report.ready')
   async handleReportReadyEmail(event: SendReportReadyEmailEvent) {
     try {
       const user = await this.userService.findOne(event.userId);
       const project = await this.projectService.findById(event.projectId);
-      
+
       if (!user || !project) {
         throw new Error('User or project not found');
       }
@@ -60,8 +51,12 @@ export class EmailEventListener {
   @OnEvent('email.magic-link')
   async handleMagicLinkEmail(event: SendMagicLinkEmailEvent) {
     try {
-      // Magic link email is handled by AuthService directly
-      this.logger.warn('Magic link email should be sent directly by AuthService');
+      // Send magic link email using the email service
+      await this.emailService.sendMagicLinkEmail(
+        event.email,
+        event.token,
+        event.name, // This is the promo code in the event structure
+      );
     } catch (error) {
       this.logger.error('Failed to send magic link email', error);
     }
@@ -70,8 +65,13 @@ export class EmailEventListener {
   @OnEvent('email.invite')
   async handleInviteEmail(event: SendInviteEmailEvent) {
     try {
-      // Invite email functionality would need to be implemented
-      this.logger.warn('Invite email not implemented yet');
+      // Send invite email using the email service
+      await this.emailService.sendInviteEmail(
+        event.email,
+        event.inviterName,
+        event.organizationName,
+        event.inviteToken,
+      );
     } catch (error) {
       this.logger.error('Failed to send invite email', error);
     }
