@@ -45,56 +45,64 @@ export class LoopsService {
     try {
       this.logger.log(`Creating/updating Loops contact for email: ${contactData.email}`);
 
-      const response = await this.loopsClient.createContact(
-        contactData.email,
-        {
-          firstName: contactData.firstName || null,
-          lastName: contactData.lastName || null,
-          source: contactData.source || 'mint-ai',
-          userGroup: contactData.userGroup || 'user',
-          userId: contactData.userId || null,
-          subscribed: contactData.subscribed !== false, // Default to true
-          createdAt: contactData.createdAt || new Date().toISOString(),
-          // Custom properties
-          organizationId: contactData.organizationId || null,
-          language: contactData.language || null,
-          phoneNumber: contactData.phoneNumber || null,
+      // First, try to find the contact
+      let contactExists = false;
+      try {
+        const findResponse = await this.loopsClient.findContact({ email: contactData.email });
+        if (findResponse && findResponse.length > 0) {
+          contactExists = true;
+          this.logger.log(`Contact found for email: ${contactData.email}`);
+        } else {
+          this.logger.log(`Contact not found for email: ${contactData.email}`);
         }
-      );
+      } catch (findError) {
+        // If find fails, assume contact doesn't exist
+        this.logger.warn(`Error finding contact: ${findError.message}, proceeding with create`);
+        contactExists = false;
+      }
 
-      if (response.success) {
-        this.logger.log(`Successfully created/updated Loops contact for: ${contactData.email}`);
-        return true;
+      const contactProperties = {
+        firstName: contactData.firstName || null,
+        lastName: contactData.lastName || null,
+        source: contactData.source || 'mint-ai',
+        userGroup: contactData.userGroup || 'user',
+        userId: contactData.userId || null,
+        subscribed: contactData.subscribed !== false, // Default to true
+        createdAt: contactData.createdAt || new Date().toISOString(),
+        // Custom properties
+        organizationId: contactData.organizationId || null,
+        language: contactData.language || null,
+        phoneNumber: contactData.phoneNumber || null,
+      };
+
+      if (contactExists) {
+        // Contact exists, update it
+        this.logger.log(`Updating existing contact: ${contactData.email}`);
+        const updateResponse = await this.loopsClient.updateContact(
+          contactData.email,
+          contactProperties
+        );
+
+        if (updateResponse.success) {
+          this.logger.log(`Successfully updated Loops contact for: ${contactData.email}`);
+          return true;
+        } else {
+          this.logger.error(`Failed to update Loops contact: ${JSON.stringify(updateResponse)}`);
+          return false;
+        }
       } else {
-        // If create failed, try to update the existing contact
-        this.logger.warn(`Create contact failed for ${contactData.email}, attempting update: ${JSON.stringify(response)}`);
-        
-        try {
-          const updateResponse = await this.loopsClient.updateContact(
-            contactData.email,
-            {
-              firstName: contactData.firstName || null,
-              lastName: contactData.lastName || null,
-              source: contactData.source || 'mint-ai',
-              userGroup: contactData.userGroup || 'user',
-              userId: contactData.userId || null,
-              subscribed: contactData.subscribed !== false,
-              // Custom properties
-              organizationId: contactData.organizationId || null,
-              language: contactData.language || null,
-              phoneNumber: contactData.phoneNumber || null,
-            }
-          );
+        // Contact doesn't exist, create it
+        this.logger.log(`Creating new contact: ${contactData.email}`);
+        const createResponse = await this.loopsClient.createContact(
+          contactData.email,
+          contactProperties
+        );
 
-          if (updateResponse.success) {
-            this.logger.log(`Successfully updated existing Loops contact for: ${contactData.email}`);
-            return true;
-          } else {
-            this.logger.error(`Failed to update existing Loops contact: ${JSON.stringify(updateResponse)}`);
-            return false;
-          }
-        } catch (updateError) {
-          this.logger.error(`Error updating existing Loops contact: ${updateError.message}`, updateError.stack);
+        if (createResponse.success) {
+          this.logger.log(`Successfully created Loops contact for: ${contactData.email}`);
+          return true;
+        } else {
+          this.logger.error(`Failed to create Loops contact: ${JSON.stringify(createResponse)}`);
           return false;
         }
       }
