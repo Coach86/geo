@@ -37,6 +37,7 @@ interface PlanFormData {
   maxUrls: number;
   maxSpontaneousPrompts: number;
   maxCompetitors: number;
+  maxUsers: number;
   isActive: boolean;
   isRecommended: boolean;
   isMostPopular: boolean;
@@ -55,6 +56,7 @@ const defaultPlanData: PlanFormData = {
   maxUrls: 1,
   maxSpontaneousPrompts: 12,
   maxCompetitors: 5,
+  maxUsers: 1,
   isActive: true,
   isRecommended: false,
   isMostPopular: false,
@@ -112,6 +114,7 @@ export default function PlanManagement() {
       maxUrls: plan.maxUrls,
       maxSpontaneousPrompts: plan.maxSpontaneousPrompts,
       maxCompetitors: plan.maxCompetitors,
+      maxUsers: plan.maxUsers || 1,
       isActive: plan.isActive,
       isRecommended: plan.isRecommended,
       isMostPopular: plan.isMostPopular,
@@ -234,6 +237,9 @@ export default function PlanManagement() {
                 <Typography variant="body2" color="text.secondary">
                   Max Competitors: {plan.maxCompetitors}
                 </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Max Users: {plan.maxUsers === -1 ? 'Unlimited' : plan.maxUsers}
+                </Typography>
               </Box>
 
               <Chip
@@ -338,6 +344,33 @@ export default function PlanManagement() {
                   setFormData({ ...formData, maxCompetitors: parseInt(e.target.value) })
                 }
               />
+              <Box>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Max Users"
+                  value={formData.maxUsers === -1 ? '' : formData.maxUsers}
+                  disabled={formData.maxUsers === -1}
+                  onChange={(e) =>
+                    setFormData({ ...formData, maxUsers: parseInt(e.target.value) || 1 })
+                  }
+                  InputProps={{
+                    inputProps: { min: 1 },
+                  }}
+                />
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={formData.maxUsers === -1}
+                      onChange={(e) =>
+                        setFormData({ ...formData, maxUsers: e.target.checked ? -1 : 1 })
+                      }
+                    />
+                  }
+                  label="Unlimited users"
+                  sx={{ mt: 1 }}
+                />
+              </Box>
               <TextField
                 fullWidth
                 type="number"

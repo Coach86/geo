@@ -36,6 +36,7 @@ export interface User {
     maxSpontaneousPrompts?: number;
     maxUrls: number;
     maxCompetitors: number;
+    maxUsers: number;
   };
   selectedModels: string[];
   createdAt: string;
@@ -70,6 +71,7 @@ export interface PlanResponseDto {
   maxUrls: number;
   maxSpontaneousPrompts: number;
   maxCompetitors: number;
+  maxUsers: number;
   isActive: boolean;
   isRecommended: boolean;
   isMostPopular: boolean;
