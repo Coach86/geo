@@ -66,8 +66,37 @@ export class LoopsService {
         this.logger.log(`Successfully created/updated Loops contact for: ${contactData.email}`);
         return true;
       } else {
-        this.logger.error(`Failed to create/update Loops contact: ${JSON.stringify(response)}`);
-        return false;
+        // If create failed, try to update the existing contact
+        this.logger.warn(`Create contact failed for ${contactData.email}, attempting update: ${JSON.stringify(response)}`);
+        
+        try {
+          const updateResponse = await this.loopsClient.updateContact(
+            contactData.email,
+            {
+              firstName: contactData.firstName || null,
+              lastName: contactData.lastName || null,
+              source: contactData.source || 'mint-ai',
+              userGroup: contactData.userGroup || 'user',
+              userId: contactData.userId || null,
+              subscribed: contactData.subscribed !== false,
+              // Custom properties
+              organizationId: contactData.organizationId || null,
+              language: contactData.language || null,
+              phoneNumber: contactData.phoneNumber || null,
+            }
+          );
+
+          if (updateResponse.success) {
+            this.logger.log(`Successfully updated existing Loops contact for: ${contactData.email}`);
+            return true;
+          } else {
+            this.logger.error(`Failed to update existing Loops contact: ${JSON.stringify(updateResponse)}`);
+            return false;
+          }
+        } catch (updateError) {
+          this.logger.error(`Error updating existing Loops contact: ${updateError.message}`, updateError.stack);
+          return false;
+        }
       }
     } catch (error) {
       this.logger.error(`Error creating/updating Loops contact: ${error.message}`, error.stack);
