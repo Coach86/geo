@@ -26,7 +26,7 @@ export default function InviteEmail({
 }: InviteEmailProps) {
   const baseUrl = process.env.FRONTEND_URL || 'https://app.getmint.ai';
   const logoUrl = `https://app.getmint.ai/mint-logo.png`;
-  const inviteUrl = `${baseUrl}/auth/invite?token=${inviteToken}&email=${encodeURIComponent(inviteEmail)}`;
+  const inviteUrl = `${baseUrl}/auth/login?token=${inviteToken}`;
 
   return (
     <Html>
@@ -45,7 +45,7 @@ export default function InviteEmail({
 
           <Section style={content}>
             <Text style={heading}>
-              You've been invited to join {organizationName}
+              You've been invited to Mint
             </Text>
             
             <Text style={paragraph}>
@@ -53,28 +53,8 @@ export default function InviteEmail({
             </Text>
             
             <Text style={paragraph}>
-              <strong>{inviterName}</strong> has invited you to join their organization 
-              "<strong>{organizationName}</strong>" on Mint AI, the AI-powered brand intelligence platform.
+              <strong>{inviterName}</strong> has invited you to join their organization on Mint AI, the AI-powered brand intelligence platform.
             </Text>
-
-            <Text style={paragraph}>
-              With Mint AI, you'll be able to:
-            </Text>
-
-            <ul style={featureList}>
-              <li style={featureItem}>
-                🎯 <strong>Analyze brand perception</strong> across multiple AI models
-              </li>
-              <li style={featureItem}>
-                📊 <strong>Track competitive positioning</strong> and market sentiment
-              </li>
-              <li style={featureItem}>
-                🔍 <strong>Monitor brand visibility</strong> and alignment metrics
-              </li>
-              <li style={featureItem}>
-                📈 <strong>Get weekly insights</strong> delivered automatically
-              </li>
-            </ul>
 
             <Section style={buttonContainer}>
               <Button

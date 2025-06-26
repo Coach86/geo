@@ -231,7 +231,7 @@ export class EmailService {
       const { error } = await this.resend.emails.send({
         from: 'Mint <notifications@getmint.ai>',
         to: email,
-        subject: `You've been invited to join ${organizationName} on Mint AI`,
+        subject: `You've been invited to Mint`,
         react: React.createElement(InviteEmail, {
           inviteEmail: email,
           inviterName,

@@ -51,7 +51,26 @@ export async function apiFetch<T>(
     return {} as T;
   }
 
-  return response.json();
+  // Handle empty response body (e.g., DELETE requests that return 200 with no content)
+  const contentLength = response.headers.get('content-length');
+  const contentType = response.headers.get('content-type');
+  
+  if (contentLength === '0' || !contentType?.includes('application/json')) {
+    return {} as T;
+  }
+
+  // Handle empty response body by checking if there's actually content
+  const text = await response.text();
+  if (!text) {
+    return {} as T;
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    console.error('Failed to parse response as JSON:', text);
+    return {} as T;
+  }
 }
 
 /**

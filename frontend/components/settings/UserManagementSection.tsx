@@ -66,7 +66,7 @@ export function UserManagementSection({
       const newUser = await addUserToOrganization(token, { email, language });
       onUsersUpdate([...organizationUsers, newUser]);
       setShowAddUserDialog(false);
-      toast.success("User added successfully. A magic link has been sent to their email.");
+      toast.success("User invited successfully. An invitation email has been sent.");
       
       // Refresh organization data
       const { getMyOrganization } = await import("@/lib/organization-api");
@@ -114,15 +114,35 @@ export function UserManagementSection({
     setIsDeletingUser(true);
     try {
       await removeUserFromOrganization(token, deletingUser.id);
-      onUsersUpdate(organizationUsers.filter((u) => u.id !== deletingUser.id));
+      
+      // Close the dialog and reset state immediately
       setShowDeleteUserDialog(false);
       setDeletingUser(null);
+      
+      // Show success message
       toast.success("User removed successfully");
       
-      // Refresh organization data
-      const { getMyOrganization } = await import("@/lib/organization-api");
-      const updatedOrg = await getMyOrganization(token);
-      onOrganizationUpdate(updatedOrg);
+      // Refresh both organization data and users list
+      const { getMyOrganization, getOrganizationUsers } = await import("@/lib/organization-api");
+      
+      // Update users list from server
+      try {
+        const updatedUsers = await getOrganizationUsers(token);
+        onUsersUpdate(updatedUsers);
+      } catch (err) {
+        console.error("Failed to refresh users list:", err);
+        // Fallback to local update if refresh fails
+        const updatedUsers = organizationUsers.filter((u) => u.id !== deletingUser.id);
+        onUsersUpdate(updatedUsers);
+      }
+      
+      // Update organization data
+      try {
+        const updatedOrg = await getMyOrganization(token);
+        onOrganizationUpdate(updatedOrg);
+      } catch (err) {
+        console.error("Failed to refresh organization data:", err);
+      }
     } catch (err: any) {
       console.error("Failed to delete user:", err);
       if (err.response?.data?.message) {
@@ -130,6 +150,9 @@ export function UserManagementSection({
       } else {
         toast.error("Failed to remove user");
       }
+      // Still close the dialog on error
+      setShowDeleteUserDialog(false);
+      setDeletingUser(null);
     } finally {
       setIsDeletingUser(false);
     }
