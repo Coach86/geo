@@ -130,12 +130,23 @@ export class UserOrganizationController {
       organizationId: user.organizationId,
     });
 
-    // Send magic link email to the new user
+    // Send invite email to the new user
     try {
-      await this.authService.sendMagicLink(newUser.email);
+      // Get the inviter's email to use as inviter name
+      const inviterEmail = user.email;
+      // For organization name, we can use the organization ID for now
+      // In a real app, you might want to add a name field to organizations
+      const organizationName = `Organization ${organization.id.substring(0, 8)}`;
+      
+      await this.authService.sendInviteEmail(
+        newUser.email,
+        inviterEmail,
+        organizationName,
+        organization.id,
+      );
     } catch (error) {
       // Log error but don't fail the user creation
-      console.error(`Failed to send welcome email to ${newUser.email}:`, error);
+      console.error(`Failed to send invite email to ${newUser.email}:`, error);
     }
 
     return newUser;

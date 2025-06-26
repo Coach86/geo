@@ -10,7 +10,7 @@ import { TokenService } from './token.service';
 import { PromoCodeService } from '../../promo/services/promo-code.service';
 import { OrganizationService } from '../../organization/services/organization.service';
 import { MagicLinkResponseDto } from '../dto/magic-link.dto';
-import { SendMagicLinkEmailEvent } from '../../email/events/email.events';
+import { SendMagicLinkEmailEvent, SendInviteEmailEvent } from '../../email/events/email.events';
 
 @Injectable()
 export class AuthService {
@@ -171,6 +171,57 @@ export class AuthService {
         throw error;
       }
       throw new BadRequestException(`Failed to send magic link: ${error.message}`);
+    }
+  }
+
+  async sendInviteEmail(
+    email: string,
+    inviterName: string,
+    organizationName: string,
+    organizationId: string,
+  ): Promise<void> {
+    this.logger.log(`Sending invite email to: ${email} from ${inviterName} for ${organizationName}`);
+
+    try {
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        throw new BadRequestException('Valid email address is required');
+      }
+
+      // First, try to find existing user
+      let user;
+      try {
+        user = await this.userService.findByEmail(email);
+        this.logger.log(`Found existing user: ${user.id}`);
+      } catch (error) {
+        // User not found, create new one with the organization
+        this.logger.log(`User not found, creating new user for: ${email}`);
+        user = await this.userService.create({ 
+          email,
+          organizationId,
+        });
+        this.logger.log(`Created new user: ${user.id} for organization: ${organizationId}`);
+      }
+
+      // Generate access token for the invite
+      const token = await this.tokenService.generateAccessToken(user.id, { 
+        userId: user.id,
+        isInvite: true,
+        organizationId,
+      });
+
+      // Emit event to send invite email
+      this.eventEmitter.emit(
+        'email.invite',
+        new SendInviteEmailEvent(email, inviterName, organizationName, token),
+      );
+
+      this.logger.log(`Invite email event emitted for ${email}`);
+    } catch (error) {
+      this.logger.error(`Invite email error for ${email}: ${error.message}`, error.stack);
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException(`Failed to send invite email: ${error.message}`);
     }
   }
 
