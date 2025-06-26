@@ -11,7 +11,7 @@ import { DiscountType } from '../../promo/schemas/promo-code.schema';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { FreePlanActivatedEvent } from '../../organization/events/free-plan-activated.event';
 
-@ApiTags('user-auth')
+@ApiTags('User - Auth')
 @Controller('users/auth')
 export class UserAuthController {
   private readonly logger = new Logger(UserAuthController.name);

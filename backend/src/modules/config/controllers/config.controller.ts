@@ -1,8 +1,10 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, UseGuards } from '@nestjs/common'
+import { ApiTags } from '@nestjs/swagger';;
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { TokenRoute } from '../../auth/decorators/token-route.decorator';
 import { ConfigService } from '../services/config.service';
 
+@ApiTags('Admin - Configuration')
 @Controller('admin/config')
 export class ConfigController {
   constructor(private readonly configService: ConfigService) {}

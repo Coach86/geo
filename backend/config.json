@@ -58,6 +58,7 @@
       "name": "Claude 3.7 Sonnet",
       "enabled": true,
       "webAccess": true,
+      "maxWebSearches": 1,
       "premium": true,
       "parameters": {
         "temperature": 0.7,
@@ -72,6 +73,7 @@
       "name": "Claude 4 Sonnet",
       "enabled": true,
       "webAccess": true,
+      "maxWebSearches": 1,
       "premium": true,
       "parameters": {
         "temperature": 0.7,
@@ -86,6 +88,7 @@
       "name": "Claude 4 Opus",
       "enabled": false,
       "webAccess": true,
+      "maxWebSearches": 1,
       "premium": true,
       "parameters": {
         "temperature": 0.7,

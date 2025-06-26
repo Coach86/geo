@@ -33,6 +33,17 @@ export interface VisibilityData {
     count: number;
     percentage: number;
   }>;
+  detailedResults?: Array<{
+    model: string;
+    promptIndex: number;
+    brandMentioned: boolean;
+    extractedCompanies: string[];
+    originalPrompt: string;
+    llmResponse: string;
+    usedWebSearch: boolean;
+    citations: Citation[];
+    toolUsage: ToolUsage[];
+  }>;
 }
 
 export interface AttributeScore {
@@ -177,6 +188,13 @@ export interface ExplorerData {
     otherSourcesPercentage: number;
     brandDomainCount: number;
     otherSourcesCount: number;
+    competitorBreakdown?: Array<{
+      name: string;
+      count: number;
+      percentage: number;
+    }>;
+    unknownSourcesCount?: number;
+    unknownSourcesPercentage?: number;
   };
 }
 

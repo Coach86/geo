@@ -1,10 +1,12 @@
-import { Controller, Get, Post, Query, Body, Headers, UseGuards, BadRequestException, Req, RawBodyRequest } from '@nestjs/common';
+import { Controller, Get, Post, Query, Body, Headers, UseGuards, BadRequestException, Req, RawBodyRequest } from '@nestjs/common'
+import { ApiTags } from '@nestjs/swagger';;
 import { Request } from 'express';
 import { TokenAuthGuard } from '../../auth/guards/token-auth.guard';
 import { StripeWebhookService } from '../services/stripe-webhook.service';
 import { TokenRoute } from '../../auth/decorators/token-route.decorator';
 import { PublicRoute } from '../../auth/decorators/public-route.decorator';
 
+@ApiTags('Public - Payments')
 @Controller('public/stripe')
 export class StripeWebhookController {
   constructor(private readonly stripeWebhookService: StripeWebhookService) {}

@@ -60,6 +60,13 @@ export interface ExplorerData {
     otherSourcesPercentage: number;
     brandDomainCount: number;
     otherSourcesCount: number;
+    competitorBreakdown?: Array<{
+      name: string;
+      count: number;
+      percentage: number;
+    }>;
+    unknownSourcesCount?: number;
+    unknownSourcesPercentage?: number;
   };
 }
 

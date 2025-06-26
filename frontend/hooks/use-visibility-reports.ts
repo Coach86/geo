@@ -36,6 +36,7 @@ interface UseVisibilityReportsReturn {
     count: number;
     percentage: number;
   }>;
+  totalPromptsTested: number;
 }
 
 export function useVisibilityReports(
@@ -126,6 +127,7 @@ export function useVisibilityReports(
         availableModels: [],
         topMentions: [],
         topDomains: [],
+        totalPromptsTested: 0,
       };
     }
 
@@ -168,6 +170,7 @@ export function useVisibilityReports(
       availableModels: aggregatedData.availableModels || [],
       topMentions: aggregatedData.topMentions || [],
       topDomains: aggregatedData.topDomains || [],
+      totalPromptsTested: aggregatedData.totalPromptsTested || 0,
     };
   }, [aggregatedData]);
 
@@ -184,5 +187,6 @@ export function useVisibilityReports(
     availableModels: result.availableModels,
     topMentions: result.topMentions,
     topDomains: result.topDomains,
+    totalPromptsTested: result.totalPromptsTested,
   };
 }

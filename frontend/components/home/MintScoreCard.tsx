@@ -13,6 +13,7 @@ import { useNotificationContext } from "@/providers/notification-provider"
 import { useBatchEventsContext } from "@/providers/batch-events-provider"
 import { useRouter } from "next/navigation"
 import { useFeatureAccess } from "@/hooks/use-feature-access"
+import { useProjectBatchStatus } from "@/hooks/use-project-batch-status"
 import {
   Tooltip,
   TooltipContent,
@@ -51,9 +52,9 @@ export function MintScoreCard({ projectId, token, onGoToProject }: MintScoreCard
     mintScore: null,
     reportDate: null
   })
-  const [isProcessing, setIsProcessing] = useState(false)
   const { notifications } = useNotificationContext()
   const { isProcessing: isBatchProcessing, getBatchStatus, getProgress } = useBatchEventsContext()
+  const { isRunning: isBatchRunning } = useProjectBatchStatus(projectId, token)
   const router = useRouter()
   const featureAccess = useFeatureAccess()
 
@@ -68,9 +69,7 @@ export function MintScoreCard({ projectId, token, onGoToProject }: MintScoreCard
             new Date(b.generatedAt).getTime() - new Date(a.generatedAt).getTime()
           )[0]
 
-          // Check batch processing status from real-time events
-          const batchProcessing = isBatchProcessing(projectId)
-          setIsProcessing(batchProcessing)
+          // Batch processing status is now handled by the hook
 
           // Fetch detailed data for each section
           const [visibilityData, sentimentData, alignmentData] = await Promise.all([
@@ -102,10 +101,8 @@ export function MintScoreCard({ projectId, token, onGoToProject }: MintScoreCard
             reportDate: new Date(latestReport.generatedAt)
           })
         } else {
-          // No reports yet, check if batch is processing
-          const batchProcessing = isBatchProcessing(projectId)
+          // No reports yet
           setScores(prev => ({ ...prev, loading: false, hasData: false, mintScore: null }))
-          setIsProcessing(batchProcessing)
         }
       } catch (error) {
         console.error("Failed to fetch scores:", error)
@@ -114,13 +111,7 @@ export function MintScoreCard({ projectId, token, onGoToProject }: MintScoreCard
     }
 
     fetchLatestScores()
-  }, [projectId, token, isBatchProcessing])
-
-  // Update processing status when batch events change
-  useEffect(() => {
-    const batchProcessing = isBatchProcessing(projectId)
-    setIsProcessing(batchProcessing)
-  }, [projectId, isBatchProcessing])
+  }, [projectId, token])
 
   const getSentimentColor = (sentiment: string) => {
     switch (sentiment?.toLowerCase()) {
@@ -176,7 +167,6 @@ export function MintScoreCard({ projectId, token, onGoToProject }: MintScoreCard
       (Date.now() - new Date(n.timestamp).getTime() < 5 * 60 * 1000) // 5 minutes
     )
     if (recentNotification) {
-      setIsProcessing(false)
       // Refetch scores when a notification is received
       const fetchLatestScores = async () => {
         try {
@@ -237,7 +227,7 @@ export function MintScoreCard({ projectId, token, onGoToProject }: MintScoreCard
       className="hover:shadow-lg transition-shadow relative flex flex-col h-full cursor-pointer" 
       onClick={handleCardClick}
     >
-      {isProcessing && (
+      {isBatchRunning && (
         <div className="absolute top-3 left-1/2 transform -translate-x-1/2">
           <div className="flex items-center gap-2 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
             <RefreshCw className="h-3 w-3 animate-spin" />
@@ -308,7 +298,7 @@ export function MintScoreCard({ projectId, token, onGoToProject }: MintScoreCard
             ) : scores.visibility !== null ? (
               <span className="text-sm font-semibold">{Math.round(scores.visibility)}%</span>
             ) : (
-              <span className="text-sm text-muted-foreground">{isProcessing ? "Processing..." : scores.hasData ? "--" : "No data"}</span>
+              <span className="text-sm text-muted-foreground">{isBatchRunning ? "Processing..." : scores.hasData ? "--" : "No data"}</span>
             )}
           </div>
 
@@ -333,7 +323,7 @@ export function MintScoreCard({ projectId, token, onGoToProject }: MintScoreCard
                 {Math.round(scores.sentiment.score)}%
               </span>
             ) : (
-              <span className="text-sm text-muted-foreground">{isProcessing ? "Processing..." : scores.hasData ? "--" : "No data"}</span>
+              <span className="text-sm text-muted-foreground">{isBatchRunning ? "Processing..." : scores.hasData ? "--" : "No data"}</span>
             )}
           </div>
 
@@ -360,7 +350,7 @@ export function MintScoreCard({ projectId, token, onGoToProject }: MintScoreCard
                 </span>
               </div>
             ) : (
-              <span className="text-sm text-muted-foreground">{isProcessing ? "Processing..." : scores.hasData ? "--" : "No data"}</span>
+              <span className="text-sm text-muted-foreground">{isBatchRunning ? "Processing..." : scores.hasData ? "--" : "No data"}</span>
             )}
           </div>
         </div>

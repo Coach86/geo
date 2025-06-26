@@ -1,13 +1,11 @@
-import { Controller, Post, UseGuards, Body } from '@nestjs/common';
-import { ThrottlerGuard } from '@nestjs/throttler';
+import { Controller, Post, Body } from '@nestjs/common';
 import { AuthService } from '../services/auth.service';
 import { PublicRoute } from '../decorators/public-route.decorator';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { SendMagicLinkDto, MagicLinkResponseDto } from '../dto/magic-link.dto';
 
-@ApiTags('public-auth')
+@ApiTags('Public - Auth')
 @Controller('auth')
-@UseGuards(ThrottlerGuard)
 export class PublicAuthController {
   constructor(private authService: AuthService) {}
 

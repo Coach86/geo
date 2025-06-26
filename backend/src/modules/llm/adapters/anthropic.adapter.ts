@@ -7,6 +7,7 @@ import {
   TOOL_TYPES,
 } from '../interfaces/llm-adapter.interface';
 import Anthropic from '@anthropic-ai/sdk';
+import { LlmConfigService } from '../../config/services/llm-config.service';
 
 @Injectable()
 export class AnthropicAdapter implements LlmAdapter {
@@ -15,7 +16,10 @@ export class AnthropicAdapter implements LlmAdapter {
   private anthropic: Anthropic;
   name = 'Anthropic';
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly llmConfigService: LlmConfigService,
+  ) {
     this.apiKey = this.configService.get<string>('ANTHROPIC_API_KEY', '');
 
     if (this.isAvailable()) {
@@ -65,7 +69,7 @@ export class AnthropicAdapter implements LlmAdapter {
           {
             type: TOOL_TYPES.ANTHROPIC_WEB_SEARCH, // Using the constant for type consistency
             name: 'web_search',
-            max_uses: 3,
+            max_uses: this.llmConfigService.getMaxWebSearches(modelName),
           } as any, // Type assertion to bypass TypeScript error
         ];
       }

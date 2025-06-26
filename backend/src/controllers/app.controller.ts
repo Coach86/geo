@@ -1,7 +1,7 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 
-@ApiTags('app')
+@ApiTags('Public - General')
 @Controller()
 export class AppController {
   @Get()

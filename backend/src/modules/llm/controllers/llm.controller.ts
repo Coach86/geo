@@ -14,7 +14,7 @@ class DirectTestDto {
   providers?: string[];
 }
 
-@ApiTags('llm')
+@ApiTags('Admin - LLM')
 @Controller('admin/llm')
 export class LlmController {
   constructor(private readonly llmService: LlmService) {}

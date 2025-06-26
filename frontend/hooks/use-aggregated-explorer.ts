@@ -29,6 +29,13 @@ interface UseAggregatedExplorerReturn {
     otherSourcesPercentage: number;
     brandDomainCount: number;
     otherSourcesCount: number;
+    competitorBreakdown?: Array<{
+      name: string;
+      count: number;
+      percentage: number;
+    }>;
+    unknownSourcesCount?: number;
+    unknownSourcesPercentage?: number;
   };
   availableModels?: string[];
 }

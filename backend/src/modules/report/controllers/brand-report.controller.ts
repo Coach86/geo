@@ -8,10 +8,15 @@ import { AggregatedAlignmentResponseDto } from '../dto/aggregated-alignment-resp
 import { AggregatedSentimentResponseDto } from '../dto/aggregated-sentiment-response.dto';
 import { AggregatedExplorerResponseDto } from '../dto/aggregated-explorer-response.dto';
 import { AggregatedCompetitionResponseDto } from '../dto/aggregated-competition-response.dto';
+import { ExplorerData } from '../dto/report-explorer-response.dto';
+import { VisibilityData } from '../dto/report-visibility-response.dto';
+import { SentimentData } from '../dto/report-sentiment-response.dto';
+import { AlignmentData } from '../dto/report-alignment-response.dto';
+import { CompetitionData, ReportCompetitionResponseDto } from '../dto/report-competition-response.dto';
 import { TokenRoute } from '../../auth/decorators/token-route.decorator';
 import { TokenService } from '../../auth/services/token.service';
 
-@ApiTags('brand-reports')
+@ApiTags('User - Reports')
 @Controller('brand-reports')
 export class BrandReportController {
   constructor(
@@ -55,6 +60,13 @@ export class BrandReportController {
   @Get(':reportId/explorer')
   @TokenRoute()
   @ApiOperation({ summary: 'Get explorer data for a report' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Explorer data for the report',
+    type: ExplorerData 
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing token' })
+  @ApiResponse({ status: 404, description: 'Report not found' })
   async getExplorerData(
     @Req() request: any,
     @Param('reportId') reportId: string
@@ -66,6 +78,13 @@ export class BrandReportController {
   @Get(':reportId/visibility')
   @TokenRoute()
   @ApiOperation({ summary: 'Get visibility data for a report' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Visibility data for the report',
+    type: VisibilityData 
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing token' })
+  @ApiResponse({ status: 404, description: 'Report not found' })
   async getVisibilityData(
     @Req() request: any,
     @Param('reportId') reportId: string
@@ -77,6 +96,13 @@ export class BrandReportController {
   @Get(':reportId/sentiment')
   @TokenRoute()
   @ApiOperation({ summary: 'Get sentiment data for a report' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Sentiment data for the report',
+    type: SentimentData 
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing token' })
+  @ApiResponse({ status: 404, description: 'Report not found' })
   async getSentimentData(
     @Req() request: any,
     @Param('reportId') reportId: string
@@ -88,6 +114,13 @@ export class BrandReportController {
   @Get(':reportId/alignment')
   @TokenRoute()
   @ApiOperation({ summary: 'Get alignment data for a report' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Alignment data for the report',
+    type: AlignmentData 
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing token' })
+  @ApiResponse({ status: 404, description: 'Report not found' })
   async getAlignmentData(
     @Req() request: any,
     @Param('reportId') reportId: string
@@ -99,10 +132,17 @@ export class BrandReportController {
   @Get(':reportId/competition')
   @TokenRoute()
   @ApiOperation({ summary: 'Get competition data for a report' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Competition data for the report',
+    type: CompetitionData 
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing token' })
+  @ApiResponse({ status: 404, description: 'Report not found' })
   async getCompetitionData(
     @Req() request: any,
     @Param('reportId') reportId: string
-  ) {
+  ): Promise<ReportCompetitionResponseDto> {
     // Token validation is handled by TokenAuthGuard via @TokenRoute decorator
     return this.brandReportService.getCompetitionData(reportId);
   }

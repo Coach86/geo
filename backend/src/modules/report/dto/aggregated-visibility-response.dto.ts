@@ -110,4 +110,7 @@ export class AggregatedVisibilityResponseDto {
     start: string;
     end: string;
   };
+
+  @ApiProperty({ description: 'Total number of prompts tested for visibility' })
+  totalPromptsTested: number;
 }

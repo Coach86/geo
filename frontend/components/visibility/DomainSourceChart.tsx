@@ -10,6 +10,13 @@ interface DomainSourceChartProps {
     otherSourcesPercentage: number;
     brandDomainCount: number;
     otherSourcesCount: number;
+    competitorBreakdown?: Array<{
+      name: string;
+      count: number;
+      percentage: number;
+    }>;
+    unknownSourcesCount?: number;
+    unknownSourcesPercentage?: number;
   };
   loading?: boolean;
   brandName: string;
@@ -53,7 +60,15 @@ export function DomainSourceChart({
     );
   }
 
-  const { brandDomainPercentage, otherSourcesPercentage, brandDomainCount, otherSourcesCount } = domainSourceAnalysis;
+  const { 
+    brandDomainPercentage, 
+    otherSourcesPercentage, 
+    brandDomainCount, 
+    otherSourcesCount,
+    competitorBreakdown = [],
+    unknownSourcesCount = 0,
+    unknownSourcesPercentage = 0
+  } = domainSourceAnalysis;
 
   return (
     <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
@@ -66,10 +81,29 @@ export function DomainSourceChart({
       <CardContent className="space-y-4">
         {/* Percentage Bar */}
         <div className="relative h-12 bg-gray-100 rounded-lg overflow-hidden">
+          {/* Brand domain bar */}
           <div 
             className="absolute left-0 top-0 h-full bg-blue-500 transition-all duration-500"
             style={{ width: `${brandDomainPercentage}%` }}
           />
+          
+          {/* Competitor bars */}
+          {competitorBreakdown.map((competitor, index) => {
+            const previousWidth = brandDomainPercentage + 
+              competitorBreakdown.slice(0, index).reduce((sum, c) => sum + c.percentage, 0);
+            const colors = ['bg-purple-500', 'bg-green-500', 'bg-orange-500', 'bg-pink-500', 'bg-indigo-500'];
+            return (
+              <div
+                key={competitor.name}
+                className={`absolute top-0 h-full ${colors[index % colors.length]} transition-all duration-500`}
+                style={{ 
+                  left: `${previousWidth}%`,
+                  width: `${competitor.percentage}%` 
+                }}
+              />
+            );
+          })}
+          
           <div className="absolute inset-0 flex items-center justify-between px-4 text-sm font-medium">
             <span className="text-white drop-shadow-sm">
               {brandDomainPercentage > 10 ? `${brandDomainPercentage}%` : ''}
@@ -91,15 +125,35 @@ export function DomainSourceChart({
               {brandDomainCount} {brandDomainCount === 1 ? 'citation' : 'citations'} ({brandDomainPercentage}%)
             </span>
           </div>
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-2">
-              <Globe className="h-4 w-4 text-gray-500" />
-              <span className="text-gray-700">Other Sources</span>
+          
+          {/* Competitor entries */}
+          {competitorBreakdown.map((competitor, index) => {
+            const colors = ['text-purple-500', 'text-green-500', 'text-orange-500', 'text-pink-500', 'text-indigo-500'];
+            return (
+              <div key={competitor.name} className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2">
+                  <Building2 className={`h-4 w-4 ${colors[index % colors.length]}`} />
+                  <span className="text-gray-700">{competitor.name}</span>
+                </div>
+                <span className="font-medium text-gray-900">
+                  {competitor.count} {competitor.count === 1 ? 'citation' : 'citations'} ({competitor.percentage}%)
+                </span>
+              </div>
+            );
+          })}
+          
+          {/* Unknown Sources */}
+          {unknownSourcesCount > 0 && (
+            <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center gap-2">
+                <Globe className="h-4 w-4 text-gray-500" />
+                <span className="text-gray-700">Other Sources</span>
+              </div>
+              <span className="font-medium text-gray-900">
+                {unknownSourcesCount} {unknownSourcesCount === 1 ? 'citation' : 'citations'} ({unknownSourcesPercentage}%)
+              </span>
             </div>
-            <span className="font-medium text-gray-900">
-              {otherSourcesCount} {otherSourcesCount === 1 ? 'citation' : 'citations'} ({otherSourcesPercentage}%)
-            </span>
-          </div>
+          )}
         </div>
       </CardContent>
     </Card>

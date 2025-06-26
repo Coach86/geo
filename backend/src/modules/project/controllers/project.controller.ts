@@ -19,7 +19,7 @@ import { UpdateProjectDto } from '../dto/update-project.dto';
 import { ProjectResponseDto } from '../dto/project-response.dto';
 import { AdminGuard } from '../../auth/guards/admin.guard';
 
-@ApiTags('projects')
+@ApiTags('Admin - Projects')
 @Controller('admin/project')
 @UseGuards(AdminGuard)
 export class ProjectController {

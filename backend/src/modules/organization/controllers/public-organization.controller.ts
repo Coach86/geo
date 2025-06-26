@@ -12,7 +12,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiHeader } from '@nestjs/swagger';
 import { TokenAuthGuard } from '../../auth/guards/token-auth.guard';
 import { TokenRoute } from '../../auth/decorators/token-route.decorator';
 
-@ApiTags('public-organization')
+@ApiTags('User - Organization')
 @Controller('organization')
 export class PublicOrganizationController {
   constructor(

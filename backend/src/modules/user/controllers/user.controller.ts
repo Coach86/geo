@@ -20,7 +20,7 @@ import { OrganizationService } from '../../organization/services/organization.se
 import { ConfigService } from '../../config/services/config.service';
 import { AdminGuard } from '../../auth/guards/admin.guard';
 
-@ApiTags('users')
+@ApiTags('Admin - Users')
 @Controller('admin/users')
 @UseGuards(AdminGuard)
 export class UserController {

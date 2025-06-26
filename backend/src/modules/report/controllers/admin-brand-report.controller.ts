@@ -3,7 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { BrandReportService } from '../services/brand-report.service';
 import { BrandReportResponseDto } from '../dto/brand-report-response.dto';
 
-@ApiTags('admin-brand-reports')
+@ApiTags('Admin - Reports')
 @Controller('admin/brand-reports')
 export class AdminBrandReportController {
   constructor(private readonly brandReportService: BrandReportService) {}

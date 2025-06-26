@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule as NestConfigModule } from '@nestjs/config';
+import { ConfigModule } from '../config/config.module';
 import { LlmService } from './services/llm.service';
 import { LlmController } from './controllers/llm.controller';
 import { OpenAiAdapter } from './adapters/openai.adapter';
@@ -27,7 +28,7 @@ import { LlmProvider } from './interfaces/llm-provider.enum';
   AnthropicLangChain = 'AnthropicLangChain',
 */
 @Module({
-  imports: [ConfigModule],
+  imports: [NestConfigModule, ConfigModule],
   controllers: [LlmController],
   providers: [
     LlmService,

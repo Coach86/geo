@@ -5,7 +5,8 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { WinstonModule } from 'nest-winston';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { MongooseModule } from '@nestjs/mongoose';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import { join } from 'path';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 
@@ -48,7 +49,13 @@ import { LoggerModule } from './utils/logger.module';
         return getWinstonConfig(environment, 'brand-insights');
       },
     }),
-    ThrottlerModule.forRoot(), // Default configuration
+    ThrottlerModule.forRoot([
+      {
+        // Default rate limit: 200 requests per minute (2x more lenient)
+        ttl: 60000, // 1 minute in milliseconds
+        limit: 200,
+      },
+    ]),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -96,8 +103,13 @@ import { LoggerModule } from './utils/logger.module';
   providers: [
     // Register global JWT guard to protect all routes by default
     {
-      provide: 'APP_GUARD',
+      provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    // Register global throttler guard for rate limiting
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
     },
   ],
 })
