@@ -10,6 +10,10 @@ export interface Organization {
   id: string;
   stripeCustomerId?: string;
   stripePlanId?: string;
+  stripeSubscriptionId?: string;
+  subscriptionStatus?: string;
+  subscriptionCurrentPeriodEnd?: string;
+  subscriptionCancelAt?: string;
   planSettings: {
     maxProjects: number;
     maxAIModels: number;

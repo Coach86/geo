@@ -24,6 +24,9 @@ export class Organization {
   @Prop({ type: Date })
   subscriptionCurrentPeriodEnd?: Date;
 
+  @Prop({ type: Date })
+  subscriptionCancelAt?: Date;
+
   @Prop({
     type: {
       maxProjects: { type: Number, default: ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_PROJECTS },

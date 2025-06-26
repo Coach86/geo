@@ -307,6 +307,7 @@ export class OrganizationService {
       stripeSubscriptionId: entity.stripeSubscriptionId,
       subscriptionStatus: entity.subscriptionStatus,
       subscriptionCurrentPeriodEnd: entity.subscriptionCurrentPeriodEnd?.toISOString(),
+      subscriptionCancelAt: entity.subscriptionCancelAt?.toISOString(),
       planSettings: entity.planSettings,
       selectedModels: entity.selectedModels,
       createdAt: entity.createdAt.toISOString(),
