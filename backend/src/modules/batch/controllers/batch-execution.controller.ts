@@ -2,7 +2,7 @@ import { Controller, Get, Param, NotFoundException, Query } from '@nestjs/common
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { BatchExecutionService } from '../services/batch-execution.service';
 
-@ApiTags('batch-executions')
+@ApiTags('Admin - Batch Processing')
 @Controller('admin/batch-executions')
 export class BatchExecutionController {
   constructor(private readonly batchExecutionService: BatchExecutionService) {}

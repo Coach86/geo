@@ -20,7 +20,7 @@ import { OrganizationService } from '../../organization/services/organization.se
 import { ConfigService } from '../../config/services/config.service';
 import { PlanService } from '../../plan/services/plan.service';
 
-@ApiTags('user-profile')
+@ApiTags('User - Profile')
 @Controller('user/profile')
 export class UserProfileController {
   private readonly logger = new Logger(UserProfileController.name);

@@ -35,6 +35,7 @@ import {
   InputLabel,
   Badge,
   Stack,
+  InputAdornment,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -46,6 +47,8 @@ import EmailIcon from '@mui/icons-material/Email';
 import FolderIcon from '@mui/icons-material/Folder';
 import ModelTrainingIcon from '@mui/icons-material/ModelTraining';
 import FilterListIcon from '@mui/icons-material/FilterList';
+import LinkIcon from '@mui/icons-material/Link';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   getAllOrganizations,
@@ -70,6 +73,7 @@ interface User {
 
 interface Organization {
   id: string;
+  name?: string;
   planSettings: {
     maxProjects: number;
     maxAIModels: number;
@@ -96,6 +100,12 @@ const OrganizationSettings: React.FC = () => {
   const [isPlanSettingsOpen, setIsPlanSettingsOpen] = useState(false);
   const [isCreateOrgOpen, setIsCreateOrgOpen] = useState(false);
   const [newUser, setNewUser] = useState({ email: '', language: 'en', phoneNumber: '' });
+  const [magicLinkDialog, setMagicLinkDialog] = useState({
+    open: false,
+    loading: false,
+    magicLink: '',
+    reason: '',
+  });
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -215,6 +225,55 @@ const OrganizationSettings: React.FC = () => {
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to remove user');
     }
+  };
+
+  const handleGenerateMagicLink = async () => {
+    if (!selectedOrganization) return;
+    
+    setMagicLinkDialog(prev => ({ ...prev, loading: true }));
+    
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`/api/admin/organizations/${selectedOrganization.id}/magic-link`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          reason: magicLinkDialog.reason || undefined,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to generate magic link');
+      }
+      
+      const data = await response.json();
+      setMagicLinkDialog(prev => ({ 
+        ...prev, 
+        loading: false,
+        magicLink: data.magicLink 
+      }));
+    } catch (err: any) {
+      alert(err.message || 'Failed to generate magic link');
+      setMagicLinkDialog(prev => ({ ...prev, loading: false }));
+    }
+  };
+  
+  const handleCopyMagicLink = () => {
+    if (magicLinkDialog.magicLink) {
+      navigator.clipboard.writeText(magicLinkDialog.magicLink);
+    }
+  };
+  
+  const handleCloseMagicLinkDialog = () => {
+    setMagicLinkDialog({
+      open: false,
+      loading: false,
+      magicLink: '',
+      reason: '',
+    });
   };
 
   const handleDeleteOrganization = async (orgId: string) => {
@@ -361,16 +420,26 @@ const OrganizationSettings: React.FC = () => {
                         <BusinessIcon sx={{ mr: 1, color: 'primary.main' }} />
                         <Typography variant="h6">Organization Details</Typography>
                       </Box>
-                      <Button
-                        startIcon={<DeleteIcon />}
-                        onClick={() => handleDeleteOrganization(selectedOrganization.id)}
-                        variant="outlined"
-                        color="error"
-                        size="small"
-                        disabled={users.length > 0}
-                      >
-                        Delete Organization
-                      </Button>
+                      <Box display="flex" gap={1}>
+                        <Button
+                          startIcon={<LinkIcon />}
+                          onClick={() => setMagicLinkDialog({ ...magicLinkDialog, open: true })}
+                          variant="outlined"
+                          size="small"
+                        >
+                          Generate Magic Link
+                        </Button>
+                        <Button
+                          startIcon={<DeleteIcon />}
+                          onClick={() => handleDeleteOrganization(selectedOrganization.id)}
+                          variant="outlined"
+                          color="error"
+                          size="small"
+                          disabled={users.length > 0}
+                        >
+                          Delete Organization
+                        </Button>
+                      </Box>
                     </Box>
                     <Divider sx={{ mb: 2 }} />
 
@@ -693,6 +762,70 @@ const OrganizationSettings: React.FC = () => {
             onUpdate={() => loadOrganizations()}
           />
         )}
+        
+        {/* Magic Link Dialog */}
+        <Dialog 
+          open={magicLinkDialog.open} 
+          onClose={handleCloseMagicLinkDialog}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>
+            Generate Magic Link - {selectedOrganization?.name || selectedOrganization?.id}
+          </DialogTitle>
+          <DialogContent>
+            {!magicLinkDialog.magicLink ? (
+              <>
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  Generate a temporary access link to log into this organization.
+                </Alert>
+                <TextField
+                  fullWidth
+                  label="Reason (optional)"
+                  placeholder="Why are you accessing this organization?"
+                  value={magicLinkDialog.reason}
+                  onChange={(e) => setMagicLinkDialog(prev => ({ ...prev, reason: e.target.value }))}
+                  multiline
+                  rows={2}
+                />
+              </>
+            ) : (
+              <>
+                <Alert severity="success" sx={{ mb: 2 }}>
+                  Magic link generated successfully!
+                </Alert>
+                <TextField
+                  fullWidth
+                  label="Magic Link"
+                  value={magicLinkDialog.magicLink}
+                  InputProps={{
+                    readOnly: true,
+                    endAdornment: (
+                      <IconButton onClick={handleCopyMagicLink}>
+                        <ContentCopyIcon />
+                      </IconButton>
+                    ),
+                  }}
+                  sx={{ fontFamily: 'monospace' }}
+                />
+              </>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseMagicLinkDialog}>
+              {magicLinkDialog.magicLink ? 'Close' : 'Cancel'}
+            </Button>
+            {!magicLinkDialog.magicLink && (
+              <Button 
+                onClick={handleGenerateMagicLink} 
+                variant="contained"
+                disabled={magicLinkDialog.loading}
+              >
+                {magicLinkDialog.loading ? 'Generating...' : 'Generate Link'}
+              </Button>
+            )}
+          </DialogActions>
+        </Dialog>
       </Box>
     </Container>
   );

@@ -20,6 +20,7 @@ interface VisibilityMetricsCardProps {
   onEntityHover?: (entity: string | null) => void;
   hoveredEntity?: string | null;
   isAllTime?: boolean;
+  totalPromptsTested?: number;
 }
 
 export function VisibilityMetricsCard({
@@ -32,6 +33,7 @@ export function VisibilityMetricsCard({
   onEntityHover,
   hoveredEntity,
   isAllTime = false,
+  totalPromptsTested = 0,
 }: VisibilityMetricsCardProps) {
   // Vibrant colors for better visual appeal
   const CHART_COLORS = [
@@ -145,11 +147,11 @@ export function VisibilityMetricsCard({
                         {/* Name and percentage inside bar */}
                         <div className="absolute inset-0 flex items-center justify-between px-2">
                           <div className="flex items-center gap-1">
-                            <span className={`font-medium text-xs ${
+                            <span className={`text-xs ${
                               entity.averageScore > 50 ? 'text-white' : 'text-gray-700'
-                            }`}>
+                            } ${entity.isBrand ? 'font-bold' : 'font-medium'}`}>
                               {entity.name}
-                              {entity.isBrand && <span className="text-xs ml-1">(You)</span>}
+                              {entity.isBrand && <span className="text-xs ml-1 font-medium">(You)</span>}
                             </span>
                             {isLeading && (
                               <Crown className={`h-4 w-4 ${
@@ -189,6 +191,15 @@ export function VisibilityMetricsCard({
             )}
           </div>
         </div>
+        
+        {/* Based on X answers text */}
+        {totalPromptsTested > 0 && (
+          <div className="mt-4 text-center">
+            <p className="text-xs text-gray-500">
+              Based on {totalPromptsTested} answers
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

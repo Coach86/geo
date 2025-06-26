@@ -25,8 +25,9 @@ import { v4 as uuidv4 } from 'uuid';
 import { UserService } from '../../user/services/user.service';
 import { OrganizationService } from '../../organization/services/organization.service';
 import { PromptService } from '../../prompt/services/prompt.service';
+import { BatchExecutionRepository } from '../../batch/repositories/batch-execution.repository';
 
-@ApiTags('user-projects')
+@ApiTags('User - Projects')
 @Controller('user/project')
 export class UserProjectController {
   private readonly logger = new Logger(UserProjectController.name);
@@ -39,6 +40,7 @@ export class UserProjectController {
     private readonly userService: UserService,
     private readonly organizationService: OrganizationService,
     private readonly promptService: PromptService,
+    private readonly batchExecutionRepository: BatchExecutionRepository,
   ) {}
 
   @Get('url-usage')
@@ -710,6 +712,88 @@ export class UserProjectController {
       }
       this.logger.error(`Failed to update project: ${error.message}`, error.stack);
       throw new BadRequestException(`Failed to update project: ${error.message}`);
+    }
+  }
+
+  @Get(':projectId/batch-status')
+  @TokenRoute()
+  @ApiOperation({ summary: 'Check if a batch is running for a specific project' })
+  @ApiResponse({
+    status: 200,
+    description: 'Batch status for the project',
+    schema: {
+      type: 'object',
+      properties: {
+        isRunning: { type: 'boolean', description: 'Whether a batch is currently running' },
+        batchExecutionId: { type: 'string', description: 'ID of the running batch (if any)' },
+        status: { type: 'string', enum: ['running', 'completed', 'failed'], description: 'Status of the latest batch' },
+        startedAt: { type: 'string', format: 'date-time', description: 'When the batch started' },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Token required' })
+  @ApiResponse({ status: 404, description: 'Project not found' })
+  async getBatchStatus(
+    @Req() request: any,
+    @Param('projectId') projectId: string,
+  ): Promise<{ isRunning: boolean; batchExecutionId?: string; status?: string; startedAt?: Date }> {
+    try {
+      this.logger.log(`Checking batch status for project ${projectId}`);
+
+      // Validate user authentication
+      if (!request.userId) {
+        if (request.token) {
+          const validation = await this.tokenService.validateAccessToken(request.token);
+          if (validation.valid && validation.userId) {
+            request.userId = validation.userId;
+          } else {
+            throw new UnauthorizedException('Invalid or expired token');
+          }
+        } else {
+          throw new UnauthorizedException('User not authenticated');
+        }
+      }
+
+      // Get user and verify access to project
+      const user = await this.userService.findOne(request.userId);
+      if (!user) {
+        throw new BadRequestException('User not found');
+      }
+
+      // Get the project and verify it belongs to user's organization
+      const project = await this.projectService.findById(projectId);
+      if (!project) {
+        throw new NotFoundException('Project not found');
+      }
+
+      if (project.organizationId !== user.organizationId) {
+        throw new UnauthorizedException('You do not have access to this project');
+      }
+
+      // Check for running batch
+      const latestBatch = await this.batchExecutionRepository.findLatestByProjectId(projectId);
+      
+      const response = {
+        isRunning: false,
+        batchExecutionId: undefined as string | undefined,
+        status: undefined as string | undefined,
+        startedAt: undefined as Date | undefined,
+      };
+
+      if (latestBatch) {
+        response.status = latestBatch.status;
+        response.batchExecutionId = latestBatch.id;
+        response.startedAt = latestBatch.executedAt;
+        response.isRunning = latestBatch.status === 'running';
+      }
+
+      return response;
+    } catch (error) {
+      if (error instanceof UnauthorizedException || error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error(`Failed to check batch status: ${error.message}`, error.stack);
+      throw new BadRequestException(`Failed to check batch status: ${error.message}`);
     }
   }
 

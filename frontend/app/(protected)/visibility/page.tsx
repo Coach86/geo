@@ -68,6 +68,7 @@ export default function VisibilityPage() {
     availableModels: visibilityAvailableModels,
     topMentions: visibilityTopMentions,
     topDomains,
+    totalPromptsTested,
   } = useVisibilityReports(selectedProjectId, selectedModels, token, isAllTime, memoizedDateRange, isLatest);
 
   // Only get domainSourceAnalysis from explorer hook - other data comes from visibility hook
@@ -200,6 +201,7 @@ export default function VisibilityPage() {
                 onEntityHover={setHoveredEntity}
                 hoveredEntity={hoveredEntity}
                 isAllTime={isAllTime}
+                totalPromptsTested={totalPromptsTested}
               />
             </div>
 

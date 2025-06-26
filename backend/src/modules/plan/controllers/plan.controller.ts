@@ -8,7 +8,8 @@ import {
   Delete,
   UseGuards,
   Query,
-} from '@nestjs/common';
+} from '@nestjs/common'
+import { ApiTags } from '@nestjs/swagger';;
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../../auth/guards/admin.guard';
 import { PlanService } from '../services/plan.service';
@@ -17,6 +18,7 @@ import { UpdatePlanDto } from '../dto/update-plan.dto';
 import { PlanResponseDto } from '../dto/plan-response.dto';
 import Stripe from 'stripe';
 
+@ApiTags('Admin - Plans')
 @Controller('admin/plans')
 @UseGuards(JwtAuthGuard, AdminGuard)
 export class PlanController {

@@ -10,7 +10,7 @@ import { sentimentSystemPrompt, sentimentUserPrompt } from '../services/sentimen
 import { competitionSystemPrompt, competitionUserPrompt } from '../services/competition-prompts';
 import { alignmentSystemPrompt, alignmentUserPrompt } from '../services/alignment-prompts';
 
-@ApiTags('prompt-sets')
+@ApiTags('Admin - Prompts')
 @Controller('admin/prompt-set')
 export class PromptSetController {
   constructor(

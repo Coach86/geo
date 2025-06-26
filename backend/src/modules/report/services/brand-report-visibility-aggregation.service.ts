@@ -90,7 +90,8 @@ export class BrandReportVisibilityAggregationService {
       dateRange: {
         start: reports[0].reportDate.toISOString(),
         end: reports[reports.length - 1].reportDate.toISOString()
-      }
+      },
+      totalPromptsTested: aggregationResult.totalPromptsTested || 0
     };
 
     // Debug log the response
@@ -175,6 +176,7 @@ export class BrandReportVisibilityAggregationService {
   ) {
     let totalScore = 0;
     let scoreCount = 0;
+    let totalPromptsTested = 0;
     const competitorMap: Record<string, { scores: number[]; dates: string[] }> = {};
     const chartData: VisibilityChartDataDto[] = [];
     const modelScores: Record<string, { total: number; count: number }> = {};
@@ -193,6 +195,21 @@ export class BrandReportVisibilityAggregationService {
         selectedModels,
         modelScores
       );
+
+      // Count prompts tested based on selected models
+      if (selectedModels && selectedModels.length > 0 && visData.detailedResults) {
+        // Count only prompts from selected models
+        const promptsInReport = visData.detailedResults.filter((result: any) => 
+          selectedModels.includes(result.model)
+        ).length;
+        totalPromptsTested += promptsInReport;
+      } else if (visData.promptsTested) {
+        // Use pre-aggregated count when no model filter
+        totalPromptsTested += visData.promptsTested;
+      } else if (visData.detailedResults) {
+        // Fallback to counting all detailed results
+        totalPromptsTested += visData.detailedResults.length;
+      }
 
       if (reportResult.modelCount > 0) {
         const avgScore = reportResult.score / reportResult.modelCount;
@@ -224,7 +241,8 @@ export class BrandReportVisibilityAggregationService {
       modelBreakdown,
       competitorMap,
       mentionTracker,
-      domainTracker
+      domainTracker,
+      totalPromptsTested
     };
   }
 
@@ -243,7 +261,7 @@ export class BrandReportVisibilityAggregationService {
     });
 
     // Use detailedResults for model-specific filtering if available and models are selected
-    if (selectedModels && selectedModels.length > 0 && visData.detailedResults) {
+    if (selectedModels && selectedModels.length > 0 && visData.detailedResults && visData.detailedResults.length > 0) {
       this.logger.debug(`[trackMentions] Using detailedResults for model filtering`);
       
       visData.detailedResults.forEach((result: any) => {
@@ -311,7 +329,7 @@ export class BrandReportVisibilityAggregationService {
     });
 
     // Use detailedResults for model-specific filtering if available and models are selected
-    if (selectedModels && selectedModels.length > 0 && visData.detailedResults) {
+    if (selectedModels && selectedModels.length > 0 && visData.detailedResults && visData.detailedResults.length > 0) {
       this.logger.debug(`[trackDomains] Using detailedResults for model filtering`);
       
       visData.detailedResults.forEach((result: any) => {
@@ -545,7 +563,8 @@ export class BrandReportVisibilityAggregationService {
       topMentions: [],
       topDomains: [],
       reportCount: 0,
-      dateRange: { start: '', end: '' }
+      dateRange: { start: '', end: '' },
+      totalPromptsTested: 0
     };
   }
 }

@@ -52,6 +52,7 @@ export class ReportBuilderService {
     accuracyResults: AccuracyResults,
     comparisonResults: CompetitionResults,
     projectWebsite?: string,
+    competitorDetails?: Array<{ name: string; website?: string }>,
   ): ExplorerData {
     // Build citations data
     const allCitationsData: Array<{
@@ -274,27 +275,72 @@ export class ReportBuilderService {
       if (brandDomain) {
         let brandDomainCount = 0;
         let otherSourcesCount = 0;
+        const competitorCounts: Record<string, number> = {};
+        let unknownSourcesCount = 0;
         
-        // Count sources from brand domain vs others
+        // Extract competitor domains
+        const competitorDomains: Record<string, string> = {};
+        if (competitorDetails && Array.isArray(competitorDetails)) {
+          competitorDetails.forEach(competitor => {
+            if (competitor.website) {
+              const competitorDomain = this.extractBrandDomain(competitor.website);
+              if (competitorDomain) {
+                competitorDomains[competitorDomain] = competitor.name;
+              }
+            }
+          });
+        }
+        
+        // Count sources from brand domain vs competitors vs others
         sourceMap.forEach((stats, domain) => {
           if (this.isDomainMatch(domain, brandDomain)) {
             brandDomainCount += stats.totalMentions;
           } else {
+            // Check if it's a competitor domain
+            let isCompetitorDomain = false;
+            for (const [competitorDomain, competitorName] of Object.entries(competitorDomains)) {
+              if (this.isDomainMatch(domain, competitorDomain)) {
+                competitorCounts[competitorName] = (competitorCounts[competitorName] || 0) + stats.totalMentions;
+                isCompetitorDomain = true;
+                break;
+              }
+            }
+            
+            if (!isCompetitorDomain) {
+              unknownSourcesCount += stats.totalMentions;
+            }
+            
             otherSourcesCount += stats.totalMentions;
           }
         });
         
         const brandDomainPercentage = (brandDomainCount / totalCitations) * 100;
         const otherSourcesPercentage = (otherSourcesCount / totalCitations) * 100;
+        const unknownSourcesPercentage = (unknownSourcesCount / totalCitations) * 100;
+        
+        // Create competitor breakdown
+        const competitorBreakdown = Object.entries(competitorCounts)
+          .map(([name, count]) => ({
+            name,
+            count,
+            percentage: Math.round((count / totalCitations) * 1000) / 10 // Round to 1 decimal
+          }))
+          .sort((a, b) => b.count - a.count);
         
         domainSourceAnalysis = {
           brandDomainPercentage: Math.round(brandDomainPercentage * 10) / 10, // Round to 1 decimal
           otherSourcesPercentage: Math.round(otherSourcesPercentage * 10) / 10,
           brandDomainCount,
           otherSourcesCount,
+          competitorBreakdown: competitorBreakdown.length > 0 ? competitorBreakdown : undefined,
+          unknownSourcesCount,
+          unknownSourcesPercentage: Math.round(unknownSourcesPercentage * 10) / 10,
         };
         
         this.logger.log(`Domain source analysis: ${brandDomainCount} from brand domain (${brandDomainPercentage.toFixed(1)}%), ${otherSourcesCount} from other sources (${otherSourcesPercentage.toFixed(1)}%)`);
+        if (competitorBreakdown.length > 0) {
+          this.logger.log(`Competitor breakdown: ${competitorBreakdown.map(c => `${c.name}: ${c.count} (${c.percentage}%)`).join(', ')}`);
+        }
       }
     }
 

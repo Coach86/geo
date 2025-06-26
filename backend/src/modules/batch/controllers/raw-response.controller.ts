@@ -3,7 +3,7 @@ import { ApiOperation, ApiResponse, ApiTags, ApiQuery, ApiParam } from '@nestjs/
 import { RawResponseService } from '../services/raw-response.service';
 import { RawResponseDto } from '../dto/raw-response.dto';
 import { PromptType } from '../interfaces/llm.interfaces';
-@ApiTags('raw-responses')
+@ApiTags('Admin - Batch Processing')
 @Controller('admin/raw-responses')
 export class RawResponseController {
   constructor(private readonly rawResponseService: RawResponseService) {}

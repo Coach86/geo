@@ -6,6 +6,7 @@ import { OrganizationRepository } from './repositories/organization.repository';
 import { OrganizationController } from './controllers/organization.controller';
 import { UserOrganizationController } from './controllers/user-organization.controller';
 import { PublicOrganizationController } from './controllers/public-organization.controller';
+import { AdminOrganizationController } from './controllers/admin-organization.controller';
 import { UserModule } from '../user/user.module';
 import { AuthModule } from '../auth/auth.module';
 import { ConfigModule } from '../config/config.module';
@@ -25,7 +26,7 @@ import { Project, ProjectSchema } from '../project/schemas/project-base.schema';
     forwardRef(() => PlanModule),
     ConfigModule,
   ],
-  controllers: [OrganizationController, UserOrganizationController, PublicOrganizationController],
+  controllers: [OrganizationController, UserOrganizationController, PublicOrganizationController, AdminOrganizationController],
   providers: [OrganizationService, OrganizationRepository],
   exports: [OrganizationService, OrganizationRepository],
 })

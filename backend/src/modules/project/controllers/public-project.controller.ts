@@ -19,7 +19,7 @@ import { ReportStructure } from '../../report/interfaces/report.interfaces';
 import { SentimentResults, AlignmentResults, CompetitionResults } from '../../batch/interfaces/batch.interfaces';
 import { ReportBuilderService } from '../../batch/services/report-builder.service';
 
-@ApiTags('public-projects')
+@ApiTags('User - Projects')
 @Controller('projects')
 export class PublicProjectController {
   constructor(

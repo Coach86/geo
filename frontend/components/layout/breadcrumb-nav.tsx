@@ -3,6 +3,8 @@
 import { ChevronRight } from "lucide-react";
 import { ProjectResponse } from "@/lib/auth-api";
 import { ReportSelector } from "@/components/shared/ReportSelector";
+import { BatchStatusIndicator } from "@/components/shared/BatchStatusIndicator";
+import { useProjectBatchStatus } from "@/hooks/use-project-batch-status";
 
 interface BreadcrumbNavProps {
   projects?: ProjectResponse[];
@@ -23,14 +25,19 @@ export default function BreadcrumbNav({
   token,
   onReportSelect,
 }: BreadcrumbNavProps) {
+  const { isRunning } = useProjectBatchStatus(selectedProject?.id, token);
+
   return (
     <nav className="inline-flex items-center gap-2 text-sm bg-gray-50/50 backdrop-blur-sm rounded-lg px-3 py-2 border border-gray-200/50">
-      {/* Project Name */}
+      {/* Project Name with Batch Status */}
       {selectedProject && (
         <>
-          <span className="text-gray-600 flex-shrink-0">
-            {selectedProject.name || selectedProject.brandName}
-          </span>
+          <div className="flex items-center gap-1.5">
+            <BatchStatusIndicator isProcessing={isRunning} />
+            <span className="text-gray-600 flex-shrink-0">
+              {selectedProject.name || selectedProject.brandName}
+            </span>
+          </div>
           <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
         </>
       )}

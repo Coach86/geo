@@ -19,7 +19,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/s
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../../auth/guards/admin.guard';
 
-@ApiTags('organizations')
+@ApiTags('Admin - Organizations')
 @Controller('admin/organizations')
 @UseGuards(JwtAuthGuard, AdminGuard)
 export class OrganizationController {

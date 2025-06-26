@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { BrandReport, BrandReportDocument } from '../schemas/brand-report.schema';
@@ -9,6 +9,7 @@ import {
 } from '../dto/aggregated-explorer-response.dto';
 import { BrandReportExplorerSelect } from '../types/brand-report.types';
 import { ExplorerData } from '../interfaces/report.interfaces';
+import { ProjectService } from '../../project/services/project.service';
 
 // Define proper types for web search results
 interface WebSearchResult {
@@ -37,6 +38,8 @@ export class BrandReportExplorerAggregationService {
   constructor(
     @InjectModel(BrandReport.name)
     private brandReportModel: Model<BrandReportDocument>,
+    @Inject(forwardRef(() => ProjectService))
+    private projectService: ProjectService,
   ) {}
 
   async getAggregatedExplorer(
@@ -49,7 +52,10 @@ export class BrandReportExplorerAggregationService {
       return this.createEmptyExplorerResponse();
     }
 
-    const aggregationResult = this.aggregateExplorerData(reports, query.models);
+    // Get project information for domain classification
+    const project = await this.projectService.findById(projectId);
+    
+    const aggregationResult = this.aggregateExplorerData(reports, query.models, project?.website, project?.competitorDetails);
 
     const webAccessPercentage = aggregationResult.totalPrompts > 0
       ? Math.round((aggregationResult.promptsWithWebAccess / aggregationResult.totalPrompts) * 100)
@@ -111,7 +117,12 @@ export class BrandReportExplorerAggregationService {
       .lean();
   }
 
-  private aggregateExplorerData(reports: BrandReportExplorerSelect[], modelFilter?: string[]) {
+  private aggregateExplorerData(
+    reports: BrandReportExplorerSelect[], 
+    modelFilter?: string[],
+    projectWebsite?: string,
+    competitorDetails?: Array<{ name: string; website?: string }>
+  ) {
     const keywordCounts: Record<string, number> = {};
     const sourceCounts: Record<string, number> = {};
     const allWebSearchResults: WebSearchResult[] = [];
@@ -125,6 +136,8 @@ export class BrandReportExplorerAggregationService {
     // Domain source analysis aggregation
     let totalBrandDomainCount = 0;
     let totalOtherSourcesCount = 0;
+    let totalUnknownSourcesCount = 0;
+    const competitorCounts: Record<string, number> = {};
 
     reports.forEach(report => {
       const explorerData = report.explorer;
@@ -189,9 +202,18 @@ export class BrandReportExplorerAggregationService {
       // Aggregate domain source analysis
       // When filtering by model, we should recalculate domain analysis from filtered citations
       if (!modelFilter || modelFilter.length === 0) {
+        // No model filter - use pre-aggregated data
         if (explorerData.domainSourceAnalysis) {
           totalBrandDomainCount += explorerData.domainSourceAnalysis.brandDomainCount || 0;
           totalOtherSourcesCount += explorerData.domainSourceAnalysis.otherSourcesCount || 0;
+          totalUnknownSourcesCount += explorerData.domainSourceAnalysis.unknownSourcesCount || 0;
+          
+          // Aggregate competitor breakdowns
+          if (explorerData.domainSourceAnalysis.competitorBreakdown) {
+            explorerData.domainSourceAnalysis.competitorBreakdown.forEach(competitor => {
+              competitorCounts[competitor.name] = (competitorCounts[competitor.name] || 0) + competitor.count;
+            });
+          }
         }
       }
     });
@@ -200,13 +222,67 @@ export class BrandReportExplorerAggregationService {
     const topKeywords = this.createTopItemsList(keywordCounts, 10);
     const topSources = this.createTopItemsList(sourceCounts, 10);
     
+    // If model filter is applied and we have project website, calculate domain source analysis from filtered sources
+    if (modelFilter && modelFilter.length > 0 && projectWebsite && sourceCounts) {
+      // Extract brand domain
+      const brandDomain = this.extractBrandDomain(projectWebsite);
+      
+      // Extract competitor domains
+      const competitorDomains: Record<string, string> = {};
+      if (competitorDetails && Array.isArray(competitorDetails)) {
+        competitorDetails.forEach(competitor => {
+          if (competitor.website) {
+            const competitorDomain = this.extractBrandDomain(competitor.website);
+            if (competitorDomain) {
+              competitorDomains[competitorDomain] = competitor.name;
+            }
+          }
+        });
+      }
+      
+      // Calculate counts from filtered sources
+      Object.entries(sourceCounts).forEach(([domain, count]) => {
+        if (brandDomain && this.isDomainMatch(domain, brandDomain)) {
+          totalBrandDomainCount += count;
+        } else {
+          let isCompetitorDomain = false;
+          for (const [competitorDomain, competitorName] of Object.entries(competitorDomains)) {
+            if (this.isDomainMatch(domain, competitorDomain)) {
+              competitorCounts[competitorName] = (competitorCounts[competitorName] || 0) + count;
+              isCompetitorDomain = true;
+              break;
+            }
+          }
+          
+          if (!isCompetitorDomain) {
+            totalUnknownSourcesCount += count;
+          }
+          
+          totalOtherSourcesCount += count;
+        }
+      });
+    }
+    
     // Calculate aggregated domain source percentages
     const totalDomainCounts = totalBrandDomainCount + totalOtherSourcesCount;
+    
+    // Create competitor breakdown
+    const competitorBreakdown = Object.entries(competitorCounts)
+      .map(([name, count]) => ({
+        name,
+        count,
+        percentage: totalDomainCounts > 0 ? Math.round((count / totalDomainCounts) * 1000) / 10 : 0
+      }))
+      .sort((a, b) => b.count - a.count);
+    
     const domainSourceAnalysis = totalDomainCounts > 0 ? {
       brandDomainPercentage: Math.round((totalBrandDomainCount / totalDomainCounts) * 1000) / 10,
       otherSourcesPercentage: Math.round((totalOtherSourcesCount / totalDomainCounts) * 1000) / 10,
       brandDomainCount: totalBrandDomainCount,
       otherSourcesCount: totalOtherSourcesCount,
+      competitorBreakdown: competitorBreakdown.length > 0 ? competitorBreakdown : undefined,
+      unknownSourcesCount: totalUnknownSourcesCount,
+      unknownSourcesPercentage: totalDomainCounts > 0 ? Math.round((totalUnknownSourcesCount / totalDomainCounts) * 1000) / 10 : 0,
     } : undefined;
 
     // Deduplicate web search results
@@ -382,5 +458,37 @@ export class BrandReportExplorerAggregationService {
       reportCount: 0,
       dateRange: { start: '', end: '' }
     };
+  }
+
+  /**
+   * Extract brand domain from website URL (without TLD)
+   */
+  private extractBrandDomain(website: string): string {
+    try {
+      const url = new URL(website);
+      const hostname = url.hostname.replace('www.', '');
+      // Extract domain name without TLD (e.g., "sfr" from "sfr.fr")
+      const parts = hostname.split('.');
+      if (parts.length >= 2) {
+        return parts[0]; // Return the first part before the TLD
+      }
+      return hostname;
+    } catch {
+      return '';
+    }
+  }
+
+  /**
+   * Check if a domain matches the brand domain
+   */
+  private isDomainMatch(domain: string, brandDomain: string): boolean {
+    if (!domain || !brandDomain) return false;
+    
+    // Remove www. prefix if present
+    const cleanDomain = domain.replace('www.', '');
+    
+    // Check if the domain contains the brand domain
+    // This will match "sfr.fr", "sfr.com", "business.sfr.fr", etc.
+    return cleanDomain.includes(brandDomain + '.');
   }
 }

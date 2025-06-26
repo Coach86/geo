@@ -11,7 +11,6 @@ import {
   Req,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
-import { ThrottlerGuard } from '@nestjs/throttler';
 import { ShopifyAuthService } from '../services/shopify-auth.service';
 import { PublicRoute } from '../decorators/public-route.decorator';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
@@ -31,9 +30,8 @@ interface ShopifyAuthResponse {
   };
 }
 
-@ApiTags('shopify-auth')
+@ApiTags('Public - Auth')
 @Controller('auth/shopify')
-@UseGuards(ThrottlerGuard)
 export class ShopifyAuthController {
   constructor(private readonly shopifyAuthService: ShopifyAuthService) {}
 

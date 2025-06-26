@@ -46,7 +46,7 @@ export interface GeneratePromptsResponse {
   competition: string[];
 }
 
-@ApiTags('public-prompts')
+@ApiTags('User - Prompts')
 @Controller('prompts')
 @UseInterceptors(ClassSerializerInterceptor)
 export class PublicPromptController {

@@ -25,7 +25,7 @@ import { TokenRoute } from '../../auth/decorators/token-route.decorator';
 import { ConfigService } from '../../config/services/config.service';
 import { AuthService } from '../../auth/services/auth.service';
 
-@ApiTags('organization')
+@ApiTags('User - Organization')
 @Controller('user/organization')
 @UseGuards(JwtAuthGuard)
 export class UserOrganizationController {

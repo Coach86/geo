@@ -144,6 +144,29 @@ export class BrandReport {
       count: number;
       percentage: number;
     }[];
+    detailedResults?: {
+      model: string;
+      promptIndex: number;
+      brandMentioned: boolean;
+      extractedCompanies: string[];
+      originalPrompt: string;
+      llmResponse: string;
+      usedWebSearch: boolean;
+      citations: {
+        url: string;
+        title?: string;
+        text?: string;
+      }[];
+      toolUsage: {
+        type: string;
+        parameters?: Record<string, unknown>;
+        execution_details?: {
+          status: string;
+          result?: unknown;
+          error?: string;
+        };
+      }[];
+    }[];
   };
 
   @Prop({

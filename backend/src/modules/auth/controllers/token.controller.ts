@@ -17,7 +17,7 @@ import {
 } from '../dto/token.dto';
 import { PublicRoute } from '../decorators/public-route.decorator';
 
-@ApiTags('tokens')
+@ApiTags('User - Auth')
 @Controller('tokens')
 export class TokenController {
   private readonly logger = new Logger(TokenController.name);

@@ -1,0 +1,611 @@
+1
+00:00:00,000 --> 00:00:03,072
+Hello everyone, this is Mathieu from Mint.
+
+2
+00:00:03,388 --> 00:00:08,021
+Welcome to our beta. While your first project analysis is
+
+3
+00:00:08,022 --> 00:00:11,248
+being run, and will be displayed in a few minutes,
+
+4
+00:00:11,574 --> 00:00:14,718
+I recorded this short video to give you a first tour of the platform,
+
+5
+00:00:14,719 --> 00:00:16,937
+and I will show you how to best use it.
+
+6
+00:00:18,054 --> 00:00:22,948
+here is your home, where you can see the different projects that you have
+
+7
+00:00:23,084 --> 00:00:27,680
+and will be creating. The first thing that you can do in terms of
+
+8
+00:00:27,681 --> 00:00:30,724
+setting up the project and having the right analysis used to go.
+
+9
+00:00:30,725 --> 00:00:33,199
+And review the project settings.
+
+10
+00:00:33,200 --> 00:00:37,972
+here you can review the domain name that you are analyzing the
+
+11
+00:00:38,204 --> 00:00:41,527
+focused market and the main language that would be useful prompt.
+
+12
+00:00:41,528 --> 00:00:45,152
+and then you can edit and play around with the different.
+
+13
+00:00:45,163 --> 00:00:48,645
+project parameters, you can work on the competitor set,
+
+14
+00:00:48,656 --> 00:00:53,411
+you can also expand and improve your visibility from
+
+15
+00:00:53,412 --> 00:00:55,880
+set along the way by either editing.
+
+16
+00:00:55,881 --> 00:00:57,079
+In a single prompt,
+
+17
+00:00:57,089 --> 00:01:00,202
+or by adding new ones. If you want to track new topics,
+
+18
+00:01:00,213 --> 00:01:03,091
+you can do the same for the alignment analysis.
+
+19
+00:01:03,092 --> 00:01:05,143
+here the idea is to have the right,
+
+20
+00:01:05,144 --> 00:01:09,713
+brand attributes or information that will be fact checked in the
+
+21
+00:01:09,714 --> 00:01:10,604
+different LLM,
+
+22
+00:01:10,615 --> 00:01:11,244
+answers.
+
+23
+00:01:11,510 --> 00:01:13,014
+you can add some attributes,
+
+24
+00:01:13,024 --> 00:01:14,241
+clients are using,
+
+25
+00:01:14,389 --> 00:01:16,901
+key brands attributes, such as specific information.
+
+26
+00:01:16,902 --> 00:01:21,859
+That they would like to see displayed in the LLM answers or specific items,
+
+27
+00:01:21,860 --> 00:01:23,432
+such as pricing,
+
+28
+00:01:23,443 --> 00:01:24,471
+commission fees, etc., etc.
+
+29
+00:01:24,978 --> 00:01:28,828
+you can play with the, in defining the right attributes for your brand.
+
+30
+00:01:29,051 --> 00:01:31,179
+And these are all produced.
+
+31
+00:01:31,180 --> 00:01:34,948
+But if you want to make adjustment to the fact-checking alignment prompts,
+
+32
+00:01:34,949 --> 00:01:36,212
+you can also pin it in here.
+
+33
+00:01:36,222 --> 00:01:40,562
+same for a sentiment. This is a pretty generic and standard analysis.
+
+34
+00:01:40,563 --> 00:01:43,697
+But if you feel that you want to specify,
+
+35
+00:01:43,708 --> 00:01:45,888
+some small adjustment to, the sentiment prompts,
+
+36
+00:01:45,889 --> 00:01:47,696
+you can also edit them here.
+
+37
+00:01:47,707 --> 00:01:50,522
+last thing on, on the setup part is the account settings.
+
+38
+00:01:50,523 --> 00:01:54,302
+if you need to adjust your, the plan that you would be using ad
+
+39
+00:01:54,303 --> 00:01:56,610
+users or select other AI models,
+
+40
+00:01:56,611 --> 00:01:58,242
+you can do everything here.
+
+41
+00:01:58,243 --> 00:02:02,712
+that was for the project and account setting parts and now I suggest that
+
+42
+00:02:02,713 --> 00:02:05,327
+we jump into the analysis and,
+
+43
+00:02:05,991 --> 00:02:07,776
+join your, your first project.
+
+44
+00:02:08,550 --> 00:02:11,306
+here you are entering the inside.
+
+45
+00:02:11,307 --> 00:02:13,380
+The section of the mean platform.
+
+46
+00:02:13,391 --> 00:02:17,422
+and I will walk you through the different inside that you can gather and
+
+47
+00:02:17,423 --> 00:02:18,275
+track over time.
+
+48
+00:02:18,285 --> 00:02:19,867
+based on the setup that we just,
+
+49
+00:02:20,372 --> 00:02:20,857
+looked at.
+
+50
+00:02:20,858 --> 00:02:25,384
+the, the first step is to understand and track your
+
+51
+00:02:25,385 --> 00:02:26,407
+visibility score.
+
+52
+00:02:26,408 --> 00:02:27,223
+this is the,
+
+53
+00:02:27,233 --> 00:02:31,755
+percentage of mention that your brand is getting across the
+
+54
+00:02:31,756 --> 00:02:34,953
+visibility prompt that we have just looked at.
+
+55
+00:02:34,964 --> 00:02:36,969
+and here you can compare your brand,
+
+56
+00:02:36,980 --> 00:02:38,227
+against your competitors.
+
+57
+00:02:38,228 --> 00:02:43,004
+that you have defined, but also the entire industry show voice that
+
+58
+00:02:43,005 --> 00:02:47,792
+you are getting, including other competitors that you have not mentioned in,
+
+59
+00:02:47,803 --> 00:02:48,773
+your project setup.
+
+60
+00:02:48,784 --> 00:02:51,226
+keep in mind that you can,
+
+61
+00:02:51,227 --> 00:02:52,580
+Always,
+
+62
+00:02:52,591 --> 00:02:56,563
+check the date and range of the report that you want to look at,
+
+63
+00:02:56,564 --> 00:02:59,557
+or the model selection as well, if you want to only have a look
+
+64
+00:03:00,180 --> 00:03:02,337
+to a single model or a setup.
+
+65
+00:03:02,348 --> 00:03:05,674
+last thing here, once you, you've looked at your visibility score,
+
+66
+00:03:05,675 --> 00:03:09,923
+that you've tracked it over time, is also to dig into the domain ranking,
+
+67
+00:03:10,223 --> 00:03:12,947
+looking at the sources that have been consulted by models,
+
+68
+00:03:12,957 --> 00:03:16,817
+to generate the answers on the visibility answers,
+
+69
+00:03:16,828 --> 00:03:20,879
+and also check whether this, the sources of belonging to your own assets or
+
+70
+00:03:20,880 --> 00:03:26,125
+owned by third parties. Second thing is the sentiment of elementers,
+
+71
+00:03:26,126 --> 00:03:28,344
+the modelers' answers towards your brain.
+
+72
+00:03:28,544 --> 00:03:33,076
+Here we're tracking with the sentiment prompts whether the answer is coming from
+
+73
+00:03:33,077 --> 00:03:36,659
+the, whether it's a positive neutral or negative toward your brain.
+
+74
+00:03:36,670 --> 00:03:40,037
+the idea is to have a look at the overall trend,
+
+75
+00:03:40,052 --> 00:03:43,310
+whether the sentiment score is positive or not.
+
+76
+00:03:43,614 --> 00:03:47,394
+And then to dive into the details of getting into the,
+
+77
+00:03:48,199 --> 00:03:48,639
+the specific,
+
+78
+00:03:48,640 --> 00:03:50,911
+answers model by model. For example,
+
+79
+00:03:50,912 --> 00:03:53,204
+here I'm entering one Gemini answer.
+
+80
+00:03:53,380 --> 00:03:57,942
+what do you think about Lovable? And I can go through the
+
+81
+00:03:57,943 --> 00:04:02,849
+answer, check the positive items and also keep in mind.
+
+82
+00:04:02,850 --> 00:04:08,008
+The different weaknesses or limitations that the models are pointing out to users
+
+83
+00:04:08,009 --> 00:04:09,942
+that would be researching your brand.
+
+84
+00:04:10,285 --> 00:04:13,659
+you can get into the details and also have a look at the intermediate
+
+85
+00:04:13,660 --> 00:04:15,795
+queries that can be formulated by models.
+
+86
+00:04:16,128 --> 00:04:18,851
+All the citations, the websites that are being used.
+
+87
+00:04:18,852 --> 00:04:21,165
+To make the answer.
+
+88
+00:04:21,175 --> 00:04:25,943
+likewise, you can go deeper into the analysis by looking at all the sources
+
+89
+00:04:26,348 --> 00:04:30,759
+that have been consulted by models that you can filter out by either the
+
+90
+00:04:30,760 --> 00:04:33,233
+kind of models and the sentiment.
+
+91
+00:04:33,234 --> 00:04:35,606
+If you want to look at a specific category,
+
+92
+00:04:35,617 --> 00:04:39,857
+and what we truly believe is that the real value lies into the,
+
+93
+00:04:40,142 --> 00:04:40,991
+into the details,
+
+94
+00:04:40,992 --> 00:04:44,214
+Next up is alignment.
+
+95
+00:04:44,284 --> 00:04:45,499
+here we're looking at,
+
+96
+00:04:45,510 --> 00:04:47,685
+reinforcing your brand protection,
+
+97
+00:04:47,696 --> 00:04:50,870
+and compliance across the model's answer.
+
+98
+00:04:51,175 --> 00:04:53,763
+you can track your overall alignment score.
+
+99
+00:04:53,908 --> 00:04:58,927
+That would be deep. The average of all the model's answer across all attributes.
+
+100
+00:04:58,938 --> 00:05:02,361
+here, again, the idea is to make sure that the,
+
+101
+00:05:02,372 --> 00:05:04,472
+present representation and that the,
+
+102
+00:05:04,483 --> 00:05:09,058
+characteristic that you're- would like to see displayed to users using
+
+103
+00:05:09,059 --> 00:05:10,850
+AI search or being,
+
+104
+00:05:10,861 --> 00:05:12,807
+being displayed correctly.
+
+105
+00:05:12,808 --> 00:05:15,782
+you can have a look at any attributes,
+
+106
+00:05:15,792 --> 00:05:20,442
+treated by any model and- and do the same good- into the details
+
+107
+00:05:20,443 --> 00:05:23,800
+of- of understanding what is the answer,
+
+108
+00:05:23,811 --> 00:05:25,964
+what are the intermediate queries,
+
+109
+00:05:25,965 --> 00:05:29,173
+what are the citations, the website that have been consulting to,
+
+110
+00:05:29,184 --> 00:05:32,126
+to build the- the answer. Similarly,
+
+111
+00:05:32,127 --> 00:05:36,909
+you can go into the- sources details to make sure that you,
+
+112
+00:05:36,910 --> 00:05:40,844
+for example, have a look at the sources that would be misaligned with the
+
+113
+00:05:40,845 --> 00:05:42,919
+brand that's enriched that you want to understand.
+
+114
+00:05:42,920 --> 00:05:47,514
+For instance, here, the team at Lovable would be interested in understanding why the,
+
+115
+00:05:48,157 --> 00:05:52,960
+for example, here, the rapid developer. This source is not aligning with the messages
+
+116
+00:05:52,961 --> 00:05:57,039
+that I want to, that I want to see this play. Last insight,
+
+117
+00:05:57,050 --> 00:06:01,875
+analysis that we are offering to you is the competitive
+
+118
+00:06:01,876 --> 00:06:02,792
+landscape analysis,
+
+119
+00:06:02,793 --> 00:06:06,414
+here we are comparing you. Your brand versus the selected competitors,
+
+120
+00:06:06,635 --> 00:06:08,177
+where you can see if,
+
+121
+00:06:08,187 --> 00:06:11,308
+the prospect of the client is researching your brand,
+
+122
+00:06:11,486 --> 00:06:16,096
+your brand against another one, what would be the strength and the weaknesses
+
+123
+00:06:16,317 --> 00:06:18,029
+that would be displayed in the answers.
+
+124
+00:06:18,030 --> 00:06:22,263
+for all the other sections, you can also go into the sources and understand
+
+125
+00:06:22,497 --> 00:06:23,441
+what are the,
+
+126
+00:06:23,452 --> 00:06:26,757
+exact sources that are being consulted and where you could have,
+
+127
+00:06:26,768 --> 00:06:27,962
+potentially influence,
+
+128
+00:06:27,973 --> 00:06:30,052
+going forward. The last,
+
+129
+00:06:30,063 --> 00:06:34,605
+and the last interesting section is the Data Explorer.
+
+130
+00:06:34,606 --> 00:06:39,021
+Here the idea is that you have the full database of all the links
+
+131
+00:06:39,377 --> 00:06:42,560
+that I've been consulting throughout the different prompts,
+
+132
+00:06:42,703 --> 00:06:46,438
+throughout the different models, and to build the first report.
+
+133
+00:06:46,449 --> 00:06:49,381
+and here the idea is that you can,
+
+134
+00:06:49,392 --> 00:06:54,137
+feature out this database by the internet queries that are being used
+
+135
+00:06:54,138 --> 00:06:55,289
+in the indexes.
+
+136
+00:06:55,300 --> 00:06:58,003
+you can have a focus on sources, on model,
+
+137
+00:06:58,004 --> 00:07:02,530
+on prompt. If I want to have a look on the visibility,
+
+138
+00:07:02,531 --> 00:07:06,786
+the organic one, if I want to understand if Wikipedia is being used or,
+
+139
+00:07:07,138 --> 00:07:08,653
+Reddit is being also talked about.
+
+140
+00:07:08,857 --> 00:07:11,736
+you can play around with the database and understand,
+
+141
+00:07:11,747 --> 00:07:14,628
+what were the factors of, of in-prem. For every answer,
+
+142
+00:07:14,837 --> 00:07:18,544
+and you can also export it to CSV to make sure that you really
+
+143
+00:07:18,545 --> 00:07:21,683
+go deeper into the analysis and start optimizing by,
+
+144
+00:07:21,694 --> 00:07:22,792
+potentially influencing,
+
+145
+00:07:22,803 --> 00:07:24,978
+some of your content, for instance,
+
+146
+00:07:24,979 --> 00:07:28,762
+on your own domain, but also third-party contents once you- have,
+
+147
+00:07:28,772 --> 00:07:29,690
+identify it.
+
+148
+00:07:30,435 --> 00:07:31,512
+this is it for now,
+
+149
+00:07:31,523 --> 00:07:36,044
+the first quick tour of all the inside picture that we've
+
+150
+00:07:36,045 --> 00:07:40,917
+been for you so far. I'm looking forward to hearing from you
+
+151
+00:07:40,918 --> 00:07:45,662
+using the beta, getting your- feedback, and hopefully you will enjoy
+
+152
+00:07:45,663 --> 00:07:48,684
+using mint as much as we do. Thank you very much.
+
+153
+00:07:48,686 --> 00:07:49,138
+See you soon.

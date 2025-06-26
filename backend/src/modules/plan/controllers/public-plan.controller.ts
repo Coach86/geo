@@ -1,10 +1,12 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Req } from '@nestjs/common'
+import { ApiTags } from '@nestjs/swagger';;
 import { PublicRoute } from '../../auth/decorators/public-route.decorator';
 import { TokenRoute } from '../../auth/decorators/token-route.decorator';
 import { TokenAuthGuard } from '../../auth/guards/token-auth.guard';
 import { PlanService } from '../services/plan.service';
 import { PlanResponseDto } from '../dto/plan-response.dto';
 
+@ApiTags('Public - Plans')
 @Controller('public/plans')
 export class PublicPlanController {
   constructor(private readonly planService: PlanService) {}

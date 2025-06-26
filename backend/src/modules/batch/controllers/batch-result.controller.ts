@@ -3,7 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/
 import { BatchResultRepository } from '../repositories/batch-result.repository';
 import { BatchExecutionRepository } from '../repositories/batch-execution.repository';
 
-@ApiTags('batch-results')
+@ApiTags('Admin - Batch Processing')
 @Controller('admin/batch-results')
 export class BatchResultController {
   constructor(

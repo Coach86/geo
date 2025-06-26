@@ -19,7 +19,7 @@ class BatchRunDto {
   projectId?: string;
 }
 
-@ApiTags('batch')
+@ApiTags('Admin - Batch Processing')
 @Controller('admin/batch')
 export class BatchController {
   constructor(

@@ -1,7 +1,7 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
-@ApiTags('health')
+@ApiTags('Public - Health')
 @Controller('healthz')
 export class HealthController {
   @Get()

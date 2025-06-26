@@ -15,7 +15,7 @@ import { PromoCodeService } from '../services/promo-code.service';
 import { CreatePromoCodeDto } from '../dto/create-promo-code.dto';
 import { ValidatePromoCodeDto, PromoCodeValidationResponseDto } from '../dto/validate-promo-code.dto';
 
-@ApiTags('promo-codes')
+@ApiTags('Admin - Promotions')
 @Controller('admin/promo-codes')
 @UseGuards(JwtAuthGuard, AdminGuard)
 @ApiBearerAuth()
