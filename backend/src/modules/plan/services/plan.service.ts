@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import Stripe from 'stripe';
 import { PlanRepository } from '../repositories/plan.repository';
 import { CreatePlanDto } from '../dto/create-plan.dto';
@@ -10,6 +11,7 @@ import { UserService } from '../../user/services/user.service';
 import { OrganizationService } from '../../organization/services/organization.service';
 import { PromoCodeService } from '../../promo/services/promo-code.service';
 import { DiscountType } from '../../promo/schemas/promo-code.schema';
+import { SendSubscriptionCancelledEmailEvent } from '../../email/events/email.events';
 
 @Injectable()
 export class PlanService {
@@ -18,6 +20,7 @@ export class PlanService {
   constructor(
     private readonly planRepository: PlanRepository,
     private readonly configService: ConfigService,
+    private readonly eventEmitter: EventEmitter2,
     @Inject(forwardRef(() => UserService)) private readonly userService: UserService,
     @Inject(forwardRef(() => OrganizationService)) private readonly organizationService: OrganizationService,
     @Inject(forwardRef(() => PromoCodeService)) private readonly promoCodeService: PromoCodeService,
@@ -284,16 +287,62 @@ export class PlanService {
 
     try {
       // Cancel the subscription at the end of the billing period
-      await this.stripe.subscriptions.update(organization.stripeSubscriptionId, {
+      const updatedSubscription = await this.stripe.subscriptions.update(organization.stripeSubscriptionId, {
         cancel_at_period_end: true,
-      });
+      }) as Stripe.Subscription;
 
-      // Update organization subscription status
+      // Update organization subscription status and cancel date
       await this.organizationService.update(user.organizationId, {
         subscriptionStatus: 'canceling',
+        subscriptionCancelAt: updatedSubscription.cancel_at 
+          ? new Date(updatedSubscription.cancel_at * 1000)
+          : undefined,
       });
 
       console.log(`Subscription ${organization.stripeSubscriptionId} marked for cancellation for user ${userId}`);
+
+      // Send cancellation confirmation email
+      if (updatedSubscription.cancel_at_period_end) {
+        // Get the current plan name based on subscription
+        let planName = 'Pro'; // Default plan name
+        
+        // Try to get the plan name from the subscription's price metadata
+        if (updatedSubscription.items && updatedSubscription.items.data.length > 0) {
+          const priceId = updatedSubscription.items.data[0].price.id;
+          try {
+            const price = await this.stripe.prices.retrieve(priceId, {
+              expand: ['product']
+            });
+            if (price.product && typeof price.product === 'object' && 'name' in price.product) {
+              planName = price.product.name;
+            }
+          } catch (error) {
+            console.log('Could not retrieve price details, using default plan name');
+          }
+        }
+        
+        // Get the end date (when the subscription will actually end)
+        // Access current_period_end using bracket notation to avoid TS error
+        const currentPeriodEnd = (updatedSubscription as any).current_period_end;
+        const endDate = currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : new Date();
+        
+        console.log('Subscription cancel details:', {
+          current_period_end: currentPeriodEnd,
+          endDate: endDate.toISOString(),
+          isValidDate: !isNaN(endDate.getTime()),
+        });
+        
+        // Emit event to send cancellation email
+        this.eventEmitter.emit(
+          'email.subscription-cancelled',
+          new SendSubscriptionCancelledEmailEvent(
+            user.email,
+            user.email, // Use email as name since user doesn't have a name field
+            planName,
+            endDate,
+          ),
+        );
+      }
     } catch (error) {
       console.error('Error canceling subscription:', error);
       throw new BadRequestException('Failed to cancel subscription');

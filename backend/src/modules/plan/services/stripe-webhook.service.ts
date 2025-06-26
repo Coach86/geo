@@ -6,6 +6,7 @@ import { OrganizationService } from '../../organization/services/organization.se
 import { PlanService } from './plan.service';
 import { UserService } from '../../user/services/user.service';
 import { PromoCodeService } from '../../promo/services/promo-code.service';
+import { SendSubscriptionConfirmationEmailEvent } from '../../email/events/email.events';
 
 @Injectable()
 export class StripeWebhookService {
@@ -148,6 +149,16 @@ export class StripeWebhookService {
         timestamp: new Date(),
       });
 
+      // Emit subscription confirmation email event
+      this.eventEmitter.emit(
+        'email.subscription-confirmation',
+        new SendSubscriptionConfirmationEmailEvent(
+          user.id,
+          plan.name,
+          session.amount_total || 0, // Total amount in cents
+        ),
+      );
+
       return {
         success: true,
         message: `Your ${plan.name} plan has been activated successfully!`,
@@ -273,6 +284,24 @@ export class StripeWebhookService {
         subscriptionId: subscription.id,
         timestamp: new Date(),
       });
+
+      // Also emit subscription confirmation email for new subscriptions
+      // Get the first user of the organization to send the email
+      const users = await this.userService.findByOrganizationId(organization.id);
+      if (users && users.length > 0 && organization.stripePlanId) {
+        // Get plan details
+        const plan = await this.planService.findById(organization.stripePlanId);
+        if (plan) {
+          this.eventEmitter.emit(
+            'email.subscription-confirmation',
+            new SendSubscriptionConfirmationEmailEvent(
+              users[0].id, // Send to the first user (typically the owner)
+              plan.name,
+              subscription.items.data[0]?.price?.unit_amount || 0, // Amount in cents
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -418,6 +447,22 @@ export class StripeWebhookService {
         invoiceId: invoice.id,
         timestamp: new Date(),
       });
+
+      // Send subscription confirmation email for recovered payments
+      const users = await this.userService.findByOrganizationId(organization.id);
+      if (users && users.length > 0 && organization.stripePlanId) {
+        const plan = await this.planService.findById(organization.stripePlanId);
+        if (plan) {
+          this.eventEmitter.emit(
+            'email.subscription-confirmation',
+            new SendSubscriptionConfirmationEmailEvent(
+              users[0].id,
+              plan.name,
+              invoice.amount_paid || 0, // Amount in cents
+            ),
+          );
+        }
+      }
     }
 
     console.log(`Payment succeeded for organization ${organization.id}`);

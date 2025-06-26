@@ -3,10 +3,11 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CreditCard, ArrowUpRight, AlertCircle } from "lucide-react";
+import { CreditCard, ArrowUpRight, AlertCircle, XCircle } from "lucide-react";
 import type { Organization } from "@/lib/organization-api";
 import { useAuth } from "@/providers/auth-provider";
 import { ContactSalesDialog } from "@/components/shared/ContactSalesDialog";
+import { format } from "date-fns";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -105,6 +106,8 @@ export function BillingSection({ organization }: BillingSectionProps) {
   const isPaidPlan = organization?.stripePlanId && 
                      organization.stripePlanId !== "manual" && 
                      planName !== "Free";
+  
+  const canCancelSubscription = isPaidPlan && organization?.subscriptionStatus !== 'canceling';
 
   return (
     <>
@@ -120,6 +123,12 @@ export function BillingSection({ organization }: BillingSectionProps) {
             <div className="flex items-center gap-3">
               <span className="text-sm text-muted-foreground">Current plan</span>
               <span className="text-lg font-semibold">{planName}</span>
+              {organization?.subscriptionStatus === 'canceling' && (
+                <Badge variant="destructive" className="flex items-center gap-1">
+                  <XCircle className="h-3 w-3" />
+                  Canceling
+                </Badge>
+              )}
             </div>
             <Button
               onClick={() => router.push("/update-plan")}
@@ -130,6 +139,25 @@ export function BillingSection({ organization }: BillingSectionProps) {
             </Button>
           </div>
           
+          {organization?.subscriptionStatus === 'canceling' && (
+            <div className="bg-destructive/10 text-destructive rounded-md p-3 text-sm">
+              {organization?.subscriptionCancelAt ? (
+                <>
+                  Your subscription will end on {format(new Date(organization.subscriptionCancelAt), 'MMMM d, yyyy')}. 
+                  You'll continue to have access until then.
+                </>
+              ) : organization?.subscriptionCurrentPeriodEnd ? (
+                <>
+                  Your subscription is scheduled to cancel at the end of the current billing period on{' '}
+                  {format(new Date(organization.subscriptionCurrentPeriodEnd), 'MMMM d, yyyy')}. 
+                  You'll continue to have access until then.
+                </>
+              ) : (
+                'Your subscription is scheduled to cancel. You\'ll continue to have access until the end of your billing period.'
+              )}
+            </div>
+          )}
+          
           <div className="flex justify-between items-center pt-2">
             <button
               onClick={() => setShowContactSales(true)}
@@ -137,7 +165,7 @@ export function BillingSection({ organization }: BillingSectionProps) {
             >
               If you have custom needs, contact us
             </button>
-            {isPaidPlan && (
+            {canCancelSubscription && (
               <button
                 onClick={() => setShowCancelDialog(true)}
                 className="text-sm text-muted-foreground hover:text-destructive transition-colors"

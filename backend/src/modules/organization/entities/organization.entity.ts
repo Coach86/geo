@@ -7,6 +7,7 @@ export class Organization {
   stripeSubscriptionId?: string;
   subscriptionStatus?: string;
   subscriptionCurrentPeriodEnd?: Date;
+  subscriptionCancelAt?: Date;
   planSettings: {
     maxProjects: number;
     maxAIModels: number;

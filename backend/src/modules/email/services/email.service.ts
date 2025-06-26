@@ -60,4 +60,102 @@ export class EmailService {
       // Don't throw - we don't want email failures to affect the system
     }
   }
+
+  async sendSubscriptionCancelledEmail(
+    email: string,
+    userName: string,
+    planName: string,
+    endDate: Date,
+  ): Promise<void> {
+    if (!this.resend) {
+      this.logger.warn('Email service not configured, skipping cancellation email to ' + email);
+      return;
+    }
+
+    try {
+      this.logger.log('Sending cancellation email with date:', {
+        endDate,
+        isValidDate: endDate instanceof Date && !isNaN(endDate.getTime()),
+        dateString: endDate?.toISOString(),
+      });
+
+      const SubscriptionCancelledEmail = await import('../templates/subscription-cancelled.email').then(m => m.default);
+
+      const formattedDate = endDate instanceof Date && !isNaN(endDate.getTime())
+        ? endDate.toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          })
+        : 'Unknown date';
+
+      const { error } = await this.resend.emails.send({
+        from: 'Mint <notifications@getmint.ai>',
+        to: email,
+        subject: 'Subscription Cancellation Confirmed',
+        react: React.createElement(SubscriptionCancelledEmail, {
+          userName,
+          userEmail: email,
+          planName,
+          endDate: formattedDate,
+        }),
+      });
+
+      if (error) {
+        throw new Error(`Failed to send cancellation email: ${error.message}`);
+      }
+
+      this.logger.log(`Subscription cancellation email sent to ${email}`);
+    } catch (error) {
+      this.logger.error(`Failed to send subscription cancellation email: ${error.message}`, error.stack);
+      // Don't throw - we don't want email failures to affect the system
+    }
+  }
+
+  async sendSubscriptionConfirmationEmail(
+    email: string,
+    userName: string,
+    planName: string,
+    amount: number,
+    billingCycle: string = 'monthly',
+  ): Promise<void> {
+    if (!this.resend) {
+      this.logger.warn('Email service not configured, skipping subscription confirmation email to ' + email);
+      return;
+    }
+
+    try {
+      this.logger.log('Sending subscription confirmation email:', {
+        email,
+        planName,
+        amount,
+        billingCycle,
+      });
+
+      const SubscriptionConfirmationEmail = await import('../templates/subscription-confirmation.email').then(m => m.default);
+
+      const { error } = await this.resend.emails.send({
+        from: 'Mint <notifications@getmint.ai>',
+        to: email,
+        subject: `Welcome to ${planName} - Subscription Confirmed`,
+        react: React.createElement(SubscriptionConfirmationEmail, {
+          userName,
+          userEmail: email,
+          planName,
+          amount,
+          billingCycle,
+        }),
+      });
+
+      if (error) {
+        throw new Error(`Failed to send subscription confirmation email: ${error.message}`);
+      }
+
+      this.logger.log(`Subscription confirmation email sent to ${email}`);
+    } catch (error) {
+      this.logger.error(`Failed to send subscription confirmation email: ${error.message}`, error.stack);
+      // Don't throw - we don't want email failures to affect the system
+    }
+  }
 }
