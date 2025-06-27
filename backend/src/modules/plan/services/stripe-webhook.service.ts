@@ -7,6 +7,7 @@ import { PlanService } from './plan.service';
 import { UserService } from '../../user/services/user.service';
 import { PromoCodeService } from '../../promo/services/promo-code.service';
 import { SendSubscriptionConfirmationEmailEvent } from '../../email/events/email.events';
+import { OrganizationPlanUpdatedEvent } from '../../organization/events/organization-plan-updated.event';
 
 @Injectable()
 export class StripeWebhookService {
@@ -159,6 +160,24 @@ export class StripeWebhookService {
         ),
       );
 
+      // Get all users in the organization to update their Loops profiles
+      const orgUsers = await this.userService.findByOrganizationId(organizationId);
+      const userEmails = orgUsers.map((u: any) => u.email);
+      
+      // Emit organization plan update event for Loops
+      this.eventEmitter.emit(
+        'organization.plan.updated',
+        new OrganizationPlanUpdatedEvent(
+          organizationId,
+          plan.name,
+          new Date(),
+          false, // isOnTrial - for paid plans, they're not on trial
+          userEmails,
+          undefined, // trialEndsAt
+          'active', // subscriptionStatus
+        ),
+      );
+
       return {
         success: true,
         message: `Your ${plan.name} plan has been activated successfully!`,
@@ -300,6 +319,23 @@ export class StripeWebhookService {
               subscription.items.data[0]?.price?.unit_amount || 0, // Amount in cents
             ),
           );
+
+          // Get all user emails for Loops update
+          const userEmails = users.map(u => u.email);
+          
+          // Emit organization plan update event for Loops
+          this.eventEmitter.emit(
+            'organization.plan.updated',
+            new OrganizationPlanUpdatedEvent(
+              organization.id,
+              plan.name,
+              new Date(),
+              subscription.status === 'trialing', // isOnTrial
+              userEmails,
+              subscription.trial_end ? new Date(subscription.trial_end * 1000) : undefined, // trialEndsAt
+              subscription.status, // subscriptionStatus
+            ),
+          );
         }
       }
     }
@@ -322,6 +358,30 @@ export class StripeWebhookService {
       subscriptionStatus: subscription.status,
       subscriptionCurrentPeriodEnd: new Date((subscription as any).current_period_end * 1000),
     });
+
+    // Get plan details and users for Loops update
+    if (organization.stripePlanId) {
+      const plan = await this.planService.findById(organization.stripePlanId);
+      const users = await this.userService.findByOrganizationId(organization.id);
+      
+      if (plan && users && users.length > 0) {
+        const userEmails = users.map(u => u.email);
+        
+        // Emit organization plan update event for Loops
+        this.eventEmitter.emit(
+          'organization.plan.updated',
+          new OrganizationPlanUpdatedEvent(
+            organization.id,
+            plan.name,
+            new Date(),
+            subscription.status === 'trialing', // isOnTrial
+            userEmails,
+            subscription.trial_end ? new Date(subscription.trial_end * 1000) : undefined, // trialEndsAt
+            subscription.status, // subscriptionStatus
+          ),
+        );
+      }
+    }
 
     // If subscription is past_due or unpaid, emit event
     if (subscription.status === 'past_due' || subscription.status === 'unpaid') {
@@ -386,6 +446,26 @@ export class StripeWebhookService {
       previousPlanId: organization.stripePlanId,
       timestamp: new Date(),
     });
+
+    // Get users for Loops update
+    const users = await this.userService.findByOrganizationId(organization.id);
+    if (users && users.length > 0) {
+      const userEmails = users.map(u => u.email);
+      
+      // Emit organization plan update event for Loops (downgrade to free)
+      this.eventEmitter.emit(
+        'organization.plan.updated',
+        new OrganizationPlanUpdatedEvent(
+          organization.id,
+          'Free',
+          new Date(),
+          false, // isOnTrial
+          userEmails,
+          undefined, // trialEndsAt
+          'canceled', // subscriptionStatus
+        ),
+      );
+    }
 
     console.log(`Organization ${organization.id} reverted to free plan due to subscription cancellation`);
   }
