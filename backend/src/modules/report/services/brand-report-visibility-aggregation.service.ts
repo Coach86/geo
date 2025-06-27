@@ -42,16 +42,6 @@ export class BrandReportVisibilityAggregationService {
   ): Promise<AggregatedVisibilityResponseDto> {
     const reports = await this.fetchReportsForAggregation(projectId, query);
 
-    // Debug log to check what was fetched
-    this.logger.debug(`[getAggregatedVisibility] Fetched ${reports.length} reports for project ${projectId}`);
-    if (reports.length > 0) {
-      this.logger.debug(`[getAggregatedVisibility] First report check:`, {
-        hasVisibility: !!reports[0].visibility,
-        visibilityKeys: reports[0].visibility ? Object.keys(reports[0].visibility) : [],
-        hasTopMentions: !!reports[0].visibility?.topMentions,
-        topMentionsLength: reports[0].visibility?.topMentions?.length || 0
-      });
-    }
 
     if (reports.length === 0) {
       return this.createEmptyVisibilityResponse();
@@ -62,6 +52,7 @@ export class BrandReportVisibilityAggregationService {
 
     // Get project information for domain classification
     const project = await this.projectService.findById(projectId);
+    
 
     const aggregationResult = this.aggregateVisibilityData(reports, selectedModels);
     
@@ -109,12 +100,6 @@ export class BrandReportVisibilityAggregationService {
       domainSourceAnalysis
     };
 
-    // Debug log the response
-    this.logger.debug(`[getAggregatedVisibility] Returning response:`, {
-      topMentionsCount: topMentions.length,
-      topMentionsSample: topMentions.slice(0, 3),
-      hasData: topMentions.length > 0
-    });
 
     return response;
   }
@@ -153,16 +138,6 @@ export class BrandReportVisibilityAggregationService {
       .limit(10)
       .lean();
 
-    // Debug logging
-    this.logger.debug(`[fetchReportsForAggregation] Fetched ${reports.length} reports`);
-    if (reports.length > 0) {
-      this.logger.debug(`[fetchReportsForAggregation] First report visibility structure:`, {
-        hasVisibility: !!reports[0].visibility,
-        hasTopMentions: !!reports[0].visibility?.topMentions,
-        topMentionsLength: reports[0].visibility?.topMentions?.length || 0,
-        topMentionsSample: reports[0].visibility?.topMentions?.slice(0, 2) || []
-      });
-    }
 
     return reports;
   }
@@ -203,6 +178,7 @@ export class BrandReportVisibilityAggregationService {
       if (!visData) return;
 
       this.trackMentions(visData, mentionTracker, selectedModels);
+      
       this.trackDomains(visData, domainTracker, selectedModels, report.explorer);
 
       const reportResult = this.processReportVisibility(
@@ -266,18 +242,9 @@ export class BrandReportVisibilityAggregationService {
     mentionTracker: Map<string, { displayName: string; count: number }>,
     selectedModels?: string[]
   ): void {
-    // Debug logging
-    this.logger.debug(`[trackMentions] Processing visibility data:`, {
-      hasTopMentions: !!visData.topMentions,
-      topMentionsLength: visData.topMentions?.length || 0,
-      hasDetailedResults: !!visData.detailedResults,
-      detailedResultsLength: visData.detailedResults?.length || 0,
-      selectedModels: selectedModels || 'all'
-    });
 
     // Use detailedResults for model-specific filtering if available and models are selected
     if (selectedModels && selectedModels.length > 0 && visData.detailedResults && visData.detailedResults.length > 0) {
-      this.logger.debug(`[trackMentions] Using detailedResults for model filtering`);
       
       visData.detailedResults.forEach((result: any) => {
         // Only process results from selected models
@@ -301,7 +268,6 @@ export class BrandReportVisibilityAggregationService {
       });
     } else {
       // Fallback to aggregated topMentions if no model filtering or no detailedResults
-      this.logger.debug(`[trackMentions] Using aggregated topMentions`);
       
       if (visData.topMentions) {
         visData.topMentions.forEach((mentionItem: any) => {
@@ -322,11 +288,6 @@ export class BrandReportVisibilityAggregationService {
       }
     }
 
-    // Debug log final state
-    this.logger.debug(`[trackMentions] Mention tracker state:`, {
-      trackerSize: mentionTracker.size,
-      trackerEntries: Array.from(mentionTracker.entries()).slice(0, 5)
-    });
   }
 
   private trackDomains(
@@ -335,19 +296,9 @@ export class BrandReportVisibilityAggregationService {
     selectedModels?: string[],
     explorerData?: ExplorerData
   ): void {
-    // Debug logging
-    this.logger.debug(`[trackDomains] Processing visibility data:`, {
-      hasTopDomains: !!visData.topDomains,
-      topDomainsLength: visData.topDomains?.length || 0,
-      hasDetailedResults: !!visData.detailedResults,
-      detailedResultsLength: visData.detailedResults?.length || 0,
-      hasExplorerData: !!explorerData,
-      selectedModels: selectedModels || 'all'
-    });
 
     // Use explorer data if available - it has citations with promptType
     if (explorerData?.webSearchResults && explorerData.webSearchResults.length > 0) {
-      this.logger.debug(`[trackDomains] Using explorer data for accurate visibility citations`);
       
       explorerData.webSearchResults.forEach((searchResult: any) => {
         if (searchResult.citations && Array.isArray(searchResult.citations)) {
@@ -366,7 +317,6 @@ export class BrandReportVisibilityAggregationService {
       });
     } else if (visData.detailedResults && visData.detailedResults.length > 0) {
       // Fallback to detailedResults if no explorer data
-      this.logger.debug(`[trackDomains] Using detailedResults (fallback)`);
       
       visData.detailedResults.forEach((result: any) => {
         // Filter by selected models and promptType if provided
@@ -382,7 +332,6 @@ export class BrandReportVisibilityAggregationService {
                   domainTracker.set(domain, currentCount + 1);
                 } catch (error) {
                   // Invalid URL, skip
-                  this.logger.debug(`[trackDomains] Invalid URL skipped: ${citation.url}`);
                 }
               }
             });
@@ -391,7 +340,6 @@ export class BrandReportVisibilityAggregationService {
       });
     } else {
       // Fallback to aggregated topDomains if no model filtering or no detailedResults
-      this.logger.debug(`[trackDomains] Using aggregated topDomains`);
       
       if (visData.topDomains && Array.isArray(visData.topDomains)) {
         visData.topDomains.forEach((domainItem: any) => {
@@ -403,11 +351,6 @@ export class BrandReportVisibilityAggregationService {
       }
     }
 
-    // Debug log final state
-    this.logger.debug(`[trackDomains] Domain tracker state:`, {
-      trackerSize: domainTracker.size,
-      trackerEntries: Array.from(domainTracker.entries()).slice(0, 5)
-    });
   }
 
   private processReportVisibility(
@@ -528,11 +471,6 @@ export class BrandReportVisibilityAggregationService {
   private processTopMentions(
     mentionTracker: Map<string, { displayName: string; count: number }>
   ): TopMentionDto[] {
-    // Debug logging
-    this.logger.debug(`[processTopMentions] Processing mentions:`, {
-      trackerSize: mentionTracker.size,
-      trackerSample: Array.from(mentionTracker.entries()).slice(0, 3)
-    });
 
     const mentionEntries = Array.from(mentionTracker.entries())
       .map(([_, data]) => ({
@@ -550,12 +488,6 @@ export class BrandReportVisibilityAggregationService {
       percentage: totalMentions > 0 ? Math.round((item.count / totalMentions) * 100) : 0
     }));
 
-    // Debug log result
-    this.logger.debug(`[processTopMentions] Returning top mentions:`, {
-      resultLength: result.length,
-      totalMentions,
-      topMentions: result.slice(0, 3)
-    });
 
     return result;
   }

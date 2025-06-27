@@ -522,6 +522,36 @@ export class CompetitionPipelineService extends BasePipelineService {
   }
 
   /**
+   * Override executePrompt to remove token limits for competition analysis
+   * Competition analysis often requires detailed responses that exceed normal token limits
+   */
+  protected async executePrompt(
+    modelConfig: any,
+    prompt: string,
+    batchExecutionId?: string,
+    promptIndex: number = 0,
+  ): Promise<any> {
+    this.logger.log(
+      `[COMP-UNLIMITED] Executing competition prompt with ${modelConfig.provider}/${modelConfig.model} WITHOUT token limits`,
+    );
+
+    // Call the LLM adapter using the LlmService with unlimited tokens
+    const options = {
+      temperature: modelConfig.parameters.temperature,
+      maxTokens: undefined, // Remove token limits for competition analysis
+      systemPrompt: modelConfig.parameters.systemPrompt,
+      model: modelConfig.model,
+      webAccess: modelConfig.webAccess,
+      useRateLimiter: true,
+    };
+
+    // Call the LLM adapter using the LlmService
+    const result = await this.llmService.call(modelConfig.provider, prompt, options);
+
+    return result;
+  }
+
+  /**
    * Find common items that appear across multiple arrays
    * @param arrays Array of string arrays
    * @returns Array of common items

@@ -81,9 +81,6 @@ export class BrandReportVariationCalculatorService {
     competitorName: string,
     selectedModels?: string[]
   ): Promise<number> {
-    this.logger.log(`[calculateCompetitorVariation] Starting for: ${competitorName}`, {
-      selectedModels: selectedModels || 'all'
-    });
     
     const dateFilter = this.buildDateFilter(projectId, query);
     const allReports = await this.brandReportModel

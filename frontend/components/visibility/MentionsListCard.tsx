@@ -108,40 +108,48 @@ export function MentionsListCard({ mentions, loading }: MentionsListCardProps) {
                 const opacity = 100 - (index * 8); // Decreases from 100 to 20
 
                 return (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors duration-200"
-                  >
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <span className="text-sm font-medium text-gray-600 w-6">
-                        #{index + 1}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm font-medium text-gray-900 truncate mr-2">
-                            {item.mention}
-                          </span>
-                          <div className="flex items-center gap-1">
-                            <span className="text-sm font-semibold text-gray-700">
-                              {percentage}%
+                  <TooltipProvider key={index}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div
+                          className="flex items-center justify-between p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors duration-200"
+                        >
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <span className="text-sm font-medium text-gray-600 w-6">
+                              #{index + 1}
                             </span>
-                            <span className="text-xs text-gray-500">
-                              ({item.count})
-                            </span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-sm font-medium text-gray-900 truncate mr-2">
+                                  {item.mention}
+                                </span>
+                                <div className="flex items-center gap-1">
+                                  <span className="text-sm font-semibold text-gray-700">
+                                    {percentage}%
+                                  </span>
+                                  <span className="text-xs text-gray-500">
+                                    ({item.count})
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                                <div
+                                  className="h-full bg-blue-500 transition-all duration-500 ease-out"
+                                  style={{ 
+                                    width: `${percentage}%`,
+                                    opacity: opacity / 100
+                                  }}
+                                />
+                              </div>
+                            </div>
                           </div>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                          <div
-                            className="h-full bg-blue-500 transition-all duration-500 ease-out"
-                            style={{ 
-                              width: `${percentage}%`,
-                              opacity: opacity / 100
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{item.count} mentions / {total} total ({percentage}%)</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 );
               })}
             </>
