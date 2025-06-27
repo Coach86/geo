@@ -135,7 +135,7 @@ IMPORTANT SCORING NOTES:
           domainAuthority: data.domainAuthority || 'low',
           trustSignals,
         },
-        issues: issues.map(issue => ({
+        issues: issues.map((issue: any) => ({
           severity: issue.severity || 'medium',
           description: issue.description || 'Unspecified issue',
           recommendation: issue.recommendation || 'Review content quality',

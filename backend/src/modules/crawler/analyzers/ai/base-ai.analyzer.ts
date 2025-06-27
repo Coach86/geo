@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { LLMService } from '../../../llm/services/llm.service';
+import { LlmService } from '../../../llm/services/llm.service';
+import { LlmProvider } from '../../../llm/interfaces/llm-provider.enum';
 import { ConfigService } from '@nestjs/config';
 import { RetryUtil } from '../../../../utils/retry.util';
 
@@ -25,7 +26,7 @@ export abstract class BaseAIAnalyzer<TDetails> {
   protected readonly cacheTTL: number;
 
   constructor(
-    protected readonly llmService: LLMService,
+    protected readonly llmService: LlmService,
     protected readonly configService: ConfigService,
   ) {
     this.logger = new Logger(this.constructor.name);
@@ -95,23 +96,20 @@ export abstract class BaseAIAnalyzer<TDetails> {
     }
 
     // Make LLM call with retry
+    const systemPrompt = 'You are an expert SEO and content analyst. Analyze web content and provide structured JSON responses.';
+    const fullPrompt = `${systemPrompt}\n\n${prompt}`;
+    
     const response = await RetryUtil.withRetry(
       async () => {
-        return await this.llmService.generateStructuredResponse({
-          model,
-          messages: [
-            {
-              role: 'system',
-              content: 'You are an expert SEO and content analyst. Analyze web content and provide structured JSON responses.'
-            },
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          temperature: 0.1, // Low temperature for consistent scoring
-          maxTokens: 2000,
-        });
+        return await this.llmService.call(
+          LlmProvider.OpenAI,
+          fullPrompt,
+          {
+            model,
+            temperature: 0.1, // Low temperature for consistent scoring
+            maxTokens: 2000,
+          }
+        );
       },
       {
         maxRetries: this.maxRetries,
@@ -123,7 +121,7 @@ export abstract class BaseAIAnalyzer<TDetails> {
 
     // Parse and validate response
     try {
-      const parsed = this.parseResponse(response);
+      const parsed = this.parseResponse(response.text);
       return {
         ...parsed,
         model,
