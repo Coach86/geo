@@ -231,6 +231,7 @@ export default function VisibilityPage() {
               <TopDomainRankingCard
                 domains={topDomains}
                 loading={loadingVisibility}
+                totalPromptsTested={totalPromptsTested}
               />
             </div>
 

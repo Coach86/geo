@@ -82,7 +82,10 @@ export function VisibilityTrendChart({
                     fontSize: '12px'
                   }}
                   labelStyle={{ color: '#333', fontWeight: 'bold' }}
-                  formatter={(value: number) => Math.round(value)}
+                  formatter={(value: number, name: string) => [
+                    Math.round(value),
+                    name === 'Brand' ? brandName : name
+                  ]}
                 />
                 <Legend
                   wrapperStyle={{ fontSize: '12px' }}

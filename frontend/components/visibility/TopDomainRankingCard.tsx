@@ -15,9 +15,10 @@ interface TopDomainRankingCardProps {
     percentage?: number;
   }>;
   loading?: boolean;
+  totalPromptsTested?: number;
 }
 
-export function TopDomainRankingCard({ domains, loading }: TopDomainRankingCardProps) {
+export function TopDomainRankingCard({ domains, loading, totalPromptsTested }: TopDomainRankingCardProps) {
   // Always show 10 entries
   const { displayDomains, total, domainNames } = useMemo(() => {
     // Take first 10 domains, or pad with empty entries if less than 10
@@ -114,47 +115,58 @@ export function TopDomainRankingCard({ domains, loading }: TopDomainRankingCardP
                 const opacity = 100 - (index * 8); // Decreases from 100 to 20
 
                 return (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors duration-200"
-                  >
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <span className="text-sm font-medium text-gray-600 w-6">
-                        #{index + 1}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-1">
-                          <div className="flex items-center gap-2 min-w-0 flex-1">
-                            {item.domain !== '-' && item.domain !== 'Others' && favicons[item.domain] && (
-                              <img 
-                                src={favicons[item.domain]} 
-                                alt={`${item.domain} favicon`}
-                                className="w-4 h-4 flex-shrink-0"
-                                onError={(e) => {
-                                  e.currentTarget.style.display = 'none';
-                                }}
-                              />
-                            )}
-                            <span className="text-sm font-medium text-gray-900 truncate">
-                              {item.domain}
+                  <TooltipProvider key={index}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div
+                          className="flex items-center justify-between p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors duration-200"
+                        >
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <span className="text-sm font-medium text-gray-600 w-6">
+                              #{index + 1}
                             </span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between mb-1">
+                                <div className="flex items-center gap-2 min-w-0 flex-1">
+                                  {item.domain !== '-' && item.domain !== 'Others' && favicons[item.domain] && (
+                                    <img 
+                                      src={favicons[item.domain]} 
+                                      alt={`${item.domain} favicon`}
+                                      className="w-4 h-4 flex-shrink-0"
+                                      onError={(e) => {
+                                        e.currentTarget.style.display = 'none';
+                                      }}
+                                    />
+                                  )}
+                                  <span className="text-sm font-medium text-gray-900 truncate">
+                                    {item.domain}
+                                  </span>
+                                </div>
+                                <span className="text-sm font-semibold text-gray-700 ml-2">
+                                  {percentage}%
+                                </span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                                <div
+                                  className="h-full bg-emerald-500 transition-all duration-500 ease-out"
+                                  style={{ 
+                                    width: `${percentage}%`,
+                                    opacity: opacity / 100
+                                  }}
+                                />
+                              </div>
+                            </div>
                           </div>
-                          <span className="text-sm font-semibold text-gray-700 ml-2">
-                            {percentage}%
-                          </span>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                          <div
-                            className="h-full bg-emerald-500 transition-all duration-500 ease-out"
-                            style={{ 
-                              width: `${percentage}%`,
-                              opacity: opacity / 100
-                            }}
-                          />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <div className="text-left">
+                          <p>Total sources = {total}</p>
+                          <p>{item.count} uses by this domain ({percentage}%)</p>
                         </div>
-                      </div>
-                    </div>
-                  </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 );
               })}
             </>
