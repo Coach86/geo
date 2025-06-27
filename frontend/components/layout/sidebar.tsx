@@ -11,6 +11,7 @@ import {
   Home,
   SlidersHorizontal,
   Settings,
+  FileText,
 } from "lucide-react";
 import {
   ProjectResponse,
@@ -33,6 +34,7 @@ const insightsMenuItems: SidebarItem[] = [
   { label: "Alignment", icon: Shield, href: "/alignment", feature: "alignment" },
   { label: "Competition", icon: Swords, href: "/competition", feature: "competition" },
   { label: "Explorer", icon: Compass, href: "/explorer" },
+  { label: "Content KPI", icon: FileText, href: "/content-kpi" },
 ];
 
 const optimizationMenuItems: SidebarItem[] = [

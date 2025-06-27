@@ -8,6 +8,7 @@ import { ReportBuilderService } from './report-builder.service';
 import { OrganizationService } from '../../organization/services/organization.service';
 import { UserService } from '../../user/services/user.service';
 import { ReportCompletedEvent } from '../events/report-completed.event';
+import { CrawlerPipelineService } from '../../crawler/services/crawler-pipeline.service';
 import {
   AccuracyResults,
   ProjectBatchContext,
@@ -40,6 +41,7 @@ export class BrandReportOrchestratorService {
     private readonly eventEmitter: EventEmitter2,
     private readonly organizationService: OrganizationService,
     private readonly userService: UserService,
+    private readonly crawlerPipelineService: CrawlerPipelineService,
   ) {}
 
   /**
@@ -118,6 +120,19 @@ export class BrandReportOrchestratorService {
         this.batchService.runAlignmentPipeline(contextWithBatchExecId),
         this.batchService.runCompetitionPipeline(contextWithBatchExecId),
       ]);
+
+      // Run content KPI pipeline separately (it has its own crawling process)
+      let contentKpiResult = null;
+      try {
+        // Only run if crawling is enabled for the project
+        if (project.crawlSettings?.enabled !== false) {
+          this.logger.log(`Running content KPI pipeline for project ${projectId}`);
+          contentKpiResult = await this.crawlerPipelineService.runContentKPIPipeline(projectId);
+        }
+      } catch (error) {
+        this.logger.error(`Content KPI pipeline failed for project ${projectId}: ${error.message}`, error.stack);
+        // Don't fail the entire batch if content KPI fails
+      }
       
       const spontaneousResults = pipelineResults[0] as SpontaneousResults;
       const sentimentResults = pipelineResults[1] as SentimentResults;

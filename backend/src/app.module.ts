@@ -24,6 +24,7 @@ import { PlanModule } from './modules/plan/plan.module';
 import { OrganizationModule } from './modules/organization/organization.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { EmailModule } from './modules/email/email.module';
+import { CrawlerModule } from './modules/crawler/crawler.module';
 import { getWinstonConfig } from './utils/logger.config';
 import { getCloudWatchLoggerConfig } from './utils/cloudwatch-logger.config';
 import { LoggerModule } from './utils/logger.module';
@@ -97,6 +98,7 @@ import { LoggerModule } from './utils/logger.module';
     PlanModule,
     AnalyticsModule,
     EmailModule,
+    CrawlerModule,
     LoggerModule,
   ],
   controllers: [AppController],

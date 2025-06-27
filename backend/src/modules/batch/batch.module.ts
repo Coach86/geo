@@ -35,6 +35,7 @@ import { OrganizationModule } from '../organization/organization.module';
 import { ConfigModule } from '../config/config.module';
 import { PlanModule } from '../plan/plan.module';
 import { JwtModule } from '@nestjs/jwt';
+import { CrawlerModule } from '../crawler/crawler.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { JwtModule } from '@nestjs/jwt';
     forwardRef(() => AuthModule),
     forwardRef(() => OrganizationModule),
     forwardRef(() => PlanModule),
+    forwardRef(() => CrawlerModule),
     ConfigModule,
   ],
   controllers: [
