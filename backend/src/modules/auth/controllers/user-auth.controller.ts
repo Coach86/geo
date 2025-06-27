@@ -10,6 +10,7 @@ import { UserService } from '../../user/services/user.service';
 import { DiscountType } from '../../promo/schemas/promo-code.schema';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { FreePlanActivatedEvent } from '../../organization/events/free-plan-activated.event';
+import { OrganizationPlanUpdatedEvent } from '../../organization/events/organization-plan-updated.event';
 
 @ApiTags('User - Auth')
 @Controller('users/auth')
@@ -260,13 +261,32 @@ export class UserAuthController {
       }
       
       // Mark organization as having activated free plan
+      const activatedAt = new Date();
       await this.organizationService.update(user.organizationId, {
         hasActivatedFreePlan: true,
-        freePlanActivatedAt: new Date(),
+        freePlanActivatedAt: activatedAt,
       });
       
       // Emit event for batch processing
       this.eventEmitter.emit('free-plan.activated', new FreePlanActivatedEvent(user.organizationId, userId));
+      
+      // Get all users in the organization to update their Loops profiles
+      const orgUsers = await this.userService.findByOrganizationId(user.organizationId);
+      const userEmails = orgUsers.map((u: any) => u.email);
+      
+      // Emit organization plan update event for Loops
+      this.eventEmitter.emit(
+        'organization.plan.updated',
+        new OrganizationPlanUpdatedEvent(
+          user.organizationId,
+          'Free',
+          activatedAt,
+          false, // isOnTrial
+          userEmails,
+          undefined, // trialEndsAt
+          'active', // subscriptionStatus
+        ),
+      );
       
       return {
         success: true,
