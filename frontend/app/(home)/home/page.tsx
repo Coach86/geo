@@ -17,6 +17,7 @@ import { useCelebration } from "@/hooks/use-celebration"
 import { CelebrationConfetti } from "@/components/ui/celebration-confetti"
 import { ProjectOverviewCard } from "@/components/home/ProjectOverviewCard"
 import { MintScoreCard } from "@/components/home/MintScoreCard"
+import { ContentKPIWidget } from "@/components/content-kpi/ContentKPIWidget"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 
 export default function HomePage() {
@@ -137,9 +138,9 @@ export default function HomePage() {
       </div>
 
       <div className="space-y-6">
-        {/* Project Cards - One per row with two columns */}
+        {/* Project Cards - One per row with three columns */}
         {allProjects.map((project) => (
-          <div key={project.id} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div key={project.id} className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <ProjectOverviewCard 
               project={project} 
               onClick={() => handleProjectClick(project)}
@@ -149,6 +150,9 @@ export default function HomePage() {
               projectId={project.id} 
               token={token!} 
               onGoToProject={() => handleGoToProject(project)}
+            />
+            <ContentKPIWidget 
+              projectId={project.id}
             />
           </div>
         ))}
