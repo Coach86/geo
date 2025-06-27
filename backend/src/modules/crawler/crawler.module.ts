@@ -4,6 +4,9 @@ import { WebCrawlerService } from './services/web-crawler.service';
 import { ContentAnalyzerService } from './services/content-analyzer.service';
 import { CrawlerPipelineService } from './services/crawler-pipeline.service';
 import { ScoringRulesService } from './services/scoring-rules.service';
+import { PageSignalExtractorService } from './services/page-signal-extractor.service';
+import { UnifiedKPIAnalyzerService } from './services/unified-kpi-analyzer.service';
+import { ContentKPIBudgetManagerService } from './services/content-kpi-budget-manager.service';
 import { CrawlerController } from './controllers/crawler.controller';
 import { UserCrawlerController } from './controllers/user-crawler.controller';
 import { CrawledPage, CrawledPageSchema } from './schemas/crawled-page.schema';
@@ -20,6 +23,7 @@ import { ConfigModule } from '../config/config.module';
 import { BatchModule } from '../batch/batch.module';
 import { AuthModule } from '../auth/auth.module';
 import { UserModule } from '../user/user.module';
+import { LlmModule } from '../llm/llm.module';
 
 @Module({
   imports: [
@@ -32,6 +36,7 @@ import { UserModule } from '../user/user.module';
     forwardRef(() => AuthModule),
     forwardRef(() => UserModule),
     ConfigModule,
+    LlmModule,
   ],
   controllers: [CrawlerController, UserCrawlerController],
   providers: [
@@ -39,6 +44,9 @@ import { UserModule } from '../user/user.module';
     ContentAnalyzerService,
     CrawlerPipelineService,
     ScoringRulesService,
+    PageSignalExtractorService,
+    UnifiedKPIAnalyzerService,
+    ContentKPIBudgetManagerService,
     CrawledPageRepository,
     ContentScoreRepository,
     AuthorityAnalyzer,

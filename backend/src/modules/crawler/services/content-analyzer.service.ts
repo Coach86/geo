@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { CrawledPageRepository } from '../repositories/crawled-page.repository';
 import { ContentScoreRepository } from '../repositories/content-score.repository';
 import { AuthorityAnalyzer } from '../analyzers/authority.analyzer';
@@ -11,6 +12,9 @@ import { calculateGlobalScore } from '../config/default-scoring-rules';
 import { ContentScore, DimensionDetails, ScoreIssue } from '../schemas/content-score.schema';
 import { ProjectService } from '../../project/services/project.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { UnifiedKPIAnalyzerService } from './unified-kpi-analyzer.service';
+import { ContentKPIBudgetManagerService } from './content-kpi-budget-manager.service';
+import { PageSignalExtractorService } from './page-signal-extractor.service';
 
 export interface AnalysisProgress {
   projectId: string;
@@ -25,6 +29,7 @@ export class ContentAnalyzerService {
   private readonly logger = new Logger(ContentAnalyzerService.name);
 
   constructor(
+    private readonly configService: ConfigService,
     private readonly crawledPageRepository: CrawledPageRepository,
     private readonly contentScoreRepository: ContentScoreRepository,
     private readonly authorityAnalyzer: AuthorityAnalyzer,
@@ -35,6 +40,9 @@ export class ContentAnalyzerService {
     private readonly scoringRulesService: ScoringRulesService,
     private readonly projectService: ProjectService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly unifiedKPIAnalyzer: UnifiedKPIAnalyzerService,
+    private readonly budgetManager: ContentKPIBudgetManagerService,
+    private readonly pageSignalExtractor: PageSignalExtractorService,
   ) {}
 
   async analyzeProjectContent(projectId: string, limit?: number): Promise<void> {
@@ -115,6 +123,139 @@ export class ContentAnalyzerService {
   }
 
   async analyzePage(page: any, project: any): Promise<Partial<ContentScore>> {
+    // Check if unified AI analysis is enabled
+    const useUnifiedAI = this.configService.get<boolean>('CONTENT_KPI_USE_AI', false);
+    const fallbackToStatic = this.configService.get<boolean>('CONTENT_KPI_FALLBACK_TO_STATIC', true);
+
+    if (useUnifiedAI) {
+      try {
+        return await this.analyzePageUnified(page, project);
+      } catch (error) {
+        this.logger.error(`Unified AI analysis failed for ${page.url}:`, error);
+        
+        if (fallbackToStatic) {
+          this.logger.log(`Falling back to static analysis for ${page.url}`);
+          return await this.analyzePageStatic(page, project);
+        } else {
+          throw error;
+        }
+      }
+    } else {
+      return await this.analyzePageStatic(page, project);
+    }
+  }
+
+  /**
+   * Unified AI-powered analysis (new approach)
+   */
+  async analyzePageUnified(page: any, project: any): Promise<Partial<ContentScore>> {
+    // Estimate cost first
+    const pageSignals = this.pageSignalExtractor.extract(page.html, page.metadata);
+    const cleanContent = this.pageSignalExtractor.getCleanContent(page.html);
+    const estimatedTokens = this.unifiedKPIAnalyzer.estimateTokenUsage(pageSignals, cleanContent);
+    const estimatedCost = this.budgetManager.estimateCost(estimatedTokens * 0.85, estimatedTokens * 0.15); // Rough input/output split
+
+    // Check budget
+    const budgetStatus = this.budgetManager.canProceedWithAnalysis(estimatedCost.estimatedCost);
+    if (!budgetStatus.canProceed) {
+      throw new Error(`Budget limit exceeded: ${budgetStatus.reason}`);
+    }
+
+    // Check circuit breaker
+    if (this.budgetManager.shouldTriggerCircuitBreaker()) {
+      throw new Error('Circuit breaker triggered due to high costs');
+    }
+
+    // Perform unified analysis
+    const analysisContext = {
+      brandName: project.brandName,
+      keyBrandAttributes: project.keyBrandAttributes || [],
+      competitors: project.competitors || [],
+    };
+
+    const result = await this.unifiedKPIAnalyzer.analyze(page.html, page.metadata, analysisContext);
+
+    // Record actual cost (we'll estimate this since we don't have exact token usage from response)
+    this.budgetManager.recordActualCost(estimatedCost.estimatedCost);
+
+    // Convert unified result to ContentScore format
+    return this.convertUnifiedResultToContentScore(result, page, project);
+  }
+
+  /**
+   * Convert unified AI result to ContentScore format
+   */
+  private convertUnifiedResultToContentScore(
+    result: any,
+    page: any,
+    project: any
+  ): Partial<ContentScore> {
+    // Convert unified issues to ContentScore issues
+    const issues: ScoreIssue[] = result.issues.map((issue: any) => ({
+      dimension: issue.dimension,
+      severity: issue.severity,
+      description: issue.description,
+      recommendation: issue.recommendation,
+    }));
+
+    // Prepare dimension details
+    const details: DimensionDetails = {
+      authority: {
+        hasAuthor: result.details.authority.hasAuthor,
+        authorCredentials: result.details.authority.authorCredentials,
+        outboundCitations: result.details.authority.citationCount,
+        trustedCitations: result.details.authority.citationCount, // Simplified mapping
+      },
+      freshness: {
+        publishDate: result.details.freshness.publishDate,
+        modifiedDate: result.details.freshness.modifiedDate,
+        daysSinceUpdate: result.details.freshness.daysSinceUpdate,
+        hasDateSignals: result.details.freshness.hasDateSignals,
+      },
+      structure: {
+        h1Count: result.details.structure.h1Count,
+        headingHierarchy: result.details.structure.hasSchema, // Mapping schema availability to hierarchy boolean
+        schemaTypes: [], // Would need to extract from page signals
+        avgSentenceWords: result.details.structure.avgSentenceWords,
+      },
+      snippet: {
+        avgSentenceWords: result.details.snippet.avgSentenceLength,
+        listCount: result.details.snippet.listCount,
+        qaBlockCount: result.details.snippet.qaBlockCount,
+        extractableBlocks: result.details.snippet.extractableBlocks,
+      },
+      brand: {
+        brandKeywordMatches: result.details.brand.brandMentions,
+        requiredTermsFound: result.details.brand.missingKeywords || [],
+        outdatedTermsFound: result.details.brand.alignmentIssues,
+        brandConsistency: result.details.brand.consistencyScore,
+      },
+    };
+
+    // Calculate global score using scoring rules
+    const scoringRules = this.scoringRulesService.getScoringRules();
+    const globalScore = calculateGlobalScore(result.scores, scoringRules);
+
+    return {
+      projectId: project.projectId,
+      url: page.url,
+      scores: result.scores,
+      globalScore,
+      details,
+      issues,
+      analyzedAt: new Date(),
+      crawledPageId: page.id || page._id,
+      scoringRulesVersion: {
+        version: '2.0.0-unified',
+        updatedAt: new Date(),
+      },
+    };
+  }
+
+  /**
+   * Static rule-based analysis (original approach)
+   */
+  async analyzePageStatic(page: any, project: any): Promise<Partial<ContentScore>> {
     const allIssues: ScoreIssue[] = [];
 
     // Run all analyzers
@@ -250,5 +391,26 @@ export class ContentAnalyzerService {
     
     // Save updated score
     return this.contentScoreRepository.upsert(projectId, url, score);
+  }
+
+  /**
+   * Get current budget status for monitoring
+   */
+  getBudgetStatus() {
+    return this.budgetManager.getBudgetStatus();
+  }
+
+  /**
+   * Reset budget for new analysis session
+   */
+  resetBudget() {
+    this.budgetManager.resetBudget();
+  }
+
+  /**
+   * Get performance metrics
+   */
+  getPerformanceMetrics() {
+    return this.budgetManager.getPerformanceMetrics();
   }
 }
