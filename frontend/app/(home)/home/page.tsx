@@ -18,6 +18,7 @@ import { CelebrationConfetti } from "@/components/ui/celebration-confetti"
 import { ProjectOverviewCard } from "@/components/home/ProjectOverviewCard"
 import { MintScoreCard } from "@/components/home/MintScoreCard"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { usePageTransition } from "@/providers/page-transition-provider"
 
 export default function HomePage() {
   const { allProjects, setSelectedProject, selectedProject } = useNavigation()
@@ -25,6 +26,7 @@ export default function HomePage() {
   const router = useRouter()
   const analytics = useAnalytics()
   const shouldCelebrate = useCelebration()
+  const { startTransition } = usePageTransition()
   const [showAddProjectModal, setShowAddProjectModal] = useState(false)
   const [organization, setOrganization] = useState<Organization | null>(null)
   const [loading, setLoading] = useState(false)
@@ -57,6 +59,7 @@ export default function HomePage() {
   const handleProjectClick = (project: ProjectResponse) => {
     analytics.trackProjectViewed(project.id, project.brandName)
     setSelectedProject(project)
+    startTransition()
     router.push("/project-settings")
   }
 

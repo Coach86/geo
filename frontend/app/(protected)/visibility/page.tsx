@@ -20,12 +20,14 @@ import { useNavigation } from "@/providers/navigation-provider";
 import { ProcessingLoader } from "@/components/shared/ProcessingLoader";
 import BreadcrumbNav from "@/components/layout/breadcrumb-nav";
 import { PageTransition } from "@/components/shared/PageTransition";
+import { usePageTransition } from "@/providers/page-transition-provider";
 
 
 export default function VisibilityPage() {
   const { token } = useAuth();
   const { allProjects, selectedProject, setSelectedProject } = useNavigation();
   const { reports, loadingReports, fetchReports } = useReports();
+  const { endTransition } = usePageTransition();
 
   // Get selected project from localStorage
   const selectedProjectId = typeof window !== 'undefined'
@@ -50,6 +52,11 @@ export default function VisibilityPage() {
       fetchReports(selectedProjectId, token);
     }
   }, [selectedProjectId, token, fetchReports]);
+
+  // End transition when page is loaded
+  useEffect(() => {
+    endTransition();
+  }, [endTransition]);
 
   // Memoize the date range object to prevent infinite re-renders
   const memoizedDateRange = useMemo(() => {

@@ -28,6 +28,7 @@ import { toast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import BreadcrumbNav from "@/components/layout/breadcrumb-nav";
 import { useNavigation } from "@/providers/navigation-provider";
+import { usePageTransition } from "@/providers/page-transition-provider";
 import { useAnalytics } from "@/hooks/use-analytics";
 
 // Import component modules
@@ -46,6 +47,7 @@ export default function Home() {
   const router = useRouter();
   const analytics = useAnalytics();
   const { allProjects, selectedProject, setSelectedProject } = useNavigation();
+  const { endTransition } = usePageTransition();
   const [projectDetails, setProjectDetails] = useState<ProjectResponse | null>(null);
   const [promptSet, setPromptSet] = useState<PromptSet | null>(null);
   const [organization, setOrganization] = useState<any>(null);
@@ -62,6 +64,11 @@ export default function Home() {
 
   // Analysis states
   const [runningAnalysis, setRunningAnalysis] = useState(false);
+
+  // End transition when component mounts
+  useEffect(() => {
+    endTransition();
+  }, [endTransition]);
 
   // Fetch project details when selected project changes
   useEffect(() => {

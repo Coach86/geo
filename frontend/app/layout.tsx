@@ -9,6 +9,7 @@ import { ReportProvider } from "@/providers/report-provider";
 import { PostHogProvider } from "@/providers/posthog-provider";
 import { NotificationProvider } from "@/providers/notification-provider";
 import { BatchEventsProvider } from "@/providers/batch-events-provider";
+import { PageTransitionProvider } from "@/providers/page-transition-provider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -47,9 +48,11 @@ export default function RootLayout({
               <ModelsProvider>
                 <NotificationProvider>
                   <BatchEventsProvider>
-                    <ReportProvider>
-                      {children}
-                    </ReportProvider>
+                    <PageTransitionProvider>
+                      <ReportProvider>
+                        {children}
+                      </ReportProvider>
+                    </PageTransitionProvider>
                   </BatchEventsProvider>
                 </NotificationProvider>
               </ModelsProvider>
