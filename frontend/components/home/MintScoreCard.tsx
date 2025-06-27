@@ -14,6 +14,7 @@ import { useBatchEventsContext } from "@/providers/batch-events-provider"
 import { useRouter } from "next/navigation"
 import { useFeatureAccess } from "@/hooks/use-feature-access"
 import { useProjectBatchStatus } from "@/hooks/use-project-batch-status"
+import { usePageTransition } from "@/providers/page-transition-provider"
 import {
   Tooltip,
   TooltipContent,
@@ -57,6 +58,7 @@ export function MintScoreCard({ projectId, token, onGoToProject }: MintScoreCard
   const { isRunning: isBatchRunning } = useProjectBatchStatus(projectId, token)
   const router = useRouter()
   const featureAccess = useFeatureAccess()
+  const { startTransition } = usePageTransition()
 
   useEffect(() => {
     const fetchLatestScores = async () => {
@@ -213,6 +215,7 @@ export function MintScoreCard({ projectId, token, onGoToProject }: MintScoreCard
 
   const handleCardClick = () => {
     if (onGoToProject) {
+      startTransition();
       onGoToProject();
     }
   };
@@ -361,7 +364,11 @@ export function MintScoreCard({ projectId, token, onGoToProject }: MintScoreCard
             <Button 
               variant="outline" 
               size="sm" 
-              className="w-full" 
+              className="w-full"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCardClick();
+              }} 
             >
               <ArrowRight className="h-3 w-3 mr-2" />
               Go to project
