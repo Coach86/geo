@@ -25,7 +25,7 @@ export function PageTransitionProvider({ children }: { children: React.ReactNode
   return (
     <PageTransitionContext.Provider value={{ startTransition, endTransition, isTransitioning }}>
       {isTransitioning && (
-        <PageTransition loading={true} className="fixed inset-0 z-50">
+        <PageTransition loading={true} fullScreen={true}>
           <div />
         </PageTransition>
       )}
