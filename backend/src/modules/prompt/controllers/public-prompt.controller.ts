@@ -103,15 +103,27 @@ export class PublicPromptController {
         }
       }
 
+      // SECURITY: Verify user owns this project
+      const user = await this.userService.findOne(request.userId);
+      if (!user) {
+        throw new UnauthorizedException('User not found');
+      }
+
+      const project = await this.projectModel.findOne({ id: projectId }).lean().exec();
+      if (!project) {
+        throw new NotFoundException('Project not found');
+      }
+
+      if (project.organizationId !== user.organizationId) {
+        throw new UnauthorizedException('You do not have permission to access this project');
+      }
+
       // Get the prompt set directly from the model
       const promptSet = await this.promptSetModel.findOne({ projectId }).lean().exec();
       
       if (!promptSet) {
         throw new NotFoundException('Prompt set not found');
       }
-
-      // TODO: Verify user owns this project
-      // For now, we'll skip this check but it should be added for security
 
       this.logger.log(`Prompt set retrieved successfully for project: ${projectId}`);
 

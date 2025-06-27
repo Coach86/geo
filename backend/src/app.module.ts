@@ -27,6 +27,7 @@ import { EmailModule } from './modules/email/email.module';
 import { getWinstonConfig } from './utils/logger.config';
 import { getCloudWatchLoggerConfig } from './utils/cloudwatch-logger.config';
 import { LoggerModule } from './utils/logger.module';
+import { CommonModule } from './common/common.module';
 
 @Module({
   imports: [
@@ -84,6 +85,7 @@ import { LoggerModule } from './utils/logger.module';
     }),
     ScheduleModule.forRoot(),
     EventEmitterModule.forRoot(),
+    CommonModule,
     OrganizationModule,
     UserModule,
     ProjectModule,

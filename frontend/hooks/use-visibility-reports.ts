@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { getAggregatedVisibility } from "@/lib/api/report";
 import type { ReportResponse } from "@/types/reports";
 
@@ -8,6 +8,20 @@ interface CompetitorData {
   name: string;
   averageScore: number;
   variation: number;
+}
+
+interface DomainSourceAnalysis {
+  brandDomainPercentage: number;
+  otherSourcesPercentage: number;
+  brandDomainCount: number;
+  otherSourcesCount: number;
+  competitorBreakdown?: Array<{
+    name: string;
+    count: number;
+    percentage: number;
+  }>;
+  unknownSourcesCount?: number;
+  unknownSourcesPercentage?: number;
 }
 
 interface UseVisibilityReportsReturn {
@@ -37,6 +51,7 @@ interface UseVisibilityReportsReturn {
     percentage: number;
   }>;
   totalPromptsTested: number;
+  domainSourceAnalysis?: DomainSourceAnalysis;
 }
 
 export function useVisibilityReports(
@@ -51,6 +66,11 @@ export function useVisibilityReports(
   const [error, setError] = useState<string | null>(null);
   const [aggregatedData, setAggregatedData] = useState<any>(null);
 
+  // Memoize selectedModels to prevent unnecessary re-renders
+  const memoizedSelectedModels = useMemo(() => {
+    return selectedModels.slice().sort(); // Create a sorted copy to ensure stability
+  }, [selectedModels.join(',')]); // Only change when the actual models change
+
   // Fetch aggregated visibility data
   useEffect(() => {
     const fetchAggregatedData = async () => {
@@ -62,7 +82,7 @@ export function useVisibilityReports(
           start: dateRange.startDate.toISOString(),
           end: dateRange.endDate.toISOString()
         } : null,
-        selectedModels: selectedModels.length,
+        selectedModels: memoizedSelectedModels.length,
         isAllTime
       });
       
@@ -79,7 +99,7 @@ export function useVisibilityReports(
           start: dateRange.startDate.toISOString(),
           end: dateRange.endDate.toISOString()
         } : null,
-        models: selectedModels,
+        models: memoizedSelectedModels,
         includeVariation: !isAllTime
       });
 
@@ -88,7 +108,7 @@ export function useVisibilityReports(
 
       try {
         const queryParams: any = {
-          models: selectedModels, // Send the array as-is (empty array means all models)
+          models: memoizedSelectedModels, // Send the array as-is (empty array means all models)
           includeVariation: !isAllTime, // Don't calculate variations for "All time"
         };
 
@@ -111,7 +131,7 @@ export function useVisibilityReports(
     };
 
     fetchAggregatedData();
-  }, [dateRange, selectedModels, token, isAllTime, isLatest, projectId]);
+  }, [dateRange, memoizedSelectedModels, token, isAllTime, isLatest, projectId]);
 
   // Process the aggregated data
   const processData = useCallback((): UseVisibilityReportsReturn => {
@@ -128,6 +148,7 @@ export function useVisibilityReports(
         topMentions: [],
         topDomains: [],
         totalPromptsTested: 0,
+        domainSourceAnalysis: undefined,
       };
     }
 
@@ -171,6 +192,7 @@ export function useVisibilityReports(
       topMentions: aggregatedData.topMentions || [],
       topDomains: aggregatedData.topDomains || [],
       totalPromptsTested: aggregatedData.totalPromptsTested || 0,
+      domainSourceAnalysis: aggregatedData.domainSourceAnalysis,
     };
   }, [aggregatedData]);
 
@@ -188,5 +210,6 @@ export function useVisibilityReports(
     topMentions: result.topMentions,
     topDomains: result.topDomains,
     totalPromptsTested: result.totalPromptsTested,
+    domainSourceAnalysis: result.domainSourceAnalysis,
   };
 }
