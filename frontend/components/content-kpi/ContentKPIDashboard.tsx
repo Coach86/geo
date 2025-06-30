@@ -12,11 +12,15 @@ import {
   PieChart, Pie, Cell
 } from 'recharts';
 import { useContentKPI } from '@/hooks/useContentKPI';
+import { useCrawlerEvents } from '@/hooks/use-crawler-events';
 import { 
   AlertTriangle, CheckCircle, Info, AlertCircle,
-  ExternalLink, TrendingUp, TrendingDown, Play, Loader2, RefreshCw
+  ExternalLink, TrendingUp, TrendingDown, Play, Loader2, RefreshCw,
+  Table2
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/providers/auth-provider';
+import { PageAnalysisTable } from './PageAnalysisTable';
 
 interface ContentKPIDashboardProps {
   projectId: string;
@@ -46,9 +50,70 @@ const SEVERITY_ICONS = {
 
 export function ContentKPIDashboard({ projectId }: ContentKPIDashboardProps) {
   const { report, data, loading, triggerCrawl, getCrawlStatus, refetch } = useContentKPI(projectId);
+  const { token } = useAuth();
   const [selectedTab, setSelectedTab] = useState('overview');
   const [isCrawling, setIsCrawling] = useState(false);
   const [crawlProgress, setCrawlProgress] = useState<{ crawledPages: number; totalPages: number } | null>(null);
+  const [initialCheckDone, setInitialCheckDone] = useState(false);
+
+  // Listen to crawler events
+  const { crawlerStatus, isActive: isCrawlerActive } = useCrawlerEvents({
+    projectId,
+    token: token || undefined,
+    onCrawlerEvent: (event) => {
+      console.log('[ContentKPIDashboard] Crawler event received:', event);
+      
+      // Update progress based on WebSocket events
+      if (event.eventType === 'crawler.started' || event.eventType === 'crawler.progress' || event.eventType === 'crawler.page_crawled') {
+        setIsCrawling(true);
+        setCrawlProgress({
+          crawledPages: event.crawledPages || 0,
+          totalPages: event.totalPages || 100,
+        });
+      } else if (event.eventType === 'crawler.completed') {
+        setIsCrawling(false);
+        setCrawlProgress(null);
+        refetch(); // Refresh the data
+        toast({
+          title: "Crawl completed",
+          description: `Successfully analyzed ${event.crawledPages || 0} pages`,
+        });
+      } else if (event.eventType === 'crawler.failed') {
+        setIsCrawling(false);
+        setCrawlProgress(null);
+        toast({
+          title: "Crawl failed",
+          description: event.error || "An error occurred during crawling",
+          variant: "destructive",
+        });
+      }
+    },
+  });
+
+  // Check initial crawl status on mount
+  useEffect(() => {
+    const checkInitialStatus = async () => {
+      try {
+        const status = await getCrawlStatus();
+        if (status.isActive) {
+          setIsCrawling(true);
+          setCrawlProgress({
+            crawledPages: status.crawledPages || 0,
+            totalPages: status.totalPages || 100,
+          });
+        }
+      } catch (error) {
+        // Ignore errors on initial check - likely means no crawl is active
+        console.debug('No active crawl found on initial check');
+      } finally {
+        setInitialCheckDone(true);
+      }
+    };
+
+    if (!initialCheckDone && getCrawlStatus) {
+      checkInitialStatus();
+    }
+  }, [getCrawlStatus, initialCheckDone]);
 
   // Check crawl status periodically when crawling
   useEffect(() => {
@@ -111,7 +176,7 @@ export function ContentKPIDashboard({ projectId }: ContentKPIDashboardProps) {
     }
   };
 
-  if (loading) {
+  if (loading || !initialCheckDone) {
     return (
       <div className="space-y-4">
         <Card className="animate-pulse">
@@ -317,6 +382,7 @@ export function ContentKPIDashboard({ projectId }: ContentKPIDashboardProps) {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="issues">Issues</TabsTrigger>
           <TabsTrigger value="pages">Pages</TabsTrigger>
+          <TabsTrigger value="detailed">Detailed Analysis</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
@@ -528,6 +594,31 @@ export function ContentKPIDashboard({ projectId }: ContentKPIDashboardProps) {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="detailed" className="space-y-4">
+          {/* Prepare all pages data for the detailed table */}
+          {(() => {
+            const allPages = data?.scores?.map(page => ({
+              url: page.url,
+              title: page.url, // ContentScore doesn't have title field
+              globalScore: page.globalScore,
+              scores: page.scores, // Already in correct format
+              details: page.details, // Pass the LLM analysis details
+              issues: page.issues || [], // Already in correct format
+              strengths: [
+                ...(page.scores.authority >= 80 ? ['Strong Authority Signals'] : []),
+                ...(page.scores.freshness >= 80 ? ['Fresh Content'] : []),
+                ...(page.scores.structure >= 80 ? ['Well Structured'] : []),
+                ...(page.scores.snippetExtractability >= 80 ? ['AI-Friendly Snippets'] : []),
+                // Only show brand strength if score is high AND there are actual brand mentions
+                ...(page.scores.brandAlignment >= 80 && page.details?.brand?.brandMentions > 0 ? ['Strong Brand Alignment'] : []),
+              ],
+              crawledAt: new Date(page.analyzedAt),
+            })) || [];
+
+            return <PageAnalysisTable pages={allPages} projectId={projectId} />;
+          })()}
         </TabsContent>
       </Tabs>
     </div>

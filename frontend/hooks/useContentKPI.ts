@@ -191,12 +191,19 @@ export function useContentKPI(projectId: string) {
     }
   }, [projectId, token]);
 
+  const refetch = async () => {
+    await Promise.all([
+      fetchContentScores(),
+      fetchContentReport()
+    ]);
+  };
+
   return {
     data,
     report,
     loading,
     error,
-    refetch: fetchContentScores,
+    refetch,
     triggerCrawl,
     getCrawlStatus,
   };

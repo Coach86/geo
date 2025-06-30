@@ -38,12 +38,13 @@ export class UnifiedKPIAnalyzerService {
       // Build unified prompt
       const prompt = this.buildUnifiedPrompt(pageSignals, cleanContent, context);
 
-      // Call LLM with optimized settings
+      // Call LLM with optimized settings using LangChain adapter
+      const model = 'gpt-3.5-turbo-0125';
       const response = await this.llmService.call(
-        LlmProvider.OpenAI,
+        LlmProvider.OpenAILangChain,
         prompt,
         {
-          model: 'gpt-3.5-turbo-0125', // Cost-effective choice
+          model,
           temperature: 0, // Consistent results
           maxTokens: 1000, // Limit response size
         }
@@ -52,9 +53,23 @@ export class UnifiedKPIAnalyzerService {
       // Parse and validate response
       const parsedResult = this.parseUnifiedResponse(response.text);
       
+      // Add LLM data to the result
+      const resultWithLLMData: UnifiedKPIResult = {
+        ...parsedResult,
+        llmData: {
+          prompt,
+          response: response.text,
+          model,
+          tokensUsed: response.tokenUsage ? {
+            input: response.tokenUsage.input,
+            output: response.tokenUsage.output,
+          } : undefined,
+        },
+      };
+      
       this.logger.debug(`Analysis completed for content with ${pageSignals.content.wordCount} words`);
       
-      return parsedResult;
+      return resultWithLLMData;
     } catch (error) {
       this.logger.error('Error in unified KPI analysis:', error);
       throw new Error(`Unified KPI analysis failed: ${error.message}`);
@@ -152,16 +167,26 @@ Return JSON:
    */
   private parseUnifiedResponse(response: string): UnifiedKPIResult {
     try {
+      this.logger.debug(`Raw LLM response: ${response.substring(0, 500)}...`);
+      
       // Extract JSON from response if wrapped in text
       const jsonMatch = response.match(/\{[\s\S]*\}/);
       const jsonStr = jsonMatch ? jsonMatch[0] : response;
       
+      this.logger.debug(`Extracted JSON: ${jsonStr.substring(0, 500)}...`);
+      
       const parsed = JSON.parse(jsonStr);
       
       // Validate against schema
-      return validateUnifiedKPIResult(parsed);
+      const result = validateUnifiedKPIResult(parsed);
+      this.logger.log(`Successfully parsed and validated LLM response`);
+      return result;
     } catch (error) {
-      this.logger.error('Failed to parse LLM response:', { error, response });
+      this.logger.error('Failed to parse LLM response:', { 
+        error: error.message, 
+        responseLength: response.length,
+        responsePreview: response.substring(0, 200)
+      });
       
       // Return fallback result
       return this.getFallbackResult();

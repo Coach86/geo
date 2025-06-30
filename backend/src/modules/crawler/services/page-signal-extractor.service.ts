@@ -199,8 +199,15 @@ export class PageSignalExtractorService {
       'meta[property="article:modified_time"]',
       'meta[name="publish-date"]',
       'meta[name="date"]',
+      'meta[name="DC.date"]',
+      'meta[name="DC.date.created"]',
+      'meta[name="DC.date.modified"]',
       'meta[itemprop="datePublished"]',
       'meta[itemprop="dateModified"]',
+      'meta[itemprop="dateCreated"]',
+      'meta[property="og:updated_time"]',
+      'meta[name="last-modified"]',
+      'meta[name="revised"]',
     ];
 
     for (const selector of metaSelectors) {
@@ -209,15 +216,54 @@ export class PageSignalExtractorService {
         const content = meta.getAttribute('content');
         if (content) {
           dateSignals.push(`${selector}: ${content}`);
-          if (selector.includes('published') || selector.includes('publish-date')) {
+          if (selector.includes('published') || selector.includes('publish-date') || selector.includes('created')) {
             publishDate = content;
           }
-          if (selector.includes('modified')) {
+          if (selector.includes('modified') || selector.includes('updated') || selector.includes('revised')) {
             modifiedDate = content;
           }
         }
       }
     }
+
+    // Extract dates from HTML elements with common patterns
+    const dateElementSelectors = [
+      '.date',
+      '.publish-date',
+      '.publication-date',
+      '.last-updated',
+      '.modified-date',
+      '.timestamp',
+      'time',
+      '.date-published',
+      '.article-date',
+      '.post-date',
+      '.updated',
+      '.created',
+    ];
+
+    for (const selector of dateElementSelectors) {
+      const elements = document.querySelectorAll(selector);
+      elements.forEach(el => {
+        const text = el.textContent?.trim();
+        const datetime = el.getAttribute('datetime');
+        
+        if (datetime) {
+          dateSignals.push(`${selector}[datetime]: ${datetime}`);
+          if (!publishDate) publishDate = datetime;
+        } else if (text && this.isDateString(text)) {
+          dateSignals.push(`${selector}: ${text}`);
+          if (!publishDate) publishDate = text;
+        }
+      });
+    }
+
+    // Search for date patterns in text content
+    const textDates = this.extractDatesFromText(document.body?.textContent || '');
+    textDates.forEach(date => {
+      dateSignals.push(`text-pattern: ${date}`);
+      if (!publishDate) publishDate = date;
+    });
 
     // Extract dates from JSON-LD
     const jsonLdScripts = document.querySelectorAll('script[type="application/ld+json"]');
@@ -237,7 +283,7 @@ export class PageSignalExtractorService {
       }
     });
 
-    // Use metadata if available
+    // Use metadata if available (HTTP headers)
     if (metadata?.lastModified) {
       modifiedDate = modifiedDate || metadata.lastModified;
       dateSignals.push(`metadata-modified: ${metadata.lastModified}`);
@@ -246,8 +292,113 @@ export class PageSignalExtractorService {
     return {
       publishDate,
       modifiedDate,
-      dateSignals: dateSignals.slice(0, 10), // Limit to 10 date signals
+      dateSignals: dateSignals.slice(0, 15), // Increased limit for more signals
     };
+  }
+
+  /**
+   * Check if a string contains a valid date
+   */
+  private isDateString(text: string): boolean {
+    if (!text || text.length < 4 || text.length > 50) return false;
+    
+    // Exclude obviously non-date strings
+    if (text.includes('copyright') || text.includes('©') || 
+        text.includes('all rights reserved') || text.toLowerCase().includes('since')) {
+      return false;
+    }
+    
+    // Common date patterns
+    const datePatterns = [
+      /\d{1,2}\/\d{1,2}\/\d{4}/,           // MM/DD/YYYY or DD/MM/YYYY
+      /\d{1,2}-\d{1,2}-\d{4}/,             // MM-DD-YYYY or DD-MM-YYYY
+      /\d{4}-\d{1,2}-\d{1,2}/,             // YYYY-MM-DD
+      /\d{1,2}\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\s+\d{4}/i, // DD Mon YYYY
+      /\d{1,2}\s+(janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)\s+\d{4}/i, // French dates
+      /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/, // ISO datetime
+    ];
+
+    const hasDatePattern = datePatterns.some(pattern => pattern.test(text));
+    
+    // Additional validation: try to parse and check if it's a reasonable date
+    if (hasDatePattern) {
+      try {
+        const parsed = new Date(text);
+        const year = parsed.getFullYear();
+        // Only accept dates between 1990 and current year + 5
+        return !isNaN(parsed.getTime()) && year >= 1990 && year <= new Date().getFullYear() + 5;
+      } catch {
+        return false;
+      }
+    }
+    
+    return false;
+  }
+
+  /**
+   * Extract date patterns from text content
+   */
+  private extractDatesFromText(text: string): string[] {
+    const dates: string[] = [];
+    const lines = text.split('\n').slice(0, 50); // Reduced to 50 lines for better performance
+    
+    const datePatterns = [
+      // ISO dates (more restrictive)
+      /\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?(?:Z|[+-]\d{2}:\d{2})\b/g,
+      // French date patterns (specific contexts)
+      /(?:publié|modifié|mis à jour|créé).*?\b\d{1,2}\s+(?:janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)\s+\d{4}\b/gi,
+      // English date patterns (specific contexts)
+      /(?:published|modified|updated|created).*?\b\d{1,2}\s+(?:january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{4}\b/gi,
+    ];
+
+    for (const line of lines) {
+      // Skip lines that look like copyright or footer content
+      if (line.toLowerCase().includes('copyright') || 
+          line.toLowerCase().includes('all rights reserved') ||
+          line.includes('©')) {
+        continue;
+      }
+      
+      for (const pattern of datePatterns) {
+        const matches = line.match(pattern);
+        if (matches) {
+          // Validate each match
+          for (const match of matches) {
+            if (this.isValidDate(match)) {
+              dates.push(match);
+              if (dates.length >= 3) break; // Reduced limit
+            }
+          }
+          if (dates.length >= 3) break;
+        }
+      }
+      if (dates.length >= 3) break;
+    }
+
+    return [...new Set(dates)]; // Remove duplicates
+  }
+
+  /**
+   * More strict date validation
+   */
+  private isValidDate(dateStr: string): boolean {
+    try {
+      const parsed = new Date(dateStr);
+      if (isNaN(parsed.getTime())) return false;
+      
+      const year = parsed.getFullYear();
+      const now = new Date();
+      
+      // Must be between 2000 and current year + 2
+      if (year < 2000 || year > now.getFullYear() + 2) return false;
+      
+      // Must not be epoch date
+      if (parsed.getTime() === 0) return false;
+      
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   private removeUnwantedElements(document: Document): void {

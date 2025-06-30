@@ -20,9 +20,12 @@ export interface DimensionScores {
 export interface DimensionDetails {
   authority: {
     hasAuthor: boolean;
+    authorName?: string;
     authorCredentials: string[];
     outboundCitations: number;
     trustedCitations: string[];
+    domainAuthority?: 'low' | 'medium' | 'high' | 'unknown';
+    citationCount?: number;
   };
   freshness: {
     publishDate?: Date;
@@ -33,6 +36,7 @@ export interface DimensionDetails {
   structure: {
     h1Count: number;
     headingHierarchy: boolean;
+    headingHierarchyScore?: number; // Score 0-100 for heading structure quality
     schemaTypes: string[];
     avgSentenceWords: number;
   };
@@ -48,6 +52,18 @@ export interface DimensionDetails {
     outdatedTermsFound: string[];
     brandConsistency: number;
   };
+}
+
+export interface LLMAnalysisData {
+  prompt: string;
+  response: string;
+  model: string;
+  timestamp: Date;
+  tokensUsed?: {
+    input: number;
+    output: number;
+  };
+  analysisType: 'unified' | 'static'; // unified = AI analysis, static = rule-based
 }
 
 @Schema({ timestamps: true })
@@ -81,6 +97,9 @@ export class ContentScore extends Document {
     version: string;
     updatedAt: Date;
   };
+
+  @Prop({ type: Object })
+  llmAnalysis?: LLMAnalysisData;
 }
 
 export const ContentScoreSchema = SchemaFactory.createForClass(ContentScore);

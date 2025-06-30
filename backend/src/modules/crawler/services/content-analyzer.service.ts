@@ -13,8 +13,9 @@ import { ContentScore, DimensionDetails, ScoreIssue } from '../schemas/content-s
 import { ProjectService } from '../../project/services/project.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { UnifiedKPIAnalyzerService } from './unified-kpi-analyzer.service';
-import { ContentKPIBudgetManagerService } from './content-kpi-budget-manager.service';
+import { HybridKPIAnalyzerService } from './hybrid-kpi-analyzer.service';
 import { PageSignalExtractorService } from './page-signal-extractor.service';
+import { IssueFactoryService, KPIDimension } from './issue-factory.service';
 
 export interface AnalysisProgress {
   projectId: string;
@@ -41,12 +42,18 @@ export class ContentAnalyzerService {
     private readonly projectService: ProjectService,
     private readonly eventEmitter: EventEmitter2,
     private readonly unifiedKPIAnalyzer: UnifiedKPIAnalyzerService,
-    private readonly budgetManager: ContentKPIBudgetManagerService,
+    private readonly hybridKPIAnalyzer: HybridKPIAnalyzerService,
     private readonly pageSignalExtractor: PageSignalExtractorService,
+    private readonly issueFactory: IssueFactoryService,
   ) {}
 
   async analyzeProjectContent(projectId: string, limit?: number): Promise<void> {
     this.logger.log(`[ANALYZER] Starting content analysis for project ${projectId}`);
+
+    // Clear existing analysis data to ensure fresh results
+    this.logger.log(`[ANALYZER] Clearing existing content scores for project ${projectId}`);
+    await this.contentScoreRepository.deleteByProjectId(projectId);
+    
 
     // Get project details for brand analysis
     this.logger.log(`[ANALYZER] Fetching project details for ${projectId}`);
@@ -88,7 +95,7 @@ export class ContentAnalyzerService {
           // Analyze the page
           this.logger.debug(`[ANALYZER] Running analyzers for ${page.url}`);
           const score = await this.analyzePage(page, project);
-          this.logger.log(`[ANALYZER] Page analyzed - Global Score: ${score.globalScore}, Issues: ${score.issues?.length || 0}`);
+          this.logger.log(`[ANALYZER] Page analyzed - Global Score: ${score.globalScore}, Issues: ${score.issues?.length || 0}, Analysis Type: ${score.llmAnalysis?.analysisType || 'unknown'}`);
           
           // Save the score
           this.logger.debug(`[ANALYZER] Saving score to database`);
@@ -123,15 +130,22 @@ export class ContentAnalyzerService {
   }
 
   async analyzePage(page: any, project: any): Promise<Partial<ContentScore>> {
-    // Check if unified AI analysis is enabled
-    const useUnifiedAI = this.configService.get<boolean>('CONTENT_KPI_USE_AI', false);
+    // Check analysis mode configuration
+    const useAI = this.configService.get<boolean>('CONTENT_KPI_USE_AI', false);
+    const useHybrid = this.configService.get<boolean>('CONTENT_KPI_USE_HYBRID', true);
     const fallbackToStatic = this.configService.get<boolean>('CONTENT_KPI_FALLBACK_TO_STATIC', true);
 
-    if (useUnifiedAI) {
+    if (useAI) {
       try {
-        return await this.analyzePageUnified(page, project);
+        if (useHybrid) {
+          // Use hybrid approach (static + targeted LLM)
+          return await this.analyzePageHybrid(page, project);
+        } else {
+          // Use full LLM approach (legacy)
+          return await this.analyzePageUnified(page, project);
+        }
       } catch (error) {
-        this.logger.error(`Unified AI analysis failed for ${page.url}:`, error);
+        this.logger.error(`AI analysis failed for ${page.url}:`, error);
         
         if (fallbackToStatic) {
           this.logger.log(`Falling back to static analysis for ${page.url}`);
@@ -146,25 +160,29 @@ export class ContentAnalyzerService {
   }
 
   /**
-   * Unified AI-powered analysis (new approach)
+   * Hybrid analysis (static + targeted LLM)
+   */
+  async analyzePageHybrid(page: any, project: any): Promise<Partial<ContentScore>> {
+    this.logger.log(`[ANALYZER] Starting hybrid AI analysis (static + targeted LLM) for ${page.url}`);
+
+    // Perform hybrid analysis (static + targeted LLM)
+    const analysisContext = {
+      brandName: project.brandName,
+      keyBrandAttributes: project.keyBrandAttributes || [],
+      competitors: project.competitors || [],
+    };
+
+    const result = await this.hybridKPIAnalyzer.analyze(page.html, page.metadata, analysisContext, page.url);
+
+    // Convert hybrid result to ContentScore format
+    return this.convertHybridResultToContentScore(result, page, project);
+  }
+
+  /**
+   * Unified AI-powered analysis (legacy approach - full LLM)
    */
   async analyzePageUnified(page: any, project: any): Promise<Partial<ContentScore>> {
-    // Estimate cost first
-    const pageSignals = this.pageSignalExtractor.extract(page.html, page.metadata);
-    const cleanContent = this.pageSignalExtractor.getCleanContent(page.html);
-    const estimatedTokens = this.unifiedKPIAnalyzer.estimateTokenUsage(pageSignals, cleanContent);
-    const estimatedCost = this.budgetManager.estimateCost(estimatedTokens * 0.85, estimatedTokens * 0.15); // Rough input/output split
-
-    // Check budget
-    const budgetStatus = this.budgetManager.canProceedWithAnalysis(estimatedCost.estimatedCost);
-    if (!budgetStatus.canProceed) {
-      throw new Error(`Budget limit exceeded: ${budgetStatus.reason}`);
-    }
-
-    // Check circuit breaker
-    if (this.budgetManager.shouldTriggerCircuitBreaker()) {
-      throw new Error('Circuit breaker triggered due to high costs');
-    }
+    this.logger.log(`[ANALYZER] Starting unified AI analysis (full LLM) for ${page.url}`);
 
     // Perform unified analysis
     const analysisContext = {
@@ -175,15 +193,117 @@ export class ContentAnalyzerService {
 
     const result = await this.unifiedKPIAnalyzer.analyze(page.html, page.metadata, analysisContext);
 
-    // Record actual cost (we'll estimate this since we don't have exact token usage from response)
-    this.budgetManager.recordActualCost(estimatedCost.estimatedCost);
-
     // Convert unified result to ContentScore format
     return this.convertUnifiedResultToContentScore(result, page, project);
   }
 
   /**
-   * Convert unified AI result to ContentScore format
+   * Convert hybrid analysis result to ContentScore format
+   */
+  private convertHybridResultToContentScore(
+    result: any,
+    page: any,
+    project: any
+  ): Partial<ContentScore> {
+    // Convert hybrid issues to ContentScore issues
+    const issues: ScoreIssue[] = [...result.issues.map((issue: any) => ({
+      dimension: issue.dimension,
+      severity: issue.severity,
+      description: issue.description,
+      recommendation: issue.recommendation,
+    }))];
+
+    // CRITICAL FIX: Generate issues for static dimensions with low scores
+    // This ensures pages with terrible static scores (freshness, structure, snippet) show issues
+    const staticDimensions: { [key: string]: KPIDimension } = {
+      freshness: 'freshness',
+      structure: 'structure', 
+      snippetExtractability: 'snippetExtractability'
+    };
+
+    for (const [scoreName, dimensionName] of Object.entries(staticDimensions)) {
+      const score = result.scores[scoreName];
+      if (score !== undefined) {
+        const staticIssues = this.issueFactory.generateIssuesFromScore(dimensionName, score);
+        issues.push(...staticIssues);
+      }
+    }
+
+    // Prepare dimension details (hybrid combines static + LLM details)
+    const details: DimensionDetails = {
+      authority: {
+        hasAuthor: result.details.authority.hasAuthor,
+        authorName: result.details.authority.authorName,
+        // CRITICAL FIX: Only add credentials if author exists AND has credentials
+        authorCredentials: (() => {
+          const shouldHaveCredentials = result.details.authority.hasAuthor && result.details.authority.authorCredentials;
+          if (!result.details.authority.hasAuthor && result.details.authority.authorCredentials) {
+            this.logger.warn(`[AUTHOR-CONSISTENCY] Inconsistency detected: hasAuthor=false but authorCredentials=true. Fixing to empty array.`);
+          }
+          return shouldHaveCredentials ? [result.details.authority.authorName || 'expert'] : [];
+        })(),
+        outboundCitations: result.details.authority.citationCount,
+        trustedCitations: result.details.authority.citationCount > 0 ? ['external'] : [],
+        domainAuthority: result.details.authority.domainAuthority,
+        citationCount: result.details.authority.citationCount,
+      },
+      freshness: {
+        publishDate: this.parseValidDate(result.details.freshness.publishDate),
+        modifiedDate: this.parseValidDate(result.details.freshness.modifiedDate),
+        daysSinceUpdate: result.details.freshness.daysSinceUpdate,
+        hasDateSignals: result.details.freshness.hasDateSignals,
+      },
+      structure: {
+        h1Count: result.details.structure.h1Count,
+        headingHierarchy: result.details.structure.headingHierarchyScore > 70,
+        headingHierarchyScore: result.details.structure.headingHierarchyScore, // Pass the actual score
+        schemaTypes: result.details.structure.hasSchema ? ['WebPage'] : [],
+        avgSentenceWords: result.details.structure.avgSentenceWords,
+      },
+      snippet: {
+        avgSentenceWords: result.details.snippet.avgSentenceLength,
+        listCount: result.details.snippet.listCount,
+        qaBlockCount: result.details.snippet.qaBlockCount,
+        extractableBlocks: result.details.snippet.extractableBlocks,
+      },
+      brand: {
+        brandKeywordMatches: result.details.brand.brandMentions,
+        requiredTermsFound: result.details.brand.missingKeywords || [],
+        outdatedTermsFound: result.details.brand.alignmentIssues || [],
+        brandConsistency: result.details.brand.consistencyScore,
+      },
+    };
+
+    // Calculate global score using scoring rules
+    const scoringRules = this.scoringRulesService.getScoringRules();
+    const globalScore = calculateGlobalScore(result.scores, scoringRules);
+
+    return {
+      projectId: project.projectId,
+      url: page.url,
+      scores: result.scores,
+      globalScore,
+      details,
+      issues,
+      analyzedAt: new Date(),
+      crawledPageId: page.id || page._id,
+      scoringRulesVersion: {
+        version: '3.0.0-hybrid',
+        updatedAt: new Date(),
+      },
+      llmAnalysis: result.llmData ? {
+        prompt: result.llmData.prompt,
+        response: result.llmData.response,
+        model: result.llmData.model,
+        timestamp: new Date(),
+        tokensUsed: result.llmData.tokensUsed,
+        analysisType: 'unified' as const, // Keep same for compatibility
+      } : undefined,
+    };
+  }
+
+  /**
+   * Convert unified AI result to ContentScore format (legacy)
    */
   private convertUnifiedResultToContentScore(
     result: any,
@@ -202,13 +322,23 @@ export class ContentAnalyzerService {
     const details: DimensionDetails = {
       authority: {
         hasAuthor: result.details.authority.hasAuthor,
-        authorCredentials: result.details.authority.authorCredentials,
+        authorName: result.details.authority.authorName,
+        // CRITICAL FIX: Convert boolean to array AND enforce consistency
+        authorCredentials: (() => {
+          const shouldHaveCredentials = result.details.authority.hasAuthor && result.details.authority.authorCredentials;
+          if (!result.details.authority.hasAuthor && result.details.authority.authorCredentials) {
+            this.logger.warn(`[UNIFIED-AUTHOR-CONSISTENCY] Inconsistency detected: hasAuthor=false but authorCredentials=true. Fixing to empty array.`);
+          }
+          return shouldHaveCredentials ? [result.details.authority.authorName || 'expert'] : [];
+        })(),
         outboundCitations: result.details.authority.citationCount,
         trustedCitations: result.details.authority.citationCount, // Simplified mapping
+        domainAuthority: result.details.authority.domainAuthority,
+        citationCount: result.details.authority.citationCount,
       },
       freshness: {
-        publishDate: result.details.freshness.publishDate,
-        modifiedDate: result.details.freshness.modifiedDate,
+        publishDate: this.parseValidDate(result.details.freshness.publishDate),
+        modifiedDate: this.parseValidDate(result.details.freshness.modifiedDate),
         daysSinceUpdate: result.details.freshness.daysSinceUpdate,
         hasDateSignals: result.details.freshness.hasDateSignals,
       },
@@ -249,6 +379,14 @@ export class ContentAnalyzerService {
         version: '2.0.0-unified',
         updatedAt: new Date(),
       },
+      llmAnalysis: result.llmData ? {
+        prompt: result.llmData.prompt,
+        response: result.llmData.response,
+        model: result.llmData.model,
+        timestamp: new Date(),
+        tokensUsed: result.llmData.tokensUsed,
+        analysisType: 'unified' as const,
+      } : undefined,
     };
   }
 
@@ -269,7 +407,7 @@ export class ContentAnalyzerService {
       project.brandName
     );
 
-    // Collect all issues
+    // Collect all issues from individual analyzers
     allIssues.push(
       ...authorityResult.issues,
       ...freshnessResult.issues,
@@ -287,6 +425,28 @@ export class ContentAnalyzerService {
       brandAlignment: brandResult.score,
     };
 
+    // CRITICAL FIX: Add issues for any dimension with low scores
+    // This ensures static analysis also generates issues for poor scores
+    const dimensionMap: { [key: string]: KPIDimension } = {
+      authority: 'authority',
+      freshness: 'freshness',
+      structure: 'structure',
+      snippetExtractability: 'snippetExtractability', 
+      brandAlignment: 'brandAlignment'
+    };
+
+    for (const [scoreName, dimensionName] of Object.entries(dimensionMap)) {
+      const score = scores[scoreName as keyof typeof scores];
+      if (score !== undefined) {
+        const factoryIssues = this.issueFactory.generateIssuesFromScore(dimensionName, score);
+        // Only add factory issues if no analyzer-specific issues exist for this dimension
+        const hasExistingIssues = allIssues.some(issue => issue.dimension === dimensionName);
+        if (!hasExistingIssues) {
+          allIssues.push(...factoryIssues);
+        }
+      }
+    }
+
     // Calculate global score
     const scoringRules = this.scoringRulesService.getScoringRules();
     const globalScore = calculateGlobalScore(scores, scoringRules);
@@ -295,19 +455,23 @@ export class ContentAnalyzerService {
     const details: DimensionDetails = {
       authority: {
         hasAuthor: authorityResult.hasAuthor,
+        authorName: undefined, // Static analysis doesn't extract author names
         authorCredentials: authorityResult.authorCredentials,
         outboundCitations: authorityResult.outboundCitations,
         trustedCitations: authorityResult.trustedCitations,
+        domainAuthority: 'unknown', // Static analysis can't determine domain authority
+        citationCount: authorityResult.outboundCitations,
       },
       freshness: {
-        publishDate: freshnessResult.publishDate,
-        modifiedDate: freshnessResult.modifiedDate,
+        publishDate: this.parseValidDate(freshnessResult.publishDate?.toISOString()),
+        modifiedDate: this.parseValidDate(freshnessResult.modifiedDate?.toISOString()),
         daysSinceUpdate: freshnessResult.daysSinceUpdate,
         hasDateSignals: freshnessResult.hasDateSignals,
       },
       structure: {
         h1Count: structureResult.h1Count,
         headingHierarchy: structureResult.headingHierarchy,
+        headingHierarchyScore: 0, // Static analysis doesn't calculate hierarchy score
         schemaTypes: structureResult.schemaTypes,
         avgSentenceWords: structureResult.avgSentenceWords,
       },
@@ -342,11 +506,23 @@ export class ContentAnalyzerService {
         version: '1.0.0',
         updatedAt: new Date(),
       },
+      llmAnalysis: {
+        prompt: 'Static rule-based analysis - no LLM prompt used',
+        response: 'Static rule-based analysis - no LLM response',
+        model: 'none',
+        timestamp: new Date(),
+        analysisType: 'static' as const,
+      },
     };
   }
 
   async getProjectContentScores(projectId: string): Promise<ContentScore[]> {
     return this.contentScoreRepository.findByProjectId(projectId);
+  }
+
+  async getPageContentScore(projectId: string, url: string): Promise<ContentScore | null> {
+    const scores = await this.contentScoreRepository.findByProjectId(projectId);
+    return scores.find(score => score.url === url) || null;
   }
 
   async getProjectScoreStats(projectId: string): Promise<any> {
@@ -394,23 +570,33 @@ export class ContentAnalyzerService {
   }
 
   /**
-   * Get current budget status for monitoring
+   * Safely parse date strings to avoid epoch date issues
    */
-  getBudgetStatus() {
-    return this.budgetManager.getBudgetStatus();
+  private parseValidDate(dateStr?: string): Date | undefined {
+    if (!dateStr) return undefined;
+    
+    try {
+      const parsed = new Date(dateStr);
+      
+      // Check if date is valid and not epoch date
+      if (isNaN(parsed.getTime()) || parsed.getTime() === 0) {
+        this.logger.warn(`Invalid date detected and rejected: ${dateStr}`);
+        return undefined;
+      }
+      
+      // Check if date is reasonable (between 2000 and current year + 5)
+      const year = parsed.getFullYear();
+      const currentYear = new Date().getFullYear();
+      if (year < 2000 || year > currentYear + 5) {
+        this.logger.warn(`Date outside reasonable range and rejected: ${dateStr} (year: ${year})`);
+        return undefined;
+      }
+      
+      return parsed;
+    } catch (error) {
+      this.logger.warn(`Failed to parse date: ${dateStr}`, error);
+      return undefined;
+    }
   }
 
-  /**
-   * Reset budget for new analysis session
-   */
-  resetBudget() {
-    this.budgetManager.resetBudget();
-  }
-
-  /**
-   * Get performance metrics
-   */
-  getPerformanceMetrics() {
-    return this.budgetManager.getPerformanceMetrics();
-  }
 }
