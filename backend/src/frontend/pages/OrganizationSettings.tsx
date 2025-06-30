@@ -127,17 +127,21 @@ const OrganizationSettings: React.FC = () => {
     try {
       setLoading(true);
       const orgsData = await getAllOrganizations(true); // Include projects
-      setOrganizations(orgsData);
+      // Sort organizations by createdAt (newest to oldest)
+      const sortedOrgs = orgsData.sort((a: Organization, b: Organization) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      setOrganizations(sortedOrgs);
 
       // If filter is provided, select that organization
       if (filterOrgId) {
-        const filteredOrg = orgsData.find((org: Organization) => org.id === filterOrgId);
+        const filteredOrg = sortedOrgs.find((org: Organization) => org.id === filterOrgId);
         if (filteredOrg) {
           setSelectedOrganization(filteredOrg);
         }
-      } else if (orgsData.length > 0 && !selectedOrganization) {
+      } else if (sortedOrgs.length > 0 && !selectedOrganization) {
         // Select first organization by default if none selected
-        setSelectedOrganization(orgsData[0]);
+        setSelectedOrganization(sortedOrgs[0]);
       }
     } catch (err) {
       console.error('Failed to load organizations:', err);
@@ -150,7 +154,11 @@ const OrganizationSettings: React.FC = () => {
   const loadOrganizationUsers = async (orgId: string) => {
     try {
       const usersData = await getOrganizationUsers(orgId);
-      setUsers(usersData);
+      // Sort users by createdAt (newest to oldest)
+      const sortedUsers = usersData.sort((a: User, b: User) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      setUsers(sortedUsers);
     } catch (err) {
       console.error('Failed to load users:', err);
       setError('Failed to load users. Please try again.');
