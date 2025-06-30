@@ -39,7 +39,7 @@ export class EmailEventListener {
       // Use the existing sendAnalysisReadyEmail method
       await this.emailService.sendAnalysisReadyEmail(
         user.email,
-        project.name || 'Untitled Project',
+        project.name || project.brandName || 'Untitled Project',
         event.projectId,
         event.reportId,
       );
