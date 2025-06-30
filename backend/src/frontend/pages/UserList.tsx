@@ -42,6 +42,7 @@ import { User } from '../utils/types';
 
 interface Organization {
   id: string;
+  createdAt: string;
 }
 
 const UserList: React.FC = () => {
@@ -70,8 +71,16 @@ const UserList: React.FC = () => {
         getUsers(),
         getAllOrganizations(),
       ]);
-      setUsers(usersData);
-      setOrganizations(orgsData);
+      // Sort users by createdAt (newest to oldest)
+      const sortedUsers = usersData.sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      setUsers(sortedUsers);
+      // Sort organizations by createdAt (newest to oldest)
+      const sortedOrgs = orgsData.sort((a: Organization, b: Organization) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      setOrganizations(sortedOrgs);
     } catch (err) {
       console.error('Failed to fetch data:', err);
       setError('Failed to load data. Please try again.');
