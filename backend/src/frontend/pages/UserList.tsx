@@ -28,6 +28,7 @@ import {
   MenuItem,
   CircularProgress,
   Link,
+  InputAdornment,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EmailIcon from '@mui/icons-material/Email';
@@ -36,6 +37,8 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import BusinessIcon from '@mui/icons-material/Business';
 import PhoneIcon from '@mui/icons-material/Phone';
+import SearchIcon from '@mui/icons-material/Search';
+import ClearIcon from '@mui/icons-material/Clear';
 import { getUsers, deleteUser, updateUser } from '../utils/api';
 import { getAllOrganizations } from '../utils/api-organization';
 import { User } from '../utils/types';
@@ -48,6 +51,8 @@ interface Organization {
 const UserList: React.FC = () => {
   const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+  const [userSearchTerm, setUserSearchTerm] = useState('');
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,6 +69,19 @@ const UserList: React.FC = () => {
     fetchData();
   }, []);
 
+  // Filter users based on search term
+  useEffect(() => {
+    if (userSearchTerm.trim() === '') {
+      setFilteredUsers(users);
+    } else {
+      const searchLower = userSearchTerm.toLowerCase();
+      const filtered = users.filter(user => 
+        user.email.toLowerCase().includes(searchLower)
+      );
+      setFilteredUsers(filtered);
+    }
+  }, [userSearchTerm, users]);
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -76,6 +94,7 @@ const UserList: React.FC = () => {
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
       setUsers(sortedUsers);
+      setFilteredUsers(sortedUsers);
       // Sort organizations by createdAt (newest to oldest)
       const sortedOrgs = orgsData.sort((a: Organization, b: Organization) => 
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -97,6 +116,7 @@ const UserList: React.FC = () => {
     try {
       await deleteUser(userId);
       setUsers(users.filter(u => u.id !== userId));
+      setFilteredUsers(filteredUsers.filter(u => u.id !== userId));
     } catch (err) {
       console.error('Failed to delete user:', err);
       alert('Failed to delete user. Please try again.');
@@ -126,6 +146,7 @@ const UserList: React.FC = () => {
       });
       
       setUsers(users.map(u => u.id === editingUser.id ? updatedUser : u));
+      setFilteredUsers(filteredUsers.map(u => u.id === editingUser.id ? updatedUser : u));
       setEditDialogOpen(false);
       setEditingUser(null);
     } catch (err: any) {
@@ -186,11 +207,44 @@ const UserList: React.FC = () => {
       </Box>
 
       <Card>
+        <CardContent>
+          {/* Search Bar */}
+          <Box sx={{ mb: 3 }}>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Search users by email..."
+              value={userSearchTerm}
+              onChange={(e) => setUserSearchTerm(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon sx={{ color: 'text.secondary' }} />
+                  </InputAdornment>
+                ),
+                endAdornment: userSearchTerm && (
+                  <InputAdornment position="end">
+                    <IconButton
+                      size="small"
+                      onClick={() => setUserSearchTerm('')}
+                    >
+                      <ClearIcon />
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Box>
+        </CardContent>
+        
         <CardContent sx={{ p: 0 }}>
-          {users.length === 0 ? (
+          {filteredUsers.length === 0 ? (
             <Box sx={{ p: 4, textAlign: 'center' }}>
-              <Typography variant="body1">No users found.</Typography>
-              <Button
+              <Typography variant="body1">
+                {userSearchTerm ? 'No users found matching your search.' : 'No users found.'}
+              </Typography>
+              {!userSearchTerm && (
+                <Button
                 variant="outlined"
                 color="primary"
                 startIcon={<AddIcon />}
@@ -200,6 +254,7 @@ const UserList: React.FC = () => {
               >
                 Add Your First User
               </Button>
+              )}
             </Box>
           ) : (
             <TableContainer component={Paper}>
@@ -216,7 +271,7 @@ const UserList: React.FC = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {users.map((user) => (
+                  {filteredUsers.map((user) => (
                     <TableRow key={user.id} hover>
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
