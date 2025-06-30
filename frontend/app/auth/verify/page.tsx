@@ -120,13 +120,6 @@ export default function VerifyPage() {
                   >
                     Request New Link
                   </Button>
-                  <Button
-                    onClick={handleContinue}
-                    variant="outline"
-                    className="w-full h-12"
-                  >
-                    Continue Anyway
-                  </Button>
                 </div>
               </>
             )}
