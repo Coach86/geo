@@ -6,7 +6,7 @@ import { Model } from 'mongoose';
 import { PromptSetRepository } from '../repositories/prompt-set.repository';
 import { ProjectCreatedEvent } from '../../project/events/project-created.event';
 import { LlmService } from '../../llm/services/llm.service';
-import { z } from 'zod';
+import { z, ZodSchema } from 'zod';
 import { visibilitySystemPrompt, visibilityUserPrompt } from './visibility-prompts';
 import { sentimentSystemPrompt, sentimentUserPrompt } from './sentiment-prompts';
 import { competitionSystemPrompt, competitionUserPrompt } from './competition-prompts';
@@ -42,6 +42,60 @@ export class PromptService implements OnModuleInit {
       `Initialized with ${this.visibilityPromptCount} visibility prompts, ${this.sentimentPromptCount} sentiment prompts, ` +
         `${this.competitionPromptCount} competition prompts, ${this.alignmentPromptCount} alignment prompts`,
     );
+  }
+
+  /**
+   * Helper method to call structured output with fallback providers
+   * @param userPrompt The user prompt to send
+   * @param schema The zod schema for the expected output
+   * @param systemPrompt The system prompt to use
+   * @param promptType The type of prompt being generated (for logging)
+   * @returns The structured output from the first successful provider
+   */
+  private async getStructuredOutputWithFallback<T>(
+    userPrompt: string,
+    schema: ZodSchema<T>,
+    systemPrompt: string,
+    promptType: string,
+  ): Promise<T> {
+    // Try providers in order: OpenAI -> Anthropic -> Perplexity
+    const providers = [LlmProvider.OpenAI, LlmProvider.Anthropic, LlmProvider.Perplexity];
+    
+    for (const provider of providers) {
+      try {
+        this.logger.log(`Attempting to generate ${promptType} prompts using ${provider}`);
+        const result = await this.llmService.getStructuredOutput(
+          provider,
+          userPrompt,
+          schema,
+          { systemPrompt },
+        );
+        this.logger.log(`Successfully generated ${promptType} prompts using ${provider}`);
+        return result;
+      } catch (error) {
+        // Check if it's a quota error for clearer logging
+        const isQuotaError = error.message?.toLowerCase().includes('exceeded your current quota') || 
+                            error.message?.toLowerCase().includes('billing');
+        
+        if (isQuotaError) {
+          this.logger.warn(`${provider} has quota/billing issue: ${error.message}. Trying fallback provider...`);
+        } else {
+          this.logger.warn(`Failed to generate ${promptType} prompts with ${provider}: ${error.message}`);
+        }
+        
+        // If this is the last provider, throw the error
+        if (provider === providers[providers.length - 1]) {
+          throw new Error(`Failed to generate prompts with all providers. Last error: ${error.message}`);
+        }
+        
+        // Otherwise, continue to next provider
+        const nextProvider = providers[providers.indexOf(provider) + 1];
+        this.logger.log(`Falling back to ${nextProvider}...`);
+      }
+    }
+
+    // This should never be reached due to the throw above, but TypeScript needs it
+    throw new Error('Failed to generate prompts with all available providers');
   }
 
   /**
@@ -195,21 +249,22 @@ export class PromptService implements OnModuleInit {
       prompts: z.array(z.string()),
     });
 
-    // Call LLM with structured output processing
-    const result = await this.llmService.getStructuredOutput(
-      LlmProvider.OpenAI,
-      visibilityUserPrompt({
-        market,
-        websiteUrl,
-        industry,
-        brandName,
-        count,
-        competitors,
-        language,
-        keywords,
-      }),
+    const userPrompt = visibilityUserPrompt({
+      market,
+      websiteUrl,
+      industry,
+      brandName,
+      count,
+      competitors,
+      language,
+      keywords,
+    });
+
+    const result = await this.getStructuredOutputWithFallback<{ prompts: string[] }>(
+      userPrompt,
       promptsSchema,
-      { systemPrompt: visibilitySystemPrompt },
+      visibilitySystemPrompt,
+      'visibility',
     );
 
     return result.prompts;
@@ -227,12 +282,13 @@ export class PromptService implements OnModuleInit {
       prompts: z.array(z.string()),
     });
 
-    // Call LLM with structured output processing
-    const result = await this.llmService.getStructuredOutput(
-      LlmProvider.OpenAI,
-      sentimentUserPrompt({ market, brandName, count, websiteUrl, language }),
+    const userPrompt = sentimentUserPrompt({ market, brandName, count, websiteUrl, language });
+
+    const result = await this.getStructuredOutputWithFallback<{ prompts: string[] }>(
+      userPrompt,
       promptsSchema,
-      { systemPrompt: sentimentSystemPrompt },
+      sentimentSystemPrompt,
+      'sentiment',
     );
 
     return result.prompts;
@@ -256,20 +312,21 @@ export class PromptService implements OnModuleInit {
       prompts: z.array(z.string()),
     });
 
-    // Call LLM with structured output processing
-    const result = await this.llmService.getStructuredOutput(
-      LlmProvider.OpenAI,
-      competitionUserPrompt({
-        market,
-        brandName,
-        competitors: competitorList,
-        industry,
-        keyBrandAttributes,
-        count,
-        language,
-      }),
+    const userPrompt = competitionUserPrompt({
+      market,
+      brandName,
+      competitors: competitorList,
+      industry,
+      keyBrandAttributes,
+      count,
+      language,
+    });
+
+    const result = await this.getStructuredOutputWithFallback<{ prompts: string[] }>(
+      userPrompt,
       promptsSchema,
-      { systemPrompt: competitionSystemPrompt },
+      competitionSystemPrompt,
+      'competition',
     );
 
     return result.prompts;
@@ -294,18 +351,19 @@ export class PromptService implements OnModuleInit {
       prompts: z.array(z.string()),
     });
 
-    // Call LLM with structured output processing
-    const result = await this.llmService.getStructuredOutput(
-      LlmProvider.OpenAI,
-      alignmentUserPrompt({
-        market,
-        language,
-        brandName,
-        brandAttributes,
-        count,
-      }),
+    const userPrompt = alignmentUserPrompt({
+      market,
+      language,
+      brandName,
+      brandAttributes,
+      count,
+    });
+
+    const result = await this.getStructuredOutputWithFallback<{ prompts: string[] }>(
+      userPrompt,
       promptsSchema,
-      { systemPrompt: alignmentSystemPrompt },
+      alignmentSystemPrompt,
+      'alignment',
     );
 
     return result.prompts;
