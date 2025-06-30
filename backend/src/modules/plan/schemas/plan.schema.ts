@@ -52,6 +52,9 @@ export class Plan {
 
   @Prop({ required: true, default: 5 })
   maxCompetitors: number;
+
+  @Prop({ required: true, default: 'weekly', enum: ['daily', 'weekly', 'unlimited'] })
+  refreshFrequency: string;
 }
 
 export const PlanSchema = SchemaFactory.createForClass(Plan);

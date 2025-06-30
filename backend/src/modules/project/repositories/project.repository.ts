@@ -131,6 +131,7 @@ export class ProjectRepository {
       organizationId: document.organizationId,
       language: document.language,
       nextManualAnalysisAllowedAt: document.nextManualAnalysisAllowedAt,
+      createdAt: document.createdAt instanceof Date ? document.createdAt : new Date(document.createdAt),
     };
   }
 }

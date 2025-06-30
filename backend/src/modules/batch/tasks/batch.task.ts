@@ -23,22 +23,22 @@ export class BatchTask {
     this.logger.log(`Batch task initialized. Batch processing ${this.batchEnabled ? 'enabled' : 'disabled'}`);
   }
 
-  // Run every Monday at 3:00 AM UTC
-  @Cron('0 3 * * 1')
-  async runWeeklyBatch() {
+  // Run every day at 3:00 AM UTC
+  @Cron('0 3 * * *')
+  async runDailyBatch() {
     if (!this.batchEnabled) {
-      this.logger.log('Batch processing is disabled. Skipping weekly batch task.');
+      this.logger.log('Batch processing is disabled. Skipping daily batch task.');
       return;
     }
 
-    this.logger.log('Starting weekly batch task using orchestrator');
+    this.logger.log('Starting daily batch task using orchestrator');
     
     try {
       // Use the orchestrator to process all projects and create reports with email notifications
       await this.batchOrchestratorService.orchestrateAllProjectBatches();
-      this.logger.log('Weekly batch task completed successfully');
+      this.logger.log('Daily batch task completed successfully');
     } catch (error) {
-      this.logger.error(`Weekly batch task failed: ${error.message}`, error.stack);
+      this.logger.error(`Daily batch task failed: ${error.message}`, error.stack);
     }
   }
 

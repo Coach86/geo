@@ -23,6 +23,7 @@ export class PlanResponseDto {
   order: number;
   metadata: Record<string, any>;
   prices?: PlanPriceDto;
+  refreshFrequency: string;
   createdAt: Date;
   updatedAt: Date;
 }
