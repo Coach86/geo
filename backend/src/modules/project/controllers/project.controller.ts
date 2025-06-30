@@ -165,7 +165,7 @@ export class ProjectController {
     response.competitors = project.competitors;
     response.competitorDetails = project.competitorDetails;
     response.organizationId = project.organizationId;
-    response.createdAt = project.updatedAt; // Using updatedAt as createdAt for now
+    response.createdAt = project.createdAt || project.updatedAt; // Use actual createdAt if available
     response.updatedAt = project.updatedAt;
     response.nextManualAnalysisAllowedAt = project.nextManualAnalysisAllowedAt;
     return response;

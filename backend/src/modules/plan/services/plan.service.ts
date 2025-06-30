@@ -246,6 +246,7 @@ export class PlanService {
       isMostPopular: plan.isMostPopular,
       order: plan.order,
       metadata: plan.metadata,
+      refreshFrequency: (plan as any).refreshFrequency || 'weekly',
       createdAt: (plan as any).createdAt,
       updatedAt: (plan as any).updatedAt,
     };
@@ -268,6 +269,7 @@ export class PlanService {
     
     return this.mapPlanToResponse(freePlan);
   }
+
 
   async cancelUserSubscription(userId: string): Promise<void> {
     if (!this.stripe) {

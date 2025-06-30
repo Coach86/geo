@@ -74,4 +74,10 @@ export class Project {
     nullable: true 
   })
   nextManualAnalysisAllowedAt?: Date;
+
+  @ApiProperty({ 
+    description: 'Project creation timestamp', 
+    required: false 
+  })
+  createdAt?: Date;
 }

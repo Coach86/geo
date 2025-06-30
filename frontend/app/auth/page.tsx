@@ -17,6 +17,7 @@ export default function AuthPage() {
   const analytics = useAnalytics();
   const urlParam = searchParams.get("url") || "";
   const promoParam = searchParams.get("promo") || searchParams.get("code") || "";
+  const emailParam = searchParams.get("email") || "";
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isMagicLinkSent, setIsMagicLinkSent] = useState(false);
@@ -30,10 +31,21 @@ export default function AuthPage() {
     }
   }, [promoParam, analytics]);
 
+  useEffect(() => {
+    // Pre-fill email from URL parameter or localStorage
+    const savedEmail = emailParam || localStorage.getItem("userEmail") || "";
+    if (savedEmail) {
+      setEmail(savedEmail);
+    }
+  }, [emailParam]);
+
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
+
+    // Save email to localStorage for future use
+    localStorage.setItem("userEmail", email);
 
     try {
       // Get promo code from localStorage if available

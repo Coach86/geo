@@ -8,6 +8,11 @@ import { ReportBuilderService } from './report-builder.service';
 import { OrganizationService } from '../../organization/services/organization.service';
 import { UserService } from '../../user/services/user.service';
 import { ReportCompletedEvent } from '../events/report-completed.event';
+import { PlanService } from '../../plan/services/plan.service';
+import { PlanResponseDto } from '../../plan/dto/plan-response.dto';
+import { OrganizationResponseDto } from '../../organization/dto/organization-response.dto';
+import { ProjectResponseDto } from '../../project/dto/project-response.dto';
+import { Project } from '../../project/entities/project.entity';
 import {
   AccuracyResults,
   ProjectBatchContext,
@@ -40,7 +45,49 @@ export class BrandReportOrchestratorService {
     private readonly eventEmitter: EventEmitter2,
     private readonly organizationService: OrganizationService,
     private readonly userService: UserService,
+    private readonly planService: PlanService,
   ) {}
+
+  /**
+   * Check if a project should be refreshed based on its plan settings
+   */
+  private async shouldRefreshProject(
+    project: Project,
+    plan: PlanResponseDto | null, 
+    organization: OrganizationResponseDto
+  ): Promise<boolean> {
+    // Free plans should not have automatic refresh
+    if (!plan || plan.name?.toLowerCase() === 'free' || !organization.stripeSubscriptionId) {
+      return false;
+    }
+    
+    // Check if project has createdAt date
+    if (!project.createdAt) {
+      this.logger.warn(`Project ${project.projectId} missing createdAt date`);
+      return false;
+    }
+    
+    const refreshFrequency = plan.refreshFrequency || 'weekly';
+    const today = new Date();
+    const projectCreatedAt = new Date(project.createdAt);
+    
+    switch (refreshFrequency) {
+      case 'daily':
+      case 'unlimited':
+        // Refresh daily for both daily and unlimited plans
+        return true;
+      case 'weekly':
+        // Check if today is a weekly anniversary (same day of week)
+        const todayDayOfWeek = today.getDay();
+        const createdDayOfWeek = projectCreatedAt.getDay();
+        return todayDayOfWeek === createdDayOfWeek;
+      default:
+        // Default to weekly behavior
+        const defaultTodayDayOfWeek = today.getDay();
+        const defaultCreatedDayOfWeek = projectCreatedAt.getDay();
+        return defaultTodayDayOfWeek === defaultCreatedDayOfWeek;
+    }
+  }
 
   /**
    * Orchestrate all projects' batches
@@ -57,12 +104,45 @@ export class BrandReportOrchestratorService {
       const results = {
         successful: 0,
         failed: 0,
+        skipped: 0,
         details: [] as any[],
       };
 
       // Process each project sequentially (to avoid overloading the system)
       for (const project of projects) {
         try {
+          // Get the organization and its plan to check refresh frequency
+          const organization = await this.organizationService.findOne(project.organizationId);
+          if (!organization) {
+            this.logger.warn(`Organization not found for project ${project.projectId}`);
+            continue;
+          }
+
+          // Get the plan details using the organization's planSettings._id
+          const planSettings = organization.planSettings as { _id?: string };
+          const planId = planSettings?._id;
+          let plan: PlanResponseDto | null = null;
+          
+          if (planId) {
+            plan = await this.planService.findById(planId);
+          }
+
+          // Check if this project should be refreshed today
+          const shouldRefresh = await this.shouldRefreshProject(project, plan, organization);
+          
+          if (!shouldRefresh) {
+            this.logger.log(`Skipping project ${project.projectId} (${project.brandName}) - not scheduled for refresh today`);
+            results.skipped++;
+            results.details.push({
+              success: true,
+              projectId: project.projectId,
+              skipped: true,
+              reason: 'Not scheduled for refresh today',
+            });
+            continue;
+          }
+
+          this.logger.log(`Processing project ${project.projectId} (${project.brandName}) - scheduled for refresh`);
           const result = await this.orchestrateProjectBatches(project.projectId);
           results.successful++;
           results.details.push(result);
@@ -77,7 +157,7 @@ export class BrandReportOrchestratorService {
         }
       }
 
-      this.logger.log(`Completed processing all projects. Successful: ${results.successful}, Failed: ${results.failed}`);
+      this.logger.log(`Completed processing all projects. Successful: ${results.successful}, Failed: ${results.failed}, Skipped: ${results.skipped}`);
       return results;
     } catch (error) {
       this.logger.error(`Failed to orchestrate all project batches: ${error.message}`, error.stack);
