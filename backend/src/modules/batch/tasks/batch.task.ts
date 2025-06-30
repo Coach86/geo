@@ -6,6 +6,7 @@ import { BatchService } from '../services/batch.service';
 import { BrandReportOrchestratorService } from '../services/brand-report-orchestrator.service';
 import { BatchExecutionService } from '../services/batch-execution.service';
 import { ProjectRecoveryService } from '../services/project-recovery.service';
+import { DistributedLockService } from '../services/distributed-lock.service';
 import { ProjectService } from '../../project/services/project.service';
 
 @Injectable()
@@ -19,6 +20,7 @@ export class BatchTask {
     private readonly batchOrchestratorService: BrandReportOrchestratorService,
     private readonly batchExecutionService: BatchExecutionService,
     private readonly projectRecoveryService: ProjectRecoveryService,
+    private readonly distributedLockService: DistributedLockService,
     private readonly projectService: ProjectService,
   ) {
     this.batchEnabled = this.configService.get<boolean>('BATCH_ENABLED', true);
@@ -33,9 +35,22 @@ export class BatchTask {
       return;
     }
 
-    this.logger.log('Starting daily batch task');
+    const lockName = 'daily-batch';
+    const lockTTL = 60; // 60 minutes TTL
+
+    this.logger.log('Starting daily batch task - attempting to acquire lock...');
+    
+    // Try to acquire distributed lock
+    const lockResult = await this.distributedLockService.acquireLock(lockName, lockTTL);
+    
+    if (!lockResult.acquired) {
+      this.logger.log(`Daily batch task skipped - lock held by instance: ${lockResult.lockHolder}`);
+      return;
+    }
     
     try {
+      this.logger.log(`Daily batch task lock acquired by instance: ${lockResult.instanceId}`);
+      
       // First, run recovery check for projects without reports
       this.logger.log('Running recovery check for projects without reports...');
       await this.projectRecoveryService.recoverProjectsWithoutReports();
@@ -47,6 +62,10 @@ export class BatchTask {
       this.logger.log('Daily batch task completed successfully');
     } catch (error) {
       this.logger.error(`Daily batch task failed: ${error.message}`, error.stack);
+    } finally {
+      // Always release the lock
+      await this.distributedLockService.releaseLock(lockName);
+      this.logger.log('Daily batch task lock released');
     }
   }
 
@@ -97,9 +116,22 @@ export class BatchTask {
   // Run every 15 minutes to check for stalled batch executions
   @Cron('0 */15 * * * *')
   async checkStalledBatchExecutions() {
-    this.logger.log('Checking for stalled batch executions...');
+    const lockName = 'stalled-check';
+    const lockTTL = 10; // 10 minutes TTL
+
+    this.logger.log('Checking for stalled batch executions - attempting to acquire lock...');
+    
+    // Try to acquire distributed lock
+    const lockResult = await this.distributedLockService.acquireLock(lockName, lockTTL);
+    
+    if (!lockResult.acquired) {
+      this.logger.log(`Stalled check skipped - lock held by instance: ${lockResult.lockHolder}`);
+      return;
+    }
     
     try {
+      this.logger.log(`Stalled check lock acquired by instance: ${lockResult.instanceId}`);
+      
       // Get current time minus 2 hours
       const twoHoursAgo = new Date();
       twoHoursAgo.setHours(twoHoursAgo.getHours() - 2);
@@ -132,6 +164,23 @@ export class BatchTask {
       this.logger.log(`Processed ${stalledBatches.length} stalled batch executions`);
     } catch (error) {
       this.logger.error(`Failed to check for stalled batch executions: ${error.message}`, error.stack);
+    } finally {
+      // Always release the lock
+      await this.distributedLockService.releaseLock(lockName);
+      this.logger.log('Stalled check lock released');
+    }
+  }
+
+  // Run every hour to clean up expired locks
+  @Cron('0 0 * * * *')
+  async cleanExpiredLocks() {
+    try {
+      const cleaned = await this.distributedLockService.cleanExpiredLocks();
+      if (cleaned > 0) {
+        this.logger.log(`Cleaned ${cleaned} expired locks`);
+      }
+    } catch (error) {
+      this.logger.error(`Failed to clean expired locks: ${error.message}`, error.stack);
     }
   }
 

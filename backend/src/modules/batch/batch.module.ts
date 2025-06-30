@@ -7,6 +7,7 @@ import { BatchExecutionController } from './controllers/batch-execution.controll
 import { BatchResultController } from './controllers/batch-result.controller';
 import { RawResponseController } from './controllers/raw-response.controller';
 import { PublicBatchResultsController } from './controllers/public-batch-results.controller';
+import { LockStatusController } from './controllers/lock-status.controller';
 import { VisibilityPipelineService } from './services/visibility-pipeline.service';
 import { SentimentPipelineService } from './services/sentiment-pipeline.service';
 import { AlignmentPipelineService } from './services/alignment-pipeline.service';
@@ -16,10 +17,12 @@ import { BrandReportOrchestratorService } from './services/brand-report-orchestr
 import { RawResponseService } from './services/raw-response.service';
 import { ReportBuilderService } from './services/report-builder.service';
 import { ProjectRecoveryService } from './services/project-recovery.service';
+import { DistributedLockService } from './services/distributed-lock.service';
 import { BatchExecution, BatchExecutionSchema } from './schemas/batch-execution.schema';
 import { BatchResult, BatchResultSchema } from './schemas/batch-result.schema';
 import { Project, ProjectSchema } from '../project/schemas/project-base.schema';
 import { BrandReport, BrandReportSchema } from '../report/schemas/brand-report.schema';
+import { CronLock, CronLockSchema } from './schemas/cron-lock.schema';
 import { ProjectModule } from '../project/project.module';
 import { PromptModule } from '../prompt/prompt.module';
 import { LlmModule } from '../llm/llm.module';
@@ -47,6 +50,7 @@ import { JwtModule } from '@nestjs/jwt';
       { name: RawResponse.name, schema: RawResponseSchema },
       { name: Project.name, schema: ProjectSchema },
       { name: BrandReport.name, schema: BrandReportSchema },
+      { name: CronLock.name, schema: CronLockSchema },
     ]),
     JwtModule.register({}),
     forwardRef(() => ProjectModule),
@@ -65,6 +69,7 @@ import { JwtModule } from '@nestjs/jwt';
     BatchResultController,
     RawResponseController,
     PublicBatchResultsController,
+    LockStatusController,
   ],
   providers: [
     BatchService,
@@ -78,6 +83,7 @@ import { JwtModule } from '@nestjs/jwt';
     RawResponseService,
     ReportBuilderService,
     ProjectRecoveryService,
+    DistributedLockService,
     BatchExecutionRepository,
     BatchResultRepository,
     RawResponseRepository,
