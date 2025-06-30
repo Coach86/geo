@@ -49,6 +49,8 @@ import ModelTrainingIcon from '@mui/icons-material/ModelTraining';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import LinkIcon from '@mui/icons-material/Link';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import SearchIcon from '@mui/icons-material/Search';
+import ClearIcon from '@mui/icons-material/Clear';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   getAllOrganizations,
@@ -92,6 +94,8 @@ interface Organization {
 
 const OrganizationSettings: React.FC = () => {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [filteredOrganizations, setFilteredOrganizations] = useState<Organization[]>([]);
+  const [organizationSearchTerm, setOrganizationSearchTerm] = useState('');
   const [selectedOrganization, setSelectedOrganization] = useState<Organization | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -123,6 +127,21 @@ const OrganizationSettings: React.FC = () => {
     }
   }, [selectedOrganization]);
 
+  // Filter organizations based on search term
+  useEffect(() => {
+    if (organizationSearchTerm.trim() === '') {
+      setFilteredOrganizations(organizations);
+    } else {
+      const searchLower = organizationSearchTerm.toLowerCase();
+      const filtered = organizations.filter(org => 
+        org.id.toLowerCase().includes(searchLower) ||
+        org.name?.toLowerCase().includes(searchLower) ||
+        org.projects?.some(p => p.brandName.toLowerCase().includes(searchLower))
+      );
+      setFilteredOrganizations(filtered);
+    }
+  }, [organizationSearchTerm, organizations]);
+
   const loadOrganizations = async () => {
     try {
       setLoading(true);
@@ -132,6 +151,7 @@ const OrganizationSettings: React.FC = () => {
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
       setOrganizations(sortedOrgs);
+      setFilteredOrganizations(sortedOrgs);
 
       // If filter is provided, select that organization
       if (filterOrgId) {
@@ -349,7 +369,7 @@ const OrganizationSettings: React.FC = () => {
                 <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
                   <Box display="flex" alignItems="center" gap={1}>
                     <Typography variant="h6">Organizations</Typography>
-                    <Badge badgeContent={organizations.length} color="primary">
+                    <Badge badgeContent={filteredOrganizations.length} color="primary">
                       <BusinessIcon />
                     </Badge>
                   </Box>
@@ -362,11 +382,46 @@ const OrganizationSettings: React.FC = () => {
                     New
                   </Button>
                 </Box>
+                
+                {/* Search Bar */}
+                <TextField
+                  fullWidth
+                  size="small"
+                  placeholder="Search by organization ID, name, or project..."
+                  value={organizationSearchTerm}
+                  onChange={(e) => setOrganizationSearchTerm(e.target.value)}
+                  sx={{ mb: 2 }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon sx={{ color: 'text.secondary' }} />
+                      </InputAdornment>
+                    ),
+                    endAdornment: organizationSearchTerm && (
+                      <InputAdornment position="end">
+                        <IconButton
+                          size="small"
+                          onClick={() => setOrganizationSearchTerm('')}
+                        >
+                          <ClearIcon />
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+                
                 <Divider sx={{ mb: 2 }} />
 
                 <List sx={{ maxHeight: '600px', overflow: 'auto' }}>
-                  {organizations.map((org) => (
-                    <ListItem key={org.id} disablePadding sx={{ mb: 1 }}>
+                  {filteredOrganizations.length === 0 ? (
+                    <Box sx={{ textAlign: 'center', py: 4 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        {organizationSearchTerm ? 'No organizations found matching your search.' : 'No organizations available.'}
+                      </Typography>
+                    </Box>
+                  ) : (
+                    filteredOrganizations.map((org) => (
+                      <ListItem key={org.id} disablePadding sx={{ mb: 1 }}>
                       <ListItemButton
                         selected={selectedOrganization?.id === org.id}
                         onClick={() => handleSelectOrganization(org)}
@@ -410,7 +465,8 @@ const OrganizationSettings: React.FC = () => {
                         />
                       </ListItemButton>
                     </ListItem>
-                  ))}
+                    ))
+                  )}
                 </List>
               </CardContent>
             </Card>
