@@ -347,12 +347,14 @@ export class OrganizationService {
       trialEndDate.setDate(trialEndDate.getDate() + trialDays);
 
       // Update organization with trial information
+      // SECURITY FIX: Do NOT set stripePlanId during trial activation
+      // stripePlanId should only be set after successful Stripe checkout
       const updateData: any = {
         isOnTrial: true,
         trialStartDate,
         trialEndDate,
         trialPlanId: planId,
-        stripePlanId: planId,
+        // stripePlanId: planId, // REMOVED - Critical security fix
         planSettings: {
           maxProjects: plan.maxProjects,
           maxAIModels: plan.maxModels,

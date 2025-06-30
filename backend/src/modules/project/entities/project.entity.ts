@@ -80,4 +80,11 @@ export class Project {
     required: false 
   })
   createdAt?: Date;
+
+  @ApiProperty({ 
+    description: 'Timestamp when recovery was attempted', 
+    required: false,
+    nullable: true
+  })
+  recoveryAttemptedAt?: Date;
 }

@@ -70,7 +70,7 @@ export class StripeWebhookService {
 
       // Update organization with new plan settings
       const organizationId = user.organizationId.toString();
-      
+
       // Get current organization to check for promo code
       const currentOrg = await this.organizationService.findOne(organizationId);
       const promoCode = currentOrg.promoCode;
@@ -104,7 +104,7 @@ export class StripeWebhookService {
         maxUsers: plan.maxUsers,
         maxCompetitors: plan.maxCompetitors,
       });
-      
+
       // Track promo code usage if one was used
       if (promoCode) {
         try {
@@ -124,18 +124,18 @@ export class StripeWebhookService {
         const availableModels = configService.getLlmModels()
           .filter((model: any) => model.enabled)
           .map((model: any) => model.id);
-        
+
         // Take up to maxModels from available models, keeping existing selections
         const currentModelsSet = new Set(updatedOrg.selectedModels);
         const additionalModels = availableModels
           .filter((modelId: string) => !currentModelsSet.has(modelId))
           .slice(0, plan.maxModels - updatedOrg.selectedModels.length);
-        
+
         const updatedModels = [...updatedOrg.selectedModels, ...additionalModels];
-        
+
         // Update the organization with expanded model selection
         await this.organizationService.updateSelectedModels(organizationId, updatedModels);
-        
+
         console.log(`Expanded selected models from ${updatedOrg.selectedModels.length} to ${updatedModels.length} for organization ${organizationId}`);
       }
 
@@ -163,7 +163,7 @@ export class StripeWebhookService {
       // Get all users in the organization to update their Loops profiles
       const orgUsers = await this.userService.findByOrganizationId(organizationId);
       const userEmails = orgUsers.map((u: any) => u.email);
-      
+
       // Emit organization plan update event for Loops
       this.eventEmitter.emit(
         'organization.plan.updated',
@@ -262,12 +262,12 @@ export class StripeWebhookService {
 
   private async handleSubscriptionCreated(subscription: Stripe.Subscription) {
     console.log('Handling subscription created:', subscription.id);
-    
+
     // Find organization by Stripe customer ID
     const organization = await this.organizationService.findByStripeCustomerId(
       subscription.customer as string
     );
-    
+
     if (!organization) {
       console.error('Organization not found for customer:', subscription.customer);
       // This might happen if webhook fires before checkout verification
@@ -295,7 +295,7 @@ export class StripeWebhookService {
     });
 
     console.log(`Updated organization ${organization.id} with subscription ${subscription.id}`);
-    
+
     // If this is truly a new subscription (not set during checkout), emit event
     if (!organization.stripeSubscriptionId) {
       this.eventEmitter.emit('subscription.created', {
@@ -322,7 +322,7 @@ export class StripeWebhookService {
 
           // Get all user emails for Loops update
           const userEmails = users.map(u => u.email);
-          
+
           // Emit organization plan update event for Loops
           this.eventEmitter.emit(
             'organization.plan.updated',
@@ -343,11 +343,11 @@ export class StripeWebhookService {
 
   private async handleSubscriptionUpdated(subscription: Stripe.Subscription) {
     console.log('Handling subscription updated:', subscription.id);
-    
+
     const organization = await this.organizationService.findByStripeCustomerId(
       subscription.customer as string
     );
-    
+
     if (!organization) {
       console.error('Organization not found for customer:', subscription.customer);
       return;
@@ -363,10 +363,10 @@ export class StripeWebhookService {
     if (organization.stripePlanId) {
       const plan = await this.planService.findById(organization.stripePlanId);
       const users = await this.userService.findByOrganizationId(organization.id);
-      
+
       if (plan && users && users.length > 0) {
         const userEmails = users.map(u => u.email);
-        
+
         // Emit organization plan update event for Loops
         this.eventEmitter.emit(
           'organization.plan.updated',
@@ -395,11 +395,11 @@ export class StripeWebhookService {
 
   private async handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     console.log('Handling subscription deleted:', subscription.id);
-    
+
     const organization = await this.organizationService.findByStripeCustomerId(
       subscription.customer as string
     );
-    
+
     if (!organization) {
       console.error('Organization not found for customer:', subscription.customer);
       return;
@@ -436,7 +436,7 @@ export class StripeWebhookService {
       // Keep only the first maxModels models
       const reducedModels = currentOrg.selectedModels.slice(0, freePlan.maxModels);
       await this.organizationService.updateSelectedModels(organization.id, reducedModels);
-      
+
       console.log(`Reduced selected models from ${currentOrg.selectedModels.length} to ${reducedModels.length} for organization ${organization.id}`);
     }
 
@@ -451,7 +451,7 @@ export class StripeWebhookService {
     const users = await this.userService.findByOrganizationId(organization.id);
     if (users && users.length > 0) {
       const userEmails = users.map(u => u.email);
-      
+
       // Emit organization plan update event for Loops (downgrade to free)
       this.eventEmitter.emit(
         'organization.plan.updated',
@@ -472,7 +472,7 @@ export class StripeWebhookService {
 
   private async handlePaymentFailed(invoice: Stripe.Invoice) {
     console.log('Handling payment failed for invoice:', invoice.id);
-    
+
     if (!(invoice as any).subscription) {
       return;
     }
@@ -480,7 +480,7 @@ export class StripeWebhookService {
     const organization = await this.organizationService.findByStripeCustomerId(
       invoice.customer as string
     );
-    
+
     if (!organization) {
       console.error('Organization not found for customer:', invoice.customer);
       return;
@@ -501,7 +501,7 @@ export class StripeWebhookService {
 
   private async handlePaymentSucceeded(invoice: Stripe.Invoice) {
     console.log('Handling payment succeeded for invoice:', invoice.id);
-    
+
     if (!(invoice as any).subscription) {
       return;
     }
@@ -509,7 +509,7 @@ export class StripeWebhookService {
     const organization = await this.organizationService.findByStripeCustomerId(
       invoice.customer as string
     );
-    
+
     if (!organization) {
       console.error('Organization not found for customer:', invoice.customer);
       return;
@@ -527,22 +527,6 @@ export class StripeWebhookService {
         invoiceId: invoice.id,
         timestamp: new Date(),
       });
-
-      // Send subscription confirmation email for recovered payments
-      const users = await this.userService.findByOrganizationId(organization.id);
-      if (users && users.length > 0 && organization.stripePlanId) {
-        const plan = await this.planService.findById(organization.stripePlanId);
-        if (plan) {
-          this.eventEmitter.emit(
-            'email.subscription-confirmation',
-            new SendSubscriptionConfirmationEmailEvent(
-              users[0].id,
-              plan.name,
-              invoice.amount_paid || 0, // Amount in cents
-            ),
-          );
-        }
-      }
     }
 
     console.log(`Payment succeeded for organization ${organization.id}`);
@@ -550,11 +534,11 @@ export class StripeWebhookService {
 
   private async handleTrialWillEnd(subscription: Stripe.Subscription) {
     console.log('Handling trial will end:', subscription.id);
-    
+
     const organization = await this.organizationService.findByStripeCustomerId(
       subscription.customer as string
     );
-    
+
     if (!organization) {
       console.error('Organization not found for customer:', subscription.customer);
       return;
