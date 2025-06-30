@@ -85,8 +85,14 @@ export class WebCrawlerService {
     this.crawlStates.set(projectId, progress);
 
     // Emit start event
-    this.eventEmitter.emit('crawler.started', { projectId, startUrl, options });
-    this.logger.log(`[CRAWLER] Emitted crawler.started event`);
+    this.eventEmitter.emit('crawler.started', { 
+      projectId, 
+      startUrl, 
+      options,
+      maxPages: options.maxPages,
+      total: options.maxPages,
+    });
+    this.logger.log(`[CRAWLER] Emitted crawler.started event with maxPages: ${options.maxPages}`);
 
     try {
       // Parse robots.txt if needed
@@ -134,7 +140,7 @@ export class WebCrawlerService {
           currentUrl: url,
           progress 
         });
-        this.logger.log(`[CRAWLER] Emitted progress: ${progress.crawled}/${progress.total}`);
+        this.logger.log(`[CRAWLER] Emitted crawler.progress event: ${progress.crawled}/${progress.total}`);
 
         // Wait for rate limiting
         await this.waitForRateLimit(options.crawlDelay);
@@ -220,11 +226,9 @@ export class WebCrawlerService {
       const contentHash = this.calculateContentHash(response.data);
       this.logger.debug(`[CRAWLER] Content hash calculated: ${contentHash.substring(0, 8)}...`);
 
-      // Save to database
+      // Save to database using upsert to avoid duplicate key errors
       this.logger.log(`[CRAWLER] Saving page to database - URL: ${url}`);
-      await this.crawledPageRepository.create({
-        projectId,
-        url,
+      await this.crawledPageRepository.upsert(projectId, url, {
         html: response.data,
         crawledAt: new Date(),
         statusCode: response.status,
@@ -255,22 +259,25 @@ export class WebCrawlerService {
         }
       }
 
-      this.logger.log(`[CRAWLER] Emitting page_crawled event for ${url}`);
+      // Get current progress for this project
+      const progress = this.crawlStates.get(projectId);
+      
+      this.logger.log(`[CRAWLER] Emitting page_crawled event for ${url} - Progress: ${progress?.crawled || 0}/${progress?.total || 0}`);
       this.eventEmitter.emit('crawler.page_crawled', {
         projectId,
         url,
         statusCode: response.status,
         responseTimeMs,
+        crawled: progress?.crawled || 0,
+        total: progress?.total || options.maxPages || 100,
       });
     } catch (error) {
       this.logger.error(`[CRAWLER] Error crawling ${url}: ${error.message}`);
       
-      // Save error state
+      // Save error state using upsert - use placeholder HTML to satisfy validation
       this.logger.log(`[CRAWLER] Saving error state to database for ${url}`);
-      await this.crawledPageRepository.create({
-        projectId,
-        url,
-        html: '',
+      await this.crawledPageRepository.upsert(projectId, url, {
+        html: '<html><body>Error: Could not fetch content</body></html>', // Placeholder HTML
         crawledAt: new Date(),
         statusCode: 0,
         headers: {},

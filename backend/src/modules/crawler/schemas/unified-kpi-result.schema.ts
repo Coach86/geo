@@ -18,10 +18,10 @@ export const UnifiedKPIDetailsSchema = z.object({
     authorCredentials: z.boolean().optional(),
   }),
   freshness: z.object({
-    daysSinceUpdate: z.number().optional(),
+    daysSinceUpdate: z.number().nullable().optional(),
     hasDateSignals: z.boolean(),
-    publishDate: z.string().optional(),
-    modifiedDate: z.string().optional(),
+    publishDate: z.string().nullable().optional(),
+    modifiedDate: z.string().nullable().optional(),
   }),
   structure: z.object({
     h1Count: z.number(),
@@ -51,18 +51,31 @@ export const UnifiedKPIIssueSchema = z.object({
   recommendation: z.string(),
 });
 
+// LLM data schema
+export const LLMDataSchema = z.object({
+  prompt: z.string(),
+  response: z.string(),
+  model: z.string(),
+  tokensUsed: z.object({
+    input: z.number(),
+    output: z.number(),
+  }).optional(),
+});
+
 // Complete response schema
 export const UnifiedKPIResultSchema = z.object({
   scores: UnifiedKPIScoresSchema,
   details: UnifiedKPIDetailsSchema,
   issues: z.array(UnifiedKPIIssueSchema),
   explanation: z.string(),
+  llmData: LLMDataSchema.optional(), // Optional for backward compatibility
 });
 
 // TypeScript types
 export type UnifiedKPIScores = z.infer<typeof UnifiedKPIScoresSchema>;
 export type UnifiedKPIDetails = z.infer<typeof UnifiedKPIDetailsSchema>;
 export type UnifiedKPIIssue = z.infer<typeof UnifiedKPIIssueSchema>;
+export type LLMData = z.infer<typeof LLMDataSchema>;
 export type UnifiedKPIResult = z.infer<typeof UnifiedKPIResultSchema>;
 
 // Validation helper

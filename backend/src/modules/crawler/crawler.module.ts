@@ -6,9 +6,11 @@ import { CrawlerPipelineService } from './services/crawler-pipeline.service';
 import { ScoringRulesService } from './services/scoring-rules.service';
 import { PageSignalExtractorService } from './services/page-signal-extractor.service';
 import { UnifiedKPIAnalyzerService } from './services/unified-kpi-analyzer.service';
-import { ContentKPIBudgetManagerService } from './services/content-kpi-budget-manager.service';
+import { HybridKPIAnalyzerService } from './services/hybrid-kpi-analyzer.service';
+import { IssueFactoryService } from './services/issue-factory.service';
 import { CrawlerController } from './controllers/crawler.controller';
 import { UserCrawlerController } from './controllers/user-crawler.controller';
+import { CrawlerEventsGateway } from './gateways/crawler-events.gateway';
 import { CrawledPage, CrawledPageSchema } from './schemas/crawled-page.schema';
 import { ContentScore, ContentScoreSchema } from './schemas/content-score.schema';
 import { CrawledPageRepository } from './repositories/crawled-page.repository';
@@ -46,7 +48,8 @@ import { LlmModule } from '../llm/llm.module';
     ScoringRulesService,
     PageSignalExtractorService,
     UnifiedKPIAnalyzerService,
-    ContentKPIBudgetManagerService,
+    HybridKPIAnalyzerService,
+    IssueFactoryService,
     CrawledPageRepository,
     ContentScoreRepository,
     AuthorityAnalyzer,
@@ -54,6 +57,7 @@ import { LlmModule } from '../llm/llm.module';
     StructureAnalyzer,
     SnippetAnalyzer,
     BrandAnalyzer,
+    CrawlerEventsGateway,
   ],
   exports: [
     WebCrawlerService,

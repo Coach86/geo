@@ -283,4 +283,60 @@ export class UserCrawlerController {
     
     return recommendations.slice(0, 5);
   }
+
+  @Get('content-scores/:pageUrl/llm-analysis')
+  @TokenRoute()
+  @ApiOperation({ summary: 'Get LLM analysis details for a specific page' })
+  async getPageLLMAnalysis(
+    @Param('projectId') projectId: string,
+    @Param('pageUrl') pageUrl: string,
+    @Req() req: any,
+  ) {
+    // Token is already validated by @TokenRoute decorator
+    if (!req.userId) {
+      throw new HttpException('User not authenticated', HttpStatus.UNAUTHORIZED);
+    }
+
+    // Get user details
+    const user = await this.userService.findOne(req.userId);
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.UNAUTHORIZED);
+    }
+
+    // Verify project exists and user has access
+    const project = await this.projectService.findById(projectId);
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    // Verify user's organization owns the project
+    if (project.organizationId !== user.organizationId) {
+      throw new HttpException('Unauthorized access to project', HttpStatus.FORBIDDEN);
+    }
+
+    // Get the content score for the specific URL
+    const decodedUrl = decodeURIComponent(pageUrl);
+    const score = await this.contentAnalyzerService.getPageContentScore(projectId, decodedUrl);
+    
+    if (!score) {
+      throw new NotFoundException('Content score not found for this page');
+    }
+
+    if (!score.llmAnalysis) {
+      return {
+        message: 'No LLM analysis available for this page',
+        analysisType: 'static',
+      };
+    }
+
+    return {
+      url: score.url,
+      analysisType: score.llmAnalysis.analysisType,
+      model: score.llmAnalysis.model,
+      timestamp: score.llmAnalysis.timestamp,
+      tokensUsed: score.llmAnalysis.tokensUsed,
+      prompt: score.llmAnalysis.prompt,
+      response: score.llmAnalysis.response,
+    };
+  }
 }

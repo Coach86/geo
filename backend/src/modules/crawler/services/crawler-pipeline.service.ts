@@ -75,6 +75,32 @@ export class CrawlerPipelineService {
       });
     });
 
+    this.eventEmitter.on('crawler.completed', (data) => {
+      this.batchEventsGateway.emitBatchEvent({
+        batchExecutionId: 'content-kpi-' + data.projectId,
+        projectId: data.projectId,
+        projectName: '',
+        eventType: 'pipeline_started',
+        pipelineType: 'full',
+        message: `Crawling completed. Starting analysis...`,
+        timestamp: new Date(),
+        progress: 50, // Crawling done, analysis starting
+      });
+    });
+
+    this.eventEmitter.on('analyzer.started', (data) => {
+      this.batchEventsGateway.emitBatchEvent({
+        batchExecutionId: 'content-kpi-' + data.projectId,
+        projectId: data.projectId,
+        projectName: '',
+        eventType: 'pipeline_started',
+        pipelineType: 'full',
+        message: `Starting analysis of ${data.totalPages} pages`,
+        timestamp: new Date(),
+        progress: 50,
+      });
+    });
+
     this.eventEmitter.on('analyzer.progress', (data) => {
       const progress = 50 + Math.round((data.analyzed / data.total) * 50); // 50-100% for analysis
       this.batchEventsGateway.emitBatchEvent({
@@ -86,6 +112,19 @@ export class CrawlerPipelineService {
         message: `Analyzing: ${data.analyzed}/${data.total} pages`,
         timestamp: new Date(),
         progress,
+      });
+    });
+
+    this.eventEmitter.on('analyzer.completed', (data) => {
+      this.batchEventsGateway.emitBatchEvent({
+        batchExecutionId: 'content-kpi-' + data.projectId,
+        projectId: data.projectId,
+        projectName: '',
+        eventType: 'pipeline_started',
+        pipelineType: 'full',
+        message: `Analysis completed: ${data.analyzed}/${data.total} pages analyzed`,
+        timestamp: new Date(),
+        progress: 100, // Analysis is done
       });
     });
   }
@@ -105,7 +144,12 @@ export class CrawlerPipelineService {
 
       // Prepare crawl options
       // TODO: In the future, emit an event to check organization limits
-      const maxPagesLimit = 100; // Default limit, can be overridden by env config
+      const isTestMode = this.configService.get<boolean>('CONTENT_KPI_TEST_MODE', false);
+      const testModeLimit = this.configService.get<number>('CONTENT_KPI_TEST_PAGES', 20);
+      const maxPagesLimit = isTestMode ? testModeLimit : 100; // Use test limit if in test mode
+      
+      this.logger.log(`[PIPELINE] Test mode: ${isTestMode}, Max pages limit: ${maxPagesLimit}`);
+      
       const crawlOptions: CrawlOptions = {
         ...this.defaultCrawlOptions,
         maxPages: Math.min(

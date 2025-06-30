@@ -15,6 +15,14 @@ export class CrawledPageRepository {
     return crawledPage.save();
   }
 
+  async upsert(projectId: string, url: string, data: Partial<CrawledPage>): Promise<CrawledPage> {
+    return this.crawledPageModel.findOneAndUpdate(
+      { projectId, url },
+      { ...data, projectId, url },
+      { upsert: true, new: true }
+    ).exec();
+  }
+
   async findById(id: string): Promise<CrawledPage | null> {
     return this.crawledPageModel.findById(id).exec();
   }
