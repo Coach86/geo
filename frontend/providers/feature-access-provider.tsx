@@ -75,8 +75,11 @@ export function FeatureAccessProvider({ children }: { children: ReactNode }) {
 
       const org = await getMyOrganization(token);
       
-      // Check if user has a plan
-      if (!org.stripePlanId) {
+      // Determine which plan ID to use based on trial status
+      const effectivePlanId = org.isOnTrial ? org.trialPlanId : org.stripePlanId;
+      
+      // Check if user has a plan (either regular or trial)
+      if (!effectivePlanId) {
         // No plan assigned - treat as free plan
         setFeatureAccess({
           visibility: true,
@@ -89,9 +92,9 @@ export function FeatureAccessProvider({ children }: { children: ReactNode }) {
         });
         return;
       }
-
+      
       // Find the plan details
-      const userPlan = plans.find(plan => plan.id === org.stripePlanId);
+      const userPlan = plans.find(plan => plan.id === effectivePlanId);
       
       if (!userPlan) {
         // Plan not found, assume paid features

@@ -46,7 +46,8 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
           return;
         }
       }
-      // Don't automatically select a project - let the user choose
+      // Default to first project if no persisted selection
+      setSelectedProject(allProjects[0]);
     }
   }, [allProjects, selectedProject]);
 

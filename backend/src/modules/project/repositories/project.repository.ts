@@ -132,6 +132,7 @@ export class ProjectRepository {
       language: document.language,
       nextManualAnalysisAllowedAt: document.nextManualAnalysisAllowedAt,
       createdAt: document.createdAt instanceof Date ? document.createdAt : new Date(document.createdAt),
+      recoveryAttemptedAt: document.recoveryAttemptedAt,
     };
   }
 }

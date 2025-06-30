@@ -98,6 +98,9 @@ export class Project {
 
   @Prop({ type: Date, required: false })
   nextManualAnalysisAllowedAt?: Date;
+
+  @Prop({ type: Date, required: false })
+  recoveryAttemptedAt?: Date;
 }
 
 export const ProjectSchema = SchemaFactory.createForClass(Project);

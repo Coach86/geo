@@ -25,7 +25,7 @@ export default function InviteEmail({
   inviteToken,
 }: InviteEmailProps) {
   const baseUrl = process.env.FRONTEND_URL || 'https://app.getmint.ai';
-  const logoUrl = `https://app.getmint.ai/mint-logo.png`;
+  const logoUrl = `https://app.getmint.ai/logo-small.png`;
   const inviteUrl = `${baseUrl}/auth/login?token=${inviteToken}`;
 
   return (
@@ -47,11 +47,11 @@ export default function InviteEmail({
             <Text style={heading}>
               You've been invited to Mint
             </Text>
-            
+
             <Text style={paragraph}>
               Hi there,
             </Text>
-            
+
             <Text style={paragraph}>
               <strong>{inviterName}</strong> has invited you to join their organization on Mint AI, the AI-powered brand intelligence platform.
             </Text>
@@ -68,13 +68,13 @@ export default function InviteEmail({
             <Text style={paragraph}>
               Or copy and paste this link in your browser:
             </Text>
-            
+
             <Text style={linkText}>
               {inviteUrl}
             </Text>
 
             <Text style={paragraph}>
-              This invitation will expire in 7 days. If you have any questions, 
+              This invitation will expire in 7 days. If you have any questions,
               feel free to reach out to {inviterName} or our support team.
             </Text>
           </Section>
