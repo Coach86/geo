@@ -12,6 +12,113 @@ export interface ContentScore {
     snippetExtractability: number;
     brandAlignment: number;
   };
+  details?: {
+    authority: {
+      hasAuthor: boolean;
+      authorName?: string;
+      authorCredentials: string[];
+      outboundCitations: number;
+      trustedCitations: string[];
+      domainAuthority?: 'low' | 'medium' | 'high' | 'unknown';
+      citationCount?: number;
+    };
+    freshness: {
+      publishDate?: string;
+      modifiedDate?: string;
+      daysSinceUpdate?: number;
+      hasDateSignals: boolean;
+    };
+    structure: {
+      h1Count: number;
+      headingHierarchy: boolean;
+      headingHierarchyScore?: number;
+      schemaTypes: string[];
+      avgSentenceWords: number;
+    };
+    snippet: {
+      avgSentenceWords: number;
+      listCount: number;
+      qaBlockCount: number;
+      extractableBlocks: number;
+    };
+    brand: {
+      brandKeywordMatches: number;
+      requiredTermsFound: string[];
+      outdatedTermsFound: string[];
+      brandConsistency: number;
+      brandMentions?: number; // Added for LLM analysis
+      alignmentIssues?: string[];
+      consistencyScore?: number;
+      missingKeywords?: string[];
+    };
+  };
+  calculationDetails?: {
+    authority?: {
+      formula: string;
+      subScores: Array<{
+        name: string;
+        value: number;
+        weight: number;
+        maxValue: number;
+        contribution: number;
+        evidence?: string | string[];
+      }>;
+      finalScore: number;
+      explanation: string;
+    };
+    freshness?: {
+      formula: string;
+      subScores: Array<{
+        name: string;
+        value: number;
+        weight: number;
+        maxValue: number;
+        contribution: number;
+        evidence?: string | string[];
+      }>;
+      finalScore: number;
+      explanation: string;
+    };
+    structure?: {
+      formula: string;
+      subScores: Array<{
+        name: string;
+        value: number;
+        weight: number;
+        maxValue: number;
+        contribution: number;
+        evidence?: string | string[];
+      }>;
+      finalScore: number;
+      explanation: string;
+    };
+    snippetExtractability?: {
+      formula: string;
+      subScores: Array<{
+        name: string;
+        value: number;
+        weight: number;
+        maxValue: number;
+        contribution: number;
+        evidence?: string | string[];
+      }>;
+      finalScore: number;
+      explanation: string;
+    };
+    brandAlignment?: {
+      formula: string;
+      subScores: Array<{
+        name: string;
+        value: number;
+        weight: number;
+        maxValue: number;
+        contribution: number;
+        evidence?: string | string[];
+      }>;
+      finalScore: number;
+      explanation: string;
+    };
+  };
   issues: Array<{
     dimension: string;
     severity: 'critical' | 'high' | 'medium' | 'low';
@@ -19,6 +126,9 @@ export interface ContentScore {
     recommendation: string;
   }>;
   analyzedAt: string;
+  pageCategory?: string;
+  analysisLevel?: string;
+  categoryConfidence?: number;
 }
 
 export interface ContentKPIStats {

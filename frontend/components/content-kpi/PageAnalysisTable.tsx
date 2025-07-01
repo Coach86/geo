@@ -11,33 +11,13 @@ import {
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
 import {
   ChevronDown,
   ChevronRight,
   ExternalLink,
-  CheckCircle,
-  AlertTriangle,
-  AlertCircle,
-  Info,
-  Search,
-  Filter,
-  Sparkles,
 } from 'lucide-react';
-import { LLMAnalysisModal } from './LLMAnalysisModal';
+import { FilterBar } from './FilterBar';
+import { PageDetailsSection } from './PageDetailsSection';
 
 interface PageIssue {
   dimension: string;
@@ -57,56 +37,20 @@ interface PageAnalysis {
     snippetExtractability: number;
     brandAlignment: number;
   };
-  details?: {
-    authority: {
-      hasAuthor: boolean;
-      authorName: string | null;
-      citationCount: number;
-      domainAuthority: string;
-      authorCredentials: string[]; // Array of credential strings
-    };
-    freshness: {
-      daysSinceUpdate: number | null;
-      hasDateSignals: boolean;
-      publishDate: string | null;
-      modifiedDate: string | null;
-    };
-    structure: {
-      h1Count: number;
-      avgSentenceWords: number;
-      hasSchema: boolean;
-      headingHierarchyScore: number;
-    };
-    snippet: {
-      extractableBlocks: number;
-      listCount: number;
-      qaBlockCount: number;
-      avgSentenceLength: number;
-    };
-    brand: {
-      brandMentions: number;
-      alignmentIssues: string[];
-      consistencyScore: number;
-      missingKeywords: string[];
-    };
-  };
+  details?: any;
+  calculationDetails?: any;
   issues: PageIssue[];
   strengths: string[];
   crawledAt: Date;
+  pageCategory?: string;
+  analysisLevel?: string;
+  categoryConfidence?: number;
 }
 
 interface PageAnalysisTableProps {
   pages: PageAnalysis[];
   projectId: string;
 }
-
-const DIMENSION_COLORS = {
-  authority: '#8b5cf6',
-  freshness: '#3b82f6',
-  structure: '#10b981',
-  snippet: '#f59e0b',
-  brand: '#ef4444',
-};
 
 const SEVERITY_COLORS = {
   critical: '#dc2626',
@@ -115,11 +59,29 @@ const SEVERITY_COLORS = {
   low: '#3b82f6',
 };
 
-const SEVERITY_ICONS = {
-  critical: AlertCircle,
-  high: AlertTriangle,
-  medium: Info,
-  low: CheckCircle,
+const formatPageCategory = (category?: string): string => {
+  if (!category) return 'Unknown';
+  
+  // Convert snake_case to Title Case
+  return category
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+};
+
+const getCategoryBadgeVariant = (analysisLevel?: string): "default" | "secondary" | "outline" | "destructive" => {
+  switch (analysisLevel) {
+    case 'full':
+      return 'default';
+    case 'partial':
+      return 'secondary';
+    case 'limited':
+      return 'outline';
+    case 'excluded':
+      return 'destructive';
+    default:
+      return 'default';
+  }
 };
 
 export function PageAnalysisTable({ pages, projectId }: PageAnalysisTableProps) {
@@ -128,6 +90,7 @@ export function PageAnalysisTable({ pages, projectId }: PageAnalysisTableProps) 
   const [filterDimension, setFilterDimension] = useState<string>('all');
   const [filterSeverity, setFilterSeverity] = useState<string>('all');
   const [filterScore, setFilterScore] = useState<string>('all');
+  const [filterCategory, setFilterCategory] = useState<string>('all');
 
   // Toggle row expansion
   const toggleRow = (url: string) => {
@@ -171,78 +134,32 @@ export function PageAnalysisTable({ pages, projectId }: PageAnalysisTableProps) 
       if (!hasIssueWithSeverity) return false;
     }
 
+    // Category filter
+    if (filterCategory !== 'all') {
+      if (!page.pageCategory || page.pageCategory !== filterCategory) {
+        return false;
+      }
+    }
+
     return true;
   });
-
-  // Group issues by dimension for a page
-  const groupIssuesByDimension = (issues: PageIssue[]) => {
-    return issues.reduce((acc, issue) => {
-      if (!acc[issue.dimension]) {
-        acc[issue.dimension] = [];
-      }
-      acc[issue.dimension].push(issue);
-      return acc;
-    }, {} as Record<string, PageIssue[]>);
-  };
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Page-by-Page Analysis</CardTitle>
-        
-        {/* Filters */}
-        <div className="flex flex-wrap gap-4 mt-4">
-          <div className="flex-1 min-w-[200px]">
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by URL or title..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8"
-              />
-            </div>
-          </div>
-          
-          <Select value={filterScore} onValueChange={setFilterScore}>
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Score Range" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Scores</SelectItem>
-              <SelectItem value="high">High (80+)</SelectItem>
-              <SelectItem value="medium">Medium (60-79)</SelectItem>
-              <SelectItem value="low">Low (&lt;60)</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={filterDimension} onValueChange={setFilterDimension}>
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Dimension" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Dimensions</SelectItem>
-              <SelectItem value="authority">Authority</SelectItem>
-              <SelectItem value="freshness">Freshness</SelectItem>
-              <SelectItem value="structure">Structure</SelectItem>
-              <SelectItem value="snippet">Snippet</SelectItem>
-              <SelectItem value="brand">Brand</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={filterSeverity} onValueChange={setFilterSeverity}>
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Severity" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Severities</SelectItem>
-              <SelectItem value="critical">Critical</SelectItem>
-              <SelectItem value="high">High</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="low">Low</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <FilterBar
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          filterScore={filterScore}
+          setFilterScore={setFilterScore}
+          filterDimension={filterDimension}
+          setFilterDimension={setFilterDimension}
+          filterSeverity={filterSeverity}
+          setFilterSeverity={setFilterSeverity}
+          filterCategory={filterCategory}
+          setFilterCategory={setFilterCategory}
+        />
       </CardHeader>
 
       <CardContent>
@@ -255,6 +172,7 @@ export function PageAnalysisTable({ pages, projectId }: PageAnalysisTableProps) 
             <TableRow>
               <TableHead className="w-[30px]"></TableHead>
               <TableHead>Page URL</TableHead>
+              <TableHead className="text-center">Category</TableHead>
               <TableHead className="text-center">Score</TableHead>
               <TableHead className="text-center">Issues</TableHead>
               <TableHead className="text-center">Authority</TableHead>
@@ -267,7 +185,6 @@ export function PageAnalysisTable({ pages, projectId }: PageAnalysisTableProps) 
           <TableBody>
             {filteredPages.map((page) => {
               const isExpanded = expandedRows.has(page.url);
-              const issuesByDimension = groupIssuesByDimension(page.issues);
               
               return (
                 <React.Fragment key={page.url}>
@@ -291,6 +208,14 @@ export function PageAnalysisTable({ pages, projectId }: PageAnalysisTableProps) 
                           {page.url}
                         </div>
                       </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge 
+                        variant={getCategoryBadgeVariant(page.analysisLevel)}
+                        title={`Analysis: ${page.analysisLevel || 'full'} (${Math.round((page.categoryConfidence || 0) * 100)}% confidence)`}
+                      >
+                        {formatPageCategory(page.pageCategory)}
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-center">
                       <Badge 
@@ -353,271 +278,8 @@ export function PageAnalysisTable({ pages, projectId }: PageAnalysisTableProps) 
 
                   {isExpanded && (
                     <TableRow>
-                      <TableCell colSpan={9} className="bg-muted/50">
-                        <div className="p-4 space-y-4">
-                          {/* AI Analysis Button */}
-                          <div className="flex justify-end">
-                            <LLMAnalysisModal 
-                              projectId={projectId} 
-                              pageUrl={page.url}
-                              trigger={
-                                <Button variant="outline" size="sm">
-                                  <Sparkles className="h-4 w-4 mr-2" />
-                                  View AI Analysis Details
-                                </Button>
-                              }
-                            />
-                          </div>
-
-                          {/* LLM Analysis Details */}
-                          {page.details && (
-                            <div>
-                              <h4 className="font-medium mb-3 flex items-center gap-2">
-                                <Sparkles className="h-4 w-4 text-purple-600" />
-                                Breakdown
-                              </h4>
-                              <div className="space-y-3 text-sm">
-                                {/* Authority */}
-                                <div>
-                                  <h5 className="font-medium mb-1" style={{ color: DIMENSION_COLORS.authority }}>
-                                    Authority
-                                  </h5>
-                                  <div className="space-y-1 ml-2">
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-muted-foreground">Author:</span>
-                                      {page.details.authority.hasAuthor ? (
-                                        <span className="font-medium text-green-600">
-                                          {page.details.authority.authorName || "Yes"}
-                                        </span>
-                                      ) : (
-                                        <span className="text-red-600">No</span>
-                                      )}
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-muted-foreground">Citations:</span>
-                                      <span>{page.details.authority.citationCount ?? 0}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-muted-foreground">Domain Authority:</span>
-                                      <Badge variant={
-                                        page.details.authority.domainAuthority === 'high' ? 'success' :
-                                        page.details.authority.domainAuthority === 'medium' ? 'warning' : 'destructive'
-                                      } className="text-xs">
-                                        {page.details.authority.domainAuthority ?? 'unknown'}
-                                      </Badge>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-muted-foreground">Author Credentials:</span>
-                                      <Badge variant={(page.details.authority.authorCredentials?.length ?? 0) > 0 ? "success" : "destructive"} className="text-xs">
-                                        {(page.details.authority.authorCredentials?.length ?? 0) > 0 ? "Yes" : "No"}
-                                      </Badge>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Freshness */}
-                                <div>
-                                  <h5 className="font-medium mb-1" style={{ color: DIMENSION_COLORS.freshness }}>
-                                    Freshness
-                                  </h5>
-                                  <div className="space-y-1 ml-2">
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-muted-foreground">Date Signals:</span>
-                                      <Badge variant={page.details.freshness.hasDateSignals ? "success" : "destructive"} className="text-xs">
-                                        {page.details.freshness.hasDateSignals ? "Yes" : "No"}
-                                      </Badge>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-muted-foreground">Days Since Update:</span>
-                                      <span>{page.details.freshness.daysSinceUpdate ?? "Unknown"}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-muted-foreground">Publish Date:</span>
-                                      <span className="text-xs">{page.details.freshness.publishDate ?? "Not found"}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-muted-foreground">Modified Date:</span>
-                                      <span className="text-xs">{page.details.freshness.modifiedDate ?? "Not found"}</span>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Structure */}
-                                <div>
-                                  <h5 className="font-medium mb-1" style={{ color: DIMENSION_COLORS.structure }}>
-                                    Structure
-                                  </h5>
-                                  <div className="space-y-1 ml-2">
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-muted-foreground">H1 Count:</span>
-                                      <Badge variant={page.details.structure.h1Count === 1 ? "success" : "warning"} className="text-xs">
-                                        {page.details.structure.h1Count ?? 0}
-                                      </Badge>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-muted-foreground">Avg Sentence Words:</span>
-                                      <span>{page.details.structure.avgSentenceWords?.toFixed(1) ?? "Unknown"}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-muted-foreground">Schema Markup:</span>
-                                      <Badge variant={page.details.structure.hasSchema ? "success" : "destructive"} className="text-xs">
-                                        {page.details.structure.hasSchema ? "Yes" : "No"}
-                                      </Badge>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-muted-foreground">Hierarchy Score:</span>
-                                      <Badge variant={
-                                        (page.details.structure.headingHierarchyScore ?? 0) >= 80 ? 'success' :
-                                        (page.details.structure.headingHierarchyScore ?? 0) >= 60 ? 'warning' : 'destructive'
-                                      } className="text-xs">
-                                        {page.details.structure.headingHierarchyScore ?? 0}
-                                      </Badge>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Snippet */}
-                                <div>
-                                  <h5 className="font-medium mb-1" style={{ color: DIMENSION_COLORS.snippet }}>
-                                    Snippet Extractability
-                                  </h5>
-                                  <div className="space-y-1 ml-2">
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-muted-foreground">Extractable Blocks:</span>
-                                      <span>{page.details.snippet.extractableBlocks ?? 0}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-muted-foreground">Lists:</span>
-                                      <span>{page.details.snippet.listCount ?? 0}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-muted-foreground">Q&A Blocks:</span>
-                                      <span>{page.details.snippet.qaBlockCount ?? 0}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-muted-foreground">Avg Sentence Length:</span>
-                                      <span>{page.details.snippet.avgSentenceLength?.toFixed(1) ?? "Unknown"}</span>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Brand */}
-                                <div>
-                                  <h5 className="font-medium mb-1" style={{ color: DIMENSION_COLORS.brand }}>
-                                    Brand Alignment
-                                  </h5>
-                                  <div className="space-y-1 ml-2">
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-muted-foreground">Brand Mentions:</span>
-                                      <span>{page.details.brand.brandMentions ?? 0}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-muted-foreground">Consistency Score:</span>
-                                      <Badge variant={
-                                        (page.details.brand.consistencyScore ?? 0) >= 80 ? 'success' :
-                                        (page.details.brand.consistencyScore ?? 0) >= 60 ? 'warning' : 'destructive'
-                                      } className="text-xs">
-                                        {page.details.brand.consistencyScore ?? 0}
-                                      </Badge>
-                                    </div>
-                                    {(page.details.brand.alignmentIssues?.length ?? 0) > 0 && (
-                                      <div className="flex items-start gap-2">
-                                        <span className="text-muted-foreground">Alignment Issues:</span>
-                                        <div className="flex flex-wrap gap-1">
-                                          {page.details.brand.alignmentIssues?.map((issue, i) => (
-                                            <Badge key={i} variant="destructive" className="text-xs">
-                                              {issue}
-                                            </Badge>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    )}
-                                    {(page.details.brand.missingKeywords?.length ?? 0) > 0 && (
-                                      <div className="flex items-start gap-2">
-                                        <span className="text-muted-foreground">Missing Keywords:</span>
-                                        <div className="flex flex-wrap gap-1">
-                                          {page.details.brand.missingKeywords?.map((keyword, i) => (
-                                            <Badge key={i} variant="warning" className="text-xs">
-                                              {keyword}
-                                            </Badge>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Strengths */}
-                          {page.strengths.length > 0 && (
-                            <div>
-                              <h4 className="font-medium mb-2 flex items-center gap-2">
-                                <CheckCircle className="h-4 w-4 text-green-600" />
-                                Strengths
-                              </h4>
-                              <div className="flex flex-wrap gap-2">
-                                {page.strengths.map((strength, i) => (
-                                  <Badge key={i} variant="success">
-                                    {strength}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Issues by Dimension */}
-                          {Object.keys(issuesByDimension).length > 0 ? (
-                            <div>
-                              <h4 className="font-medium mb-3">Issues by Category</h4>
-                              <div className="space-y-3">
-                                {Object.entries(issuesByDimension).map(([dimension, issues]) => (
-                                  <div key={dimension} className="border rounded-lg p-3">
-                                    <h5 className="font-medium capitalize mb-2" style={{ color: DIMENSION_COLORS[dimension.toLowerCase() as keyof typeof DIMENSION_COLORS] }}>
-                                      {dimension}
-                                    </h5>
-                                    <div className="space-y-2">
-                                      {issues.map((issue, i) => {
-                                        const Icon = SEVERITY_ICONS[issue.severity];
-                                        return (
-                                          <div key={i} className="flex items-start gap-2">
-                                            <Icon 
-                                              className="h-4 w-4 mt-0.5" 
-                                              style={{ color: SEVERITY_COLORS[issue.severity] }}
-                                            />
-                                            <div className="flex-1">
-                                              <p className="text-sm">{issue.description}</p>
-                                              {issue.recommendation && (
-                                                <p className="text-xs text-muted-foreground mt-1">
-                                                  → {issue.recommendation}
-                                                </p>
-                                              )}
-                                            </div>
-                                            <Badge
-                                              variant="outline"
-                                              style={{
-                                                borderColor: SEVERITY_COLORS[issue.severity],
-                                                color: SEVERITY_COLORS[issue.severity],
-                                              }}
-                                            >
-                                              {issue.severity}
-                                            </Badge>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="text-center py-4 text-muted-foreground">
-                              <CheckCircle className="h-8 w-8 mx-auto mb-2 text-green-600" />
-                              <p>No issues found - this page is well optimized!</p>
-                            </div>
-                          )}
-                        </div>
+                      <TableCell colSpan={10} className="bg-muted/50">
+                        <PageDetailsSection page={page} projectId={projectId} />
                       </TableCell>
                     </TableRow>
                   )}

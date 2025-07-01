@@ -599,12 +599,14 @@ export function ContentKPIDashboard({ projectId }: ContentKPIDashboardProps) {
         <TabsContent value="detailed" className="space-y-4">
           {/* Prepare all pages data for the detailed table */}
           {(() => {
+            
             const allPages = data?.scores?.map(page => ({
               url: page.url,
               title: page.url, // ContentScore doesn't have title field
               globalScore: page.globalScore,
               scores: page.scores, // Already in correct format
               details: page.details, // Pass the LLM analysis details
+              calculationDetails: page.calculationDetails, // Pass calculation breakdowns
               issues: page.issues || [], // Already in correct format
               strengths: [
                 ...(page.scores.authority >= 80 ? ['Strong Authority Signals'] : []),
@@ -615,6 +617,10 @@ export function ContentKPIDashboard({ projectId }: ContentKPIDashboardProps) {
                 ...(page.scores.brandAlignment >= 80 && page.details?.brand?.brandMentions > 0 ? ['Strong Brand Alignment'] : []),
               ],
               crawledAt: new Date(page.analyzedAt),
+              // Add the missing category fields
+              pageCategory: page.pageCategory,
+              analysisLevel: page.analysisLevel,
+              categoryConfidence: page.categoryConfidence,
             })) || [];
 
             return <PageAnalysisTable pages={allPages} projectId={projectId} />;

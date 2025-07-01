@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { LlmService } from '../../llm/services/llm.service';
 import { LlmProvider } from '../../llm/interfaces/llm-provider.enum';
-import { PageSignals, PageSignalExtractorService } from './page-signal-extractor.service';
+import { PageSignalExtractorService } from './page-signal-extractor.service';
+import { PageSignals } from '../interfaces/page-signals.interface';
 import { 
   UnifiedKPIResult, 
   validateUnifiedKPIResult 
@@ -32,7 +33,7 @@ export class UnifiedKPIAnalyzerService {
   ): Promise<UnifiedKPIResult> {
     try {
       // Extract structured signals first
-      const pageSignals = this.pageSignalExtractor.extract(html, metadata);
+      const pageSignals = this.pageSignalExtractor.extract(html, metadata, context);
       const cleanContent = this.pageSignalExtractor.getCleanContent(html);
 
       // Build unified prompt

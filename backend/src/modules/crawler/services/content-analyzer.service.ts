@@ -2,8 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CrawledPageRepository } from '../repositories/crawled-page.repository';
 import { ContentScoreRepository } from '../repositories/content-score.repository';
-import { AuthorityAnalyzer } from '../analyzers/authority.analyzer';
-import { FreshnessAnalyzer } from '../analyzers/freshness.analyzer';
 import { StructureAnalyzer } from '../analyzers/structure.analyzer';
 import { SnippetAnalyzer } from '../analyzers/snippet.analyzer';
 import { BrandAnalyzer } from '../analyzers/brand.analyzer';
@@ -16,6 +14,7 @@ import { UnifiedKPIAnalyzerService } from './unified-kpi-analyzer.service';
 import { HybridKPIAnalyzerService } from './hybrid-kpi-analyzer.service';
 import { PageSignalExtractorService } from './page-signal-extractor.service';
 import { IssueFactoryService, KPIDimension } from './issue-factory.service';
+import { DimensionCalculationDetails } from '../interfaces/score-calculation.interface';
 
 export interface AnalysisProgress {
   projectId: string;
@@ -33,8 +32,6 @@ export class ContentAnalyzerService {
     private readonly configService: ConfigService,
     private readonly crawledPageRepository: CrawledPageRepository,
     private readonly contentScoreRepository: ContentScoreRepository,
-    private readonly authorityAnalyzer: AuthorityAnalyzer,
-    private readonly freshnessAnalyzer: FreshnessAnalyzer,
     private readonly structureAnalyzer: StructureAnalyzer,
     private readonly snippetAnalyzer: SnippetAnalyzer,
     private readonly brandAnalyzer: BrandAnalyzer,
@@ -284,6 +281,7 @@ export class ContentAnalyzerService {
       scores: result.scores,
       globalScore,
       details,
+      calculationDetails: result.calculationDetails,
       issues,
       analyzedAt: new Date(),
       crawledPageId: page.id || page._id,
@@ -299,6 +297,9 @@ export class ContentAnalyzerService {
         tokensUsed: result.llmData.tokensUsed,
         analysisType: 'unified' as const, // Keep same for compatibility
       } : undefined,
+      pageCategory: result.pageCategory?.type,
+      analysisLevel: result.pageCategory?.analysisLevel,
+      categoryConfidence: result.pageCategory?.confidence,
     };
   }
 
@@ -392,11 +393,54 @@ export class ContentAnalyzerService {
 
   /**
    * Static rule-based analysis (original approach)
+   * @deprecated Use analyzePageHybrid instead
    */
   async analyzePageStatic(page: any, project: any): Promise<Partial<ContentScore>> {
     const allIssues: ScoreIssue[] = [];
 
-    // Run all analyzers
+    // This method is deprecated - use hybrid analysis instead
+    // Returning minimal results to avoid breaking existing code
+    return {
+      scores: {
+        authority: 0,
+        freshness: 0,
+        structure: 0,
+        snippetExtractability: 0,
+        brandAlignment: 0
+      },
+      details: {
+        authority: {
+          hasAuthor: false,
+          authorCredentials: [],
+          outboundCitations: 0,
+          trustedCitations: []
+        },
+        freshness: {
+          hasDateSignals: false
+        },
+        structure: {
+          h1Count: 0,
+          headingHierarchy: false,
+          schemaTypes: [],
+          avgSentenceWords: 0
+        },
+        snippet: {
+          avgSentenceWords: 0,
+          listCount: 0,
+          qaBlockCount: 0,
+          extractableBlocks: 0
+        },
+        brand: {
+          requiredTermsFound: [],
+          outdatedTermsFound: [],
+          brandConsistency: 0,
+          brandKeywordMatches: 0
+        }
+      },
+      issues: []
+    };
+    
+    /* Old implementation - kept for reference
     const authorityResult = this.authorityAnalyzer.analyze(page.html, page.url);
     const freshnessResult = this.freshnessAnalyzer.analyze(page.html, page.metadata);
     const structureResult = this.structureAnalyzer.analyze(page.html);
@@ -471,7 +515,7 @@ export class ContentAnalyzerService {
       structure: {
         h1Count: structureResult.h1Count,
         headingHierarchy: structureResult.headingHierarchy,
-        headingHierarchyScore: 0, // Static analysis doesn't calculate hierarchy score
+        headingHierarchyScore: structureResult.headingHierarchyScore,
         schemaTypes: structureResult.schemaTypes,
         avgSentenceWords: structureResult.avgSentenceWords,
       },
@@ -493,12 +537,22 @@ export class ContentAnalyzerService {
     const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
     allIssues.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
 
+    // Collect calculation details if available
+    const calculationDetails: DimensionCalculationDetails = {
+      authority: authorityResult.calculationDetails,
+      freshness: freshnessResult.calculationDetails,
+      structure: structureResult.calculationDetails,
+      snippetExtractability: snippetResult.calculationDetails,
+      brandAlignment: brandResult.calculationDetails,
+    };
+
     return {
       projectId: project.projectId,
       url: page.url,
       scores,
       globalScore,
       details,
+      calculationDetails,
       issues: allIssues,
       analyzedAt: new Date(),
       crawledPageId: page.id || page._id,
@@ -514,6 +568,7 @@ export class ContentAnalyzerService {
         analysisType: 'static' as const,
       },
     };
+    */
   }
 
   async getProjectContentScores(projectId: string): Promise<ContentScore[]> {

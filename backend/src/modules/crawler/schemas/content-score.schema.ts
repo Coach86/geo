@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
+import { DimensionCalculationDetails } from '../interfaces/score-calculation.interface';
 
 export interface ScoreIssue {
   dimension: string;
@@ -83,6 +84,9 @@ export class ContentScore extends Document {
   @Prop({ type: Object })
   details: DimensionDetails;
 
+  @Prop({ type: Object })
+  calculationDetails?: DimensionCalculationDetails;
+
   @Prop({ type: [Object] })
   issues: ScoreIssue[];
 
@@ -100,6 +104,15 @@ export class ContentScore extends Document {
 
   @Prop({ type: Object })
   llmAnalysis?: LLMAnalysisData;
+
+  @Prop()
+  pageCategory?: string;
+
+  @Prop()
+  analysisLevel?: string;
+
+  @Prop()
+  categoryConfidence?: number;
 }
 
 export const ContentScoreSchema = SchemaFactory.createForClass(ContentScore);
