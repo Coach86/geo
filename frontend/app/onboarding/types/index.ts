@@ -30,7 +30,6 @@ export {
   validateProjectInfo,
   validateBrandIdentity,
   validatePromptSelection,
-  validateConfirmation,
   validatePhoneVerification,
   STEP_VALIDATIONS,
   validateStep,

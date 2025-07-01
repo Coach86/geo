@@ -221,6 +221,8 @@
   "defaultModels": [
     "openai-gpt4o",
     "google-gemini2.0",
-    "perplexity-sonar-pro"
+    "perplexity-sonar-pro",
+    "mistral-medium-2505",
+    "grok-3-latest"
   ]
 }
