@@ -10,7 +10,6 @@ import {
 import ProjectInfo from "@/components/onboarding/project-info";
 import BrandIdentity from "@/components/onboarding/brand-identity";
 import PromptSelection from "@/components/onboarding/prompt-selection";
-import Confirmation from "@/components/onboarding/confirmation";
 import PhoneVerification from "@/components/onboarding/phone-verification";
 
 // Step IDs as enum for type safety
