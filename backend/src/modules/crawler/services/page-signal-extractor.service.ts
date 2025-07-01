@@ -1,40 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { JSDOM } from 'jsdom';
-
-export interface PageSignals {
-  content: {
-    title: string;
-    cleanText: string;
-    wordCount: number;
-    avgSentenceLength: number;
-  };
-  structure: {
-    h1Count: number;
-    headingHierarchy: string[];
-    listCount: number;
-    schemaTypes: string[];
-  };
-  authority: {
-    authorElements: string[];
-    outboundLinks: string[];
-    citationCandidates: string[];
-  };
-  freshness: {
-    publishDate?: string;
-    modifiedDate?: string;
-    dateSignals: string[];
-  };
-}
+import { PageSignals } from '../interfaces/page-signals.interface';
 
 @Injectable()
 export class PageSignalExtractorService {
   private readonly logger = new Logger(PageSignalExtractorService.name);
-  private readonly MAX_CONTENT_LENGTH = 10000; // 10KB limit for clean content
+  private readonly MAX_CONTENT_LENGTH = 25000; // Token optimization
 
   /**
    * Extract structured signals from HTML for LLM analysis
    */
-  extract(html: string, metadata?: any): PageSignals {
+  extract(html: string, metadata?: any, brandContext?: { brandName: string; keyBrandAttributes: string[]; competitors: string[] }): PageSignals {
     try {
       const dom = new JSDOM(html);
       const document = dom.window.document;
@@ -42,8 +18,9 @@ export class PageSignalExtractorService {
       return {
         content: this.extractContentSignals(document),
         structure: this.extractStructureSignals(document),
-        authority: this.extractAuthoritySignals(document),
         freshness: this.extractFreshnessSignals(document, metadata),
+        brand: this.extractBrandSignals(document, brandContext),
+        snippet: this.extractSnippetSignals(document)
       };
     } catch (error) {
       this.logger.error('Error extracting page signals:', error);
@@ -78,12 +55,15 @@ export class PageSignalExtractorService {
   }
 
   private extractContentSignals(document: Document): PageSignals['content'] {
-    // Get title
-    const titleElement = document.querySelector('title, h1');
-    const title = titleElement?.textContent?.trim() || '';
+    // Get h1 text
+    const h1Element = document.querySelector('h1');
+    const h1Text = h1Element?.textContent?.trim() || '';
+    
+    // Get meta description
+    const metaDesc = document.querySelector('meta[name="description"]');
+    const metaDescription = metaDesc?.getAttribute('content') || '';
 
     // Extract clean text
-    this.removeUnwantedElements(document);
     const mainContent = this.extractMainContent(document);
     const cleanText = this.cleanText(mainContent);
 
@@ -91,11 +71,87 @@ export class PageSignalExtractorService {
     const words = cleanText.split(/\s+/).filter(word => word.length > 0);
     const sentences = cleanText.split(/[.!?]+/).filter(s => s.trim().length > 0);
     
+    // Check for author information
+    const authorSelectors = [
+      '[rel="author"]',
+      '.author',
+      '.byline',
+      '[itemprop="author"]',
+      'meta[name="author"]',
+    ];
+    
+    let hasAuthor = false;
+    let authorName = '';
+    for (const selector of authorSelectors) {
+      const element = document.querySelector(selector);
+      if (element) {
+        hasAuthor = true;
+        authorName = element.textContent?.trim() || element.getAttribute('content')?.trim() || '';
+        break;
+      }
+    }
+
+    // Check for byline and author bio
+    const hasByline = !!document.querySelector('.byline, .author-byline, [class*="byline"]');
+    const hasAuthorBio = !!document.querySelector('.author-bio, .author-description, [class*="author-bio"]');
+
+    // Count citations and links
+    const allLinks = document.querySelectorAll('a[href]');
+    let citationCount = 0;
+    let internalLinkCount = 0;
+    let externalLinkCount = 0;
+    let hasSources = false;
+    let hasReferences = false;
+    let academicSourceCount = 0;
+    let newsSourceCount = 0;
+    let industrySourceCount = 0;
+
+    Array.from(allLinks).forEach(link => {
+      const href = link.getAttribute('href') || '';
+      const text = link.textContent?.toLowerCase() || '';
+      
+      if (href.startsWith('http')) {
+        externalLinkCount++;
+        
+        // Check for academic sources
+        if (href.includes('.edu') || href.includes('scholar.') || href.includes('pubmed')) {
+          academicSourceCount++;
+        }
+        // Check for news sources
+        if (href.includes('news') || href.includes('times') || href.includes('post')) {
+          newsSourceCount++;
+        }
+      } else {
+        internalLinkCount++;
+      }
+      
+      // Check for citation markers
+      if (text.includes('cite') || text.includes('source') || link.getAttribute('rel')?.includes('cite')) {
+        citationCount++;
+      }
+    });
+
+    // Check for sources/references sections
+    const allText = document.body?.textContent?.toLowerCase() || '';
+    hasSources = allText.includes('sources:') || allText.includes('source:');
+    hasReferences = allText.includes('references:') || allText.includes('bibliography:');
+
     return {
-      title,
-      cleanText: cleanText.substring(0, this.MAX_CONTENT_LENGTH),
+      h1Text,
+      metaDescription,
       wordCount: words.length,
-      avgSentenceLength: sentences.length > 0 ? words.length / sentences.length : 0,
+      hasAuthor,
+      hasByline,
+      hasAuthorBio,
+      authorName: authorName.substring(0, 100),
+      citationCount,
+      internalLinkCount,
+      externalLinkCount,
+      hasSources,
+      hasReferences,
+      academicSourceCount,
+      newsSourceCount,
+      industrySourceCount: externalLinkCount - academicSourceCount - newsSourceCount
     };
   }
 
@@ -132,295 +188,256 @@ export class PageSignalExtractorService {
       .filter(type => type.length > 0)
       .slice(0, 5); // Limit to 5 schema types
 
+    const hasSchema = schemaTypes.length > 0;
+
+    // Calculate readability metrics
+    const mainContent = this.extractMainContent(document);
+    const cleanText = this.cleanText(mainContent);
+    const words = cleanText.split(/\s+/).filter(word => word.length > 0);
+    const sentences = cleanText.split(/[.!?]+/).filter(s => s.trim().length > 0);
+    const avgSentenceWords = sentences.length > 0 ? words.length / sentences.length : 0;
+
+    // Calculate heading hierarchy score (0-100)
+    let headingHierarchyScore = 0;
+    if (h1Count === 1) headingHierarchyScore += 50;
+    if (headings.length > 3 && headings.length < 20) headingHierarchyScore += 30;
+    // Check for proper hierarchy (h1 -> h2 -> h3)
+    let properHierarchy = true;
+    let lastLevel = 0;
+    Array.from(headings).forEach(h => {
+      const level = parseInt(h.tagName.charAt(1));
+      if (level - lastLevel > 1) properHierarchy = false;
+      lastLevel = level;
+    });
+    if (properHierarchy) headingHierarchyScore += 20;
+
     return {
       h1Count,
       headingHierarchy,
       listCount,
       schemaTypes,
-    };
-  }
-
-  private extractAuthoritySignals(document: Document): PageSignals['authority'] {
-    // Find author elements
-    const authorSelectors = [
-      '[rel="author"]',
-      '.author',
-      '.byline',
-      '[itemprop="author"]',
-      'meta[name="author"]',
-    ];
-    
-    const authorElements: string[] = [];
-    for (const selector of authorSelectors) {
-      const elements = document.querySelectorAll(selector);
-      elements.forEach(el => {
-        const text = el.textContent?.trim() || el.getAttribute('content')?.trim() || '';
-        if (text && text.length > 0 && text.length < 200) {
-          authorElements.push(text);
-        }
-      });
-    }
-
-    // Find outbound links
-    const links = document.querySelectorAll('a[href^="http"]');
-    const outboundLinks = Array.from(links)
-      .map(link => link.getAttribute('href') || '')
-      .filter(href => href.length > 0)
-      .slice(0, 20); // Limit to 20 links
-
-    // Find citation candidates (links with certain patterns)
-    const citationCandidates = outboundLinks.filter(href => {
-      const url = href.toLowerCase();
-      return url.includes('doi.org') || 
-             url.includes('pubmed') || 
-             url.includes('arxiv') || 
-             url.includes('scholar.google') ||
-             url.includes('researchgate') ||
-             url.includes('nature.com') ||
-             url.includes('sciencedirect') ||
-             url.includes('wikipedia.org');
-    });
-
-    return {
-      authorElements: [...new Set(authorElements)].slice(0, 5),
-      outboundLinks: [...new Set(outboundLinks)],
-      citationCandidates,
+      hasSchema,
+      wordCount: words.length,
+      avgSentenceWords: Math.round(avgSentenceWords),
+      headingHierarchyScore
     };
   }
 
   private extractFreshnessSignals(document: Document, metadata?: any): PageSignals['freshness'] {
-    const dateSignals: string[] = [];
-    let publishDate: string | undefined;
-    let modifiedDate: string | undefined;
+    let publishDate: Date | undefined;
+    let modifiedDate: Date | undefined;
+    const updateIndicators: string[] = [];
+    let hasDateInUrl = false;
+    let hasDateInTitle = false;
+    let yearMentionCount = 0;
 
-    // Extract dates from meta tags
-    const metaSelectors = [
+    // Check metadata first
+    if (metadata?.publishDate) {
+      publishDate = new Date(metadata.publishDate);
+    }
+    if (metadata?.modifiedDate) {
+      modifiedDate = new Date(metadata.modifiedDate);
+    }
+
+    // Look for dates in meta tags
+    const dateSelectors = [
       'meta[property="article:published_time"]',
       'meta[property="article:modified_time"]',
-      'meta[name="publish-date"]',
-      'meta[name="date"]',
-      'meta[name="DC.date"]',
-      'meta[name="DC.date.created"]',
-      'meta[name="DC.date.modified"]',
-      'meta[itemprop="datePublished"]',
-      'meta[itemprop="dateModified"]',
-      'meta[itemprop="dateCreated"]',
-      'meta[property="og:updated_time"]',
-      'meta[name="last-modified"]',
-      'meta[name="revised"]',
+      'meta[name="publish_date"]',
+      'meta[name="last_modified"]',
+      'time[datetime]',
+      '[itemprop="datePublished"]',
+      '[itemprop="dateModified"]'
     ];
 
-    for (const selector of metaSelectors) {
-      const meta = document.querySelector(selector);
-      if (meta) {
-        const content = meta.getAttribute('content');
-        if (content) {
-          dateSignals.push(`${selector}: ${content}`);
-          if (selector.includes('published') || selector.includes('publish-date') || selector.includes('created')) {
-            publishDate = content;
-          }
-          if (selector.includes('modified') || selector.includes('updated') || selector.includes('revised')) {
-            modifiedDate = content;
+    dateSelectors.forEach(selector => {
+      const element = document.querySelector(selector);
+      if (element) {
+        const dateStr = element.getAttribute('content') || 
+                       element.getAttribute('datetime') || 
+                       element.textContent;
+        if (dateStr) {
+          const date = new Date(dateStr);
+          if (!isNaN(date.getTime())) {
+            if (selector.includes('published') && !publishDate) {
+              publishDate = date;
+            } else if (selector.includes('modified') && !modifiedDate) {
+              modifiedDate = date;
+            }
           }
         }
       }
-    }
-
-    // Extract dates from HTML elements with common patterns
-    const dateElementSelectors = [
-      '.date',
-      '.publish-date',
-      '.publication-date',
-      '.last-updated',
-      '.modified-date',
-      '.timestamp',
-      'time',
-      '.date-published',
-      '.article-date',
-      '.post-date',
-      '.updated',
-      '.created',
-    ];
-
-    for (const selector of dateElementSelectors) {
-      const elements = document.querySelectorAll(selector);
-      elements.forEach(el => {
-        const text = el.textContent?.trim();
-        const datetime = el.getAttribute('datetime');
-        
-        if (datetime) {
-          dateSignals.push(`${selector}[datetime]: ${datetime}`);
-          if (!publishDate) publishDate = datetime;
-        } else if (text && this.isDateString(text)) {
-          dateSignals.push(`${selector}: ${text}`);
-          if (!publishDate) publishDate = text;
-        }
-      });
-    }
-
-    // Search for date patterns in text content
-    const textDates = this.extractDatesFromText(document.body?.textContent || '');
-    textDates.forEach(date => {
-      dateSignals.push(`text-pattern: ${date}`);
-      if (!publishDate) publishDate = date;
     });
 
-    // Extract dates from JSON-LD
-    const jsonLdScripts = document.querySelectorAll('script[type="application/ld+json"]');
-    jsonLdScripts.forEach(script => {
-      try {
-        const data = JSON.parse(script.textContent || '');
-        if (data.datePublished) {
-          publishDate = publishDate || data.datePublished;
-          dateSignals.push(`json-ld-published: ${data.datePublished}`);
-        }
-        if (data.dateModified) {
-          modifiedDate = modifiedDate || data.dateModified;
-          dateSignals.push(`json-ld-modified: ${data.dateModified}`);
-        }
-      } catch {
-        // Ignore invalid JSON-LD
+    // Check URL for date patterns
+    const urlDatePattern = /\/(20\d{2})[\/\-](0?[1-9]|1[0-2])[\/\-]/;
+    if (metadata?.url && urlDatePattern.test(metadata.url)) {
+      hasDateInUrl = true;
+    }
+
+    // Check title for date/year
+    const title = document.querySelector('title')?.textContent || '';
+    const currentYear = new Date().getFullYear();
+    for (let year = currentYear; year >= currentYear - 5; year--) {
+      if (title.includes(year.toString())) {
+        hasDateInTitle = true;
+        break;
+      }
+    }
+
+    // Count year mentions in content
+    const bodyText = document.body?.textContent || '';
+    for (let year = currentYear; year >= currentYear - 10; year--) {
+      const yearRegex = new RegExp(`\\b${year}\\b`, 'g');
+      const matches = bodyText.match(yearRegex);
+      if (matches) {
+        yearMentionCount += matches.length;
+      }
+    }
+
+    // Look for update indicators
+    const updatePatterns = ['updated', 'revised', 'last modified', 'last updated'];
+    updatePatterns.forEach(pattern => {
+      if (bodyText.toLowerCase().includes(pattern)) {
+        updateIndicators.push(pattern);
       }
     });
 
-    // Use metadata if available (HTTP headers)
-    if (metadata?.lastModified) {
-      modifiedDate = modifiedDate || metadata.lastModified;
-      dateSignals.push(`metadata-modified: ${metadata.lastModified}`);
+    // Calculate content age
+    let contentAge: number | undefined;
+    if (publishDate) {
+      contentAge = Math.floor((Date.now() - publishDate.getTime()) / (1000 * 60 * 60 * 24));
     }
 
     return {
       publishDate,
       modifiedDate,
-      dateSignals: dateSignals.slice(0, 15), // Increased limit for more signals
+      hasDateInUrl,
+      hasDateInTitle,
+      yearMentionCount,
+      updateIndicators,
+      contentAge
     };
   }
 
-  /**
-   * Check if a string contains a valid date
-   */
-  private isDateString(text: string): boolean {
-    if (!text || text.length < 4 || text.length > 50) return false;
-    
-    // Exclude obviously non-date strings
-    if (text.includes('copyright') || text.includes('©') || 
-        text.includes('all rights reserved') || text.toLowerCase().includes('since')) {
-      return false;
+  private extractBrandSignals(document: Document, brandContext?: { brandName: string; keyBrandAttributes: string[]; competitors: string[] }): PageSignals['brand'] {
+    if (!brandContext || !brandContext.brandName) {
+      // Without brand context, can't extract meaningful signals
+      return {
+        brandMentionCount: 0,
+        competitorMentionCount: 0,
+        brandInTitle: false,
+        brandInH1: false,
+        brandInUrl: false,
+        brandProminence: 0,
+        contextQuality: []
+      };
     }
-    
-    // Common date patterns
-    const datePatterns = [
-      /\d{1,2}\/\d{1,2}\/\d{4}/,           // MM/DD/YYYY or DD/MM/YYYY
-      /\d{1,2}-\d{1,2}-\d{4}/,             // MM-DD-YYYY or DD-MM-YYYY
-      /\d{4}-\d{1,2}-\d{1,2}/,             // YYYY-MM-DD
-      /\d{1,2}\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\s+\d{4}/i, // DD Mon YYYY
-      /\d{1,2}\s+(janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)\s+\d{4}/i, // French dates
-      /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/, // ISO datetime
-    ];
 
-    const hasDatePattern = datePatterns.some(pattern => pattern.test(text));
-    
-    // Additional validation: try to parse and check if it's a reasonable date
-    if (hasDatePattern) {
-      try {
-        const parsed = new Date(text);
-        const year = parsed.getFullYear();
-        // Only accept dates between 1990 and current year + 5
-        return !isNaN(parsed.getTime()) && year >= 1990 && year <= new Date().getFullYear() + 5;
-      } catch {
-        return false;
+    const { brandName, keyBrandAttributes, competitors } = brandContext;
+    const bodyText = document.body?.textContent || '';
+    const titleText = document.querySelector('title')?.textContent || '';
+    const h1Text = document.querySelector('h1')?.textContent || '';
+
+    // Count brand mentions
+    const brandRegex = new RegExp(`\\b${brandName}\\b`, 'gi');
+    const brandMatches = bodyText.match(brandRegex) || [];
+    const brandMentionCount = brandMatches.length;
+
+    // Count competitor mentions
+    let competitorMentionCount = 0;
+    competitors.forEach(competitor => {
+      const competitorRegex = new RegExp(`\\b${competitor}\\b`, 'gi');
+      const matches = bodyText.match(competitorRegex) || [];
+      competitorMentionCount += matches.length;
+    });
+
+    // Check brand presence in key locations
+    const brandInTitle = brandRegex.test(titleText);
+    const brandInH1 = brandRegex.test(h1Text);
+    const brandInUrl = false; // URL not available in document
+
+    // Calculate brand prominence (percentage of brand mentions vs total words)
+    const totalWords = bodyText.split(/\s+/).filter(word => word.length > 0).length;
+    const brandProminence = totalWords > 0 ? (brandMentionCount / totalWords) * 100 : 0;
+
+    // Find which key brand attributes are mentioned
+    const contextQuality: string[] = [];
+    keyBrandAttributes.forEach(attribute => {
+      const attrRegex = new RegExp(`\\b${attribute}\\b`, 'gi');
+      if (attrRegex.test(bodyText)) {
+        contextQuality.push(attribute);
       }
-    }
-    
-    return false;
+    });
+
+    return {
+      brandMentionCount,
+      competitorMentionCount,
+      brandInTitle,
+      brandInH1,
+      brandInUrl,
+      brandProminence: Math.round(brandProminence * 100) / 100,
+      contextQuality
+    };
   }
 
-  /**
-   * Extract date patterns from text content
-   */
-  private extractDatesFromText(text: string): string[] {
-    const dates: string[] = [];
-    const lines = text.split('\n').slice(0, 50); // Reduced to 50 lines for better performance
-    
-    const datePatterns = [
-      // ISO dates (more restrictive)
-      /\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?(?:Z|[+-]\d{2}:\d{2})\b/g,
-      // French date patterns (specific contexts)
-      /(?:publié|modifié|mis à jour|créé).*?\b\d{1,2}\s+(?:janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)\s+\d{4}\b/gi,
-      // English date patterns (specific contexts)
-      /(?:published|modified|updated|created).*?\b\d{1,2}\s+(?:january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{4}\b/gi,
+  private extractSnippetSignals(document: Document): PageSignals['snippet'] {
+    // Count Q&A blocks
+    const qaSelectors = [
+      '.faq', '[class*="question"]', '[class*="answer"]',
+      '[itemtype*="FAQPage"]', '[itemtype*="Question"]'
     ];
+    let qaBlockCount = 0;
+    qaSelectors.forEach(selector => {
+      qaBlockCount += document.querySelectorAll(selector).length;
+    });
 
-    for (const line of lines) {
-      // Skip lines that look like copyright or footer content
-      if (line.toLowerCase().includes('copyright') || 
-          line.toLowerCase().includes('all rights reserved') ||
-          line.includes('©')) {
-        continue;
-      }
-      
-      for (const pattern of datePatterns) {
-        const matches = line.match(pattern);
-        if (matches) {
-          // Validate each match
-          for (const match of matches) {
-            if (this.isValidDate(match)) {
-              dates.push(match);
-              if (dates.length >= 3) break; // Reduced limit
-            }
-          }
-          if (dates.length >= 3) break;
-        }
-      }
-      if (dates.length >= 3) break;
-    }
+    // Count list items
+    const listItemCount = document.querySelectorAll('li').length;
 
-    return [...new Set(dates)]; // Remove duplicates
-  }
+    // Calculate average sentence length
+    const mainContent = this.extractMainContent(document);
+    const cleanText = this.cleanText(mainContent);
+    const sentences = cleanText.split(/[.!?]+/).filter(s => s.trim().length > 10);
+    const avgSentenceLength = sentences.length > 0 
+      ? sentences.reduce((sum, s) => sum + s.split(/\s+/).length, 0) / sentences.length 
+      : 0;
 
-  /**
-   * More strict date validation
-   */
-  private isValidDate(dateStr: string): boolean {
-    try {
-      const parsed = new Date(dateStr);
-      if (isNaN(parsed.getTime())) return false;
-      
-      const year = parsed.getFullYear();
-      const now = new Date();
-      
-      // Must be between 2000 and current year + 2
-      if (year < 2000 || year > now.getFullYear() + 2) return false;
-      
-      // Must not be epoch date
-      if (parsed.getTime() === 0) return false;
-      
-      return true;
-    } catch {
-      return false;
-    }
+    // Count definitions
+    const definitionSelectors = ['dl', 'dt', 'dd', '[class*="definition"]'];
+    let definitionCount = 0;
+    definitionSelectors.forEach(selector => {
+      definitionCount += document.querySelectorAll(selector).length;
+    });
+
+    // Check for structured data
+    const hasStructuredData = document.querySelectorAll(
+      'script[type="application/ld+json"], [itemscope]'
+    ).length > 0;
+
+    // Count steps and bullet points
+    const stepCount = document.querySelectorAll(
+      '[class*="step"], .step, ol > li'
+    ).length;
+    const bulletPoints = document.querySelectorAll('ul > li').length;
+
+    return {
+      qaBlockCount,
+      listItemCount,
+      avgSentenceLength: Math.round(avgSentenceLength),
+      definitionCount,
+      hasStructuredData,
+      stepCount,
+      bulletPoints
+    };
   }
 
   private removeUnwantedElements(document: Document): void {
     const unwantedSelectors = [
-      'script',
-      'style',
-      'nav',
-      'header',
-      'footer',
-      '.sidebar',
-      '.navigation',
-      '.menu',
-      '.breadcrumb',
-      '.advertisement',
-      '.ads',
-      '.popup',
-      '.modal',
-      '.cookie-notice',
-      '[role="banner"]',
-      '[role="navigation"]',
-      '[role="complementary"]',
-      '[role="contentinfo"]',
+      'script', 'style', 'noscript', 'iframe', 
+      'nav', 'header', 'footer', 'aside',
+      '[class*="sidebar"]', '[class*="advertisement"]',
+      '[class*="social"]', '[class*="share"]'
     ];
 
     unwantedSelectors.forEach(selector => {
@@ -430,59 +447,82 @@ export class PageSignalExtractorService {
   }
 
   private extractMainContent(document: Document): string {
-    // Try to find main content area using common selectors
+    // Try to find main content containers
     const contentSelectors = [
-      'main',
-      '[role="main"]',
-      '.main-content',
-      '.content',
-      '.post-content',
-      '.entry-content',
-      'article',
-      '.article-body',
+      'main', 'article', '[role="main"]',
+      '.content', '#content', '.main-content'
     ];
 
     for (const selector of contentSelectors) {
       const element = document.querySelector(selector);
-      if (element && element.textContent && element.textContent.trim().length > 200) {
-        return element.textContent;
+      if (element) {
+        return element.textContent || '';
       }
     }
 
-    // Fallback: use body content
-    const body = document.querySelector('body');
-    return body?.textContent || '';
+    // Fallback to body
+    return document.body?.textContent || '';
   }
 
   private cleanText(text: string): string {
     return text
-      .replace(/\s+/g, ' ') // Normalize whitespace
-      .replace(/\n\s*\n/g, '\n') // Remove empty lines
+      .replace(/\s+/g, ' ')
+      .replace(/\n+/g, ' ')
       .trim();
   }
 
   private getEmptySignals(): PageSignals {
     return {
       content: {
-        title: '',
-        cleanText: '',
+        h1Text: '',
+        metaDescription: '',
         wordCount: 0,
-        avgSentenceLength: 0,
+        hasAuthor: false,
+        hasByline: false,
+        hasAuthorBio: false,
+        citationCount: 0,
+        internalLinkCount: 0,
+        externalLinkCount: 0,
+        hasSources: false,
+        hasReferences: false,
+        academicSourceCount: 0,
+        newsSourceCount: 0,
+        industrySourceCount: 0
       },
       structure: {
         h1Count: 0,
         headingHierarchy: [],
         listCount: 0,
         schemaTypes: [],
-      },
-      authority: {
-        authorElements: [],
-        outboundLinks: [],
-        citationCandidates: [],
+        hasSchema: false,
+        wordCount: 0,
+        avgSentenceWords: 0,
+        headingHierarchyScore: 0
       },
       freshness: {
-        dateSignals: [],
+        hasDateInUrl: false,
+        hasDateInTitle: false,
+        yearMentionCount: 0,
+        updateIndicators: []
       },
+      brand: {
+        brandMentionCount: 0,
+        competitorMentionCount: 0,
+        brandInTitle: false,
+        brandInH1: false,
+        brandInUrl: false,
+        brandProminence: 0,
+        contextQuality: []
+      },
+      snippet: {
+        qaBlockCount: 0,
+        listItemCount: 0,
+        avgSentenceLength: 0,
+        definitionCount: 0,
+        hasStructuredData: false,
+        stepCount: 0,
+        bulletPoints: 0
+      }
     };
   }
 }
