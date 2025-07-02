@@ -26,13 +26,19 @@ const { Mistral } = require('@mistralai/mistralai');
  * - DeepSeek Chat (temporarily disabled due to JSON parsing issues)
  * 
  * Usage:
- *   node scripts/test-visibility-standalone.js [number_of_runs] [parallel_limit] [max_companies]
+ *   node scripts/test-visibility-standalone.js [options]
+ * 
+ * Options:
+ *   --runs <number>      Number of runs per company (default: 5)
+ *   --parallel <number>  Number of parallel API calls (default: 10)
+ *   --companies <number> Maximum companies to process, 0 for all (default: 0)
+ *   --help, -h           Show help message
  * 
  * Examples:
- *   node scripts/test-visibility-standalone.js          # 5 runs, 10 parallel, all companies
- *   node scripts/test-visibility-standalone.js 10       # 10 runs, 10 parallel, all companies
- *   node scripts/test-visibility-standalone.js 10 20    # 10 runs, 20 parallel, all companies
- *   node scripts/test-visibility-standalone.js 5 10 3   # 5 runs, 10 parallel, first 3 companies
+ *   node scripts/test-visibility-standalone.js                                    # 5 runs, 10 parallel, all companies
+ *   node scripts/test-visibility-standalone.js --runs 10                          # 10 runs, 10 parallel, all companies
+ *   node scripts/test-visibility-standalone.js --runs 10 --parallel 20            # 10 runs, 20 parallel, all companies
+ *   node scripts/test-visibility-standalone.js --runs 5 --parallel 10 --companies 3  # 5 runs, 10 parallel, first 3 companies
  * 
  * Prerequisites:
  *   1. Set API keys in your .env file:
@@ -48,10 +54,74 @@ const { Mistral } = require('@mistralai/mistralai');
  *   Creates a CSV file in scripts/data/ with detailed results for each company
  */
 
+// Parse command line arguments
+function parseArgs() {
+  const args = process.argv.slice(2);
+  const config = {
+    runs: 5,
+    parallel: 10,
+    companies: 0
+  };
+  
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    const nextArg = args[i + 1];
+    
+    switch (arg) {
+      case '--runs':
+        if (nextArg && !isNaN(parseInt(nextArg))) {
+          config.runs = parseInt(nextArg);
+          i++; // Skip next argument as it's the value
+        }
+        break;
+      case '--parallel':
+        if (nextArg && !isNaN(parseInt(nextArg))) {
+          config.parallel = parseInt(nextArg);
+          i++; // Skip next argument as it's the value
+        }
+        break;
+      case '--companies':
+        if (nextArg && !isNaN(parseInt(nextArg))) {
+          config.companies = parseInt(nextArg);
+          i++; // Skip next argument as it's the value
+        }
+        break;
+      case '--help':
+      case '-h':
+        console.log(`
+Usage: node scripts/test-visibility-standalone.js [options]
+
+Options:
+  --runs <number>      Number of runs per company (default: 5)
+  --parallel <number>  Number of parallel API calls (default: 10)
+  --companies <number> Maximum companies to process, 0 for all (default: 0)
+  --help, -h           Show this help message
+
+Examples:
+  node scripts/test-visibility-standalone.js --runs 3 --parallel 5 --companies 2
+  node scripts/test-visibility-standalone.js --runs 10 --parallel 20
+  node scripts/test-visibility-standalone.js --companies 5
+`);
+        process.exit(0);
+        break;
+      default:
+        if (arg.startsWith('--')) {
+          console.error(`Unknown option: ${arg}`);
+          console.error('Use --help for usage information');
+          process.exit(1);
+        }
+        break;
+    }
+  }
+  
+  return config;
+}
+
 // Configuration
-const NUM_RUNS = parseInt(process.argv[2]) || 5;
-const PARALLEL_LIMIT = parseInt(process.argv[3]) || 10; // Number of parallel API calls
-const MAX_COMPANIES = parseInt(process.argv[4]) || 0; // 0 means process all
+const config = parseArgs();
+const NUM_RUNS = config.runs;
+const PARALLEL_LIMIT = config.parallel; // Number of parallel API calls
+const MAX_COMPANIES = config.companies; // 0 means process all
 const INPUT_CSV = path.join(__dirname, 'data', 'Database Citations - Next 40 v2.csv');
 const OUTPUT_CSV = path.join(__dirname, 'data', `visibility-results-${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}-${NUM_RUNS}runs.csv`);
 
