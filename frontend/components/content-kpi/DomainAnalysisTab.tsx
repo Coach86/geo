@@ -185,6 +185,40 @@ export function DomainAnalysisTab({ projectId, onIssueClick }: DomainAnalysisTab
           brand: { score: domain.dimensionScores.brand?.score || domain.dimensionScores.brandAlignment?.score || 0 },
         },
         calculationDetails: domain.calculationDetails,
+        ruleBasedAnalysis: domain.ruleResults && domain.ruleResults.length > 0 ? {
+          authority: domain.ruleResults.some((rule: any) => rule.dimension === 'authority') ? {
+            score: domain.dimensionScores.authority?.score || 0,
+            calculationDetails: {
+              ruleResults: domain.ruleResults.filter((rule: any) => rule.dimension === 'authority'),
+              finalScore: domain.dimensionScores.authority?.score || 0,
+              dimensionWeight: domain.dimensionScores.authority?.weight || 1
+            }
+          } : undefined,
+          freshness: domain.ruleResults.some((rule: any) => rule.dimension === 'freshness') ? {
+            score: domain.dimensionScores.freshness?.score || 0,
+            calculationDetails: {
+              ruleResults: domain.ruleResults.filter((rule: any) => rule.dimension === 'freshness'),
+              finalScore: domain.dimensionScores.freshness?.score || 0,
+              dimensionWeight: domain.dimensionScores.freshness?.weight || 1
+            }
+          } : undefined,
+          structure: domain.ruleResults.some((rule: any) => rule.dimension === 'structure') ? {
+            score: domain.dimensionScores.structure?.score || 0,
+            calculationDetails: {
+              ruleResults: domain.ruleResults.filter((rule: any) => rule.dimension === 'structure'),
+              finalScore: domain.dimensionScores.structure?.score || 0,
+              dimensionWeight: domain.dimensionScores.structure?.weight || 1
+            }
+          } : undefined,
+          brand: domain.ruleResults.some((rule: any) => rule.dimension === 'brand') ? {
+            score: domain.dimensionScores.brand?.score || 0,
+            calculationDetails: {
+              ruleResults: domain.ruleResults.filter((rule: any) => rule.dimension === 'brand'),
+              finalScore: domain.dimensionScores.brand?.score || 0,
+              dimensionWeight: domain.dimensionScores.brand?.weight || 1
+            }
+          } : undefined,
+        } : undefined,
         issues: domain.issues.map((issue, index) => ({
           id: `${domain.domain}-issue-${index}`,
           description: issue,

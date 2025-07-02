@@ -50,7 +50,11 @@ export const BatchStatistics: React.FC = () => {
         },
       });
 
-      setStatistics(response.data);
+      // Sort statistics by date in descending order (most recent first)
+      const sortedData = response.data.sort((a: BatchStatistic, b: BatchStatistic) => 
+        new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+      setStatistics(sortedData);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch batch statistics';
       setError(errorMessage);
