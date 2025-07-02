@@ -297,7 +297,7 @@ Return ONLY a JSON object with:
       case AnalysisLevel.PARTIAL:
         return {
           shouldAnalyze: true,
-          dimensions: ['freshness', 'structure', 'snippetExtractability', 'authority', 'brandAlignment'],
+          dimensions: ['freshness', 'structure', 'authority', 'brandAlignment'],
           weightModifiers: rule.weightModifiers
         };
       
@@ -305,7 +305,7 @@ Return ONLY a JSON object with:
       default:
         return {
           shouldAnalyze: true,
-          dimensions: ['freshness', 'structure', 'snippetExtractability', 'authority', 'brandAlignment'],
+          dimensions: ['freshness', 'structure', 'authority', 'brandAlignment'],
           weightModifiers: rule.weightModifiers
         };
     }

@@ -9,7 +9,6 @@ export interface ContentScore {
     authority: number;
     freshness: number;
     structure: number;
-    snippetExtractability: number;
     brandAlignment: number;
   };
   details?: {
@@ -34,12 +33,6 @@ export interface ContentScore {
       headingHierarchyScore?: number;
       schemaTypes: string[];
       avgSentenceWords: number;
-    };
-    snippet: {
-      avgSentenceWords: number;
-      listCount: number;
-      qaBlockCount: number;
-      extractableBlocks: number;
     };
     brand: {
       brandKeywordMatches: number;
@@ -80,19 +73,6 @@ export interface ContentScore {
       explanation: string;
     };
     structure?: {
-      formula: string;
-      subScores: Array<{
-        name: string;
-        value: number;
-        weight: number;
-        maxValue: number;
-        contribution: number;
-        evidence?: string | string[];
-      }>;
-      finalScore: number;
-      explanation: string;
-    };
-    snippetExtractability?: {
       formula: string;
       subScores: Array<{
         name: string;
@@ -161,8 +141,7 @@ export interface ContentKPIReport {
       authority: number;
       freshness: number;
       structure: number;
-      snippetExtractability: number;
-      brandAlignment: number;
+        brandAlignment: number;
     };
     lastAnalyzedAt: string | null;
   };
@@ -247,7 +226,6 @@ export function useContentKPI(projectId: string) {
               authority: 0,
               freshness: 0,
               structure: 0,
-              snippetExtractability: 0,
               brandAlignment: 0,
             },
             lastAnalyzedAt: null,

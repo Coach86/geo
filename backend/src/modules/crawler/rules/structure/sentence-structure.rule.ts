@@ -1,15 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { BaseSnippetRule } from './base-snippet.rule';
+import { BaseStructureRule } from './base-structure.rule';
 import { RuleContext, RuleResult } from '../interfaces/rule.interface';
 
 @Injectable()
-export class SentenceStructureRule extends BaseSnippetRule {
-  id = 'snippet-sentence-structure';
+export class SentenceStructureRule extends BaseStructureRule {
+  id = 'structure-sentence-structure';
   name = 'Sentence Structure for Snippets';
   description = 'Evaluates sentence length and structure for snippet extraction';
   applicability = { scope: 'all' as const };
   priority = 10;
-  weight = 0.4;
+  weight = 0.1; // Adjusted weight as it's now part of structure dimension
 
   async evaluate(context: RuleContext): Promise<RuleResult> {
     const { pageSignals } = context;
@@ -30,10 +30,10 @@ export class SentenceStructureRule extends BaseSnippetRule {
       evidence.push('No sentences detected');
     } else if (avgSentenceLength >= 15 && avgSentenceLength <= 25) {
       score = 100;
-      evidence.push(`Optimal sentence length for snippets: ${avgSentenceLength.toFixed(1)} words`);
+      evidence.push(`Optimal sentence length for snippets: ${avgSentenceLength.toFixed(1)} words on average`);
     } else if (avgSentenceLength >= 10 && avgSentenceLength < 15) {
       score = 80;
-      evidence.push(`Good sentence length: ${avgSentenceLength.toFixed(1)} words`);
+      evidence.push(`Good sentence length: ${avgSentenceLength.toFixed(1)} words on average`);
       issues.push(this.generateIssue(
         'low',
         'Sentences are slightly short for rich snippets',
@@ -41,7 +41,7 @@ export class SentenceStructureRule extends BaseSnippetRule {
       ));
     } else if (avgSentenceLength > 25 && avgSentenceLength <= 35) {
       score = 70;
-      evidence.push(`Sentences slightly long: ${avgSentenceLength.toFixed(1)} words`);
+      evidence.push(`Sentences slightly long: ${avgSentenceLength.toFixed(1)} words on average`);
       issues.push(this.generateIssue(
         'medium',
         'Sentences may be too long for optimal snippet extraction',
@@ -49,7 +49,7 @@ export class SentenceStructureRule extends BaseSnippetRule {
       ));
     } else if (avgSentenceLength < 10) {
       score = 50;
-      evidence.push(`Sentences too short: ${avgSentenceLength.toFixed(1)} words`);
+      evidence.push(`Sentences too short: ${avgSentenceLength.toFixed(1)} words on average`);
       issues.push(this.generateIssue(
         'high',
         'Sentences are too short for meaningful snippets',
@@ -57,7 +57,7 @@ export class SentenceStructureRule extends BaseSnippetRule {
       ));
     } else {
       score = 40;
-      evidence.push(`Sentences too long: ${avgSentenceLength.toFixed(1)} words`);
+      evidence.push(`Sentences too long: ${avgSentenceLength.toFixed(1)} words on average`);
       issues.push(this.generateIssue(
         'high',
         'Sentences are too long for snippet extraction',

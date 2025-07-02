@@ -36,53 +36,62 @@ export class KeywordAlignmentRule extends BaseBrandRule {
       keyword => !keywordMatches.includes(keyword)
     );
 
-    if (matchPercentage === 0) {
-      score = 20;
-      issues.push(this.generateIssue(
-        'critical',
-        'None of the key brand attributes found in content',
-        `Include these brand keywords: ${missingKeywords.join(', ')}`
-      ));
-      evidence.push(`No brand keywords matched. Looking for: ${keyBrandAttributes.join(', ')}`);
-    } else if (matchPercentage >= 80) {
+    // Score based on match percentage
+    if (matchPercentage >= 80) {
       score = 100;
       evidence.push(`Excellent keyword alignment: ${matchedCount}/${totalKeywords} keywords found`);
-      if (missingKeywords.length > 0) {
-        evidence.push(`Missing only: ${missingKeywords.join(', ')}`);
-      }
     } else if (matchPercentage >= 60) {
       score = 85;
       evidence.push(`Good keyword alignment: ${matchedCount}/${totalKeywords} keywords found`);
-      issues.push(this.generateIssue(
-        'low',
-        `Some brand keywords missing: ${missingKeywords.join(', ')}`,
-        'Consider incorporating missing keywords where relevant'
-      ));
     } else if (matchPercentage >= 40) {
       score = 70;
       evidence.push(`Fair keyword alignment: ${matchedCount}/${totalKeywords} keywords found`);
-      issues.push(this.generateIssue(
-        'medium',
-        `Many brand keywords missing: ${missingKeywords.join(', ')}`,
-        'Improve content alignment with brand messaging'
-      ));
-    } else {
+    } else if (matchPercentage > 0) {
       score = 50;
       evidence.push(`Poor keyword alignment: ${matchedCount}/${totalKeywords} keywords found`);
-      issues.push(this.generateIssue(
-        'high',
-        `Most brand keywords missing: ${missingKeywords.join(', ')}`,
-        'Significantly improve content alignment with brand attributes'
-      ));
+    } else {
+      // No matches at all
+      score = 0;
+      evidence.push(`No brand keywords found: 0/${totalKeywords} matched`);
     }
 
-    // List found keywords as evidence
+    // Add detailed keyword information
+    evidence.push(`Keywords searched for: ${keyBrandAttributes.join(', ')}`);
+    
     if (keywordMatches.length > 0) {
       evidence.push(`Found keywords: ${keywordMatches.join(', ')}`);
     }
     
-    // Always show what keywords we're looking for
-    evidence.push(`Keywords searched for: ${keyBrandAttributes.join(', ')}`);
+    if (missingKeywords.length > 0 && missingKeywords.length < totalKeywords) {
+      evidence.push(`Missing keywords: ${missingKeywords.join(', ')}`);
+    }
+
+    // Generate issues based on match percentage
+    if (matchPercentage === 0) {
+      issues.push(this.generateIssue(
+        'critical',
+        'None of the key brand attributes found in content',
+        `Include these brand keywords naturally in your content: ${keyBrandAttributes.join(', ')}`
+      ));
+    } else if (matchPercentage < 40) {
+      issues.push(this.generateIssue(
+        'high',
+        `Most brand keywords missing (${missingKeywords.length}/${totalKeywords})`,
+        'Significantly improve content alignment with brand attributes'
+      ));
+    } else if (matchPercentage < 60) {
+      issues.push(this.generateIssue(
+        'medium',
+        `Many brand keywords missing (${missingKeywords.length}/${totalKeywords})`,
+        'Improve content alignment with brand messaging'
+      ));
+    } else if (matchPercentage < 80) {
+      issues.push(this.generateIssue(
+        'low',
+        `Some brand keywords missing (${missingKeywords.length}/${totalKeywords})`,
+        'Consider incorporating missing keywords where relevant'
+      ));
+    }
 
     return this.createResult(
       score,
@@ -92,7 +101,7 @@ export class KeywordAlignmentRule extends BaseBrandRule {
         keyBrandAttributes, 
         keywordMatches, 
         missingKeywords,
-        matchPercentage,
+        matchPercentage: Math.round(matchPercentage),
         matchedCount,
         totalKeywords
       },

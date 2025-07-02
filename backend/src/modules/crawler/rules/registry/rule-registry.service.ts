@@ -18,7 +18,7 @@ export class RuleRegistryService {
       'authority', 
       'freshness', 
       'structure', 
-      'snippetExtractability', 
+ 
       'brandAlignment'
     ];
     

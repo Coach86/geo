@@ -5,7 +5,6 @@ export const UnifiedKPIScoresSchema = z.object({
   authority: z.number().min(0).max(100),
   freshness: z.number().min(0).max(100),
   structure: z.number().min(0).max(100),
-  snippetExtractability: z.number().min(0).max(100),
   brandAlignment: z.number().min(0).max(100),
 });
 
@@ -29,12 +28,6 @@ export const UnifiedKPIDetailsSchema = z.object({
     hasSchema: z.boolean(),
     headingHierarchyScore: z.number().min(0).max(100),
   }),
-  snippet: z.object({
-    extractableBlocks: z.number(),
-    listCount: z.number(),
-    qaBlockCount: z.number(),
-    avgSentenceLength: z.number(),
-  }),
   brand: z.object({
     brandMentions: z.number(),
     alignmentIssues: z.array(z.string()),
@@ -45,7 +38,7 @@ export const UnifiedKPIDetailsSchema = z.object({
 
 // Issue tracking schema
 export const UnifiedKPIIssueSchema = z.object({
-  dimension: z.enum(['authority', 'freshness', 'structure', 'snippet', 'brand']),
+  dimension: z.enum(['authority', 'freshness', 'structure', 'brand']),
   severity: z.enum(['critical', 'high', 'medium', 'low']),
   description: z.string(),
   recommendation: z.string(),

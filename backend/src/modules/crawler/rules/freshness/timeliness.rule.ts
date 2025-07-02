@@ -14,8 +14,7 @@ export class TimelinessRule extends BaseRule {
   weight = 0.2; // 20% of freshness score
   
   applicability: RuleApplicability = {
-    scope: 'category',
-    categories: ['blog_article', 'news_article', 'documentation_help', 'product_page']
+    scope: 'all' as const
   };
   
   async evaluate(context: RuleContext): Promise<RuleResult> {
@@ -26,34 +25,54 @@ export class TimelinessRule extends BaseRule {
       // Check for temporal references
       const temporalAnalysis = this.analyzeTemporalReferences(cleanContent, currentYear);
       
-      let score = 100; // Start with perfect score
+      let score = 0; // Start with 0
       const evidence: string[] = [];
       const issues = [];
       
-      // Penalize outdated references
+      // Score based on content type and temporal references
+      if (temporalAnalysis.isTimeless && temporalAnalysis.outdatedReferences.length === 0) {
+        // Timeless content without outdated references
+        score = 60; // Base score for timeless content
+        evidence.push('Content appears to be timeless/evergreen');
+        
+        // Bonus for having some current references even in timeless content
+        if (temporalAnalysis.currentReferences.length > 0) {
+          score += 20;
+          evidence.push(`Found ${temporalAnalysis.currentReferences.length} current references`);
+        }
+      } else {
+        // Time-sensitive content - score based on current references
+        if (temporalAnalysis.currentReferences.length >= 3) {
+          score = 100;
+          evidence.push(`Excellent timeliness: ${temporalAnalysis.currentReferences.length} current references found`);
+        } else if (temporalAnalysis.currentReferences.length >= 2) {
+          score = 80;
+          evidence.push(`Good timeliness: ${temporalAnalysis.currentReferences.length} current references found`);
+        } else if (temporalAnalysis.currentReferences.length === 1) {
+          score = 60;
+          evidence.push(`Some timeliness: 1 current reference found`);
+        } else {
+          score = 0;
+          evidence.push('No current year references found');
+          issues.push(this.createIssue(
+            'high',
+            'Content lacks temporal references',
+            'Add current year references or recent updates to improve content freshness'
+          ));
+        }
+      }
+      
+      // Penalize outdated references regardless of content type
       if (temporalAnalysis.outdatedReferences.length > 0) {
-        score -= Math.min(temporalAnalysis.outdatedReferences.length * 10, 40);
-        evidence.push(`Found ${temporalAnalysis.outdatedReferences.length} outdated references`);
+        const penalty = Math.min(temporalAnalysis.outdatedReferences.length * 20, 60);
+        score = Math.max(0, score - penalty);
+        evidence.push(`Found ${temporalAnalysis.outdatedReferences.length} outdated references (penalty: -${penalty})`);
         
         issues.push(this.createIssue(
           'medium',
           `Content contains outdated references (${temporalAnalysis.outdatedReferences.slice(0, 3).join(', ')})`,
           'Update content to reflect current information and remove outdated references'
         ));
-      }
-      
-      // Boost for current references
-      if (temporalAnalysis.currentReferences.length > 0) {
-        evidence.push(`Found ${temporalAnalysis.currentReferences.length} current references`);
-      } else {
-        score -= 20; // Penalty for no current references
-        evidence.push('No current year references found');
-      }
-      
-      // Check for timeless content indicators
-      if (temporalAnalysis.isTimeless) {
-        score = Math.max(score, 80); // Timeless content gets at least 80%
-        evidence.push('Content appears to be timeless/evergreen');
       }
       
       const details = {
@@ -160,10 +179,10 @@ export class TimelinessRule extends BaseRule {
     const isTimeless = timelessScore >= 3 && outdatedReferences.length === 0;
     
     return {
-      currentReferences: [...new Set(currentReferences)],
-      outdatedReferences: [...new Set(outdatedReferences)],
+      currentReferences: Array.from(new Set(currentReferences)),
+      outdatedReferences: Array.from(new Set(outdatedReferences)),
       isTimeless,
-      indicators: [...new Set(indicators)]
+      indicators: Array.from(new Set(indicators))
     };
   }
 }

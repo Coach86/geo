@@ -24,5 +24,6 @@ export interface AggregatedScore {
       evidence?: string[];
     }>;
     explanation: string;
+    finalScore: number;
   };
 }

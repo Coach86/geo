@@ -25,12 +25,6 @@ interface LLMDetailsProps {
       hasSchema: boolean;
       headingHierarchyScore: number;
     };
-    snippet: {
-      extractableBlocks: number;
-      listCount: number;
-      qaBlockCount: number;
-      avgSentenceLength: number;
-    };
     brand: {
       brandMentions: number;
       alignmentIssues: string[];
@@ -44,7 +38,6 @@ const DIMENSION_COLORS = {
   authority: '#8b5cf6',
   freshness: '#3b82f6',
   structure: '#10b981',
-  snippet: '#f59e0b',
   brand: '#ef4444',
 };
 

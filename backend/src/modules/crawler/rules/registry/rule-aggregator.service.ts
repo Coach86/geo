@@ -73,7 +73,8 @@ export class RuleAggregatorService {
       calculationDetails: {
         formula: 'Weighted Average: Σ(rule_score × rule_weight) / Σ(rule_weights)',
         subScores,
-        explanation: this.generateExplanation(dimension, finalScore, results)
+        explanation: this.generateExplanation(dimension, finalScore, results),
+        finalScore
       }
     };
   }
@@ -92,7 +93,8 @@ export class RuleAggregatorService {
       calculationDetails: {
         formula: 'No applicable rules',
         subScores: [],
-        explanation: `No ${dimension} rules applied to this page`
+        explanation: `No ${dimension} rules applied to this page`,
+        finalScore: 0
       }
     };
   }
@@ -115,7 +117,6 @@ export class RuleAggregatorService {
       authority: `The page has ${scoreBand} authority signals. ${topContributors.join(', ')}`,
       freshness: `Content freshness is ${scoreBand}. ${topContributors.join(', ')}`,
       structure: `Page structure quality is ${scoreBand}. ${topContributors.join(', ')}`,
-      snippetExtractability: `AI/Search snippet optimization is ${scoreBand}. ${topContributors.join(', ')}`,
       brandAlignment: `Brand alignment is ${scoreBand}. ${topContributors.join(', ')}`
     };
     

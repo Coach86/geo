@@ -34,7 +34,6 @@ interface PageAnalysis {
     authority: number;
     freshness: number;
     structure: number;
-    snippetExtractability: number;
     brandAlignment: number;
   };
   details?: any;
@@ -62,8 +61,35 @@ const SEVERITY_COLORS = {
 const formatPageCategory = (category?: string): string => {
   if (!category) return 'Unknown';
   
-  // Convert snake_case to Title Case
-  return category
+  // Map to shorter names
+  const shortNames: Record<string, string> = {
+    'homepage': 'Home',
+    'product_service': 'Product',
+    'pricing_plans': 'Pricing',
+    'about_company': 'About',
+    'careers_jobs': 'Careers',
+    'blog_article': 'Blog',
+    'help_support': 'Help',
+    'contact_us': 'Contact',
+    'case_study': 'Case Study',
+    'documentation_help': 'Docs',
+    'news_article': 'News',
+    'faq': 'FAQ',
+    'legal_compliance': 'Legal',
+    'landing_page': 'Landing',
+    'demo_trial': 'Demo',
+    'integrations': 'Integrations',
+    'changelog': 'Changelog',
+    'roadmap': 'Roadmap',
+    'trust_security': 'Security',
+    'partner': 'Partner',
+    'customers': 'Customers',
+    'press': 'Press',
+    'investors': 'Investors',
+    'unknown': 'Unknown'
+  };
+  
+  return shortNames[category] || category
     .split('_')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ');
@@ -167,19 +193,19 @@ export function PageAnalysisTable({ pages, projectId }: PageAnalysisTableProps) 
           Showing {filteredPages.length} of {pages.length} pages
         </div>
 
-        <Table>
+        <div className="overflow-x-auto">
+          <Table className="min-w-full">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[30px]"></TableHead>
-              <TableHead>Page URL</TableHead>
-              <TableHead className="text-center">Category</TableHead>
-              <TableHead className="text-center">Score</TableHead>
-              <TableHead className="text-center">Issues</TableHead>
-              <TableHead className="text-center">Authority</TableHead>
-              <TableHead className="text-center">Freshness</TableHead>
-              <TableHead className="text-center">Structure</TableHead>
-              <TableHead className="text-center">Snippet</TableHead>
-              <TableHead className="text-center">Brand</TableHead>
+              <TableHead className="w-[30px] sticky left-0 bg-background z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]"></TableHead>
+              <TableHead className="min-w-[200px] sticky left-[30px] bg-background z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Page URL</TableHead>
+              <TableHead className="text-center w-[80px]">Category</TableHead>
+              <TableHead className="text-center w-[60px]">Score</TableHead>
+              <TableHead className="text-center w-[80px]">Issues</TableHead>
+              <TableHead className="text-center w-[60px] text-xs">Auth</TableHead>
+              <TableHead className="text-center w-[60px] text-xs">Fresh</TableHead>
+              <TableHead className="text-center w-[60px] text-xs">Struct</TableHead>
+              <TableHead className="text-center w-[60px] text-xs">Brand</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -189,22 +215,22 @@ export function PageAnalysisTable({ pages, projectId }: PageAnalysisTableProps) 
               return (
                 <React.Fragment key={page.url}>
                   <TableRow className="cursor-pointer" onClick={() => toggleRow(page.url)}>
-                    <TableCell>
+                    <TableCell className="sticky left-0 bg-background z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                       {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                     </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
+                    <TableCell className="sticky left-[30px] bg-background z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                      <div className="space-y-0.5">
                         <a
                           href={page.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="font-medium hover:underline flex items-center gap-1"
+                          className="text-sm font-medium hover:underline flex items-center gap-1 line-clamp-1"
                           onClick={(e) => e.stopPropagation()}
                         >
                           {page.title || page.url}
-                          <ExternalLink className="h-3 w-3" />
+                          <ExternalLink className="h-3 w-3 flex-shrink-0" />
                         </a>
-                        <div className="text-xs text-muted-foreground">
+                        <div className="text-xs text-muted-foreground line-clamp-1">
                           {page.url}
                         </div>
                       </div>
@@ -213,6 +239,7 @@ export function PageAnalysisTable({ pages, projectId }: PageAnalysisTableProps) 
                       <Badge 
                         variant={getCategoryBadgeVariant(page.analysisLevel)}
                         title={`Analysis: ${page.analysisLevel || 'full'} (${Math.round((page.categoryConfidence || 0) * 100)}% confidence)`}
+                        className="text-xs px-2 py-0"
                       >
                         {formatPageCategory(page.pageCategory)}
                       </Badge>
@@ -220,6 +247,7 @@ export function PageAnalysisTable({ pages, projectId }: PageAnalysisTableProps) 
                     <TableCell className="text-center">
                       <Badge 
                         variant={page.globalScore >= 80 ? "success" : page.globalScore >= 60 ? "warning" : "destructive"}
+                        className="text-xs px-2 py-0"
                       >
                         {page.globalScore}
                       </Badge>
@@ -236,6 +264,7 @@ export function PageAnalysisTable({ pages, projectId }: PageAnalysisTableProps) 
                             <Badge
                               key={severity}
                               variant="outline"
+                              className="text-xs px-1.5 py-0 h-5"
                               style={{
                                 borderColor: SEVERITY_COLORS[severity as keyof typeof SEVERITY_COLORS],
                                 color: SEVERITY_COLORS[severity as keyof typeof SEVERITY_COLORS],
@@ -246,31 +275,26 @@ export function PageAnalysisTable({ pages, projectId }: PageAnalysisTableProps) 
                           ))}
                         </div>
                       ) : (
-                        <Badge variant="success">Clean</Badge>
+                        <Badge variant="success" className="text-xs px-2 py-0">Clean</Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-center">
-                      <div className={`text-sm ${page.scores.authority >= 80 ? 'text-green-600' : page.scores.authority >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+                    <TableCell className="text-center px-2">
+                      <div className={`text-xs font-medium ${page.scores.authority >= 80 ? 'text-green-600' : page.scores.authority >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
                         {page.scores.authority}
                       </div>
                     </TableCell>
-                    <TableCell className="text-center">
-                      <div className={`text-sm ${page.scores.freshness >= 80 ? 'text-green-600' : page.scores.freshness >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+                    <TableCell className="text-center px-2">
+                      <div className={`text-xs font-medium ${page.scores.freshness >= 80 ? 'text-green-600' : page.scores.freshness >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
                         {page.scores.freshness}
                       </div>
                     </TableCell>
-                    <TableCell className="text-center">
-                      <div className={`text-sm ${page.scores.structure >= 80 ? 'text-green-600' : page.scores.structure >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+                    <TableCell className="text-center px-2">
+                      <div className={`text-xs font-medium ${page.scores.structure >= 80 ? 'text-green-600' : page.scores.structure >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
                         {page.scores.structure}
                       </div>
                     </TableCell>
-                    <TableCell className="text-center">
-                      <div className={`text-sm ${page.scores.snippetExtractability >= 80 ? 'text-green-600' : page.scores.snippetExtractability >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
-                        {page.scores.snippetExtractability}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div className={`text-sm ${page.scores.brandAlignment >= 80 ? 'text-green-600' : page.scores.brandAlignment >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+                    <TableCell className="text-center px-2">
+                      <div className={`text-xs font-medium ${page.scores.brandAlignment >= 80 ? 'text-green-600' : page.scores.brandAlignment >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
                         {page.scores.brandAlignment}
                       </div>
                     </TableCell>
@@ -288,6 +312,7 @@ export function PageAnalysisTable({ pages, projectId }: PageAnalysisTableProps) 
             })}
           </TableBody>
         </Table>
+        </div>
 
         {filteredPages.length === 0 && (
           <div className="text-center py-8 text-muted-foreground">

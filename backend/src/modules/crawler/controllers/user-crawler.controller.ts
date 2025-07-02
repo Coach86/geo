@@ -223,7 +223,6 @@ export class UserCrawlerController {
           authority: Math.round(stats.avgAuthorityScore),
           freshness: Math.round(stats.avgFreshnessScore),
           structure: Math.round(stats.avgStructureScore),
-          snippetExtractability: Math.round(stats.avgSnippetScore),
           brandAlignment: Math.round(stats.avgBrandScore),
         },
         lastAnalyzedAt: stats.lastAnalyzedAt,
@@ -252,7 +251,6 @@ export class UserCrawlerController {
     if (scores.authority >= 80) strengths.push('Strong authority signals');
     if (scores.freshness >= 80) strengths.push('Fresh content');
     if (scores.structure >= 80) strengths.push('Well-structured');
-    if (scores.snippetExtractability >= 80) strengths.push('AI/Search optimized');
     if (scores.brandAlignment >= 80) strengths.push('Brand consistent');
     
     return strengths;
@@ -273,9 +271,6 @@ export class UserCrawlerController {
     }
     if (stats.avgStructureScore < 60) {
       recommendations.push('Improve HTML structure with proper headings and schema markup');
-    }
-    if (stats.avgSnippetScore < 60) {
-      recommendations.push('Optimize content for featured snippets and AI extraction');
     }
     if (stats.avgBrandScore < 60) {
       recommendations.push('Increase brand mentions and maintain consistent messaging');

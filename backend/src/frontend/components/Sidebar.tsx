@@ -21,6 +21,7 @@ import CardMembershipIcon from '@mui/icons-material/CardMembership';
 import CorporateFareIcon from '@mui/icons-material/CorporateFare';
 import BusinessIcon from '@mui/icons-material/Business';
 import ConfirmationNumberIcon from '@mui/icons-material/ConfirmationNumber';
+import BarChartIcon from '@mui/icons-material/BarChart';
 import { useThemeContext } from '../utils/ThemeContext';
 import logo from '../assets/logo-small.png';
 
@@ -32,6 +33,11 @@ const navConfig = [
     title: 'Projects',
     path: '/projects',
     icon: <AppIcon />,
+  },
+  {
+    title: 'Batch Statistics',
+    path: '/batch-statistics',
+    icon: <BarChartIcon />,
   },
 ];
 

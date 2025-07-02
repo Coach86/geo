@@ -16,7 +16,7 @@ export class DomainAuthorityRule extends BaseRule {
   weight = 0.3; // 30% of authority score
   
   applicability: RuleApplicability = {
-    scope: 'domain' // Applies to all pages on the domain
+    scope: 'all' as const
   };
   
   // Cache for domain authority to avoid repeated Perplexity calls

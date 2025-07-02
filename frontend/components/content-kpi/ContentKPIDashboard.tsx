@@ -30,7 +30,6 @@ const COLORS = {
   authority: '#8b5cf6',
   freshness: '#3b82f6',
   structure: '#10b981',
-  snippet: '#f59e0b',
   brand: '#ef4444',
 };
 
@@ -246,7 +245,6 @@ export function ContentKPIDashboard({ projectId }: ContentKPIDashboardProps) {
     { dimension: 'Authority', value: report.summary.scoreBreakdown.authority },
     { dimension: 'Freshness', value: report.summary.scoreBreakdown.freshness },
     { dimension: 'Structure', value: report.summary.scoreBreakdown.structure },
-    { dimension: 'Snippet', value: report.summary.scoreBreakdown.snippetExtractability },
     { dimension: 'Brand', value: report.summary.scoreBreakdown.brandAlignment },
   ];
 
@@ -612,7 +610,6 @@ export function ContentKPIDashboard({ projectId }: ContentKPIDashboardProps) {
                 ...(page.scores.authority >= 80 ? ['Strong Authority Signals'] : []),
                 ...(page.scores.freshness >= 80 ? ['Fresh Content'] : []),
                 ...(page.scores.structure >= 80 ? ['Well Structured'] : []),
-                ...(page.scores.snippetExtractability >= 80 ? ['AI-Friendly Snippets'] : []),
                 // Only show brand strength if score is high AND there are actual brand mentions
                 ...(page.scores.brandAlignment >= 80 && page.details?.brand?.brandMentions > 0 ? ['Strong Brand Alignment'] : []),
               ],

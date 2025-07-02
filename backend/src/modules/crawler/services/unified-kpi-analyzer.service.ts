@@ -141,19 +141,17 @@ Return JSON:
     "authority": number,
     "freshness": number,
     "structure": number,
-    "snippetExtractability": number,
     "brandAlignment": number
   },
   "details": {
     "authority": { "hasAuthor": boolean, "citationCount": number, "domainAuthority": "low|medium|high", "authorCredentials": boolean },
     "freshness": { "daysSinceUpdate": number, "hasDateSignals": boolean, "publishDate": "YYYY-MM-DD", "modifiedDate": "YYYY-MM-DD" },
     "structure": { "h1Count": number, "avgSentenceWords": number, "hasSchema": boolean, "headingHierarchyScore": number },
-    "snippet": { "extractableBlocks": number, "listCount": number, "qaBlockCount": number, "avgSentenceLength": number },
     "brand": { "brandMentions": number, "alignmentIssues": ["issue1", "issue2"], "consistencyScore": number, "missingKeywords": ["keyword1"] }
   },
   "issues": [
     {
-      "dimension": "authority|freshness|structure|snippet|brand",
+      "dimension": "authority|freshness|structure|brand",
       "severity": "critical|high|medium|low",
       "description": "specific issue",
       "recommendation": "actionable fix"
@@ -203,7 +201,6 @@ Return JSON:
         authority: 50,
         freshness: 50,
         structure: 50,
-        snippetExtractability: 50,
         brandAlignment: 50,
       },
       details: {
@@ -221,12 +218,6 @@ Return JSON:
           avgSentenceWords: 20,
           hasSchema: false,
           headingHierarchyScore: 50,
-        },
-        snippet: {
-          extractableBlocks: 0,
-          listCount: 0,
-          qaBlockCount: 0,
-          avgSentenceLength: 20,
         },
         brand: {
           brandMentions: 0,

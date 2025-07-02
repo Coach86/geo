@@ -117,7 +117,6 @@ export class CrawlerController {
           authority: Math.round(stats.avgAuthorityScore),
           freshness: Math.round(stats.avgFreshnessScore),
           structure: Math.round(stats.avgStructureScore),
-          snippetExtractability: Math.round(stats.avgSnippetScore),
           brandAlignment: Math.round(stats.avgBrandScore),
         },
         lastAnalyzedAt: stats.lastAnalyzedAt,
@@ -209,7 +208,6 @@ export class CrawlerController {
     if (scores.authority >= 80) strengths.push('Strong authority signals');
     if (scores.freshness >= 80) strengths.push('Recently updated content');
     if (scores.structure >= 80) strengths.push('Excellent structure and schema');
-    if (scores.snippetExtractability >= 80) strengths.push('Highly extractable content');
     if (scores.brandAlignment >= 80) strengths.push('Strong brand consistency');
     
     return strengths;
@@ -227,9 +225,6 @@ export class CrawlerController {
     }
     if (stats.avgStructureScore < 60) {
       recommendations.push('Improve heading hierarchy and add Article schema markup');
-    }
-    if (stats.avgSnippetScore < 60) {
-      recommendations.push('Break up long paragraphs and add FAQ sections');
     }
     if (stats.avgBrandScore < 80) {
       recommendations.push('Update outdated brand terminology and maintain consistency');

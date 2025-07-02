@@ -18,9 +18,10 @@ export class BatchExecutionService {
   /**
    * Create a new batch execution
    * @param projectId The ID of the project
+   * @param triggerSource The source that triggered the batch ('cron', 'manual', 'project_creation')
    * @returns The created batch execution
    */
-  async createBatchExecution(projectId: string): Promise<any> {
+  async createBatchExecution(projectId: string, triggerSource: 'cron' | 'manual' | 'project_creation' = 'manual'): Promise<any> {
     try {
       // Verify the project exists
       const project = await this.projectRepository.findById(projectId);
@@ -34,9 +35,10 @@ export class BatchExecutionService {
         projectId,
         status: 'running',
         executedAt: new Date(),
+        triggerSource,
       });
 
-      this.logger.log(`Created batch execution ${batchExecution.id} for project ${projectId}`);
+      this.logger.log(`Created batch execution ${batchExecution.id} for project ${projectId} (trigger: ${triggerSource})`);
       return batchExecution;
     } catch (error) {
       this.logger.error(`Failed to create batch execution: ${error.message}`, error.stack);
@@ -211,22 +213,6 @@ export class BatchExecutionService {
     }
   }
   
-  /**
-   * Find stalled batch executions
-   * @param cutoffDate Date threshold for stalled batches (usually 2 hours ago)
-   * @returns Array of stalled batch executions
-   */
-  async findStalledBatchExecutions(cutoffDate: Date): Promise<any[]> {
-    try {
-      // This method will need to be added to the repository
-      const stalledBatches = await this.batchExecutionRepository.findStalledExecutions(cutoffDate);
-        
-      return stalledBatches;
-    } catch (error) {
-      this.logger.error(`Failed to find stalled batch executions: ${error.message}`, error.stack);
-      throw error;
-    }
-  }
 
   /**
    * Get a batch execution by ID with all its results
@@ -318,6 +304,96 @@ export class BatchExecutionService {
         `Failed to get batch executions for project: ${error.message}`,
         error.stack,
       );
+      throw error;
+    }
+  }
+
+  /**
+   * Find stalled batch executions
+   * @param stalledTime The cutoff time for considering an execution stalled
+   * @returns Array of stalled batch executions
+   */
+  async findStalledBatchExecutions(stalledTime: Date): Promise<any[]> {
+    try {
+      const stalledBatches = await this.batchExecutionRepository.find({
+        status: 'running',
+        createdAt: { $lt: stalledTime },
+      });
+
+      return stalledBatches;
+    } catch (error) {
+      this.logger.error(`Failed to find stalled batch executions: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Get batch execution statistics grouped by day
+   * @param startDate The start date for statistics
+   * @param endDate The end date for statistics
+   * @returns Statistics grouped by day and trigger source
+   */
+  async getBatchStatisticsByDay(startDate?: Date, endDate?: Date): Promise<any[]> {
+    try {
+      // Default to last 30 days if no dates provided
+      if (!endDate) {
+        endDate = new Date();
+      }
+      if (!startDate) {
+        startDate = new Date();
+        startDate.setDate(startDate.getDate() - 30);
+      }
+
+      const aggregation = await this.batchExecutionRepository.aggregate([
+        {
+          $match: {
+            executedAt: {
+              $gte: startDate,
+              $lte: endDate,
+            },
+          },
+        },
+        {
+          $group: {
+            _id: {
+              date: { $dateToString: { format: '%Y-%m-%d', date: '$executedAt' } },
+              triggerSource: '$triggerSource',
+            },
+            count: { $sum: 1 },
+          },
+        },
+        {
+          $sort: {
+            '_id.date': 1,
+          },
+        },
+      ]);
+
+      // Transform the results into a more usable format
+      const statisticsMap = new Map<string, any>();
+
+      aggregation.forEach((item: any) => {
+        const date = item._id.date;
+        const triggerSource = item._id.triggerSource || 'manual'; // Default to manual for old data
+        
+        if (!statisticsMap.has(date)) {
+          statisticsMap.set(date, {
+            date,
+            cron: 0,
+            manual: 0,
+            project_creation: 0,
+            total: 0,
+          });
+        }
+        
+        const dayStats = statisticsMap.get(date);
+        dayStats[triggerSource] = item.count;
+        dayStats.total += item.count;
+      });
+
+      return Array.from(statisticsMap.values());
+    } catch (error) {
+      this.logger.error(`Failed to get batch statistics: ${error.message}`, error.stack);
       throw error;
     }
   }
