@@ -76,6 +76,19 @@ export class Project {
   nextManualAnalysisAllowedAt?: Date;
 
   @ApiProperty({ 
+    description: 'Web crawling configuration',
+    required: false
+  })
+  crawlSettings?: {
+    enabled?: boolean;
+    maxPages?: number;
+    crawlDelay?: number;
+    includePatterns?: string[];
+    excludePatterns?: string[];
+    lastCrawledAt?: Date;
+  };
+  
+  @ApiProperty({ 
     description: 'Project creation timestamp', 
     required: false 
   })

@@ -8,6 +8,7 @@ import { ReportBuilderService } from './report-builder.service';
 import { OrganizationService } from '../../organization/services/organization.service';
 import { UserService } from '../../user/services/user.service';
 import { ReportCompletedEvent } from '../events/report-completed.event';
+import { CrawlerPipelineService } from '../../crawler/services/crawler-pipeline.service';
 import { PlanService } from '../../plan/services/plan.service';
 import { PlanResponseDto } from '../../plan/dto/plan-response.dto';
 import { OrganizationResponseDto } from '../../organization/dto/organization-response.dto';
@@ -45,6 +46,7 @@ export class BrandReportOrchestratorService {
     private readonly eventEmitter: EventEmitter2,
     private readonly organizationService: OrganizationService,
     private readonly userService: UserService,
+    private readonly crawlerPipelineService: CrawlerPipelineService,
     private readonly planService: PlanService,
   ) {}
 
@@ -91,9 +93,10 @@ export class BrandReportOrchestratorService {
 
   /**
    * Orchestrate all projects' batches
+   * @param triggerSource The source that triggered the batch ('cron', 'manual', 'project_creation')
    */
-  async orchestrateAllProjectBatches() {
-    this.logger.log('Orchestrating batches for all projects');
+  async orchestrateAllProjectBatches(triggerSource: 'cron' | 'manual' | 'project_creation' = 'manual') {
+    this.logger.log(`Orchestrating batches for all projects (trigger: ${triggerSource})`);
 
     try {
       // Get all projects from the project service
@@ -143,7 +146,8 @@ export class BrandReportOrchestratorService {
           }
 
           this.logger.log(`Processing project ${project.projectId} (${project.brandName}) - scheduled for refresh`);
-          const result = await this.orchestrateProjectBatches(project.projectId);
+          const result = await this.orchestrateProjectBatches(project.projectId, triggerSource);
+
           results.successful++;
           results.details.push(result);
         } catch (error) {
@@ -167,9 +171,11 @@ export class BrandReportOrchestratorService {
 
   /**
    * Orchestrate the creation of a brand report for a project
+   * @param projectId The project ID
+   * @param triggerSource The source that triggered the batch ('cron', 'manual', 'project_creation')
    */
-  async orchestrateProjectBatches(projectId: string) {
-    this.logger.log(`Orchestrating brand report for project ${projectId}`);
+  async orchestrateProjectBatches(projectId: string, triggerSource: 'cron' | 'manual' | 'project_creation' = 'manual') {
+    this.logger.log(`Orchestrating brand report for project ${projectId} (trigger: ${triggerSource})`);
 
     try {
       // Get the project context
@@ -185,7 +191,7 @@ export class BrandReportOrchestratorService {
       }
 
       // Create a new batch execution
-      const batchExecution = await this.batchExecutionService.createBatchExecution(projectId);
+      const batchExecution = await this.batchExecutionService.createBatchExecution(projectId, triggerSource);
       const batchExecutionId = batchExecution.id;
 
       // Inject the batchExecutionId into the context
@@ -198,6 +204,19 @@ export class BrandReportOrchestratorService {
         this.batchService.runAlignmentPipeline(contextWithBatchExecId),
         this.batchService.runCompetitionPipeline(contextWithBatchExecId),
       ]);
+
+      // Run content KPI pipeline separately (it has its own crawling process)
+      let contentKpiResult = null;
+      try {
+        // Only run if crawling is enabled for the project
+        if (project.crawlSettings?.enabled !== false) {
+          this.logger.log(`Running content KPI pipeline for project ${projectId}`);
+          contentKpiResult = await this.crawlerPipelineService.runContentKPIPipeline(projectId);
+        }
+      } catch (error) {
+        this.logger.error(`Content KPI pipeline failed for project ${projectId}: ${error.message}`, error.stack);
+        // Don't fail the entire batch if content KPI fails
+      }
       
       const spontaneousResults = pipelineResults[0] as SpontaneousResults;
       const sentimentResults = pipelineResults[1] as SentimentResults;

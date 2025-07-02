@@ -1,0 +1,1 @@
+export { UpdateFrequencyRule } from './update-frequency.rule';

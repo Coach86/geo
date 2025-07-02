@@ -43,6 +43,14 @@ export class BatchExecution {
   })
   errorMessage?: string;
   
+  @Prop({
+    type: String,
+    default: 'manual',
+    enum: ['cron', 'manual', 'project_creation'],
+    index: true,
+  })
+  triggerSource: string;
+  
   @Prop({ type: Date })
   createdAt: Date;
   

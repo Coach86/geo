@@ -63,7 +63,7 @@ export class ProjectCreatedBatchListener {
       }
 
       // Create a new batch execution record
-      const batchExecution = await this.batchService.createBatchExecution(event.projectId);
+      const batchExecution = await this.batchService.createBatchExecution(event.projectId, 'project_creation');
       this.logger.log(`Created initial batch execution ${batchExecution.id} for new project ${event.projectId} (${isFreePlan ? 'visibility-only' : 'full'})`);
 
       // Emit batch started event
