@@ -222,7 +222,7 @@
     "openai-gpt4o",
     "google-gemini2.0",
     "perplexity-sonar-pro",
-    "mistral-medium-2505",
+    "mistral-medium",
     "grok-3-latest"
   ]
 }

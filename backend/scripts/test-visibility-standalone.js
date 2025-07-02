@@ -468,6 +468,10 @@ async function runVisibilityTestForCompany(company, competitors) {
             // Call LLM
             const llmResponse = await callLLM(modelConfig.provider, modelConfig.model, prompt);
             
+            // Extract websites consulted from the response text (basic URL extraction)
+            const urlRegex = /https?:\/\/[^\s\)\]]+/g;
+            const websitesConsulted = llmResponse.match(urlRegex) || [];
+            
             // Analyze response
             const analysis = await analyzeResponse(
               llmResponse,
@@ -479,6 +483,7 @@ async function runVisibilityTestForCompany(company, competitors) {
             
             return {
               ...analysis,
+              websitesConsulted,
               runIndex: run - 1,
               promptIndex: promptIdx
             };
@@ -493,6 +498,7 @@ async function runVisibilityTestForCompany(company, competitors) {
               topOfMind: [],
               originalPrompt: prompt,
               error: error.message,
+              websitesConsulted: [],
               runIndex: run - 1,
               promptIndex: promptIdx
             };
@@ -732,6 +738,7 @@ async function appendResultsToCSV(company, competitors, results) {
         result.llmModel,
         'ERROR',
         '',
+        (result.websitesConsulted || []).join('; '),
         result.error,
         '',
         0,
@@ -769,6 +776,7 @@ async function appendResultsToCSV(company, competitors, results) {
         result.llmModel,
         result.mentioned ? 'YES' : 'NO',
         (result.llmResponse || ''), // Full LLM response
+        (result.websitesConsulted || []).join('; '),
         result.error || '',
         result.topOfMind.map(b => `${b.name}(${b.type})`).join('; '),
         ourBrandCount,
