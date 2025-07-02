@@ -29,16 +29,18 @@ interface AggregatedCitations {
   totalCitations: number;
 }
 
+interface AlignmentChartDataPoint {
+  date: string;
+  score: number;
+  reportId: string;
+}
+
 interface UseAlignmentReportsReturn {
   loading: boolean;
   error: string | null;
   averageScore: number;
   scoreVariation: number;
-  chartData: Array<{
-    date: string;
-    score: number;
-    reportId: string;
-  }>;
+  chartData: AlignmentChartDataPoint[];
   aggregatedAttributeScores: Record<string, number>;
   availableModels: string[];
   detailedResults: AlignmentResults[];
@@ -184,7 +186,11 @@ export function useAlignmentReports(
       error: null,
       averageScore: Math.round(aggregatedData.averageScore),
       scoreVariation: aggregatedData.scoreVariation,
-      chartData: aggregatedData.chartData,
+      chartData: aggregatedData.chartData
+        // Sort by date ascending (oldest first)
+        .sort((a: AlignmentChartDataPoint, b: AlignmentChartDataPoint) => 
+          new Date(a.date).getTime() - new Date(b.date).getTime()
+        ),
       aggregatedAttributeScores: aggregatedData.aggregatedAttributeScores || {},
       availableModels: aggregatedData.availableModels || [],
       detailedResults: [], // No detailed results from aggregated endpoint

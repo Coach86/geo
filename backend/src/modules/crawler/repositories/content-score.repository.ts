@@ -135,21 +135,49 @@ export class ContentScoreRepository {
   }
 
   async getScoreDistribution(projectId: string) {
-    const distribution = await this.contentScoreModel.aggregate([
-      { $match: { projectId } },
-      {
-        $bucket: {
-          groupBy: '$globalScore',
-          boundaries: [0, 20, 40, 60, 80, 100],
-          default: 'Other',
-          output: {
-            count: { $sum: 1 },
-            urls: { $push: '$url' },
-          },
-        },
-      },
-    ]).exec();
+    // DocumentDB doesn't support $bucket, so we'll use a manual approach
+    const allScores = await this.contentScoreModel
+      .find({ projectId })
+      .select('globalScore url')
+      .exec();
 
-    return distribution;
+    // Define the buckets
+    interface Bucket {
+      _id: number;
+      min: number;
+      max: number;
+      count: number;
+      urls: string[];
+    }
+
+    const buckets: Bucket[] = [
+      { _id: 0, min: 0, max: 20, count: 0, urls: [] },
+      { _id: 20, min: 20, max: 40, count: 0, urls: [] },
+      { _id: 40, min: 40, max: 60, count: 0, urls: [] },
+      { _id: 60, min: 60, max: 80, count: 0, urls: [] },
+      { _id: 80, min: 80, max: 100, count: 0, urls: [] },
+    ];
+
+    // Manually bucket the scores
+    allScores.forEach((score) => {
+      const globalScore = score.globalScore || 0;
+      const url = score.url;
+
+      // Find the appropriate bucket
+      for (const bucket of buckets) {
+        if (globalScore >= bucket.min && globalScore < bucket.max) {
+          bucket.count++;
+          bucket.urls.push(url);
+          break;
+        }
+      }
+    });
+
+    // Format the response to match the expected $bucket output
+    return buckets.map(bucket => ({
+      _id: bucket._id,
+      count: bucket.count,
+      urls: bucket.urls,
+    }));
   }
 }

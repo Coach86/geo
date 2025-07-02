@@ -57,6 +57,25 @@ interface AggregatedCitations {
   totalCitations: number;
 }
 
+interface ChartDataPoint {
+  date: string;
+  positive: number;
+  neutral: number;
+  negative: number;
+}
+
+interface ChartDataPointWithSort extends ChartDataPoint {
+  _sortDate: Date;
+}
+
+interface ChartDataOutput {
+  date: string;
+  score: number;
+  positive: number;
+  neutral: number;
+  negative: number;
+}
+
 interface UseSentimentReportsReturn {
   loading: boolean;
   error: string | null;
@@ -72,13 +91,7 @@ interface UseSentimentReportsReturn {
     neutral: number | null;
     negative: number | null;
   };
-  chartData: Array<{
-    date: string;
-    score: number;
-    positive: number;
-    neutral: number;
-    negative: number;
-  }>;
+  chartData: ChartDataOutput[];
   aggregatedHeatmap: SentimentData['heatmapData'];
   availableModels: string[];
   citations?: AggregatedCitations;
@@ -198,20 +211,29 @@ export function useSentimentReports(
       });
 
       // Transform chart data
-      const chartData = aggregatedData.chartData.map((point: any) => {
-        const pointTotal = point.positive + point.neutral + point.negative;
-        const pointScore = pointTotal > 0 
-          ? Math.round((point.positive - point.negative) / pointTotal * 100)
-          : 0;
-          
-        return {
-          date: new Date(point.date).toLocaleDateString(),
-          score: pointScore, // Using the formula: (positive - negative) / total
-          positive: point.positive,
-          neutral: point.neutral,
-          negative: point.negative,
-        };
-      });
+      const chartData = aggregatedData.chartData
+        .map((point: ChartDataPoint): ChartDataPointWithSort & { score: number } => {
+          const pointTotal = point.positive + point.neutral + point.negative;
+          const pointScore = pointTotal > 0 
+            ? Math.round((point.positive - point.negative) / pointTotal * 100)
+            : 0;
+            
+          return {
+            date: new Date(point.date).toLocaleDateString(),
+            score: pointScore, // Using the formula: (positive - negative) / total
+            positive: point.positive,
+            neutral: point.neutral,
+            negative: point.negative,
+            // Keep the original date for sorting
+            _sortDate: new Date(point.date),
+          };
+        })
+        // Sort by date ascending (oldest first)
+        .sort((a: ChartDataPointWithSort & { score: number }, b: ChartDataPointWithSort & { score: number }) => 
+          a._sortDate.getTime() - b._sortDate.getTime()
+        )
+        // Remove the sorting field
+        .map(({ _sortDate, ...rest }): ChartDataOutput => rest);
 
       return {
         loading: false,
