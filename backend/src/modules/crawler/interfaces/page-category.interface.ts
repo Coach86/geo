@@ -27,7 +27,6 @@ export enum AnalysisLevel {
 export interface DimensionWeights {
   freshness?: number;
   structure?: number;
-  snippetExtractability?: number;
   authority?: number;
   brandAlignment?: number;
 }

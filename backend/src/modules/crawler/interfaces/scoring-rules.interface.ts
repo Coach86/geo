@@ -39,12 +39,6 @@ export interface StructureCriteria {
   }>;
 }
 
-export interface SnippetCriteria {
-  maxSentenceWords: number;
-  requireLists: boolean;
-  requireQA: boolean;
-  minExtractableBlocks: number;
-}
 
 export interface BrandCriteria {
   brandKeywords: string[];
@@ -58,7 +52,6 @@ export interface ScoringRulesConfig {
     authority: ScoringDimension & { criteria: AuthorityCriteria };
     freshness: ScoringDimension & { criteria: FreshnessCriteria };
     structure: ScoringDimension & { criteria: StructureCriteria };
-    snippet: ScoringDimension & { criteria: SnippetCriteria };
     brand: ScoringDimension & { criteria: BrandCriteria };
   };
   globalScoreFormula: {
@@ -67,7 +60,6 @@ export interface ScoringRulesConfig {
       structure: number;
       authority: number;
       brand: number;
-      snippet: number;
     };
   };
 }

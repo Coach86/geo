@@ -88,24 +88,6 @@ export const DEFAULT_SCORING_RULES: ScoringRulesConfig = {
         ],
       },
     },
-    snippet: {
-      name: 'Snippet Extractability',
-      weight: 1.0,
-      description: 'How easily AI can extract concise, answer-ready content',
-      thresholds: [
-        { min: 0, max: 20, score: 20, description: 'Wall of text; no lists, headings, or question patterns' },
-        { min: 21, max: 40, score: 40, description: 'Long paragraphs with few lists/Q&A; no obvious snippet targets' },
-        { min: 41, max: 60, score: 60, description: 'Some lists or short Q&A lines, but large narrative chunks still dominate' },
-        { min: 61, max: 80, score: 80, description: 'At least one strong extractable block plus good list/heading structure; minor issues' },
-        { min: 81, max: 100, score: 100, description: 'Multiple direct-answer blocks and most key facts in ≤ 25-word sentences' },
-      ],
-      criteria: {
-        maxSentenceWords: 25,
-        requireLists: true,
-        requireQA: true,
-        minExtractableBlocks: 2,
-      },
-    },
     brand: {
       name: 'Brand Alignment',
       weight: 1.0,
@@ -131,7 +113,6 @@ export const DEFAULT_SCORING_RULES: ScoringRulesConfig = {
       structure: 1.5,
       authority: 1.0,
       brand: 1.0,
-      snippet: 1.0,
     },
   },
 };

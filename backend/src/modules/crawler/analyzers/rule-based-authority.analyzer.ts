@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { RuleRegistryService } from '../rules/registry/rule-registry.service';
-import { RuleAggregatorService } from '../rules/registry/rule-aggregator.service';
+import { ConditionalAggregatorService } from '../rules/registry/conditional-aggregator.service';
 import { RuleContext } from '../rules/interfaces/rule.interface';
 import { PageSignalExtractorService } from '../services/page-signal-extractor.service';
 import { PageCategorizerService } from '../services/page-categorizer.service';
@@ -32,7 +32,7 @@ export class RuleBasedAuthorityAnalyzer {
   
   constructor(
     private readonly ruleRegistry: RuleRegistryService,
-    private readonly ruleAggregator: RuleAggregatorService,
+    private readonly conditionalAggregator: ConditionalAggregatorService,
     private readonly pageSignalExtractor: PageSignalExtractorService,
     private readonly pageCategorizerService: PageCategorizerService,
     private readonly llmService: LlmService
@@ -115,8 +115,8 @@ export class RuleBasedAuthorityAnalyzer {
         rules.map(rule => rule.evaluate(context))
       );
       
-      // Aggregate results
-      const aggregated = this.ruleAggregator.aggregate(
+      // Aggregate results using conditional thresholds
+      const aggregated = this.conditionalAggregator.aggregate(
         ruleResults,
         'authority',
         rules.map(r => ({ id: r.id, name: r.name }))

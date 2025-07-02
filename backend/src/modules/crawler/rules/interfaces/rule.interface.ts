@@ -2,7 +2,7 @@ import { PageSignals } from '../../interfaces/page-signals.interface';
 import { PageCategory } from '../../interfaces/page-category.interface';
 import { LlmService } from '../../../llm/services/llm.service';
 
-export type RuleDimension = 'authority' | 'freshness' | 'structure' | 'snippetExtractability' | 'brandAlignment';
+export type RuleDimension = 'authority' | 'freshness' | 'structure' | 'brandAlignment';
 export type RuleScope = 'all' | 'category' | 'domain';
 
 export interface RuleApplicability {

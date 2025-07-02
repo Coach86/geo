@@ -35,7 +35,7 @@ export class BatchTask {
     
     try {
       // Use the orchestrator to process all projects and create reports with email notifications
-      await this.batchOrchestratorService.orchestrateAllProjectBatches();
+      await this.batchOrchestratorService.orchestrateAllProjectBatches('cron');
       this.logger.log('Weekly batch task completed successfully');
     } catch (error) {
       this.logger.error(`Weekly batch task failed: ${error.message}`, error.stack);
@@ -48,7 +48,7 @@ export class BatchTask {
     
     try {
       // Use the orchestrator to process all projects
-      const result = await this.batchOrchestratorService.orchestrateAllProjectBatches();
+      const result = await this.batchOrchestratorService.orchestrateAllProjectBatches('manual');
       this.logger.log('Manual batch task completed successfully');
       return { 
         success: true, 
@@ -67,7 +67,7 @@ export class BatchTask {
     
     try {
       // Use the orchestrator to process the project
-      const result = await this.batchOrchestratorService.orchestrateProjectBatches(projectId);
+      const result = await this.batchOrchestratorService.orchestrateProjectBatches(projectId, 'manual');
       this.logger.log(`Project batch completed successfully for ${projectId}`);
       return { 
         success: true, 

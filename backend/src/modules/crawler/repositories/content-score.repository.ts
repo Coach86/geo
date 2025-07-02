@@ -66,7 +66,6 @@ export class ContentScoreRepository {
           avgAuthorityScore: { $avg: '$scores.authority' },
           avgFreshnessScore: { $avg: '$scores.freshness' },
           avgStructureScore: { $avg: '$scores.structure' },
-          avgSnippetScore: { $avg: '$scores.snippetExtractability' },
           avgBrandScore: { $avg: '$scores.brandAlignment' },
           minGlobalScore: { $min: '$globalScore' },
           maxGlobalScore: { $max: '$globalScore' },

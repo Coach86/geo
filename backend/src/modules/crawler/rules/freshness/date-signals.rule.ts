@@ -40,10 +40,20 @@ export class DateSignalsRule extends BaseRule {
         evidence.push(`Date signals found via ${dateInfo.source}`);
         
         if (dateInfo.publishDate) {
-          evidence.push(`Published: ${new Date(dateInfo.publishDate).toLocaleDateString()}`);
+          try {
+            const formattedDate = new Date(dateInfo.publishDate).toLocaleDateString();
+            evidence.push(`Published: ${formattedDate} (raw: ${dateInfo.publishDate})`);
+          } catch (e) {
+            evidence.push(`Published: ${dateInfo.publishDate} (could not parse date)`);
+          }
         }
         if (dateInfo.modifiedDate && dateInfo.modifiedDate !== dateInfo.publishDate) {
-          evidence.push(`Last modified: ${new Date(dateInfo.modifiedDate).toLocaleDateString()}`);
+          try {
+            const formattedDate = new Date(dateInfo.modifiedDate).toLocaleDateString();
+            evidence.push(`Last modified: ${formattedDate} (raw: ${dateInfo.modifiedDate})`);
+          } catch (e) {
+            evidence.push(`Last modified: ${dateInfo.modifiedDate} (could not parse date)`);
+          }
         }
         
         // Add additional date signal information
@@ -132,19 +142,43 @@ export class DateSignalsRule extends BaseRule {
       source = 'content extraction';
     }
     
-    // 4. Last resort: check HTML for common date patterns
+    // 4. Last resort: check HTML for common date patterns including JSON
     if (!publishDate) {
       const datePatterns = [
+        // HTML time elements
         /<time[^>]*datetime=['"]([^'"]+)['"]/i,
+        // Standard date patterns
         /published[:\s]+([0-9]{4}-[0-9]{2}-[0-9]{2})/i,
-        /date[:\s]+([0-9]{4}-[0-9]{2}-[0-9]{2})/i
+        /date[:\s]+([0-9]{4}-[0-9]{2}-[0-9]{2})/i,
+        // JSON date patterns (common in JavaScript and structured data)
+        /"(?:updatedAt|updated_at|publishedAt|published_at|datePublished|dateModified|date)"\s*:\s*"([0-9]{4}-[0-9]{2}-[0-9]{2}[T\s][0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]+)?(?:Z|[+-][0-9]{2}:[0-9]{2})?)/i,
+        /"(?:updatedAt|updated_at|publishedAt|published_at|datePublished|dateModified|date)"\s*:\s*"([0-9]{4}-[0-9]{2}-[0-9]{2})"/i,
+        // Schema.org structured data patterns
+        /"datePublished"\s*:\s*"([^"]+)"/i,
+        /"dateModified"\s*:\s*"([^"]+)"/i,
+        // WordPress and CMS patterns
+        /wp:post-date[^>]*>([0-9]{4}-[0-9]{2}-[0-9]{2})/i,
+        // Meta tag patterns
+        /<meta[^>]*(?:name|property)=['"](?:article:published_time|published_time|date)['"][^>]*content=['"]([^'"]+)['"]/i
       ];
       
-      for (const pattern of datePatterns) {
-        const match = html.match(pattern);
+      const patternNames = [
+        'HTML time element',
+        'published date text',
+        'date text',
+        'JSON timestamp field',
+        'JSON date field', 
+        'Schema.org datePublished',
+        'Schema.org dateModified',
+        'WordPress post date',
+        'meta tag date'
+      ];
+      
+      for (let i = 0; i < datePatterns.length; i++) {
+        const match = html.match(datePatterns[i]);
         if (match && match[1]) {
           publishDate = match[1];
-          source = 'HTML pattern';
+          source = `HTML pattern (${patternNames[i]})`;
           break;
         }
       }

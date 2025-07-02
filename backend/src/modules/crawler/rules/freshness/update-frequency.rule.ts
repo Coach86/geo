@@ -24,13 +24,13 @@ export class UpdateFrequencyRule extends BaseRule {
       const dateInfo = this.extractDates(context);
       
       if (!dateInfo.lastUpdate) {
-        // No date information available
+        // No date information available - score 0 (complete failure)
         return this.createResult(
-          50, // Middle score when no date info
+          0, // 0: No date signals means complete failure
           100,
           ['No update date information available'],
           { reason: 'Cannot determine update frequency without date information' },
-          [this.createIssue('low', 'Missing update date', 'Add last modified date to content')]
+          [this.createIssue('critical', 'Missing update date', 'Add last modified date to content for freshness signals')]
         );
       }
       
@@ -47,35 +47,61 @@ export class UpdateFrequencyRule extends BaseRule {
       const details = {
         daysSinceUpdate,
         lastUpdate: dateInfo.lastUpdate,
-        expectedFrequency: expectedFrequency.label,
-        pageType: context.pageCategory.type
+        scoreThreshold: this.getScoreThreshold(daysSinceUpdate)
       };
       
-      // Generate evidence
+      // Format the date nicely
+      const dateStr = dateInfo.lastUpdate.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+      
+      // Generate evidence with threshold information and actual date
       if (daysSinceUpdate === 0) {
-        evidence.push('Content updated today');
+        evidence.push(`Content updated today (${dateStr}) - ≤90 days threshold`);
       } else if (daysSinceUpdate === 1) {
-        evidence.push('Content updated yesterday');
+        evidence.push(`Content updated yesterday (${dateStr}) - ≤90 days threshold`);
       } else if (daysSinceUpdate < 7) {
-        evidence.push(`Content updated ${daysSinceUpdate} days ago`);
+        evidence.push(`Content updated ${daysSinceUpdate} days ago (${dateStr}) - ≤90 days threshold`);
       } else if (daysSinceUpdate < 30) {
-        evidence.push(`Content updated ${Math.floor(daysSinceUpdate / 7)} weeks ago`);
-      } else if (daysSinceUpdate < 365) {
-        evidence.push(`Content updated ${Math.floor(daysSinceUpdate / 30)} months ago`);
+        evidence.push(`Content updated ${Math.floor(daysSinceUpdate / 7)} weeks ago (${dateStr}) - ≤90 days threshold`);
+      } else if (daysSinceUpdate <= 90) {
+        evidence.push(`Content updated ${Math.floor(daysSinceUpdate / 30)} months ago (${dateStr}) - ≤90 days threshold`);
+      } else if (daysSinceUpdate <= 180) {
+        evidence.push(`Content updated ${daysSinceUpdate} days ago (${dateStr}) - 91-180 days threshold`);
+      } else if (daysSinceUpdate <= 365) {
+        evidence.push(`Content updated ${daysSinceUpdate} days ago (${dateStr}) - 181-365 days threshold`);
       } else {
-        evidence.push(`Content updated ${Math.floor(daysSinceUpdate / 365)} years ago`);
+        evidence.push(`Content updated ${Math.floor(daysSinceUpdate / 365)} years ago (${dateStr}) - >365 days threshold`);
       }
       
-      evidence.push(`Expected update frequency: ${expectedFrequency.label}`);
+      // Add source of date information
+      if (context.pageSignals?.freshness?.publishDate || context.pageSignals?.freshness?.modifiedDate) {
+        evidence.push(`Date retrieved from: ${context.pageSignals.freshness.modifiedDate ? 'modified date' : 'publish date'} meta tag`);
+      } else if (context.metadata?.modifiedTime || context.metadata?.publishedTime) {
+        evidence.push(`Date retrieved from: ${context.metadata.modifiedTime ? 'modified time' : 'published time'} metadata`);
+      }
       
-      // Generate issues based on freshness
+      // Generate issues based on fixed thresholds
       const issues = [];
-      if (daysSinceUpdate > expectedFrequency.warningDays) {
-        const severity = daysSinceUpdate > expectedFrequency.criticalDays ? 'high' : 'medium';
+      if (daysSinceUpdate > 365) {
         issues.push(this.createIssue(
-          severity,
-          `Content is ${daysSinceUpdate} days old`,
-          `${context.pageCategory.type} content should be updated ${expectedFrequency.label}`
+          'high',
+          `Content is ${daysSinceUpdate} days old (>365 days)`,
+          'Content should be updated within 365 days for better freshness score'
+        ));
+      } else if (daysSinceUpdate > 180) {
+        issues.push(this.createIssue(
+          'medium',
+          `Content is ${daysSinceUpdate} days old (181-365 days)`,
+          'Content should be updated within 180 days for better freshness score'
+        ));
+      } else if (daysSinceUpdate > 90) {
+        issues.push(this.createIssue(
+          'low',
+          `Content is ${daysSinceUpdate} days old (91-180 days)`,
+          'Content should be updated within 90 days for optimal freshness score'
         ));
       }
       
@@ -131,7 +157,13 @@ export class UpdateFrequencyRule extends BaseRule {
   }
   
   /**
-   * Get expected update frequency based on page type
+   * Get expected update frequency based on fixed thresholds from plan
+   * FRESHNESS (0-100):
+   * - 20: No date signals
+   * - 40: >365 days old
+   * - 60: 181-365 days old  
+   * - 80: 91-180 days old
+   * - 100: ≤90 days old
    */
   private getExpectedFrequency(pageType: string): {
     label: string;
@@ -139,110 +171,52 @@ export class UpdateFrequencyRule extends BaseRule {
     warningDays: number;
     criticalDays: number;
   } {
-    // Define freshness expectations by page type
-    const frequencies: Record<string, any> = {
-      homepage: {
-        label: 'weekly',
-        idealDays: 7,
-        warningDays: 30,
-        criticalDays: 90
-      },
-      blog_article: {
-        label: 'monthly',
-        idealDays: 30,
-        warningDays: 180,
-        criticalDays: 365
-      },
-      documentation_help: {
-        label: 'quarterly',
-        idealDays: 90,
-        warningDays: 180,
-        criticalDays: 365
-      },
-      product_page: {
-        label: 'monthly',
-        idealDays: 30,
-        warningDays: 90,
-        criticalDays: 180
-      },
-      pricing_page: {
-        label: 'monthly',
-        idealDays: 30,
-        warningDays: 60,
-        criticalDays: 90
-      },
-      about_company: {
-        label: 'quarterly',
-        idealDays: 90,
-        warningDays: 365,
-        criticalDays: 730
-      },
-      case_study: {
-        label: 'yearly',
-        idealDays: 365,
-        warningDays: 730,
-        criticalDays: 1095
-      },
-      faq: {
-        label: 'quarterly',
-        idealDays: 90,
-        warningDays: 180,
-        criticalDays: 365
-      },
-      news_article: {
-        label: 'daily',
-        idealDays: 1,
-        warningDays: 7,
-        criticalDays: 30
-      },
-      landing_page: {
-        label: 'monthly',
-        idealDays: 30,
-        warningDays: 90,
-        criticalDays: 180
-      },
-      legal_page: {
-        label: 'yearly',
-        idealDays: 365,
-        warningDays: 730,
-        criticalDays: 1095
-      },
-      contact_page: {
-        label: 'quarterly',
-        idealDays: 90,
-        warningDays: 365,
-        criticalDays: 730
-      }
-    };
-    
-    return frequencies[pageType] || {
-      label: 'quarterly',
-      idealDays: 90,
-      warningDays: 180,
-      criticalDays: 365
+    // Use fixed thresholds from the plan regardless of page type
+    return {
+      label: 'standard',
+      idealDays: 90,      // 100 score: ≤90 days
+      warningDays: 180,   // 80 score: 91-180 days
+      criticalDays: 365   // 60 score: 181-365 days, 40 score: >365 days
     };
   }
   
   /**
-   * Calculate freshness score based on days since update and expected frequency
+   * Calculate freshness score based on fixed thresholds from plan
+   * FRESHNESS (0-100):
+   * - 100: ≤90 days old
+   * - 80: 91-180 days old
+   * - 60: 181-365 days old  
+   * - 40: >365 days old
+   * - 20: No date signals (handled elsewhere)
    */
   private calculateFreshnessScore(daysSinceUpdate: number, frequency: any): number {
-    if (daysSinceUpdate <= frequency.idealDays) {
-      // Content is fresh
+    if (daysSinceUpdate <= 90) {
+      // ≤90 days old
       return 100;
-    } else if (daysSinceUpdate <= frequency.warningDays) {
-      // Content is acceptable but aging
-      // Linear decay from 100 to 50
-      const ratio = (daysSinceUpdate - frequency.idealDays) / (frequency.warningDays - frequency.idealDays);
-      return Math.round(100 - (ratio * 50));
-    } else if (daysSinceUpdate <= frequency.criticalDays) {
-      // Content is stale
-      // Linear decay from 50 to 20
-      const ratio = (daysSinceUpdate - frequency.warningDays) / (frequency.criticalDays - frequency.warningDays);
-      return Math.round(50 - (ratio * 30));
+    } else if (daysSinceUpdate <= 180) {
+      // 91-180 days old
+      return 80;
+    } else if (daysSinceUpdate <= 365) {
+      // 181-365 days old
+      return 60;
     } else {
-      // Content is very stale
-      return 20;
+      // >365 days old
+      return 40;
+    }
+  }
+  
+  /**
+   * Get the score threshold description for a given days since update
+   */
+  private getScoreThreshold(daysSinceUpdate: number): string {
+    if (daysSinceUpdate <= 90) {
+      return '≤90 days (score: 100)';
+    } else if (daysSinceUpdate <= 180) {
+      return '91-180 days (score: 80)';
+    } else if (daysSinceUpdate <= 365) {
+      return '181-365 days (score: 60)';
+    } else {
+      return '>365 days (score: 40)';
     }
   }
 }

@@ -89,7 +89,6 @@ export const CATEGORY_DETECTION_RULES: CategoryDetectionRule[] = [
       contentPatterns: [/step \d+/i, /how to/i, /getting started/i]
     },
     weightModifiers: {
-      snippetExtractability: 1.5,
       authority: 0.7
     }
   },
@@ -106,7 +105,6 @@ export const CATEGORY_DETECTION_RULES: CategoryDetectionRule[] = [
       domSelectors: ['.faq-item', '.question-answer', 'dl.faq']
     },
     weightModifiers: {
-      snippetExtractability: 2.0
     }
   },
 
@@ -139,7 +137,6 @@ export const CATEGORY_DETECTION_RULES: CategoryDetectionRule[] = [
     },
     weightModifiers: {
       brandAlignment: 1.3,
-      snippetExtractability: 1.2
     }
   },
 
@@ -186,7 +183,6 @@ export const CATEGORY_DETECTION_RULES: CategoryDetectionRule[] = [
       freshness: 0.5,
       authority: 0.5,
       structure: 1.0,
-      snippetExtractability: 0.5,
       brandAlignment: 2.0
     }
   },

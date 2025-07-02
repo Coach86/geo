@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ScoreIssue } from '../schemas/content-score.schema';
 
-export type KPIDimension = 'authority' | 'freshness' | 'structure' | 'snippetExtractability' | 'brandAlignment';
+export type KPIDimension = 'authority' | 'freshness' | 'structure' | 'brandAlignment';
 
 export interface IssueThresholds {
   critical: number; // 0-34: Critical issues
@@ -75,11 +75,6 @@ export class IssueFactoryService {
         if (severity === 'high') return `Page structure needs improvement ${scoreDesc}. Heading hierarchy or schema markup issues detected.`;
         return `Page structure has minor issues ${scoreDesc}. Some organizational improvements possible.`;
 
-      case 'snippetExtractability':
-        if (severity === 'critical') return `Content is difficult to extract ${scoreDesc}. Large text blocks without clear answers or lists.`;
-        if (severity === 'high') return `Content extraction could be improved ${scoreDesc}. Limited structured content for featured snippets.`;
-        return `Content organization could enhance extractability ${scoreDesc}. Consider adding more structured elements.`;
-
       case 'brandAlignment':
         if (severity === 'critical') return `Content is off-brand ${scoreDesc}. Significant misalignment with brand guidelines detected.`;
         if (severity === 'high') return `Content has brand alignment issues ${scoreDesc}. Some messaging inconsistencies found.`;
@@ -109,11 +104,6 @@ export class IssueFactoryService {
         if (severity === 'critical') return 'Implement proper H1-H6 hierarchy and add structured data markup (JSON-LD).';
         if (severity === 'high') return 'Fix heading hierarchy issues and add relevant schema.org markup.';
         return 'Review heading structure and consider adding structured data for better organization.';
-
-      case 'snippetExtractability':
-        if (severity === 'critical') return 'Break content into smaller paragraphs, add bullet lists, and create Q&A sections.';
-        if (severity === 'high') return 'Add more lists, tables, or Q&A blocks to improve content structure.';
-        return 'Consider adding numbered lists or highlighted key points for better readability.';
 
       case 'brandAlignment':
         if (severity === 'critical') return 'Review content against brand guidelines and update messaging to match brand voice.';

@@ -46,9 +46,10 @@ export class BrandReportOrchestratorService {
 
   /**
    * Orchestrate all projects' batches
+   * @param triggerSource The source that triggered the batch ('cron', 'manual', 'project_creation')
    */
-  async orchestrateAllProjectBatches() {
-    this.logger.log('Orchestrating batches for all projects');
+  async orchestrateAllProjectBatches(triggerSource: 'cron' | 'manual' | 'project_creation' = 'manual') {
+    this.logger.log(`Orchestrating batches for all projects (trigger: ${triggerSource})`);
 
     try {
       // Get all projects from the project service
@@ -65,7 +66,7 @@ export class BrandReportOrchestratorService {
       // Process each project sequentially (to avoid overloading the system)
       for (const project of projects) {
         try {
-          const result = await this.orchestrateProjectBatches(project.projectId);
+          const result = await this.orchestrateProjectBatches(project.projectId, triggerSource);
           results.successful++;
           results.details.push(result);
         } catch (error) {
@@ -89,9 +90,11 @@ export class BrandReportOrchestratorService {
 
   /**
    * Orchestrate the creation of a brand report for a project
+   * @param projectId The project ID
+   * @param triggerSource The source that triggered the batch ('cron', 'manual', 'project_creation')
    */
-  async orchestrateProjectBatches(projectId: string) {
-    this.logger.log(`Orchestrating brand report for project ${projectId}`);
+  async orchestrateProjectBatches(projectId: string, triggerSource: 'cron' | 'manual' | 'project_creation' = 'manual') {
+    this.logger.log(`Orchestrating brand report for project ${projectId} (trigger: ${triggerSource})`);
 
     try {
       // Get the project context
@@ -107,7 +110,7 @@ export class BrandReportOrchestratorService {
       }
 
       // Create a new batch execution
-      const batchExecution = await this.batchExecutionService.createBatchExecution(projectId);
+      const batchExecution = await this.batchExecutionService.createBatchExecution(projectId, triggerSource);
       const batchExecutionId = batchExecution.id;
 
       // Inject the batchExecutionId into the context

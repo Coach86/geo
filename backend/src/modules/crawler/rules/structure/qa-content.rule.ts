@@ -1,24 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import { BaseSnippetRule } from './base-snippet.rule';
+import { BaseStructureRule } from './base-structure.rule';
 import { RuleContext, RuleResult } from '../interfaces/rule.interface';
 import { PAGE_CATEGORIES } from '../constants/page-categories';
 
 @Injectable()
-export class QAContentRule extends BaseSnippetRule {
-  id = 'snippet-qa-content';
+export class QAContentRule extends BaseStructureRule {
+  id = 'structure-qa-content';
   name = 'Q&A Content';
   description = 'Evaluates question-answer format content for featured snippets';
   applicability = { 
-    scope: 'category' as const,
-    categories: [
-      PAGE_CATEGORIES.FAQ,
-      PAGE_CATEGORIES.DOCUMENTATION_HELP,
-      PAGE_CATEGORIES.BLOG_ARTICLE,
-      PAGE_CATEGORIES.UNKNOWN
-    ]
+    scope: 'all' as const
   };
   priority = 8;
-  weight = 0.3;
+  weight = 0.1; // Adjusted weight as it's now part of structure dimension
 
   async evaluate(context: RuleContext): Promise<RuleResult> {
     const { pageSignals, pageCategory } = context;
@@ -40,8 +34,12 @@ export class QAContentRule extends BaseSnippetRule {
           'Structure content with clear questions and answers'
         ));
       } else {
-        score = 70;
-        // Not an issue for non-FAQ pages
+        score = 0;
+        issues.push(this.generateIssue(
+          'low',
+          'No Q&A blocks found',
+          'Consider adding Q&A sections to improve content structure and searchability'
+        ));
       }
       evidence.push('No Q&A blocks detected');
     } else if (qaBlockCount >= 1 && qaBlockCount <= 5) {

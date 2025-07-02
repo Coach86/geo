@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { RuleRegistryService } from '../rules/registry/rule-registry.service';
-import { RuleAggregatorService } from '../rules/registry/rule-aggregator.service';
+import { ConditionalAggregatorService } from '../rules/registry/conditional-aggregator.service';
 import { RuleContext } from '../rules/interfaces/rule.interface';
 import { PageSignals } from '../interfaces/page-signals.interface';
 import { PageCategory } from '../interfaces/page-category.interface';
@@ -33,7 +33,7 @@ export class RuleBasedStructureAnalyzer {
 
   constructor(
     private readonly ruleRegistry: RuleRegistryService,
-    private readonly ruleAggregator: RuleAggregatorService,
+    private readonly conditionalAggregator: ConditionalAggregatorService,
     private readonly llmService: LlmService,
   ) {
     this.registerRules();
@@ -44,12 +44,22 @@ export class RuleBasedStructureAnalyzer {
    */
   private registerRules(): void {
     // Import rule classes
-    const { HeadingHierarchyRule, SchemaMarkupRule, ReadabilityRule } = require('../rules/structure');
+    const { 
+      HeadingHierarchyRule, 
+      SchemaMarkupRule, 
+      ReadabilityRule, 
+      ListsTablesRule,
+      SentenceStructureRule,
+      QAContentRule 
+    } = require('../rules/structure');
     
     // Register rules with their configurations
-    this.ruleRegistry.registerRule(HeadingHierarchyRule, { weight: 0.4 });
-    this.ruleRegistry.registerRule(SchemaMarkupRule, { weight: 0.3 });
-    this.ruleRegistry.registerRule(ReadabilityRule, { weight: 0.3 });
+    this.ruleRegistry.registerRule(HeadingHierarchyRule, { weight: 0.25 });
+    this.ruleRegistry.registerRule(SchemaMarkupRule, { weight: 0.25 });
+    this.ruleRegistry.registerRule(ReadabilityRule, { weight: 0.15 });
+    this.ruleRegistry.registerRule(ListsTablesRule, { weight: 0.15 });
+    this.ruleRegistry.registerRule(SentenceStructureRule, { weight: 0.1 });
+    this.ruleRegistry.registerRule(QAContentRule, { weight: 0.1 });
     
     this.logger.log('Structure rules registered successfully');
   }
@@ -109,8 +119,8 @@ export class RuleBasedStructureAnalyzer {
       });
     }
 
-    // Aggregate scores
-    const aggregation = this.ruleAggregator.aggregate(ruleResults, 'structure', ruleDetails);
+    // Aggregate scores using conditional thresholds
+    const aggregation = this.conditionalAggregator.aggregate(ruleResults, 'structure', ruleDetails);
 
     // Extract details from pageSignals
     const details = {

@@ -18,7 +18,6 @@ interface PageDetailsSectionProps {
       authority?: any;
       freshness?: any;
       structure?: any;
-      snippetExtractability?: any;
       brandAlignment?: any;
     };
     ruleBasedAnalysis?: {
@@ -35,12 +34,6 @@ interface PageDetailsSectionProps {
         calculationDetails: any;
       };
       structure?: {
-        score: number;
-        details: any;
-        issues: any[];
-        calculationDetails: any;
-      };
-      snippet?: {
         score: number;
         details: any;
         issues: any[];
@@ -63,7 +56,6 @@ const DIMENSION_COLORS = {
   authority: '#8b5cf6',
   freshness: '#3b82f6',
   structure: '#10b981',
-  snippet: '#f59e0b',
   brand: '#ef4444',
 };
 
@@ -139,15 +131,6 @@ export function PageDetailsSection({ page, projectId }: PageDetailsSectionProps)
             />
           )}
 
-          {/* Snippet Calculation */}
-          {page.calculationDetails.snippetExtractability && (
-            <ScoreBreakdown
-              dimension="snippetExtractability"
-              details={page.calculationDetails.snippetExtractability}
-              color={DIMENSION_COLORS.snippet}
-              title="Snippet Score Breakdown"
-            />
-          )}
 
           {/* Brand Calculation */}
           {page.calculationDetails.brandAlignment && (

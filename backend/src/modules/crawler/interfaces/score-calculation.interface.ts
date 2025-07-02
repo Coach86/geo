@@ -22,7 +22,6 @@ export interface DimensionCalculationDetails {
   authority?: ScoreCalculationDetails;
   freshness?: ScoreCalculationDetails;
   structure?: ScoreCalculationDetails;
-  snippetExtractability?: ScoreCalculationDetails;
   brandAlignment?: ScoreCalculationDetails;
 }
 
@@ -58,15 +57,6 @@ export interface StructureAnalysisResultWithCalc {
   calculationDetails: ScoreCalculationDetails;
 }
 
-export interface SnippetAnalysisResultWithCalc {
-  score: number;
-  avgSentenceWords: number;
-  listCount: number;
-  qaBlockCount: number;
-  extractableBlocks: number;
-  issues: any[];
-  calculationDetails: ScoreCalculationDetails;
-}
 
 export interface BrandAnalysisResultWithCalc {
   score: number;

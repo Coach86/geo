@@ -15,8 +15,7 @@ export class CitationQualityRule extends BaseRule {
   weight = 0.3; // 30% of authority score
   
   applicability: RuleApplicability = {
-    scope: 'category',
-    categories: ['blog_article', 'documentation_help', 'about_company', 'case_study']
+    scope: 'all' as const
   };
   
   async evaluate(context: RuleContext): Promise<RuleResult> {

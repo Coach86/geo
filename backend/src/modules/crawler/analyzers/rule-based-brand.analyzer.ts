@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { RuleRegistryService } from '../rules/registry/rule-registry.service';
-import { RuleAggregatorService } from '../rules/registry/rule-aggregator.service';
+import { ConditionalAggregatorService } from '../rules/registry/conditional-aggregator.service';
 import { RuleContext } from '../rules/interfaces/rule.interface';
 import { PageSignals } from '../interfaces/page-signals.interface';
 import { PageCategory } from '../interfaces/page-category.interface';
@@ -32,7 +32,7 @@ export class RuleBasedBrandAnalyzer {
 
   constructor(
     private readonly ruleRegistry: RuleRegistryService,
-    private readonly ruleAggregator: RuleAggregatorService,
+    private readonly conditionalAggregator: ConditionalAggregatorService,
     private readonly llmService: LlmService,
   ) {
     this.registerRules();
@@ -108,7 +108,11 @@ export class RuleBasedBrandAnalyzer {
     }
 
     // Aggregate scores
-    const aggregation = this.ruleAggregator.aggregate(ruleResults, 'brandAlignment', ruleDetails);
+    const aggregation = this.conditionalAggregator.aggregate(
+      ruleResults, 
+      'brandAlignment', 
+      ruleDetails
+    );
 
     // Extract details from pageSignals
     const details = {

@@ -5,7 +5,6 @@ import { PageSignalExtractorService } from './page-signal-extractor.service';
 import { RuleBasedAuthorityAnalyzer } from '../analyzers/rule-based-authority.analyzer';
 import { RuleBasedFreshnessAnalyzer } from '../analyzers/rule-based-freshness.analyzer';
 import { RuleBasedStructureAnalyzer } from '../analyzers/rule-based-structure.analyzer';
-import { RuleBasedSnippetAnalyzer } from '../analyzers/rule-based-snippet.analyzer';
 import { RuleBasedBrandAnalyzer } from '../analyzers/rule-based-brand.analyzer';
 import { PageCategorizerService } from './page-categorizer.service';
 import { PageCategoryType, AnalysisLevel } from '../interfaces/page-category.interface';
@@ -22,14 +21,12 @@ interface HybridAnalysisResult {
     authority: number;
     freshness: number;
     structure: number;
-    snippetExtractability: number;
     brandAlignment: number;
   };
   details: {
     authority: any;
     freshness: any;
     structure: any;
-    snippet: any;
     brand: any;
   };
   issues: any[];
@@ -38,7 +35,6 @@ interface HybridAnalysisResult {
     authority: any;
     freshness: any;
     structure: any;
-    snippetExtractability: any;
     brandAlignment: any;
   };
   pageCategory?: any;
@@ -58,7 +54,6 @@ export class HybridKPIAnalyzerService {
     private readonly authorityAnalyzer: RuleBasedAuthorityAnalyzer,
     private readonly freshnessAnalyzer: RuleBasedFreshnessAnalyzer,
     private readonly structureAnalyzer: RuleBasedStructureAnalyzer,
-    private readonly snippetAnalyzer: RuleBasedSnippetAnalyzer,
     private readonly brandAnalyzer: RuleBasedBrandAnalyzer,
     private readonly pageCategorizerService: PageCategorizerService,
   ) {}
@@ -94,7 +89,6 @@ export class HybridKPIAnalyzerService {
         authorityResult,
         freshnessResult,
         structureResult,
-        snippetResult,
         brandResult
       ] = await Promise.all([
         // Authority uses LLM internally via rules
@@ -103,17 +97,6 @@ export class HybridKPIAnalyzerService {
         this.freshnessAnalyzer.analyze(html, metadata, url, context),
         // Structure is now rule-based
         this.structureAnalyzer.analyze(
-          pageSignals,
-          pageCategory,
-          this.extractDomain(url || ''),
-          url || '',
-          html,
-          cleanContent,
-          metadata,
-          context
-        ),
-        // Snippet is now rule-based
-        this.snippetAnalyzer.analyze(
           pageSignals,
           pageCategory,
           this.extractDomain(url || ''),
@@ -142,7 +125,6 @@ export class HybridKPIAnalyzerService {
           authority: authorityResult.score,
           freshness: freshnessResult.score,
           structure: structureResult.score,
-          snippetExtractability: snippetResult.score,
           brandAlignment: brandResult.score
         },
         details: {
@@ -159,12 +141,6 @@ export class HybridKPIAnalyzerService {
             hasSchema: structureResult.details.schemaTypes.length > 0,
             headingHierarchyScore: structureResult.details.headingHierarchyScore,
           },
-          snippet: {
-            extractableBlocks: snippetResult.details.extractableBlocks,
-            listCount: snippetResult.details.listCount,
-            qaBlockCount: snippetResult.details.qaBlockCount,
-            avgSentenceLength: snippetResult.details.avgSentenceWords,
-          },
           brand: {
             brandMentions: brandResult.details.brandKeywordMatches,
             alignmentIssues: brandResult.issues.map(i => i.description),
@@ -176,21 +152,18 @@ export class HybridKPIAnalyzerService {
           ...(authorityResult.issues || []),
           ...(freshnessResult.issues || []),
           ...(structureResult.issues || []),
-          ...(snippetResult.issues || []),
           ...(brandResult.issues || [])
         ],
         explanation: this.generateExplanation(
           authorityResult,
           freshnessResult,
           structureResult,
-          snippetResult,
           brandResult
         ),
         calculationDetails: {
           authority: authorityResult.calculationDetails,
           freshness: freshnessResult.calculationDetails,
           structure: structureResult.calculationDetails,
-          snippetExtractability: snippetResult.calculationDetails,
           brandAlignment: brandResult.calculationDetails
         }
       };

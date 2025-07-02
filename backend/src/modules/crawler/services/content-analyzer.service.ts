@@ -3,7 +3,6 @@ import { ConfigService } from '@nestjs/config';
 import { CrawledPageRepository } from '../repositories/crawled-page.repository';
 import { ContentScoreRepository } from '../repositories/content-score.repository';
 import { StructureAnalyzer } from '../analyzers/structure.analyzer';
-import { SnippetAnalyzer } from '../analyzers/snippet.analyzer';
 import { BrandAnalyzer } from '../analyzers/brand.analyzer';
 import { ScoringRulesService } from './scoring-rules.service';
 import { calculateGlobalScore } from '../config/default-scoring-rules';
@@ -33,7 +32,6 @@ export class ContentAnalyzerService {
     private readonly crawledPageRepository: CrawledPageRepository,
     private readonly contentScoreRepository: ContentScoreRepository,
     private readonly structureAnalyzer: StructureAnalyzer,
-    private readonly snippetAnalyzer: SnippetAnalyzer,
     private readonly brandAnalyzer: BrandAnalyzer,
     private readonly scoringRulesService: ScoringRulesService,
     private readonly projectService: ProjectService,
@@ -215,7 +213,6 @@ export class ContentAnalyzerService {
     const staticDimensions: { [key: string]: KPIDimension } = {
       freshness: 'freshness',
       structure: 'structure', 
-      snippetExtractability: 'snippetExtractability'
     };
 
     for (const [scoreName, dimensionName] of Object.entries(staticDimensions)) {
@@ -256,12 +253,6 @@ export class ContentAnalyzerService {
         headingHierarchyScore: result.details.structure.headingHierarchyScore, // Pass the actual score
         schemaTypes: result.details.structure.hasSchema ? ['WebPage'] : [],
         avgSentenceWords: result.details.structure.avgSentenceWords,
-      },
-      snippet: {
-        avgSentenceWords: result.details.snippet.avgSentenceLength,
-        listCount: result.details.snippet.listCount,
-        qaBlockCount: result.details.snippet.qaBlockCount,
-        extractableBlocks: result.details.snippet.extractableBlocks,
       },
       brand: {
         brandKeywordMatches: result.details.brand.brandMentions,
@@ -349,12 +340,6 @@ export class ContentAnalyzerService {
         schemaTypes: [], // Would need to extract from page signals
         avgSentenceWords: result.details.structure.avgSentenceWords,
       },
-      snippet: {
-        avgSentenceWords: result.details.snippet.avgSentenceLength,
-        listCount: result.details.snippet.listCount,
-        qaBlockCount: result.details.snippet.qaBlockCount,
-        extractableBlocks: result.details.snippet.extractableBlocks,
-      },
       brand: {
         brandKeywordMatches: result.details.brand.brandMentions,
         requiredTermsFound: result.details.brand.missingKeywords || [],
@@ -405,7 +390,6 @@ export class ContentAnalyzerService {
         authority: 0,
         freshness: 0,
         structure: 0,
-        snippetExtractability: 0,
         brandAlignment: 0
       },
       details: {
@@ -424,12 +408,6 @@ export class ContentAnalyzerService {
           schemaTypes: [],
           avgSentenceWords: 0
         },
-        snippet: {
-          avgSentenceWords: 0,
-          listCount: 0,
-          qaBlockCount: 0,
-          extractableBlocks: 0
-        },
         brand: {
           requiredTermsFound: [],
           outdatedTermsFound: [],
@@ -444,7 +422,6 @@ export class ContentAnalyzerService {
     const authorityResult = this.authorityAnalyzer.analyze(page.html, page.url);
     const freshnessResult = this.freshnessAnalyzer.analyze(page.html, page.metadata);
     const structureResult = this.structureAnalyzer.analyze(page.html);
-    const snippetResult = this.snippetAnalyzer.analyze(page.html);
     const brandResult = this.brandAnalyzer.analyze(
       page.html,
       project.keyBrandAttributes || [],
@@ -456,7 +433,6 @@ export class ContentAnalyzerService {
       ...authorityResult.issues,
       ...freshnessResult.issues,
       ...structureResult.issues,
-      ...snippetResult.issues,
       ...brandResult.issues
     );
 
@@ -465,7 +441,6 @@ export class ContentAnalyzerService {
       authority: authorityResult.score,
       freshness: freshnessResult.score,
       structure: structureResult.score,
-      snippetExtractability: snippetResult.score,
       brandAlignment: brandResult.score,
     };
 
@@ -475,7 +450,6 @@ export class ContentAnalyzerService {
       authority: 'authority',
       freshness: 'freshness',
       structure: 'structure',
-      snippetExtractability: 'snippetExtractability', 
       brandAlignment: 'brandAlignment'
     };
 
@@ -519,12 +493,6 @@ export class ContentAnalyzerService {
         schemaTypes: structureResult.schemaTypes,
         avgSentenceWords: structureResult.avgSentenceWords,
       },
-      snippet: {
-        avgSentenceWords: snippetResult.avgSentenceWords,
-        listCount: snippetResult.listCount,
-        qaBlockCount: snippetResult.qaBlockCount,
-        extractableBlocks: snippetResult.extractableBlocks,
-      },
       brand: {
         brandKeywordMatches: brandResult.brandKeywordMatches,
         requiredTermsFound: brandResult.requiredTermsFound,
@@ -542,7 +510,6 @@ export class ContentAnalyzerService {
       authority: authorityResult.calculationDetails,
       freshness: freshnessResult.calculationDetails,
       structure: structureResult.calculationDetails,
-      snippetExtractability: snippetResult.calculationDetails,
       brandAlignment: brandResult.calculationDetails,
     };
 

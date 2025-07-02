@@ -14,7 +14,6 @@ export interface DimensionScores {
   authority: number;
   freshness: number;
   structure: number;
-  snippetExtractability: number;
   brandAlignment: number;
 }
 
@@ -40,12 +39,6 @@ export interface DimensionDetails {
     headingHierarchyScore?: number; // Score 0-100 for heading structure quality
     schemaTypes: string[];
     avgSentenceWords: number;
-  };
-  snippet: {
-    avgSentenceWords: number;
-    listCount: number;
-    qaBlockCount: number;
-    extractableBlocks: number;
   };
   brand: {
     brandKeywordMatches: number;

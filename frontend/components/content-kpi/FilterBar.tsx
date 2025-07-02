@@ -71,7 +71,6 @@ export function FilterBar({
           <SelectItem value="authority">Authority</SelectItem>
           <SelectItem value="freshness">Freshness</SelectItem>
           <SelectItem value="structure">Structure</SelectItem>
-          <SelectItem value="snippet">Snippet</SelectItem>
           <SelectItem value="brand">Brand</SelectItem>
         </SelectContent>
       </Select>
