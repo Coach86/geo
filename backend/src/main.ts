@@ -26,6 +26,7 @@ async function bootstrap() {
       preflightContinue: false,
       optionsSuccessStatus: 204,
     });
+    // Use single-line log for development
     console.log('CORS enabled with permissive settings for development');
   } else {
     // In production, be more restrictive
@@ -33,7 +34,12 @@ async function bootstrap() {
       origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : false,
       credentials: true,
     });
-    console.log('CORS enabled with restrictive settings for production');
+    // Log using single line in production
+    if (process.env.NODE_ENV === 'production') {
+      // Avoid console.log in production - will be handled by logger
+    } else {
+      console.log('CORS enabled with restrictive settings for production');
+    }
   }
 
   app.setGlobalPrefix('api', { exclude: ['/'] });
@@ -99,27 +105,55 @@ async function bootstrap() {
     if (fs.existsSync(indexPath)) {
       return res.sendFile(indexPath);
     } else {
-      console.warn(`Index file not found at ${indexPath}`);
+      if (isDev) {
+        console.warn(`Index file not found at ${indexPath}`);
+      }
       return next();
     }
   });
 
   const port = process.env.PORT || 3000;
 
-  console.log('API Keys at startup:');
-  console.log('  OPENAI_API_KEY:      ', process.env.OPENAI_API_KEY);
-  console.log('  ANTHROPIC_API_KEY:   ', process.env.ANTHROPIC_API_KEY);
-  console.log('  PERPLEXITY_API_KEY:  ', process.env.PERPLEXITY_API_KEY);
-  console.log('  MISTRAL_API_KEY:     ', process.env.MISTRAL_API_KEY);
+  // Only log API keys in development
+  if (isDev) {
+    console.log('API Keys at startup:');
+    console.log('  OPENAI_API_KEY:      ', process.env.OPENAI_API_KEY);
+    console.log('  ANTHROPIC_API_KEY:   ', process.env.ANTHROPIC_API_KEY);
+    console.log('  PERPLEXITY_API_KEY:  ', process.env.PERPLEXITY_API_KEY);
+    console.log('  MISTRAL_API_KEY:     ', process.env.MISTRAL_API_KEY);
+  }
 
   await app.listen(port);
-  console.log(`Application is running on: http://localhost:${port}`);
+  
+  // Use structured single-line log for production
+  if (isDev) {
+    console.log(`Application is running on: http://localhost:${port}`);
+  } else {
+    // In production, this will be handled by the logger
+    const startupLog = {
+      message: 'Application started',
+      port: port,
+      environment: process.env.NODE_ENV,
+      timestamp: new Date().toISOString()
+    };
+    console.log(JSON.stringify(startupLog));
+  }
 
   // Graceful shutdown
   const signals = ['SIGTERM', 'SIGINT'];
   signals.forEach((signal) => {
     process.on(signal, async () => {
-      console.log(`Received ${signal}, shutting down gracefully...`);
+      // Use structured single-line log for production
+      if (isDev) {
+        console.log(`Received ${signal}, shutting down gracefully...`);
+      } else {
+        const shutdownLog = {
+          message: 'Graceful shutdown initiated',
+          signal: signal,
+          timestamp: new Date().toISOString()
+        };
+        console.log(JSON.stringify(shutdownLog));
+      }
       
       // Shutdown PostHog to ensure all events are sent
       const postHogService = app.get(PostHogService);
