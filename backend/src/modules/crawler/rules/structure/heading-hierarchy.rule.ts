@@ -88,12 +88,15 @@ export class HeadingHierarchyRule extends BaseStructureRule {
       ));
     }
 
-    // Add heading hierarchy details to evidence
+    // Always add heading hierarchy details to evidence if any headings exist
     if (headingHierarchy && headingHierarchy.length > 0) {
       evidence.push('Heading structure:');
       headingHierarchy.forEach(heading => {
         evidence.push(`  ${heading}`);
       });
+    } else {
+      // Explicitly note when no headings are found
+      evidence.push('Heading structure: No headings found on the page');
     }
 
     return this.createResult(

@@ -65,7 +65,7 @@ export const getCloudWatchLoggerConfig = (
           winston.format.errors({ stack: true }),
           // Ensure errors are also single-line
           winston.format((info) => {
-            if (info.stack) {
+            if (info.stack && typeof info.stack === 'string') {
               info.stack = info.stack.replace(/\n/g, ' ');
             }
             return info;

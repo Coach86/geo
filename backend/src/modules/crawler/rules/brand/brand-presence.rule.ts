@@ -16,6 +16,7 @@ export class BrandPresenceRule extends BaseBrandRule {
     const { pageSignals, projectContext, pageCategory } = context;
     const brandMentions = pageSignals.brand.brandMentionCount;
     const brandName = projectContext.brandName;
+    const { brandInTitle, brandInH1, competitorMentionCount, brandProminence, contextQuality } = pageSignals.brand;
     
     const issues = [];
     const evidence = [];
@@ -78,11 +79,27 @@ export class BrandPresenceRule extends BaseBrandRule {
       ));
     }
 
+    // Add additional context about brand placement
+    evidence.push('Brand placement details:');
+    evidence.push(`  In page title: ${brandInTitle ? 'Yes' : 'No'}`);
+    evidence.push(`  In H1 heading: ${brandInH1 ? 'Yes' : 'No'}`);
+    evidence.push(`  Brand prominence: ${brandProminence}% of total words`);
+    
+    // Show competitor mentions if any
+    if (competitorMentionCount > 0) {
+      evidence.push(`  Competitor mentions: ${competitorMentionCount}`);
+    }
+    
+    // Show key brand attributes if any
+    if (contextQuality && contextQuality.length > 0) {
+      evidence.push(`  Key attributes mentioned: ${contextQuality.join(', ')}`);
+    }
+
     return this.createResult(
       score,
       100,
       evidence,
-      { brandMentions, brandName, isBrandCritical },
+      { brandMentions, brandName, isBrandCritical, brandInTitle, brandInH1, competitorMentionCount },
       issues
     );
   }
