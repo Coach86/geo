@@ -118,29 +118,7 @@ export function CompetitorsList({ project, onEdit, onUpdate }: CompetitorsListPr
               {project.competitors.length}/{maxCompetitors} competitors
             </div>
             
-            {/* Competitor list with favicons */}
-            <div className="space-y-2">
-              {project.competitors.length > 0 ? (
-                project.competitors.map((name, index) => {
-                  const detail = detailsMap.get(name);
-                  return (
-                    <div
-                      key={index}
-                      className="px-3 py-3 bg-gray-50 rounded-md text-sm text-gray-700 flex items-center gap-2"
-                    >
-                      <CompetitorFavicon website={detail?.website} name={name} />
-                      <span className="flex-1">{name}</span>
-                    </div>
-                  );
-                })
-              ) : (
-                <p className="text-sm text-gray-400 italic px-3 py-3">
-                  No competitors defined
-                </p>
-              )}
-            </div>
-            
-            {/* Use EditableList for adding/editing functionality */}
+            {/* Use EditableList for displaying and editing functionality */}
             <EditableList
               title=""
               items={project.competitors}
@@ -149,7 +127,7 @@ export function CompetitorsList({ project, onEdit, onUpdate }: CompetitorsListPr
               canAdd={true}
               canExpand={false}
               placeholder="Enter competitor name..."
-              emptyMessage=""
+              emptyMessage="No competitors defined"
               bgColor="gray"
               inputType="input"
               addButtonLabel="Add Competitor"
