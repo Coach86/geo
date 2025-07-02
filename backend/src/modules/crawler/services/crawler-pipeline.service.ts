@@ -144,18 +144,9 @@ export class CrawlerPipelineService {
 
       // Prepare crawl options
       // TODO: In the future, emit an event to check organization limits
-      const isTestMode = this.configService.get<boolean>('CONTENT_KPI_TEST_MODE', false);
-      const testModeLimit = this.configService.get<number>('CONTENT_KPI_TEST_PAGES', 20);
-      const maxPagesLimit = isTestMode ? testModeLimit : 100; // Use test limit if in test mode
-      
-      this.logger.log(`[PIPELINE] Test mode: ${isTestMode}, Max pages limit: ${maxPagesLimit}`);
-      
       const crawlOptions: CrawlOptions = {
         ...this.defaultCrawlOptions,
-        maxPages: Math.min(
-          options?.maxPages || project.crawlSettings?.maxPages || this.defaultCrawlOptions.maxPages!,
-          maxPagesLimit
-        ),
+        maxPages: options?.maxPages || project.crawlSettings?.maxPages || this.defaultCrawlOptions.maxPages!,
         crawlDelay: options?.crawlDelay || project.crawlSettings?.crawlDelay || this.defaultCrawlOptions.crawlDelay!,
         includePatterns: options?.includePatterns || project.crawlSettings?.includePatterns,
         excludePatterns: options?.excludePatterns || project.crawlSettings?.excludePatterns,

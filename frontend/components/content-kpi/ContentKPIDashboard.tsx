@@ -731,10 +731,14 @@ export function ContentKPIDashboard({
                         {page.issues?.slice(0, 2).map((issue, i) => {
                           const Icon = SEVERITY_ICONS[issue.severity as keyof typeof SEVERITY_ICONS];
                           return (
-                            <div key={i} className="flex items-start gap-2 text-xs">
+                            <div 
+                              key={i} 
+                              className="flex items-start gap-2 text-xs cursor-pointer hover:bg-muted/50 -mx-2 px-2 py-1 rounded transition-colors"
+                              onClick={() => handleOpenGuide(issue.description, issue.dimension?.toLowerCase(), issue.severity)}
+                            >
                               <Icon 
                                 className="h-3 w-3 mt-0.5 flex-shrink-0" 
-                                style={{ color: SEVERITY_COLORS[issue.severity as keyof typeof SEVERITY_COLORS] }}
+                                style={{ color: SEVERITY_COLORS[issue.severity as keyof typeof SEVERITY_ICONS] }}
                               />
                               <div className="min-w-0">
                                 <p className="font-medium text-gray-700 truncate">{issue.description}</p>
