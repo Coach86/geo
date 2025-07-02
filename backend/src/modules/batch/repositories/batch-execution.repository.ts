@@ -192,4 +192,24 @@ export class BatchExecutionRepository {
       .exec();
     return stalledBatches;
   }
+
+  /**
+   * Find batch executions by criteria
+   * @param criteria The search criteria
+   * @returns Array of batch executions
+   */
+  async find(criteria: any): Promise<Record<string, any>[]> {
+    this.logger.debug(`Finding batch executions with criteria: ${JSON.stringify(criteria)}`);
+    return this.batchExecutionModel.find(criteria).lean().exec();
+  }
+
+  /**
+   * Aggregate batch executions
+   * @param pipeline The aggregation pipeline
+   * @returns Aggregation results
+   */
+  async aggregate(pipeline: any[]): Promise<any[]> {
+    this.logger.debug(`Aggregating batch executions`);
+    return this.batchExecutionModel.aggregate(pipeline).exec();
+  }
 }

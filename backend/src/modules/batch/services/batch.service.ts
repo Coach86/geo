@@ -598,13 +598,14 @@ export class BatchService {
   /**
    * Create a batch execution record
    * @param projectId The ID of the project
+   * @param triggerSource The source that triggered the batch ('cron', 'manual', 'project_creation')
    * @returns The created batch execution
    */
-  async createBatchExecution(projectId: string): Promise<any> {
-    this.logger.log(`Creating batch execution for project ${projectId}`);
+  async createBatchExecution(projectId: string, triggerSource: 'cron' | 'manual' | 'project_creation' = 'manual'): Promise<any> {
+    this.logger.log(`Creating batch execution for project ${projectId} (trigger: ${triggerSource})`);
 
     try {
-      return await this.batchExecutionService.createBatchExecution(projectId);
+      return await this.batchExecutionService.createBatchExecution(projectId, triggerSource);
     } catch (error) {
       this.logger.error(`Failed to create batch execution: ${error.message}`, error.stack);
       throw error;

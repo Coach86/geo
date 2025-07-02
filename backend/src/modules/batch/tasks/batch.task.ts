@@ -42,7 +42,7 @@ export class BatchTask {
       
       // Then run the regular batch processing
       this.logger.log('Running regular batch processing...');
-      await this.batchOrchestratorService.orchestrateAllProjectBatches();
+      await this.batchOrchestratorService.orchestrateAllProjectBatches('cron');
       
       this.logger.log('Daily batch task completed successfully');
     } catch (error) {
@@ -61,7 +61,7 @@ export class BatchTask {
       
       // Then run the regular batch processing
       this.logger.log('Running regular batch processing...');
-      const result = await this.batchOrchestratorService.orchestrateAllProjectBatches();
+      const result = await this.batchOrchestratorService.orchestrateAllProjectBatches('manual');
       
       this.logger.log('Manual batch task completed successfully');
       return { 
@@ -81,7 +81,7 @@ export class BatchTask {
     
     try {
       // Use the orchestrator to process the project
-      const result = await this.batchOrchestratorService.orchestrateProjectBatches(projectId);
+      const result = await this.batchOrchestratorService.orchestrateProjectBatches(projectId, 'manual');
       this.logger.log(`Project batch completed successfully for ${projectId}`);
       return { 
         success: true, 

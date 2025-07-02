@@ -15,6 +15,7 @@ import Config from './pages/Config';
 import PlanManagement from './pages/PlanManagement';
 import OrganizationSettings from './pages/OrganizationSettings';
 import PromoCodeManagement from './pages/PromoCodeManagement';
+import BatchStatisticsPage from './pages/BatchStatistics';
 import { ThemeProvider } from './utils/ThemeContext';
 import { socketManager } from './utils/socket';
 import { requestNotificationPermission } from './utils/notifications';
@@ -88,6 +89,7 @@ const App: React.FC = () => {
             <Route path="projects/:id" element={<ProjectDetail />} />
             <Route path="projects/new" element={<ProjectCreation />} />
             <Route path="batch-results/:id" element={<BatchResults />} />
+            <Route path="batch-statistics" element={<BatchStatisticsPage />} />
             <Route path="users" element={<UserList />} />
             <Route path="users/new" element={<UserCreation />} />
             <Route path="config" element={<Config />} />

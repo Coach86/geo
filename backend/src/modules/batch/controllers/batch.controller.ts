@@ -75,7 +75,7 @@ export class BatchController {
       }
 
       // Create a new batch execution record
-      const batchExecution = await this.batchService.createBatchExecution(projectId);
+      const batchExecution = await this.batchService.createBatchExecution(projectId, 'manual');
       console.log(`[Batch] Created new batch execution ${batchExecution.id} for project ${projectId}`);
 
       // Check if organization has a free plan
