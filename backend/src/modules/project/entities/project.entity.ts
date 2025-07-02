@@ -87,4 +87,17 @@ export class Project {
     excludePatterns?: string[];
     lastCrawledAt?: Date;
   };
+  
+  @ApiProperty({ 
+    description: 'Project creation timestamp', 
+    required: false 
+  })
+  createdAt?: Date;
+
+  @ApiProperty({ 
+    description: 'Timestamp when recovery was attempted', 
+    required: false,
+    nullable: true
+  })
+  recoveryAttemptedAt?: Date;
 }

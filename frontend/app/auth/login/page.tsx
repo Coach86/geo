@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Sparkles, CheckCircle, XCircle } from "lucide-react";
+import { Sparkles, CheckCircle } from "lucide-react";
 import { SvgLoader } from "@/components/ui/svg-loader";
 import { useAuth } from "@/providers/auth-provider";
 import { Button } from "@/components/ui/button";
@@ -14,10 +14,9 @@ export default function AuthLoginPage() {
   const { login } = useAuth();
   const analytics = useAnalytics();
 
-  const [status, setStatus] = useState<"verifying" | "success" | "error">(
+  const [status, setStatus] = useState<"verifying" | "success">(
     "verifying"
   );
-  const [error, setError] = useState<string | null>(null);
   const hasProcessedToken = useRef(false);
 
   const token = useMemo(() => searchParams.get("token"), [searchParams]);
@@ -28,8 +27,9 @@ export default function AuthLoginPage() {
     if (hasProcessedToken.current) return;
 
     if (!token) {
-      setStatus("error");
-      setError("No authentication token provided");
+      // Redirect to auth page if no token provided
+      const savedEmail = localStorage.getItem("userEmail") || "";
+      router.push(`/auth?url=${encodeURIComponent(urlParam)}${savedEmail ? `&email=${encodeURIComponent(savedEmail)}` : ""}`);
       return;
     }
 
@@ -50,29 +50,27 @@ export default function AuthLoginPage() {
             router.push(`/?url=${encodeURIComponent(urlParam)}`);
           }, 1500);
         } else {
-          setStatus("error");
-          setError("Invalid or expired authentication link");
+          // Redirect to auth page on failure
           analytics.trackError('auth_login_failed', 'Invalid or expired authentication link');
-          hasProcessedToken.current = false; // Allow retry
+          // Try to get email from localStorage to pre-fill the form
+          const savedEmail = localStorage.getItem("userEmail") || "";
+          router.push(`/auth?url=${encodeURIComponent(urlParam)}${savedEmail ? `&email=${encodeURIComponent(savedEmail)}` : ""}`);
         }
       } catch (error) {
         console.error("Authentication error:", error);
-        setStatus("error");
-        setError("Failed to authenticate");
-        hasProcessedToken.current = false; // Allow retry
+        // Redirect to auth page on error
+        const savedEmail = localStorage.getItem("userEmail") || "";
+        router.push(`/auth?url=${encodeURIComponent(urlParam)}${savedEmail ? `&email=${encodeURIComponent(savedEmail)}` : ""}`);
       }
     };
 
     authenticateUser();
-  }, [token, login]);
+  }, [token, login, router, urlParam, analytics]);
 
   const handleContinue = () => {
     router.push(`/home`);
   };
 
-  const handleBackToAuth = () => {
-    router.push(`/auth?url=${encodeURIComponent(urlParam)}`);
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-blue-100 flex flex-col items-center justify-center p-4">
@@ -116,33 +114,6 @@ export default function AuthLoginPage() {
               </>
             )}
 
-            {status === "error" && (
-              <>
-                <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-                <h1 className="text-2xl font-bold text-mono-900 mb-2">
-                  Authentication Failed
-                </h1>
-                <p className="text-mono-600 mb-6">
-                  {error ||
-                    "Unable to authenticate your account. The link may have expired or already been used."}
-                </p>
-                <div className="space-y-3">
-                  <Button
-                    onClick={handleBackToAuth}
-                    className="w-full h-12 bg-accent-500 hover:bg-accent-600 text-white"
-                  >
-                    Request New Magic Link
-                  </Button>
-                  <Button
-                    onClick={handleContinue}
-                    variant="outline"
-                    className="w-full h-12"
-                  >
-                    Continue Anyway
-                  </Button>
-                </div>
-              </>
-            )}
           </div>
         </div>
       </div>

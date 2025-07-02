@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -22,6 +22,8 @@ import { BrandReportAlignmentAggregationService } from './brand-report-alignment
 import { BrandReportSentimentAggregationService } from './brand-report-sentiment-aggregation.service';
 import { BrandReportCompetitionAggregationService } from './brand-report-competition-aggregation.service';
 import { BrandReportExplorerAggregationService } from './brand-report-explorer-aggregation.service';
+import { ProjectService } from '../../project/services/project.service';
+import { UserService } from '../../user/services/user.service';
 
 /**
  * Main service for brand report operations
@@ -43,37 +45,108 @@ export class BrandReportService {
     private sentimentAggregation: BrandReportSentimentAggregationService,
     private competitionAggregation: BrandReportCompetitionAggregationService,
     private explorerAggregation: BrandReportExplorerAggregationService,
+    private projectService: ProjectService,
+    private userService: UserService,
   ) {}
 
-  // Delegate to query service
+  /**
+   * Validates that a user has access to a project based on organization ownership
+   * @param projectId - The project ID to validate
+   * @param userId - The user ID to validate access for
+   * @throws UnauthorizedException if the user doesn't have access
+   */
+  private async validateProjectAccess(projectId: string, userId: string): Promise<void> {
+    const user = await this.userService.findOne(userId);
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const project = await this.projectService.findById(projectId);
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    if (project.organizationId !== user.organizationId) {
+      this.logger.warn(
+        `User ${userId} attempted to access project ${projectId} from different organization`,
+      );
+      throw new UnauthorizedException('You do not have permission to access this project');
+    }
+  }
+
+  /**
+   * Validates that a user has access to a report based on project organization ownership
+   * @param reportId - The report ID to validate
+   * @param userId - The user ID to validate access for
+   * @returns The report if access is granted
+   * @throws UnauthorizedException if the user doesn't have access
+   */
+  async validateReportAccess(reportId: string, userId: string): Promise<any> {
+    const report = await this.brandReportModel
+      .findOne({ id: reportId })
+      .select('projectId')
+      .lean();
+
+    if (!report) {
+      throw new NotFoundException(`Report with ID ${reportId} not found`);
+    }
+
+    await this.validateProjectAccess(report.projectId, userId);
+    return report;
+  }
+
+  // Delegate to query service with optional authorization
   async getProjectReports(
     projectId: string,
-    limit: number = 10
+    limit: number = 10,
+    userId?: string
   ): Promise<BrandReportResponseDto[]> {
+    if (userId) {
+      await this.validateProjectAccess(projectId, userId);
+    }
     return this.queryService.getProjectReports(projectId, limit);
   }
 
-  async getReport(reportId: string): Promise<BrandReportResponseDto> {
+  async getReport(reportId: string, userId?: string): Promise<BrandReportResponseDto> {
+    if (userId) {
+      await this.validateReportAccess(reportId, userId);
+    }
     return this.queryService.getReport(reportId);
   }
 
-  async getExplorerData(reportId: string) {
+  async getExplorerData(reportId: string, userId?: string) {
+    if (userId) {
+      await this.validateReportAccess(reportId, userId);
+    }
     return this.queryService.getExplorerData(reportId);
   }
 
-  async getVisibilityData(reportId: string) {
+  async getVisibilityData(reportId: string, userId?: string) {
+    if (userId) {
+      await this.validateReportAccess(reportId, userId);
+    }
     return this.queryService.getVisibilityData(reportId);
   }
 
-  async getSentimentData(reportId: string) {
+  async getSentimentData(reportId: string, userId?: string) {
+    if (userId) {
+      await this.validateReportAccess(reportId, userId);
+    }
     return this.queryService.getSentimentData(reportId);
   }
 
-  async getAlignmentData(reportId: string) {
+  async getAlignmentData(reportId: string, userId?: string) {
+    if (userId) {
+      await this.validateReportAccess(reportId, userId);
+    }
     return this.queryService.getAlignmentData(reportId);
   }
 
-  async getCompetitionData(reportId: string) {
+  async getCompetitionData(reportId: string, userId?: string) {
+    if (userId) {
+      await this.validateReportAccess(reportId, userId);
+    }
+    
     const report = await this.brandReportModel
       .findOne({ id: reportId })
       .select('competition')
@@ -97,40 +170,60 @@ export class BrandReportService {
     };
   }
 
-  // Delegate to visibility aggregation service
+  // Delegate to visibility aggregation service with optional authorization
   async getAggregatedVisibility(
     projectId: string,
-    query: AggregatedReportQueryDto
+    query: AggregatedReportQueryDto,
+    userId?: string
   ): Promise<AggregatedVisibilityResponseDto> {
+    if (userId) {
+      await this.validateProjectAccess(projectId, userId);
+    }
     return this.visibilityAggregation.getAggregatedVisibility(projectId, query);
   }
 
-  // Delegate to aggregation services
+  // Delegate to aggregation services with optional authorization
   async getAggregatedAlignment(
     projectId: string,
-    query: AggregatedReportQueryDto
+    query: AggregatedReportQueryDto,
+    userId?: string
   ): Promise<AggregatedAlignmentResponseDto> {
+    if (userId) {
+      await this.validateProjectAccess(projectId, userId);
+    }
     return this.alignmentAggregation.getAggregatedAlignment(projectId, query);
   }
 
   async getAggregatedSentiment(
     projectId: string,
-    query: AggregatedReportQueryDto
+    query: AggregatedReportQueryDto,
+    userId?: string
   ): Promise<AggregatedSentimentResponseDto> {
+    if (userId) {
+      await this.validateProjectAccess(projectId, userId);
+    }
     return this.sentimentAggregation.getAggregatedSentiment(projectId, query);
   }
 
   async getAggregatedCompetition(
     projectId: string,
-    query: AggregatedReportQueryDto
+    query: AggregatedReportQueryDto,
+    userId?: string
   ): Promise<AggregatedCompetitionResponseDto> {
+    if (userId) {
+      await this.validateProjectAccess(projectId, userId);
+    }
     return this.competitionAggregation.getAggregatedCompetition(projectId, query);
   }
 
   async getAggregatedExplorer(
     projectId: string,
-    query: AggregatedReportQueryDto
+    query: AggregatedReportQueryDto,
+    userId?: string
   ): Promise<AggregatedExplorerResponseDto> {
+    if (userId) {
+      await this.validateProjectAccess(projectId, userId);
+    }
     return this.explorerAggregation.getAggregatedExplorer(projectId, query);
   }
 

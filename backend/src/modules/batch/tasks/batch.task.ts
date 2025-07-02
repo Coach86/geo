@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { BatchService } from '../services/batch.service';
 import { BrandReportOrchestratorService } from '../services/brand-report-orchestrator.service';
 import { BatchExecutionService } from '../services/batch-execution.service';
+import { ProjectRecoveryService } from '../services/project-recovery.service';
 import { ProjectService } from '../../project/services/project.service';
 
 @Injectable()
@@ -17,38 +18,51 @@ export class BatchTask {
     private readonly batchService: BatchService,
     private readonly batchOrchestratorService: BrandReportOrchestratorService,
     private readonly batchExecutionService: BatchExecutionService,
+    private readonly projectRecoveryService: ProjectRecoveryService,
     private readonly projectService: ProjectService,
   ) {
     this.batchEnabled = this.configService.get<boolean>('BATCH_ENABLED', true);
     this.logger.log(`Batch task initialized. Batch processing ${this.batchEnabled ? 'enabled' : 'disabled'}`);
   }
 
-  // Run every Monday at 3:00 AM UTC
-  @Cron('0 3 * * 1')
-  async runWeeklyBatch() {
+  // Run every day at 3:00 AM UTC
+  @Cron('0 3 * * *')
+  async runDailyBatch() {
     if (!this.batchEnabled) {
-      this.logger.log('Batch processing is disabled. Skipping weekly batch task.');
+      this.logger.log('Batch processing is disabled. Skipping daily batch task.');
       return;
     }
 
-    this.logger.log('Starting weekly batch task using orchestrator');
+    this.logger.log('Starting daily batch task');
     
     try {
-      // Use the orchestrator to process all projects and create reports with email notifications
+      // First, run recovery check for projects without reports
+      this.logger.log('Running recovery check for projects without reports...');
+      await this.projectRecoveryService.recoverProjectsWithoutReports();
+      
+      // Then run the regular batch processing
+      this.logger.log('Running regular batch processing...');
       await this.batchOrchestratorService.orchestrateAllProjectBatches('cron');
-      this.logger.log('Weekly batch task completed successfully');
+      
+      this.logger.log('Daily batch task completed successfully');
     } catch (error) {
-      this.logger.error(`Weekly batch task failed: ${error.message}`, error.stack);
+      this.logger.error(`Daily batch task failed: ${error.message}`, error.stack);
     }
   }
 
   // For manual triggering (testing/debugging)
   async triggerManualBatch() {
-    this.logger.log('Manually triggering batch task using orchestrator');
+    this.logger.log('Manually triggering batch task');
     
     try {
-      // Use the orchestrator to process all projects
+      // First, run recovery check
+      this.logger.log('Running recovery check for projects without reports...');
+      await this.projectRecoveryService.recoverProjectsWithoutReports();
+      
+      // Then run the regular batch processing
+      this.logger.log('Running regular batch processing...');
       const result = await this.batchOrchestratorService.orchestrateAllProjectBatches('manual');
+      
       this.logger.log('Manual batch task completed successfully');
       return { 
         success: true, 

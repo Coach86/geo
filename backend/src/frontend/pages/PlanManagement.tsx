@@ -43,6 +43,7 @@ interface PlanFormData {
   isMostPopular: boolean;
   order: number;
   metadata: Record<string, any>;
+  refreshFrequency: string;
 }
 
 const defaultPlanData: PlanFormData = {
@@ -62,6 +63,7 @@ const defaultPlanData: PlanFormData = {
   isMostPopular: false,
   order: 0,
   metadata: {},
+  refreshFrequency: 'weekly',
 };
 
 export default function PlanManagement() {
@@ -120,6 +122,7 @@ export default function PlanManagement() {
       isMostPopular: plan.isMostPopular,
       order: plan.order,
       metadata: plan.metadata,
+      refreshFrequency: plan.refreshFrequency || 'weekly',
     });
     setEditDialogOpen(true);
   };
@@ -379,6 +382,18 @@ export default function PlanManagement() {
                 onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) })}
               />
             </Box>
+            <FormControl fullWidth>
+              <InputLabel>Refresh Frequency</InputLabel>
+              <Select
+                value={formData.refreshFrequency}
+                onChange={(e) => setFormData({ ...formData, refreshFrequency: e.target.value as string })}
+                label="Refresh Frequency"
+              >
+                <MenuItem value="daily">Daily</MenuItem>
+                <MenuItem value="weekly">Weekly</MenuItem>
+                <MenuItem value="unlimited">Unlimited</MenuItem>
+              </Select>
+            </FormControl>
             <Box>
               <Typography variant="subtitle2" gutterBottom>
                 What's Included

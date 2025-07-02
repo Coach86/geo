@@ -14,18 +14,19 @@ import { MentionsListCard } from "@/components/visibility/MentionsListCard";
 import { TopDomainRankingCard } from "@/components/visibility/TopDomainRankingCard";
 import { DomainSourceChart } from "@/components/visibility/DomainSourceChart";
 import { useVisibilityReports } from "@/hooks/use-visibility-reports";
-import { useAggregatedExplorer } from "@/hooks/use-aggregated-explorer";
 import { useReports } from "@/providers/report-provider";
 import { useNavigation } from "@/providers/navigation-provider";
 import { ProcessingLoader } from "@/components/shared/ProcessingLoader";
 import BreadcrumbNav from "@/components/layout/breadcrumb-nav";
 import { PageTransition } from "@/components/shared/PageTransition";
+import { usePageTransition } from "@/providers/page-transition-provider";
 
 
 export default function VisibilityPage() {
   const { token } = useAuth();
   const { allProjects, selectedProject, setSelectedProject } = useNavigation();
   const { reports, loadingReports, fetchReports } = useReports();
+  const { endTransition } = usePageTransition();
 
   // Get selected project from localStorage
   const selectedProjectId = typeof window !== 'undefined'
@@ -51,6 +52,11 @@ export default function VisibilityPage() {
     }
   }, [selectedProjectId, token, fetchReports]);
 
+  // End transition when page is loaded
+  useEffect(() => {
+    endTransition();
+  }, [endTransition]);
+
   // Memoize the date range object to prevent infinite re-renders
   const memoizedDateRange = useMemo(() => {
     return dateRange ? { startDate: dateRange.start, endDate: dateRange.end } : undefined;
@@ -69,14 +75,15 @@ export default function VisibilityPage() {
     topMentions: visibilityTopMentions,
     topDomains,
     totalPromptsTested,
+    domainSourceAnalysis,
   } = useVisibilityReports(selectedProjectId, selectedModels, token, isAllTime, memoizedDateRange, isLatest);
 
-  // Only get domainSourceAnalysis from explorer hook - other data comes from visibility hook
-  const {
-    loading: loadingExplorer,
-    error: explorerError,
-    domainSourceAnalysis,
-  } = useAggregatedExplorer(selectedProjectId, token, memoizedDateRange, isLatest, selectedModels);
+  // Update available models when visibility data changes
+  useEffect(() => {
+    if (visibilityAvailableModels && visibilityAvailableModels.length > 0) {
+      setAvailableModels(visibilityAvailableModels);
+    }
+  }, [visibilityAvailableModels]);
 
   // Show all competitors by default
   const selectedCompetitors = competitors.map(c => c.name);
@@ -108,17 +115,9 @@ export default function VisibilityPage() {
   // Update available models when visibility data changes
   useEffect(() => {
     if (visibilityAvailableModels && visibilityAvailableModels.length > 0) {
-      // Only update if the models have actually changed
-      const modelsChanged = JSON.stringify(availableModels) !== JSON.stringify(visibilityAvailableModels);
-      if (modelsChanged) {
-        setAvailableModels(visibilityAvailableModels);
-        // Select all models by default when they become available for the first time
-        if (selectedModels.length === 0 && availableModels.length === 0) {
-          setSelectedModels(visibilityAvailableModels);
-        }
-      }
+      setAvailableModels(visibilityAvailableModels);
     }
-  }, [visibilityAvailableModels, selectedModels, availableModels]);
+  }, [visibilityAvailableModels]);
 
   // Handle model filter change
   const handleModelFilterChange = useCallback((models: string[]) => {
@@ -126,8 +125,8 @@ export default function VisibilityPage() {
   }, []);
 
 
-  const loading = loadingReports[selectedProjectId || ''] || loadingVisibility || loadingExplorer;
-  const error = visibilityError || explorerError;
+  const loading = loadingReports[selectedProjectId || ''] || loadingVisibility;
+  const error = visibilityError;
 
 
   if (!selectedProjectId) {
@@ -232,6 +231,7 @@ export default function VisibilityPage() {
               <TopDomainRankingCard
                 domains={topDomains}
                 loading={loadingVisibility}
+                totalPromptsTested={totalPromptsTested}
               />
             </div>
 
@@ -239,7 +239,7 @@ export default function VisibilityPage() {
             <div>
               <DomainSourceChart
                 domainSourceAnalysis={domainSourceAnalysis}
-                loading={loadingExplorer}
+                loading={loadingVisibility}
                 brandName={brandName}
               />
             </div>

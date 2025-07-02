@@ -20,6 +20,7 @@ import { ProfileSection } from "@/components/settings/ProfileSection";
 import { PlanSection } from "@/components/settings/PlanSection";
 import { ModelsSection } from "@/components/settings/ModelsSection";
 import { UserManagementSection } from "@/components/settings/UserManagementSection";
+import { RefreshFrequencySection } from "@/components/settings/RefreshFrequencySection";
 import type { AIModel, UserProfile } from "@/components/settings/types";
 import { useAnalytics } from "@/hooks/use-analytics";
 
@@ -194,6 +195,12 @@ export default function SettingsPage() {
           onSelectedModelsChange={setSelectedModels}
           modelsLoading={modelsLoading}
           token={token}
+        />
+        
+        <RefreshFrequencySection
+          organization={organization}
+          token={token}
+          onOrganizationUpdate={setOrganization}
         />
         
         <ProfileSection

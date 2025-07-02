@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { BrandReport, BrandReportDocument } from '../schemas/brand-report.schema';
@@ -8,7 +8,8 @@ import {
   VisibilityChartDataDto,
   CompetitorDataDto,
   TopMentionDto,
-  TopDomainDto
+  TopDomainDto,
+  DomainSourceAnalysisDto
 } from '../dto/aggregated-visibility-response.dto';
 import { 
   ModelVisibilityItem,
@@ -17,6 +18,7 @@ import {
 } from '../types/brand-report.types';
 import { ExplorerData } from '../interfaces/report.interfaces';
 import { BrandReportVariationCalculatorService } from './brand-report-variation-calculator.service';
+import { ProjectService } from '../../project/services/project.service';
 
 /**
  * Service for aggregating visibility data across multiple reports
@@ -30,6 +32,8 @@ export class BrandReportVisibilityAggregationService {
     @InjectModel(BrandReport.name)
     private brandReportModel: Model<BrandReportDocument>,
     private variationCalculator: BrandReportVariationCalculatorService,
+    @Inject(forwardRef(() => ProjectService))
+    private projectService: ProjectService,
   ) {}
 
   async getAggregatedVisibility(
@@ -38,16 +42,6 @@ export class BrandReportVisibilityAggregationService {
   ): Promise<AggregatedVisibilityResponseDto> {
     const reports = await this.fetchReportsForAggregation(projectId, query);
 
-    // Debug log to check what was fetched
-    this.logger.debug(`[getAggregatedVisibility] Fetched ${reports.length} reports for project ${projectId}`);
-    if (reports.length > 0) {
-      this.logger.debug(`[getAggregatedVisibility] First report check:`, {
-        hasVisibility: !!reports[0].visibility,
-        visibilityKeys: reports[0].visibility ? Object.keys(reports[0].visibility) : [],
-        hasTopMentions: !!reports[0].visibility?.topMentions,
-        topMentionsLength: reports[0].visibility?.topMentions?.length || 0
-      });
-    }
 
     if (reports.length === 0) {
       return this.createEmptyVisibilityResponse();
@@ -55,6 +49,10 @@ export class BrandReportVisibilityAggregationService {
 
     const availableModels = this.extractAvailableModels(reports);
     const selectedModels = this.filterSelectedModels(query.models, availableModels);
+
+    // Get project information for domain classification
+    const project = await this.projectService.findById(projectId);
+    
 
     const aggregationResult = this.aggregateVisibilityData(reports, selectedModels);
     
@@ -76,6 +74,13 @@ export class BrandReportVisibilityAggregationService {
 
     const topMentions = this.processTopMentions(aggregationResult.mentionTracker);
     const topDomains = this.processTopDomains(aggregationResult.domainTracker);
+    
+    // Calculate domain source analysis for visibility citations only
+    const domainSourceAnalysis = this.calculateDomainSourceAnalysis(
+      aggregationResult.domainTracker,
+      project?.website,
+      project?.competitorDetails
+    );
 
     const response = {
       averageScore: aggregationResult.averageScore,
@@ -91,15 +96,10 @@ export class BrandReportVisibilityAggregationService {
         start: reports[0].reportDate.toISOString(),
         end: reports[reports.length - 1].reportDate.toISOString()
       },
-      totalPromptsTested: aggregationResult.totalPromptsTested || 0
+      totalPromptsTested: aggregationResult.totalPromptsTested || 0,
+      domainSourceAnalysis
     };
 
-    // Debug log the response
-    this.logger.debug(`[getAggregatedVisibility] Returning response:`, {
-      topMentionsCount: topMentions.length,
-      topMentionsSample: topMentions.slice(0, 3),
-      hasData: topMentions.length > 0
-    });
 
     return response;
   }
@@ -138,16 +138,6 @@ export class BrandReportVisibilityAggregationService {
       .limit(10)
       .lean();
 
-    // Debug logging
-    this.logger.debug(`[fetchReportsForAggregation] Fetched ${reports.length} reports`);
-    if (reports.length > 0) {
-      this.logger.debug(`[fetchReportsForAggregation] First report visibility structure:`, {
-        hasVisibility: !!reports[0].visibility,
-        hasTopMentions: !!reports[0].visibility?.topMentions,
-        topMentionsLength: reports[0].visibility?.topMentions?.length || 0,
-        topMentionsSample: reports[0].visibility?.topMentions?.slice(0, 2) || []
-      });
-    }
 
     return reports;
   }
@@ -171,7 +161,7 @@ export class BrandReportVisibilityAggregationService {
   }
 
   private aggregateVisibilityData(
-    reports: BrandReportVisibilitySelect[],
+    reports: (BrandReportVisibilitySelect & { explorer?: ExplorerData })[],
     selectedModels: string[]
   ) {
     let totalScore = 0;
@@ -188,7 +178,8 @@ export class BrandReportVisibilityAggregationService {
       if (!visData) return;
 
       this.trackMentions(visData, mentionTracker, selectedModels);
-      this.trackDomains(visData, domainTracker, selectedModels);
+      
+      this.trackDomains(visData, domainTracker, selectedModels, report.explorer);
 
       const reportResult = this.processReportVisibility(
         visData,
@@ -251,18 +242,9 @@ export class BrandReportVisibilityAggregationService {
     mentionTracker: Map<string, { displayName: string; count: number }>,
     selectedModels?: string[]
   ): void {
-    // Debug logging
-    this.logger.debug(`[trackMentions] Processing visibility data:`, {
-      hasTopMentions: !!visData.topMentions,
-      topMentionsLength: visData.topMentions?.length || 0,
-      hasDetailedResults: !!visData.detailedResults,
-      detailedResultsLength: visData.detailedResults?.length || 0,
-      selectedModels: selectedModels || 'all'
-    });
 
     // Use detailedResults for model-specific filtering if available and models are selected
     if (selectedModels && selectedModels.length > 0 && visData.detailedResults && visData.detailedResults.length > 0) {
-      this.logger.debug(`[trackMentions] Using detailedResults for model filtering`);
       
       visData.detailedResults.forEach((result: any) => {
         // Only process results from selected models
@@ -286,7 +268,6 @@ export class BrandReportVisibilityAggregationService {
       });
     } else {
       // Fallback to aggregated topMentions if no model filtering or no detailedResults
-      this.logger.debug(`[trackMentions] Using aggregated topMentions`);
       
       if (visData.topMentions) {
         visData.topMentions.forEach((mentionItem: any) => {
@@ -307,52 +288,58 @@ export class BrandReportVisibilityAggregationService {
       }
     }
 
-    // Debug log final state
-    this.logger.debug(`[trackMentions] Mention tracker state:`, {
-      trackerSize: mentionTracker.size,
-      trackerEntries: Array.from(mentionTracker.entries()).slice(0, 5)
-    });
   }
 
   private trackDomains(
     visData: any,
     domainTracker: Map<string, number>,
-    selectedModels?: string[]
+    selectedModels?: string[],
+    explorerData?: ExplorerData
   ): void {
-    // Debug logging
-    this.logger.debug(`[trackDomains] Processing visibility data:`, {
-      hasTopDomains: !!visData.topDomains,
-      topDomainsLength: visData.topDomains?.length || 0,
-      hasDetailedResults: !!visData.detailedResults,
-      detailedResultsLength: visData.detailedResults?.length || 0,
-      selectedModels: selectedModels || 'all'
-    });
 
-    // Use detailedResults for model-specific filtering if available and models are selected
-    if (selectedModels && selectedModels.length > 0 && visData.detailedResults && visData.detailedResults.length > 0) {
-      this.logger.debug(`[trackDomains] Using detailedResults for model filtering`);
+    // Use explorer data if available - it has citations with promptType
+    if (explorerData?.webSearchResults && explorerData.webSearchResults.length > 0) {
       
-      visData.detailedResults.forEach((result: any) => {
-        // Only process results from selected models
-        if (selectedModels.includes(result.model) && result.citations) {
-          result.citations.forEach((citation: any) => {
-            if (citation.url) {
-              try {
-                const url = new URL(citation.url);
-                const domain = url.hostname.toLowerCase();
+      explorerData.webSearchResults.forEach((searchResult: any) => {
+        if (searchResult.citations && Array.isArray(searchResult.citations)) {
+          searchResult.citations.forEach((citation: any) => {
+            // Only count citations from visibility prompts
+            if (citation.promptType === 'visibility' && citation.website) {
+              // Filter by selected models if provided
+              if (!selectedModels || selectedModels.length === 0 || selectedModels.includes(citation.model)) {
+                const domain = citation.website.toLowerCase();
                 const currentCount = domainTracker.get(domain) || 0;
                 domainTracker.set(domain, currentCount + 1);
-              } catch (error) {
-                // Invalid URL, skip
-                this.logger.debug(`[trackDomains] Invalid URL skipped: ${citation.url}`);
               }
             }
           });
         }
       });
+    } else if (visData.detailedResults && visData.detailedResults.length > 0) {
+      // Fallback to detailedResults if no explorer data
+      
+      visData.detailedResults.forEach((result: any) => {
+        // Filter by selected models and promptType if provided
+        if (result.promptType === 'visibility' && (!selectedModels || selectedModels.length === 0 || selectedModels.includes(result.model))) {
+          if (result.citations) {
+            result.citations.forEach((citation: any) => {
+              // Process only visibility citations from detailedResults
+              if (citation.url) {
+                try {
+                  const url = new URL(citation.url);
+                  const domain = url.hostname.toLowerCase();
+                  const currentCount = domainTracker.get(domain) || 0;
+                  domainTracker.set(domain, currentCount + 1);
+                } catch (error) {
+                  // Invalid URL, skip
+                }
+              }
+            });
+          }
+        }
+      });
     } else {
       // Fallback to aggregated topDomains if no model filtering or no detailedResults
-      this.logger.debug(`[trackDomains] Using aggregated topDomains`);
       
       if (visData.topDomains && Array.isArray(visData.topDomains)) {
         visData.topDomains.forEach((domainItem: any) => {
@@ -364,11 +351,6 @@ export class BrandReportVisibilityAggregationService {
       }
     }
 
-    // Debug log final state
-    this.logger.debug(`[trackDomains] Domain tracker state:`, {
-      trackerSize: domainTracker.size,
-      trackerEntries: Array.from(domainTracker.entries()).slice(0, 5)
-    });
   }
 
   private processReportVisibility(
@@ -489,11 +471,6 @@ export class BrandReportVisibilityAggregationService {
   private processTopMentions(
     mentionTracker: Map<string, { displayName: string; count: number }>
   ): TopMentionDto[] {
-    // Debug logging
-    this.logger.debug(`[processTopMentions] Processing mentions:`, {
-      trackerSize: mentionTracker.size,
-      trackerSample: Array.from(mentionTracker.entries()).slice(0, 3)
-    });
 
     const mentionEntries = Array.from(mentionTracker.entries())
       .map(([_, data]) => ({
@@ -511,12 +488,6 @@ export class BrandReportVisibilityAggregationService {
       percentage: totalMentions > 0 ? Math.round((item.count / totalMentions) * 100) : 0
     }));
 
-    // Debug log result
-    this.logger.debug(`[processTopMentions] Returning top mentions:`, {
-      resultLength: result.length,
-      totalMentions,
-      topMentions: result.slice(0, 3)
-    });
 
     return result;
   }
@@ -552,6 +523,112 @@ export class BrandReportVisibilityAggregationService {
     }));
   }
 
+  private calculateDomainSourceAnalysis(
+    domainTracker: Map<string, number>,
+    projectWebsite?: string,
+    competitorDetails?: Array<{ name: string; website?: string }>
+  ): DomainSourceAnalysisDto | undefined {
+    if (domainTracker.size === 0) {
+      return undefined;
+    }
+
+    let brandDomainCount = 0;
+    let otherSourcesCount = 0;
+    let unknownSourcesCount = 0;
+    const competitorCounts: Record<string, number> = {};
+
+    // Extract brand domain
+    const brandDomain = projectWebsite ? this.extractBrandDomain(projectWebsite) : null;
+    
+    // Extract competitor domains
+    const competitorDomains: Record<string, string> = {};
+    if (competitorDetails && Array.isArray(competitorDetails)) {
+      competitorDetails.forEach(competitor => {
+        if (competitor.website) {
+          const competitorDomain = this.extractBrandDomain(competitor.website);
+          if (competitorDomain) {
+            competitorDomains[competitorDomain] = competitor.name;
+          }
+        }
+      });
+    }
+
+    // Classify each domain
+    domainTracker.forEach((count, domain) => {
+      if (brandDomain && this.isDomainMatch(domain, brandDomain)) {
+        brandDomainCount += count;
+      } else {
+        let isCompetitorDomain = false;
+        for (const [competitorDomain, competitorName] of Object.entries(competitorDomains)) {
+          if (this.isDomainMatch(domain, competitorDomain)) {
+            competitorCounts[competitorName] = (competitorCounts[competitorName] || 0) + count;
+            isCompetitorDomain = true;
+            break;
+          }
+        }
+        
+        if (!isCompetitorDomain) {
+          unknownSourcesCount += count;
+        }
+        
+        otherSourcesCount += count;
+      }
+    });
+
+    const totalCitations = brandDomainCount + otherSourcesCount;
+    
+    if (totalCitations === 0) {
+      return undefined;
+    }
+
+    // Create competitor breakdown
+    const competitorBreakdown = Object.entries(competitorCounts)
+      .map(([name, count]) => ({
+        name,
+        count,
+        percentage: Math.round((count / totalCitations) * 1000) / 10
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    return {
+      brandDomainPercentage: Math.round((brandDomainCount / totalCitations) * 1000) / 10,
+      otherSourcesPercentage: Math.round((otherSourcesCount / totalCitations) * 1000) / 10,
+      brandDomainCount,
+      otherSourcesCount,
+      competitorBreakdown: competitorBreakdown.length > 0 ? competitorBreakdown : undefined,
+      unknownSourcesCount,
+      unknownSourcesPercentage: Math.round((unknownSourcesCount / totalCitations) * 1000) / 10
+    };
+  }
+
+  private extractBrandDomain(website: string): string | null {
+    try {
+      // Handle URLs with or without protocol
+      let url = website;
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = 'https://' + url;
+      }
+      
+      const parsed = new URL(url);
+      // Remove 'www.' prefix if present
+      return parsed.hostname.toLowerCase().replace(/^www\./, '');
+    } catch (error) {
+      // If URL parsing fails, try to extract domain manually
+      const domain = website.toLowerCase()
+        .replace(/^https?:\/\//, '')
+        .replace(/^www\./, '')
+        .split('/')[0];
+      
+      return domain || null;
+    }
+  }
+
+  private isDomainMatch(domain1: string, domain2: string): boolean {
+    // Normalize domains for comparison
+    const normalize = (d: string) => d.toLowerCase().replace(/^www\./, '');
+    return normalize(domain1) === normalize(domain2);
+  }
+
   private createEmptyVisibilityResponse(): AggregatedVisibilityResponseDto {
     return {
       averageScore: 0,
@@ -564,7 +641,8 @@ export class BrandReportVisibilityAggregationService {
       topDomains: [],
       reportCount: 0,
       dateRange: { start: '', end: '' },
-      totalPromptsTested: 0
+      totalPromptsTested: 0,
+      domainSourceAnalysis: undefined
     };
   }
 }

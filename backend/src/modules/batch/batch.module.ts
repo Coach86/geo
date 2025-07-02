@@ -15,8 +15,11 @@ import { BatchExecutionService } from './services/batch-execution.service';
 import { BrandReportOrchestratorService } from './services/brand-report-orchestrator.service';
 import { RawResponseService } from './services/raw-response.service';
 import { ReportBuilderService } from './services/report-builder.service';
+import { ProjectRecoveryService } from './services/project-recovery.service';
 import { BatchExecution, BatchExecutionSchema } from './schemas/batch-execution.schema';
 import { BatchResult, BatchResultSchema } from './schemas/batch-result.schema';
+import { Project, ProjectSchema } from '../project/schemas/project-base.schema';
+import { BrandReport, BrandReportSchema } from '../report/schemas/brand-report.schema';
 import { ProjectModule } from '../project/project.module';
 import { PromptModule } from '../prompt/prompt.module';
 import { LlmModule } from '../llm/llm.module';
@@ -43,6 +46,8 @@ import { CrawlerModule } from '../crawler/crawler.module';
       { name: BatchExecution.name, schema: BatchExecutionSchema },
       { name: BatchResult.name, schema: BatchResultSchema },
       { name: RawResponse.name, schema: RawResponseSchema },
+      { name: Project.name, schema: ProjectSchema },
+      { name: BrandReport.name, schema: BrandReportSchema },
     ]),
     JwtModule.register({}),
     forwardRef(() => ProjectModule),
@@ -74,6 +79,7 @@ import { CrawlerModule } from '../crawler/crawler.module';
     BrandReportOrchestratorService,
     RawResponseService,
     ReportBuilderService,
+    ProjectRecoveryService,
     BatchExecutionRepository,
     BatchResultRepository,
     RawResponseRepository,

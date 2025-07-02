@@ -83,7 +83,7 @@ export default function ProjectSelector({
               <div className="text-left min-w-0 flex-1">
                 <p className="text-xs text-gray-500 font-medium">Project</p>
                 <p className="text-sm font-semibold text-gray-900 truncate">
-                  {selectedProject ? (selectedProject.name || selectedProject.brandName) : "Select project"}
+                  {selectedProject?.name || selectedProject?.brandName || ""}
                 </p>
               </div>
             </div>
