@@ -1,9 +1,11 @@
 import { PageSignals } from '../../interfaces/page-signals.interface';
 import { PageCategory } from '../../interfaces/page-category.interface';
 import { LlmService } from '../../../llm/services/llm.service';
+import { TrackedLLMService } from '../../services/tracked-llm.service';
 
 export type RuleDimension = 'authority' | 'freshness' | 'structure' | 'brandAlignment';
 export type RuleScope = 'all' | 'category' | 'domain';
+export type RuleExecutionScope = 'page' | 'domain';
 
 export interface RuleApplicability {
   scope: RuleScope;
@@ -24,8 +26,22 @@ export interface RuleContext {
     keyBrandAttributes: string[];
     competitors: string[];
   };
-  llmService?: LlmService;
+  llmService?: LlmService; // Deprecated - use trackedLLMService
+  trackedLLMService?: TrackedLLMService;
   llmResults?: any; // Optional LLM results for rules that need them
+  
+  // Domain-level context (for domain-scoped rules)
+  domainContext?: {
+    allPages: Array<{
+      url: string;
+      html: string;
+      cleanContent: string;
+      metadata: any;
+      pageSignals: PageSignals;
+      pageCategory: PageCategory;
+    }>;
+    domainInfo?: any; // Additional domain-level information
+  };
 }
 
 export interface RuleIssue {
@@ -53,6 +69,9 @@ export interface ScoringRule {
   
   // Applicability
   applicability: RuleApplicability;
+  
+  // Execution scope - determines if rule runs per-page or per-domain
+  executionScope: RuleExecutionScope;
   
   // Execution
   priority: number; // Higher priority rules run first

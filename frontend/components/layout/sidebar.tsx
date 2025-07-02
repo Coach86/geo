@@ -19,6 +19,7 @@ import {
 import ProjectSelector from "./project-selector";
 import { useNavigation } from "@/providers/navigation-provider";
 import { useFeatureAccess } from "@/hooks/use-feature-access";
+import { usePostHogFlags } from "@/hooks/use-posthog-flags";
 
 interface SidebarItem {
   label: string;
@@ -34,11 +35,11 @@ const insightsMenuItems: SidebarItem[] = [
   { label: "Alignment", icon: Shield, href: "/alignment", feature: "alignment" },
   { label: "Competition", icon: Swords, href: "/competition", feature: "competition" },
   { label: "Explorer", icon: Compass, href: "/explorer" },
-  { label: "Content KPI", icon: FileText, href: "/content-kpi" },
 ];
 
 const optimizationMenuItems: SidebarItem[] = [
   { label: "Recommendations", icon: Lightbulb, href: "/recommendations" },
+  { label: "Page Intelligence", icon: FileText, href: "/content-kpi" },
 ];
 
 interface SidebarProps {
@@ -55,6 +56,7 @@ export default function Sidebar({
   const pathname = usePathname();
   const router = useRouter();
   const featureAccess = useFeatureAccess();
+  const { isFeatureEnabled } = usePostHogFlags();
 
   return (
     <aside className="fixed left-0 top-0 z-30 flex h-full w-60 flex-col border-r bg-white shadow-sm">
@@ -148,6 +150,12 @@ export default function Sidebar({
           <ul className="space-y-1">
             {optimizationMenuItems.map((item) => {
               const isActive = pathname === item.href;
+              
+              // Check if this is the Content KPI item and if user has access
+              if (item.href === "/content-kpi" && !isFeatureEnabled('page-intelligence')) {
+                return null; // Don't render the item if feature flag is disabled
+              }
+              
               return (
                 <li key={item.label}>
                   <Link

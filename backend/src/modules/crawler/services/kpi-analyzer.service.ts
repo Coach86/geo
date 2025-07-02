@@ -45,8 +45,8 @@ interface HybridAnalysisResult {
  * Clean implementation without backward compatibility
  */
 @Injectable()
-export class HybridKPIAnalyzerService {
-  private readonly logger = new Logger(HybridKPIAnalyzerService.name);
+export class KPIAnalyzerService {
+  private readonly logger = new Logger(KPIAnalyzerService.name);
 
   constructor(
     private readonly llmService: LlmService,

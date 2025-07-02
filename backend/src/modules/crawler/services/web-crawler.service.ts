@@ -9,6 +9,7 @@ import { CrawledPageRepository } from '../repositories/crawled-page.repository';
 import { PageMetadata } from '../schemas/crawled-page.schema';
 import { RetryUtil } from '../../../utils/retry.util';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { parseStringPromise } from 'xml2js';
 
 export interface CrawlOptions {
   maxPages: number;
@@ -69,9 +70,16 @@ export class WebCrawlerService {
     this.logger.log(`[CRAWLER] Max pages: ${options.maxPages}`);
     this.logger.log(`[CRAWLER] Crawl delay: ${options.crawlDelay}ms`);
     
+    // Normalize the start URL
+    const normalizedStartUrl = this.normalizeUrl(startUrl);
+    this.logger.log(`[CRAWLER] Normalized start URL: ${normalizedStartUrl}`);
+    
     // Initialize crawl state
-    this.crawlQueue.set(projectId, new Set([startUrl]));
+    this.crawlQueue.set(projectId, new Set([normalizedStartUrl]));
     this.crawledUrls.set(projectId, new Set());
+
+    // Try to discover URLs from sitemap first
+    await this.discoverUrlsFromSitemap(projectId, startUrl, options);
 
     const progress: CrawlProgress = {
       crawled: 0,
@@ -97,7 +105,7 @@ export class WebCrawlerService {
     try {
       // Parse robots.txt if needed
       if (options.respectRobotsTxt) {
-        await this.loadRobotsTxt(startUrl);
+        await this.loadRobotsTxt(normalizedStartUrl);
       }
 
       // Start crawling
@@ -111,33 +119,36 @@ export class WebCrawlerService {
         const url = queue.values().next().value;
         queue.delete(url);
         
-        this.logger.log(`[CRAWLER] Processing URL ${progress.crawled + 1}/${options.maxPages}: ${url}`);
+        // Normalize the URL for consistent checking
+        const normalizedUrl = this.normalizeUrl(url);
+        
+        this.logger.log(`[CRAWLER] Processing URL ${progress.crawled + 1}/${options.maxPages}: ${normalizedUrl}`);
 
-        // Skip if already crawled
-        if (this.crawledUrls.get(projectId)?.has(url)) {
-          this.logger.debug(`[CRAWLER] Skipping ${url} - already crawled`);
+        // Skip if already crawled (check with normalized URL)
+        if (this.crawledUrls.get(projectId)?.has(normalizedUrl)) {
+          this.logger.debug(`[CRAWLER] Skipping ${normalizedUrl} - already crawled`);
           continue;
         }
 
         // Check robots.txt
-        if (options.respectRobotsTxt && !this.isAllowedByRobots(url)) {
-          this.logger.log(`[CRAWLER] Skipping ${url} - blocked by robots.txt`);
+        if (options.respectRobotsTxt && !this.isAllowedByRobots(normalizedUrl)) {
+          this.logger.log(`[CRAWLER] Skipping ${normalizedUrl} - blocked by robots.txt`);
           continue;
         }
 
         // Check patterns
-        if (!this.matchesPatterns(url, options.includePatterns, options.excludePatterns)) {
-          this.logger.debug(`[CRAWLER] Skipping ${url} - doesn't match patterns`);
+        if (!this.matchesPatterns(normalizedUrl, options.includePatterns, options.excludePatterns)) {
+          this.logger.debug(`[CRAWLER] Skipping ${normalizedUrl} - doesn't match patterns`);
           continue;
         }
 
         // Update progress
-        progress.currentUrl = url;
+        progress.currentUrl = normalizedUrl;
         this.eventEmitter.emit('crawler.progress', { 
           projectId, 
           crawled: progress.crawled,
           total: progress.total,
-          currentUrl: url,
+          currentUrl: normalizedUrl,
           progress 
         });
         this.logger.log(`[CRAWLER] Emitted crawler.progress event: ${progress.crawled}/${progress.total}`);
@@ -147,11 +158,11 @@ export class WebCrawlerService {
 
         // Crawl the page
         try {
-          await this.crawlPage(projectId, url, startUrl, options);
-          this.crawledUrls.get(projectId)?.add(url);
+          await this.crawlPage(projectId, normalizedUrl, normalizedStartUrl, options);
+          this.crawledUrls.get(projectId)?.add(normalizedUrl);
           progress.crawled++;
         } catch (error) {
-          this.logger.error(`Error crawling ${url}:`, error);
+          this.logger.error(`Error crawling ${normalizedUrl}:`, error);
           progress.errors++;
         }
       }
@@ -250,6 +261,7 @@ export class WebCrawlerService {
         if (queue) {
           let addedCount = 0;
           for (const newUrl of newUrls) {
+            // Check using normalized URL to prevent duplicates
             if (!this.crawledUrls.get(projectId)?.has(newUrl)) {
               queue.add(newUrl);
               addedCount++;
@@ -407,9 +419,8 @@ export class WebCrawlerService {
         
         // Only crawl same domain
         if (absoluteUrl.hostname === baseUrlObj.hostname) {
-          // Normalize URL (remove fragment, trailing slash)
-          absoluteUrl.hash = '';
-          const normalizedUrl = absoluteUrl.toString().replace(/\/$/, '');
+          // Normalize URL using our consistent normalization function
+          const normalizedUrl = this.normalizeUrl(absoluteUrl.toString());
           urls.add(normalizedUrl);
         }
       } catch (error) {
@@ -485,6 +496,27 @@ export class WebCrawlerService {
     return crypto.createHash('sha256').update(content).digest('hex');
   }
 
+  private normalizeUrl(url: string): string {
+    try {
+      const urlObj = new URL(url);
+      // Remove hash fragment
+      urlObj.hash = '';
+      // Remove trailing slash from pathname (except for root path)
+      if (urlObj.pathname !== '/' && urlObj.pathname.endsWith('/')) {
+        urlObj.pathname = urlObj.pathname.slice(0, -1);
+      }
+      // Sort query parameters for consistency
+      const params = new URLSearchParams(urlObj.search);
+      const sortedParams = new URLSearchParams([...params.entries()].sort());
+      urlObj.search = sortedParams.toString();
+      
+      return urlObj.toString();
+    } catch (error) {
+      // Return original URL if parsing fails
+      return url;
+    }
+  }
+
   private async waitForRateLimit(delayMs: number): Promise<void> {
     // Wait for concurrent request limit
     while (this.activeRequests >= this.maxConcurrentRequests) {
@@ -510,5 +542,222 @@ export class WebCrawlerService {
       crawledPages: crawlState?.crawled || stats.successfulPages || 0,
       totalPages: crawlState?.total || stats.totalPages || 0,
     };
+  }
+
+  /**
+   * Discover URLs from sitemap.xml files
+   * This is much more efficient than crawling links
+   */
+  private async discoverUrlsFromSitemap(projectId: string, startUrl: string, options: CrawlOptions): Promise<void> {
+    this.logger.log(`[SITEMAP] Starting sitemap discovery for ${startUrl}`);
+    
+    try {
+      const baseUrl = new URL(startUrl);
+      const domain = baseUrl.hostname;
+      
+      // Try common sitemap locations
+      const sitemapUrls = [
+        `${baseUrl.protocol}//${domain}/sitemap.xml`,
+        `${baseUrl.protocol}//${domain}/sitemap_index.xml`,
+        `${baseUrl.protocol}//${domain}/sitemaps.xml`,
+        `${baseUrl.protocol}//${domain}/sitemap/sitemap.xml`,
+      ];
+
+      // Also check robots.txt for sitemap declaration
+      const robotsSitemaps = await this.getSitemapsFromRobotsTxt(baseUrl);
+      sitemapUrls.push(...robotsSitemaps);
+
+      // Remove duplicates
+      const uniqueSitemaps = [...new Set(sitemapUrls)];
+      this.logger.log(`[SITEMAP] Checking ${uniqueSitemaps.length} potential sitemap URLs`);
+
+      for (const sitemapUrl of uniqueSitemaps) {
+        try {
+          const urls = await this.parseSitemap(sitemapUrl, domain, options);
+          if (urls.length > 0) {
+            this.logger.log(`[SITEMAP] Found ${urls.length} URLs in ${sitemapUrl}`);
+            
+            // Add URLs to the crawl queue
+            const queue = this.crawlQueue.get(projectId);
+            if (queue) {
+              let addedCount = 0;
+              for (const url of urls) {
+                const normalizedUrl = this.normalizeUrl(url);
+                if (!this.crawledUrls.get(projectId)?.has(normalizedUrl)) {
+                  queue.add(normalizedUrl);
+                  addedCount++;
+                  
+                  // Stop if we've hit the max pages limit
+                  if (queue.size >= options.maxPages) {
+                    this.logger.log(`[SITEMAP] Reached maxPages limit (${options.maxPages}), stopping sitemap discovery`);
+                    break;
+                  }
+                }
+              }
+              this.logger.log(`[SITEMAP] Added ${addedCount} URLs from sitemap, total queue size: ${queue.size}`);
+              
+              // If we found a working sitemap, we can stop checking others
+              if (addedCount > 0) {
+                break;
+              }
+            }
+          }
+        } catch (error) {
+          this.logger.debug(`[SITEMAP] Failed to parse ${sitemapUrl}: ${error.message}`);
+        }
+      }
+
+      const finalQueueSize = this.crawlQueue.get(projectId)?.size || 0;
+      this.logger.log(`[SITEMAP] Sitemap discovery completed. Total URLs to crawl: ${finalQueueSize}`);
+      
+    } catch (error) {
+      this.logger.error(`[SITEMAP] Error during sitemap discovery: ${error.message}`);
+      // Don't throw - sitemap discovery failure shouldn't stop the crawl
+    }
+  }
+
+  /**
+   * Get sitemap URLs from robots.txt
+   */
+  private async getSitemapsFromRobotsTxt(baseUrl: URL): Promise<string[]> {
+    try {
+      const robotsUrl = `${baseUrl.protocol}//${baseUrl.hostname}/robots.txt`;
+      const response = await this.axiosInstance.get(robotsUrl, { timeout: 5000 });
+      
+      if (response.status === 200) {
+        const robotsContent = response.data;
+        const sitemapMatches = robotsContent.match(/^sitemap:\s*(.+)$/gim);
+        
+        if (sitemapMatches) {
+          const sitemaps = sitemapMatches.map((match: string) => {
+            const url = match.replace(/^sitemap:\s*/i, '').trim();
+            // Make sure URL is absolute
+            try {
+              return new URL(url).toString();
+            } catch {
+              return new URL(url, baseUrl).toString();
+            }
+          });
+          
+          this.logger.log(`[SITEMAP] Found ${sitemaps.length} sitemaps in robots.txt: ${sitemaps.join(', ')}`);
+          return sitemaps;
+        }
+      }
+    } catch (error) {
+      this.logger.debug(`[SITEMAP] Failed to check robots.txt for sitemaps: ${error.message}`);
+    }
+    
+    return [];
+  }
+
+  /**
+   * Parse a sitemap XML file and extract URLs
+   */
+  private async parseSitemap(sitemapUrl: string, domain: string, options: CrawlOptions): Promise<string[]> {
+    try {
+      this.logger.debug(`[SITEMAP] Fetching sitemap: ${sitemapUrl}`);
+      const response = await this.axiosInstance.get(sitemapUrl, { 
+        timeout: 10000,
+        headers: {
+          'Accept': 'application/xml, text/xml, */*',
+        }
+      });
+
+      if (response.status !== 200) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const xmlContent = response.data;
+      const parsed = await parseStringPromise(xmlContent);
+
+      // Handle sitemap index files
+      if (parsed.sitemapindex) {
+        this.logger.log(`[SITEMAP] Found sitemap index with ${parsed.sitemapindex.sitemap?.length || 0} sitemaps`);
+        const urls: string[] = [];
+        
+        for (const sitemap of parsed.sitemapindex.sitemap || []) {
+          const childSitemapUrl = sitemap.loc?.[0];
+          if (childSitemapUrl) {
+            try {
+              const childUrls = await this.parseSitemap(childSitemapUrl, domain, options);
+              urls.push(...childUrls);
+              
+              // Stop if we have enough URLs
+              if (urls.length >= options.maxPages) {
+                break;
+              }
+            } catch (error) {
+              this.logger.debug(`[SITEMAP] Failed to parse child sitemap ${childSitemapUrl}: ${error.message}`);
+            }
+          }
+        }
+        
+        return urls.slice(0, options.maxPages);
+      }
+
+      // Handle regular sitemap files
+      if (parsed.urlset) {
+        const urls: string[] = [];
+        
+        for (const urlEntry of parsed.urlset.url || []) {
+          const url = urlEntry.loc?.[0];
+          if (url && this.isValidUrl(url, domain, options)) {
+            urls.push(url);
+          }
+        }
+        
+        this.logger.log(`[SITEMAP] Extracted ${urls.length} valid URLs from sitemap`);
+        return urls.slice(0, options.maxPages);
+      }
+
+      this.logger.debug(`[SITEMAP] No valid sitemap structure found in ${sitemapUrl}`);
+      return [];
+
+    } catch (error) {
+      throw new Error(`Failed to parse sitemap ${sitemapUrl}: ${error.message}`);
+    }
+  }
+
+  /**
+   * Check if a URL from sitemap is valid for crawling
+   */
+  private isValidUrl(url: string, domain: string, options: CrawlOptions): boolean {
+    try {
+      const urlObj = new URL(url);
+      
+      // Must be same domain
+      if (urlObj.hostname !== domain) {
+        return false;
+      }
+
+      // Check include/exclude patterns
+      if (!this.matchesPatterns(url, options.includePatterns, options.excludePatterns)) {
+        return false;
+      }
+
+      // Skip common non-content URLs
+      const path = urlObj.pathname.toLowerCase();
+      const skipPatterns = [
+        '/wp-admin', '/admin', '/login', '/logout',
+        '/api/', '/ajax/', '/.well-known/',
+        '/feed', '/feeds/', '/rss', '/atom',
+        '/search', '/tag/', '/category/',
+        '/wp-content/', '/wp-includes/',
+        '.xml', '.json', '.pdf', '.zip', '.rar',
+        '.jpg', '.jpeg', '.png', '.gif', '.svg',
+        '.css', '.js', '.ico', '.woff', '.ttf'
+      ];
+
+      for (const pattern of skipPatterns) {
+        if (path.includes(pattern)) {
+          return false;
+        }
+      }
+
+      return true;
+      
+    } catch (error) {
+      return false;
+    }
   }
 }

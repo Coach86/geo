@@ -6,18 +6,25 @@ import { CrawlerPipelineService } from './services/crawler-pipeline.service';
 import { ScoringRulesService } from './services/scoring-rules.service';
 import { PageSignalExtractorService } from './services/page-signal-extractor.service';
 import { UnifiedKPIAnalyzerService } from './services/unified-kpi-analyzer.service';
-import { HybridKPIAnalyzerService } from './services/hybrid-kpi-analyzer.service';
+import { KPIAnalyzerService } from './services/kpi-analyzer.service';
 import { IssueFactoryService } from './services/issue-factory.service';
 import { CrawlerController } from './controllers/crawler.controller';
 import { UserCrawlerController } from './controllers/user-crawler.controller';
 import { CrawlerEventsGateway } from './gateways/crawler-events.gateway';
 import { CrawledPage, CrawledPageSchema } from './schemas/crawled-page.schema';
 import { ContentScore, ContentScoreSchema } from './schemas/content-score.schema';
+import { DomainAuthority, DomainAuthoritySchema } from './schemas/domain-authority.schema';
+import { DomainAnalysis, DomainAnalysisSchema } from './schemas/domain-analysis.schema';
 import { CrawledPageRepository } from './repositories/crawled-page.repository';
 import { ContentScoreRepository } from './repositories/content-score.repository';
+import { DomainAuthorityRepository } from './repositories/domain-authority.repository';
+import { DomainAnalysisRepository } from './repositories/domain-analysis.repository';
 import { StructureAnalyzer } from './analyzers/structure.analyzer';
 import { BrandAnalyzer } from './analyzers/brand.analyzer';
 import { PageCategorizerService } from './services/page-categorizer.service';
+import { LLMCallTrackerService } from './services/llm-call-tracker.service';
+import { TrackedLLMService } from './services/tracked-llm.service';
+import { DomainAnalysisService } from './services/domain-analysis.service';
 import { RuleRegistryService } from './rules/registry/rule-registry.service';
 import { RuleAggregatorService } from './rules/registry/rule-aggregator.service';
 import { ConditionalAggregatorService } from './rules/registry/conditional-aggregator.service';
@@ -26,9 +33,9 @@ import { RuleBasedFreshnessAnalyzer } from './analyzers/rule-based-freshness.ana
 import { RuleBasedStructureAnalyzer } from './analyzers/rule-based-structure.analyzer';
 import { RuleBasedBrandAnalyzer } from './analyzers/rule-based-brand.analyzer';
 // Authority rules
-import { BaseAuthorityRule, AuthorPresenceRule, CitationQualityRule, DomainAuthorityRule } from './rules/authority';
+import { AuthorPresenceRule, CitationQualityRule, DomainAuthorityRule } from './rules/authority';
 // Freshness rules
-import { BaseFreshnessRule, DateSignalsRule, TimelinessRule, UpdateFrequencyRule } from './rules/freshness';
+import { UpdateFrequencyRule } from './rules/freshness';
 // Structure rules
 import { HeadingHierarchyRule, SchemaMarkupRule, ReadabilityRule, ListsTablesRule, SentenceStructureRule, QAContentRule } from './rules/structure';
 // Brand rules
@@ -45,6 +52,8 @@ import { LlmModule } from '../llm/llm.module';
     MongooseModule.forFeature([
       { name: CrawledPage.name, schema: CrawledPageSchema },
       { name: ContentScore.name, schema: ContentScoreSchema },
+      { name: DomainAuthority.name, schema: DomainAuthoritySchema },
+      { name: DomainAnalysis.name, schema: DomainAnalysisSchema },
     ]),
     forwardRef(() => ProjectModule),
     forwardRef(() => BatchModule),
@@ -61,13 +70,18 @@ import { LlmModule } from '../llm/llm.module';
     ScoringRulesService,
     PageSignalExtractorService,
     UnifiedKPIAnalyzerService,
-    HybridKPIAnalyzerService,
+    KPIAnalyzerService,
     IssueFactoryService,
     CrawledPageRepository,
     ContentScoreRepository,
+    DomainAuthorityRepository,
+    DomainAnalysisRepository,
+    DomainAnalysisService,
     StructureAnalyzer,
     BrandAnalyzer,
     PageCategorizerService,
+    LLMCallTrackerService,
+    TrackedLLMService,
     CrawlerEventsGateway,
     // Rule-based system
     RuleRegistryService,
@@ -78,14 +92,10 @@ import { LlmModule } from '../llm/llm.module';
     RuleBasedStructureAnalyzer,
     RuleBasedBrandAnalyzer,
     // Authority rules
-    BaseAuthorityRule,
     AuthorPresenceRule,
     CitationQualityRule,
     DomainAuthorityRule,
     // Freshness rules
-    BaseFreshnessRule,
-    DateSignalsRule,
-    TimelinessRule,
     UpdateFrequencyRule,
     // Structure rules
     HeadingHierarchyRule,
@@ -105,6 +115,8 @@ import { LlmModule } from '../llm/llm.module';
     ScoringRulesService,
     CrawledPageRepository,
     ContentScoreRepository,
+    DomainAnalysisRepository,
+    DomainAnalysisService,
     PageCategorizerService,
     RuleRegistryService,
     RuleAggregatorService,

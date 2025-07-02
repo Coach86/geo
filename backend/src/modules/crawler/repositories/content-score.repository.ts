@@ -33,7 +33,7 @@ export class ContentScoreRepository {
 
   async findTopScoresByProjectId(projectId: string, limit: number = 10): Promise<ContentScore[]> {
     return this.contentScoreModel
-      .find({ projectId })
+      .find({ projectId, skipped: { $ne: true } })
       .sort({ globalScore: -1 })
       .limit(limit)
       .exec();
@@ -41,7 +41,7 @@ export class ContentScoreRepository {
 
   async findLowScoresByProjectId(projectId: string, limit: number = 10): Promise<ContentScore[]> {
     return this.contentScoreModel
-      .find({ projectId })
+      .find({ projectId, skipped: { $ne: true } })
       .sort({ globalScore: 1 })
       .limit(limit)
       .exec();
@@ -57,7 +57,7 @@ export class ContentScoreRepository {
 
   async getProjectScoreStats(projectId: string) {
     const stats = await this.contentScoreModel.aggregate([
-      { $match: { projectId } },
+      { $match: { projectId, skipped: { $ne: true } } },
       {
         $group: {
           _id: null,
@@ -90,7 +90,7 @@ export class ContentScoreRepository {
 
   async getIssuesSummary(projectId: string) {
     const issues = await this.contentScoreModel.aggregate([
-      { $match: { projectId } },
+      { $match: { projectId, skipped: { $ne: true } } },
       { $unwind: '$issues' },
       {
         $group: {

@@ -1,5 +1,5 @@
 import { BaseRule } from '../base/base-rule';
-import { RuleContext, RuleResult, RuleDimension, RuleApplicability } from '../interfaces/rule.interface';
+import { RuleContext, RuleResult, RuleDimension, RuleApplicability, RuleExecutionScope } from '../interfaces/rule.interface';
 import { FRESHNESS_CONSTANTS } from '../../config/scoring-constants';
 
 /**
@@ -18,8 +18,20 @@ export class UpdateFrequencyRule extends BaseRule {
     scope: 'all'
   };
   
+  executionScope: RuleExecutionScope = 'page';
+  
   async evaluate(context: RuleContext): Promise<RuleResult> {
     try {
+      // Debug logging to see available metadata fields
+      this.logger.debug(`Freshness rule for ${context.url} - Available metadata fields:`, {
+        metadataKeys: context.metadata ? Object.keys(context.metadata) : [],
+        updatedAt: context.metadata?.updatedAt,
+        lastModifiedAt: context.metadata?.lastModifiedAt,
+        createdAt: context.metadata?.createdAt,
+        modifiedTime: context.metadata?.modifiedTime,
+        publishedTime: context.metadata?.publishedTime
+      });
+      
       // Get date information from page signals
       const dateInfo = this.extractDates(context);
       
@@ -59,28 +71,36 @@ export class UpdateFrequencyRule extends BaseRule {
       
       // Generate evidence with threshold information and actual date
       if (daysSinceUpdate === 0) {
-        evidence.push(`Content updated today (${dateStr}) - ≤90 days threshold`);
+        evidence.push(`Content updated today (${dateStr}) (target: ≤90 days for optimal score)`);
       } else if (daysSinceUpdate === 1) {
-        evidence.push(`Content updated yesterday (${dateStr}) - ≤90 days threshold`);
+        evidence.push(`Content updated yesterday (${dateStr}) (target: ≤90 days for optimal score)`);
       } else if (daysSinceUpdate < 7) {
-        evidence.push(`Content updated ${daysSinceUpdate} days ago (${dateStr}) - ≤90 days threshold`);
+        evidence.push(`Content updated ${daysSinceUpdate} days ago (${dateStr}) (target: ≤90 days for optimal score)`);
       } else if (daysSinceUpdate < 30) {
-        evidence.push(`Content updated ${Math.floor(daysSinceUpdate / 7)} weeks ago (${dateStr}) - ≤90 days threshold`);
+        evidence.push(`Content updated ${Math.floor(daysSinceUpdate / 7)} weeks ago (${dateStr}) (target: ≤90 days for optimal score)`);
       } else if (daysSinceUpdate <= 90) {
-        evidence.push(`Content updated ${Math.floor(daysSinceUpdate / 30)} months ago (${dateStr}) - ≤90 days threshold`);
+        evidence.push(`Content updated ${Math.floor(daysSinceUpdate / 30)} months ago (${dateStr}) (target: ≤90 days for optimal score)`);
       } else if (daysSinceUpdate <= 180) {
-        evidence.push(`Content updated ${daysSinceUpdate} days ago (${dateStr}) - 91-180 days threshold`);
+        evidence.push(`Content updated ${daysSinceUpdate} days ago (${dateStr}) (target: ≤90 days for optimal score)`);
       } else if (daysSinceUpdate <= 365) {
-        evidence.push(`Content updated ${daysSinceUpdate} days ago (${dateStr}) - 181-365 days threshold`);
+        evidence.push(`Content updated ${daysSinceUpdate} days ago (${dateStr}) (target: ≤90 days for optimal score)`);
       } else {
-        evidence.push(`Content updated ${Math.floor(daysSinceUpdate / 365)} years ago (${dateStr}) - >365 days threshold`);
+        evidence.push(`Content updated ${Math.floor(daysSinceUpdate / 365)} years ago (${dateStr}) (target: ≤90 days for optimal score)`);
       }
       
       // Add source of date information
       if (context.pageSignals?.freshness?.publishDate || context.pageSignals?.freshness?.modifiedDate) {
         evidence.push(`Date retrieved from: ${context.pageSignals.freshness.modifiedDate ? 'modified date' : 'publish date'} meta tag`);
-      } else if (context.metadata?.modifiedTime || context.metadata?.publishedTime) {
-        evidence.push(`Date retrieved from: ${context.metadata.modifiedTime ? 'modified time' : 'published time'} metadata`);
+      } else if (context.metadata?.updatedAt) {
+        evidence.push(`Date retrieved from: updatedAt metadata field`);
+      } else if (context.metadata?.lastModifiedAt) {
+        evidence.push(`Date retrieved from: lastModifiedAt metadata field`);
+      } else if (context.metadata?.modifiedTime) {
+        evidence.push(`Date retrieved from: modifiedTime metadata field`);
+      } else if (context.metadata?.createdAt) {
+        evidence.push(`Date retrieved from: createdAt metadata field`);
+      } else if (context.metadata?.publishedTime) {
+        evidence.push(`Date retrieved from: publishedTime metadata field`);
       }
       
       // Generate issues based on fixed thresholds
@@ -130,21 +150,113 @@ export class UpdateFrequencyRule extends BaseRule {
     let publishDate: Date | null = null;
     let lastUpdate: Date | null = null;
     
-    // Check metadata
-    if (context.metadata?.modifiedTime) {
-      lastUpdate = new Date(context.metadata.modifiedTime);
-    } else if (context.metadata?.publishedTime) {
-      lastUpdate = new Date(context.metadata.publishedTime);
+    // Check metadata for various date field names
+    try {
+      if (context.metadata?.updatedAt) {
+        const dateValue = new Date(context.metadata.updatedAt);
+        if (!isNaN(dateValue.getTime())) {
+          lastUpdate = dateValue;
+          this.logger.debug(`Found updatedAt date: ${context.metadata.updatedAt} -> ${lastUpdate.toISOString()}`);
+        }
+      } else if (context.metadata?.lastModifiedAt) {
+        const dateValue = new Date(context.metadata.lastModifiedAt);
+        if (!isNaN(dateValue.getTime())) {
+          lastUpdate = dateValue;
+          this.logger.debug(`Found lastModifiedAt date: ${context.metadata.lastModifiedAt} -> ${lastUpdate.toISOString()}`);
+        }
+      } else if (context.metadata?.modifiedTime) {
+        const dateValue = new Date(context.metadata.modifiedTime);
+        if (!isNaN(dateValue.getTime())) {
+          lastUpdate = dateValue;
+          this.logger.debug(`Found modifiedTime date: ${context.metadata.modifiedTime} -> ${lastUpdate.toISOString()}`);
+        }
+      } else if (context.metadata?.createdAt) {
+        const dateValue = new Date(context.metadata.createdAt);
+        if (!isNaN(dateValue.getTime())) {
+          lastUpdate = dateValue;
+          this.logger.debug(`Found createdAt date: ${context.metadata.createdAt} -> ${lastUpdate.toISOString()}`);
+        }
+      } else if (context.metadata?.publishedTime) {
+        const dateValue = new Date(context.metadata.publishedTime);
+        if (!isNaN(dateValue.getTime())) {
+          lastUpdate = dateValue;
+          this.logger.debug(`Found publishedTime date: ${context.metadata.publishedTime} -> ${lastUpdate.toISOString()}`);
+        }
+      }
+    } catch (error) {
+      this.logger.error('Error parsing date from metadata:', error);
     }
     
-    // Check page signals
+    // Set publish date if available
+    if (context.metadata?.createdAt) {
+      publishDate = new Date(context.metadata.createdAt);
+    } else if (context.metadata?.publishedTime) {
+      publishDate = new Date(context.metadata.publishedTime);
+    }
+    
+    // Check page signals as fallback
     if (!lastUpdate && context.pageSignals?.freshness?.modifiedDate) {
       lastUpdate = new Date(context.pageSignals.freshness.modifiedDate);
     } else if (!lastUpdate && context.pageSignals?.freshness?.publishDate) {
       lastUpdate = new Date(context.pageSignals.freshness.publishDate);
     }
     
+    // If still no date found, scan the entire page content for date patterns
+    if (!lastUpdate) {
+      lastUpdate = this.extractDatesFromContent(context.html, context.cleanContent);
+    }
+    
     return { publishDate, lastUpdate };
+  }
+
+  /**
+   * Extract dates from page content using regex patterns
+   */
+  private extractDatesFromContent(html: string, cleanContent: string): Date | null {
+    const content = html + ' ' + cleanContent;
+    
+    // Common date patterns to look for
+    const datePatterns = [
+      // ISO 8601 dates: 2025-07-02T11:02:11.000Z
+      /"updatedAt":\s*"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z?)"/g,
+      /"lastModifiedAt":\s*"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z?)"/g,
+      /"modifiedAt":\s*"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z?)"/g,
+      /"createdAt":\s*"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z?)"/g,
+      /"publishedAt":\s*"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z?)"/g,
+      // Date strings: "2025-07-02"
+      /"updatedAt":\s*"(\d{4}-\d{2}-\d{2})"/g,
+      /"lastModifiedAt":\s*"(\d{4}-\d{2}-\d{2})"/g,
+      // Meta tag content
+      /content="(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z?)"/g,
+      /datetime="(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z?)"/g,
+      // General ISO pattern
+      /(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z?)/g,
+    ];
+    
+    const foundDates: Date[] = [];
+    
+    for (const pattern of datePatterns) {
+      let match;
+      while ((match = pattern.exec(content)) !== null) {
+        const dateStr = match[1];
+        const date = new Date(dateStr);
+        if (!isNaN(date.getTime()) && date.getFullYear() > 2000 && date.getFullYear() <= new Date().getFullYear() + 1) {
+          foundDates.push(date);
+          this.logger.debug(`Found date in content: ${dateStr} -> ${date.toISOString()}`);
+        }
+      }
+    }
+    
+    // Return the most recent date found
+    if (foundDates.length > 0) {
+      const mostRecentDate = foundDates.reduce((latest, current) => 
+        current > latest ? current : latest
+      );
+      this.logger.debug(`Using most recent date from content: ${mostRecentDate.toISOString()}`);
+      return mostRecentDate;
+    }
+    
+    return null;
   }
   
   /**

@@ -60,6 +60,19 @@ export interface LLMAnalysisData {
   analysisType: 'unified' | 'static'; // unified = AI analysis, static = rule-based
 }
 
+export interface LLMCall {
+  purpose: string; // e.g., 'page_categorization', 'authority_analysis', 'unified_analysis'
+  prompt: string;
+  response: string;
+  model: string;
+  timestamp: Date;
+  tokensUsed?: {
+    input: number;
+    output: number;
+  };
+  error?: string;
+}
+
 @Schema({ timestamps: true })
 export class ContentScore extends Document {
   @Prop({ required: true, index: true })
@@ -98,6 +111,9 @@ export class ContentScore extends Document {
   @Prop({ type: Object })
   llmAnalysis?: LLMAnalysisData;
 
+  @Prop({ type: [Object] })
+  llmCalls?: LLMCall[];
+
   @Prop()
   pageCategory?: string;
 
@@ -106,6 +122,12 @@ export class ContentScore extends Document {
 
   @Prop()
   categoryConfidence?: number;
+
+  @Prop()
+  skipped?: boolean;
+
+  @Prop()
+  skipReason?: string;
 }
 
 export const ContentScoreSchema = SchemaFactory.createForClass(ContentScore);

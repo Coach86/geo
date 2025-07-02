@@ -4,13 +4,10 @@ import { ConditionalAggregatorService } from '../rules/registry/conditional-aggr
 import { RuleContext } from '../rules/interfaces/rule.interface';
 import { PageSignalExtractorService } from '../services/page-signal-extractor.service';
 import { PageCategorizerService } from '../services/page-categorizer.service';
-import { LlmService } from '../../llm/services/llm.service';
+import { TrackedLLMService } from '../services/tracked-llm.service';
 import { PageCategoryType, AnalysisLevel } from '../interfaces/page-category.interface';
 import { 
-  BaseFreshnessRule,
-  DateSignalsRule,
-  UpdateFrequencyRule,
-  TimelinessRule
+  UpdateFrequencyRule
 } from '../rules/freshness';
 
 interface FreshnessAnalysisResult {
@@ -37,7 +34,7 @@ export class RuleBasedFreshnessAnalyzer {
     private readonly conditionalAggregator: ConditionalAggregatorService,
     private readonly pageSignalExtractor: PageSignalExtractorService,
     private readonly pageCategorizerService: PageCategorizerService,
-    private readonly llmService: LlmService
+    private readonly trackedLLMService: TrackedLLMService
   ) {
     this.registerRules();
   }
@@ -47,10 +44,8 @@ export class RuleBasedFreshnessAnalyzer {
    */
   private registerRules(): void {
     // Register rules with their configurations
-    this.ruleRegistry.registerRule(BaseFreshnessRule, { weight: 0.1 });
-    this.ruleRegistry.registerRule(DateSignalsRule, { weight: 0.3 });
-    this.ruleRegistry.registerRule(UpdateFrequencyRule, { weight: 0.4 });
-    this.ruleRegistry.registerRule(TimelinessRule, { weight: 0.2 });
+    // UpdateFrequencyRule is now the only freshness rule
+    this.ruleRegistry.registerRule(UpdateFrequencyRule, { weight: 1.0 });
     
     this.logger.log('Freshness rules registered successfully');
   }
@@ -96,11 +91,11 @@ export class RuleBasedFreshnessAnalyzer {
           keyBrandAttributes: [],
           competitors: []
         },
-        llmService: this.llmService
+        trackedLLMService: this.trackedLLMService
       };
       
-      // Get applicable rules for this context
-      const rules = this.ruleRegistry.getRulesForDimension('freshness', context);
+      // Get applicable page-scoped rules for this context
+      const rules = this.ruleRegistry.getRulesForDimension('freshness', context, 'page');
       
       this.logger.log(`Running ${rules.length} freshness rules for ${url}`);
       
@@ -148,12 +143,12 @@ export class RuleBasedFreshnessAnalyzer {
     
     // Extract details from each rule's results
     aggregated.ruleResults.forEach((result: any) => {
-      if (result.ruleId === 'date-signals' && result.details) {
-        details.hasDateSignals = result.details.hasDateSignals;
-        details.publishDate = result.details.publishDate ? new Date(result.details.publishDate) : null;
-        details.modifiedDate = result.details.modifiedDate ? new Date(result.details.modifiedDate) : null;
-      } else if (result.ruleId === 'update-frequency' && result.details) {
+      if (result.ruleId === 'update-frequency' && result.details) {
         details.daysSinceUpdate = result.details.daysSinceUpdate;
+        if (result.details.lastUpdate) {
+          details.modifiedDate = new Date(result.details.lastUpdate);
+          details.hasDateSignals = true;
+        }
       }
     });
     

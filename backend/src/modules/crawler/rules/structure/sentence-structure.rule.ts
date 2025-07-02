@@ -30,10 +30,10 @@ export class SentenceStructureRule extends BaseStructureRule {
       evidence.push('No sentences detected');
     } else if (avgSentenceLength >= 15 && avgSentenceLength <= 25) {
       score = 100;
-      evidence.push(`Optimal sentence length for snippets: ${avgSentenceLength.toFixed(1)} words on average`);
+      evidence.push(`Optimal sentence length for snippets: ${avgSentenceLength.toFixed(1)} words on average (target: 15-25 words)`);
     } else if (avgSentenceLength >= 10 && avgSentenceLength < 15) {
       score = 80;
-      evidence.push(`Good sentence length: ${avgSentenceLength.toFixed(1)} words on average`);
+      evidence.push(`Good sentence length: ${avgSentenceLength.toFixed(1)} words on average (target: 15-25 words)`);
       issues.push(this.generateIssue(
         'low',
         'Sentences are slightly short for rich snippets',
@@ -41,7 +41,7 @@ export class SentenceStructureRule extends BaseStructureRule {
       ));
     } else if (avgSentenceLength > 25 && avgSentenceLength <= 35) {
       score = 70;
-      evidence.push(`Sentences slightly long: ${avgSentenceLength.toFixed(1)} words on average`);
+      evidence.push(`Sentences slightly long: ${avgSentenceLength.toFixed(1)} words on average (target: 15-25 words)`);
       issues.push(this.generateIssue(
         'medium',
         'Sentences may be too long for optimal snippet extraction',
@@ -49,7 +49,7 @@ export class SentenceStructureRule extends BaseStructureRule {
       ));
     } else if (avgSentenceLength < 10) {
       score = 50;
-      evidence.push(`Sentences too short: ${avgSentenceLength.toFixed(1)} words on average`);
+      evidence.push(`Sentences too short: ${avgSentenceLength.toFixed(1)} words on average (target: 15-25 words)`);
       issues.push(this.generateIssue(
         'high',
         'Sentences are too short for meaningful snippets',
@@ -57,7 +57,7 @@ export class SentenceStructureRule extends BaseStructureRule {
       ));
     } else {
       score = 40;
-      evidence.push(`Sentences too long: ${avgSentenceLength.toFixed(1)} words on average`);
+      evidence.push(`Sentences too long: ${avgSentenceLength.toFixed(1)} words on average (target: 15-25 words)`);
       issues.push(this.generateIssue(
         'high',
         'Sentences are too long for snippet extraction',

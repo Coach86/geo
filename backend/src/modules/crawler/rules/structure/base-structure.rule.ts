@@ -1,5 +1,5 @@
 import { BaseRule } from '../base/base-rule';
-import { RuleContext, RuleResult } from '../interfaces/rule.interface';
+import { RuleContext, RuleResult, RuleExecutionScope } from '../interfaces/rule.interface';
 import { ScoreIssue } from '../../schemas/content-score.schema';
 
 /**
@@ -7,6 +7,7 @@ import { ScoreIssue } from '../../schemas/content-score.schema';
  */
 export abstract class BaseStructureRule extends BaseRule {
   dimension = 'structure' as const;
+  executionScope: RuleExecutionScope = 'page'; // Default to page-level for structure rules
   
   protected generateIssue(
     severity: 'critical' | 'high' | 'medium' | 'low',

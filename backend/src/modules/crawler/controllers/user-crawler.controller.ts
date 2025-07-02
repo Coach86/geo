@@ -19,6 +19,8 @@ import { ContentAnalyzerService } from '../services/content-analyzer.service';
 import { CrawlerPipelineService } from '../services/crawler-pipeline.service';
 import { ProjectService } from '../../project/services/project.service';
 import { UserService } from '../../user/services/user.service';
+import { RuleRegistryService } from '../rules/registry/rule-registry.service';
+import { DomainAnalysisService } from '../services/domain-analysis.service';
 
 class TriggerCrawlDto {
   @ApiProperty({ description: 'Maximum number of pages to crawl', required: false, default: 100 })
@@ -55,6 +57,8 @@ export class UserCrawlerController {
     private readonly crawlerPipelineService: CrawlerPipelineService,
     private readonly projectService: ProjectService,
     private readonly userService: UserService,
+    private readonly ruleRegistryService: RuleRegistryService,
+    private readonly domainAnalysisService: DomainAnalysisService,
   ) {}
 
   @Post('crawl')
@@ -88,8 +92,15 @@ export class UserCrawlerController {
       throw new HttpException('Unauthorized access to project', HttpStatus.FORBIDDEN);
     }
 
-    // Run the complete pipeline
-    const result = await this.crawlerPipelineService.runContentKPIPipeline(projectId);
+    // Validate maxPages if provided
+    if (options.maxPages !== undefined) {
+      if (options.maxPages < 1 || options.maxPages > 100) {
+        throw new HttpException('maxPages must be between 1 and 100', HttpStatus.BAD_REQUEST);
+      }
+    }
+
+    // Run the complete pipeline with options
+    const result = await this.crawlerPipelineService.runContentKPIPipeline(projectId, options);
     
     return {
       success: true,
@@ -317,21 +328,163 @@ export class UserCrawlerController {
       throw new NotFoundException('Content score not found for this page');
     }
 
-    if (!score.llmAnalysis) {
+    // Check if we have multiple LLM calls or just the single analysis
+    if (score.llmCalls && score.llmCalls.length > 0) {
+      // Return all LLM calls
+      return {
+        url: score.url,
+        analysisType: 'unified',
+        llmCalls: score.llmCalls,
+      };
+    } else if (score.llmAnalysis) {
+      // Return the single LLM analysis in the new format
+      return {
+        url: score.url,
+        analysisType: score.llmAnalysis.analysisType,
+        llmCalls: [{
+          purpose: 'unified_analysis',
+          prompt: score.llmAnalysis.prompt,
+          response: score.llmAnalysis.response,
+          model: score.llmAnalysis.model,
+          timestamp: score.llmAnalysis.timestamp,
+          tokensUsed: score.llmAnalysis.tokensUsed,
+        }],
+      };
+    } else {
       return {
         message: 'No LLM analysis available for this page',
         analysisType: 'static',
+        llmCalls: [],
       };
     }
+  }
 
+  @Get('rules')
+  @TokenRoute()
+  @ApiOperation({ summary: 'Get all available scoring rules with details' })
+  async getScoringRules(
+    @Req() req: any,
+  ) {
+    // Token is already validated by @TokenRoute decorator
+    if (!req.userId) {
+      throw new HttpException('User not authenticated', HttpStatus.UNAUTHORIZED);
+    }
+
+    // Get all rules from the registry
+    const rules = await this.ruleRegistryService.getAllRulesWithDetails();
+    
     return {
-      url: score.url,
-      analysisType: score.llmAnalysis.analysisType,
-      model: score.llmAnalysis.model,
-      timestamp: score.llmAnalysis.timestamp,
-      tokensUsed: score.llmAnalysis.tokensUsed,
-      prompt: score.llmAnalysis.prompt,
-      response: score.llmAnalysis.response,
+      rules,
+      dimensions: ['authority', 'freshness', 'structure', 'brandAlignment'],
+    };
+  }
+
+  @Get('domain-analysis')
+  @TokenRoute()
+  @ApiOperation({ summary: 'Get domain analysis results for a project' })
+  async getDomainAnalysis(
+    @Param('projectId') projectId: string,
+    @Req() req: any,
+  ) {
+    // Token is already validated by @TokenRoute decorator
+    if (!req.userId) {
+      throw new HttpException('User not authenticated', HttpStatus.UNAUTHORIZED);
+    }
+
+    // Get user details
+    const user = await this.userService.findOne(req.userId);
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.UNAUTHORIZED);
+    }
+
+    // Verify project exists and user has access
+    const project = await this.projectService.findById(projectId);
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    // Verify user's organization owns the project
+    if (project.organizationId !== user.organizationId) {
+      throw new HttpException('Unauthorized access to project', HttpStatus.FORBIDDEN);
+    }
+
+    const domainAnalyses = await this.domainAnalysisService.getProjectDomainAnalyses(projectId);
+    
+    return {
+      domainAnalyses,
+      totalDomains: domainAnalyses.length,
+    };
+  }
+
+  @Get('combined-scores')
+  @TokenRoute()
+  @ApiOperation({ summary: 'Get combined page and domain scores for a project' })
+  async getCombinedScores(
+    @Param('projectId') projectId: string,
+    @Req() req: any,
+  ) {
+    // Token is already validated by @TokenRoute decorator
+    if (!req.userId) {
+      throw new HttpException('User not authenticated', HttpStatus.UNAUTHORIZED);
+    }
+
+    // Get user details
+    const user = await this.userService.findOne(req.userId);
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.UNAUTHORIZED);
+    }
+
+    // Verify project exists and user has access
+    const project = await this.projectService.findById(projectId);
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    // Verify user's organization owns the project
+    if (project.organizationId !== user.organizationId) {
+      throw new HttpException('Unauthorized access to project', HttpStatus.FORBIDDEN);
+    }
+
+    // Get both page scores and domain analyses
+    const pageScores = await this.contentAnalyzerService.getProjectContentScores(projectId);
+    const pageStats = await this.contentAnalyzerService.getProjectScoreStats(projectId);
+    const domainAnalyses = await this.domainAnalysisService.getProjectDomainAnalyses(projectId);
+
+    // Calculate combined metrics
+    const avgDomainScore = domainAnalyses.length > 0 
+      ? Math.round(domainAnalyses.reduce((sum, domain) => sum + domain.overallScore, 0) / domainAnalyses.length)
+      : 0;
+
+    const avgPageScore = pageStats.avgGlobalScore || 0;
+
+    // Weighted combined score (60% page, 40% domain)
+    const combinedScore = Math.round((avgPageScore * 0.6) + (avgDomainScore * 0.4));
+    
+    return {
+      combined: {
+        overallScore: combinedScore,
+        pageScore: avgPageScore,
+        domainScore: avgDomainScore,
+        totalPages: pageStats.totalPages || 0,
+        totalDomains: domainAnalyses.length,
+      },
+      pageScoreBreakdown: {
+        authority: Math.round(pageStats.avgAuthorityScore || 0),
+        freshness: Math.round(pageStats.avgFreshnessScore || 0),
+        structure: Math.round(pageStats.avgStructureScore || 0),
+        brandAlignment: Math.round(pageStats.avgBrandScore || 0),
+      },
+      domainScoreBreakdown: domainAnalyses.reduce((breakdown, domain) => {
+        Object.entries(domain.dimensionScores).forEach(([dimension, data]: [string, any]) => {
+          if (!breakdown[dimension]) {
+            breakdown[dimension] = [];
+          }
+          breakdown[dimension].push(data.score);
+        });
+        return breakdown;
+      }, {} as Record<string, number[]>),
+      pageScores: pageScores.slice(0, 10), // Top 10 pages
+      domainAnalyses,
     };
   }
 }
