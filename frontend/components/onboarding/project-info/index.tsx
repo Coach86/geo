@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Building } from "lucide-react";
 import { WebsiteAnalyzer } from "./WebsiteAnalyzer";
 import { MarketSelector } from "./MarketSelector";
 import type { Market } from "@/app/onboarding/types/form-data";
@@ -75,9 +74,6 @@ export default function ProjectInfo({ initialData, onDataReady }: ProjectInfoCom
   return (
     <div className="py-8 animate-fade-in">
       <div className="mb-8 text-center">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-md bg-accent-100 text-accent-500 mb-4">
-          <Building className="h-8 w-8" />
-        </div>
         <h1 className="text-3xl font-bold mb-2 text-mono-900">
           Launch your first monitoring project
         </h1>
