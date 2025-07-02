@@ -182,13 +182,6 @@ export function VisibilityMetricsCard({
               );
             })}
 
-            {competitors.length === 0 && (
-              <div className="flex-1 flex items-center justify-center">
-                <p className="text-sm text-gray-500 italic">
-                  No competitor data available
-                </p>
-              </div>
-            )}
           </div>
         </div>
         

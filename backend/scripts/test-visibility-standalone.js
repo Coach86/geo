@@ -703,6 +703,7 @@ async function initializeCSV() {
     'Model ID',
     'Brand Mentioned',
     'LLM Response',
+    'Websites Consulted',
     'Analysis Error',
     'Top of Mind Brands',
     'Our Brand Count',

@@ -152,18 +152,28 @@ export function useVisibilityReports(
       };
     }
 
+    // Get all competitor names from the competitors array
+    const allCompetitorNames = aggregatedData.competitors?.map((c: CompetitorData) => c.name) || [];
+
     // Transform chart data to match existing format
     const chartData = aggregatedData.chartData
       .map((point: any) => {
         const transformedPoint: any = {
           date: new Date(point.date).toLocaleDateString(),
           dateObj: new Date(point.date), // Keep the Date object for sorting
-          Brand: point.brand,
+          Brand: point.brand || 0,
         };
         
         // Add competitor data
         Object.entries(point.competitors || {}).forEach(([name, score]) => {
           transformedPoint[name] = score;
+        });
+        
+        // Ensure all competitors are included with 0 if missing
+        allCompetitorNames.forEach((competitorName: string) => {
+          if (!(competitorName in transformedPoint)) {
+            transformedPoint[competitorName] = 0;
+          }
         });
         
         return transformedPoint;
