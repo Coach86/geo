@@ -150,7 +150,7 @@ export function ContentKPIDashboard({
   }
 
   // Show empty state with analyze button if no data
-  if (!report || report.summary.totalPages === 0) {
+  if (!report || !data || report.summary.totalPages === 0 || data.scores.length === 0) {
     return (
       <div className="space-y-6">
         <Card>
@@ -778,7 +778,7 @@ export function ContentKPIDashboard({
                         : Info;
                       
                       // Get dimension color
-                      const dimensionKey = dimension._id.charAt(0).toUpperCase() + dimension._id.slice(1);
+                      const dimensionKey = dimension._id ? dimension._id.charAt(0).toUpperCase() + dimension._id.slice(1) : '';
                       const dimensionColor = DIMENSION_COLORS[dimensionKey as keyof typeof DIMENSION_COLORS] || '#6b7280';
                       
                       return (

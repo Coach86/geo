@@ -18,13 +18,13 @@ const cloudWatchFormat = winston.format.printf(({ level, message, timestamp, con
   const log: any = {
     timestamp,
     level,
-    message,
+    message: typeof message === 'string' ? message : JSON.stringify(message),
     context,
   };
 
-  // Add trace if present (for errors)
+  // Add trace if present (for errors) - ensure it's a single line
   if (trace) {
-    log.trace = trace;
+    log.trace = typeof trace === 'string' ? trace.replace(/\n/g, ' ') : trace;
   }
 
   // Add all metadata
@@ -32,7 +32,8 @@ const cloudWatchFormat = winston.format.printf(({ level, message, timestamp, con
     log.metadata = meta;
   }
 
-  return JSON.stringify(log);
+  // Ensure the entire log is on a single line
+  return JSON.stringify(log, null, 0);
 });
 
 // Format for adding default metadata to all logs
@@ -62,14 +63,17 @@ export const getCloudWatchLoggerConfig = (
         format: winston.format.combine(
           winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
           winston.format.errors({ stack: true }),
+          // Ensure errors are also single-line
+          winston.format((info) => {
+            if (info.stack) {
+              info.stack = info.stack.replace(/\n/g, ' ');
+            }
+            return info;
+          })(),
           defaultMetadata(),
           winston.format.ms(),
-          logFormat === 'json' 
-            ? cloudWatchFormat
-            : nestWinstonModuleUtilities.format.nestLike(appName, {
-                colors: false,
-                prettyPrint: false,
-              })
+          // Always use JSON format in production/CloudWatch to ensure single-line logs
+          cloudWatchFormat
         ),
       }),
     );
