@@ -4,7 +4,7 @@ import { ConditionalAggregatorService } from '../rules/registry/conditional-aggr
 import { RuleContext } from '../rules/interfaces/rule.interface';
 import { PageSignals } from '../interfaces/page-signals.interface';
 import { PageCategory } from '../interfaces/page-category.interface';
-import { LlmService } from '../../llm/services/llm.service';
+import { TrackedLLMService } from '../services/tracked-llm.service';
 import { ScoreIssue } from '../schemas/content-score.schema';
 import { DimensionCalculationDetails } from '../interfaces/score-calculation.interface';
 
@@ -34,7 +34,7 @@ export class RuleBasedStructureAnalyzer {
   constructor(
     private readonly ruleRegistry: RuleRegistryService,
     private readonly conditionalAggregator: ConditionalAggregatorService,
-    private readonly llmService: LlmService,
+    private readonly trackedLLMService: TrackedLLMService,
   ) {
     this.registerRules();
   }
@@ -90,11 +90,11 @@ export class RuleBasedStructureAnalyzer {
         keyBrandAttributes: [],
         competitors: []
       },
-      llmService: this.llmService
+      trackedLLMService: this.trackedLLMService
     };
 
     // Get and apply structure rules
-    const structureRules = this.ruleRegistry.getRulesForDimension('structure', context);
+    const structureRules = this.ruleRegistry.getRulesForDimension('structure', context, 'page');
     this.logger.log(`[Structure] Found ${structureRules.length} rules to apply`);
 
     const ruleResults = [];

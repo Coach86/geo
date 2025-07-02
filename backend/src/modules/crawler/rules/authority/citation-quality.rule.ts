@@ -1,10 +1,10 @@
 import { BaseRule } from '../base/base-rule';
-import { RuleContext, RuleResult, RuleDimension, RuleApplicability } from '../interfaces/rule.interface';
+import { RuleContext, RuleResult, RuleDimension, RuleApplicability, RuleExecutionScope } from '../interfaces/rule.interface';
 import { AUTHORITY_CONSTANTS } from '../../config/scoring-constants';
 
 /**
  * Rule that evaluates citation quality and count using LLM
- * This wraps the existing logic from HybridKPIAnalyzerService
+ * This wraps the existing logic from KPIAnalyzerService
  */
 export class CitationQualityRule extends BaseRule {
   id = 'citation-quality';
@@ -17,6 +17,8 @@ export class CitationQualityRule extends BaseRule {
   applicability: RuleApplicability = {
     scope: 'all' as const
   };
+  
+  executionScope: RuleExecutionScope = 'page';
   
   async evaluate(context: RuleContext): Promise<RuleResult> {
     try {

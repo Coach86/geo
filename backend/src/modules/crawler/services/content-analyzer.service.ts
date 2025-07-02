@@ -10,10 +10,14 @@ import { ContentScore, DimensionDetails, ScoreIssue } from '../schemas/content-s
 import { ProjectService } from '../../project/services/project.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { UnifiedKPIAnalyzerService } from './unified-kpi-analyzer.service';
-import { HybridKPIAnalyzerService } from './hybrid-kpi-analyzer.service';
+import { KPIAnalyzerService } from './kpi-analyzer.service';
 import { PageSignalExtractorService } from './page-signal-extractor.service';
 import { IssueFactoryService, KPIDimension } from './issue-factory.service';
 import { DimensionCalculationDetails } from '../interfaces/score-calculation.interface';
+import { PageCategorizerService } from './page-categorizer.service';
+import { PageCategoryType } from '../interfaces/page-category.interface';
+import { LLMCallTrackerService } from './llm-call-tracker.service';
+import { DomainAnalysisService } from './domain-analysis.service';
 
 export interface AnalysisProgress {
   projectId: string;
@@ -37,9 +41,12 @@ export class ContentAnalyzerService {
     private readonly projectService: ProjectService,
     private readonly eventEmitter: EventEmitter2,
     private readonly unifiedKPIAnalyzer: UnifiedKPIAnalyzerService,
-    private readonly hybridKPIAnalyzer: HybridKPIAnalyzerService,
+    private readonly kpiAnalyzer: KPIAnalyzerService,
     private readonly pageSignalExtractor: PageSignalExtractorService,
     private readonly issueFactory: IssueFactoryService,
+    private readonly pageCategorizerService: PageCategorizerService,
+    private readonly llmCallTracker: LLMCallTrackerService,
+    private readonly domainAnalysisService: DomainAnalysisService,
   ) {}
 
   async analyzeProjectContent(projectId: string, limit?: number): Promise<void> {
@@ -79,6 +86,9 @@ export class ContentAnalyzerService {
 
     this.eventEmitter.emit('analyzer.started', { projectId, totalPages: pages.length });
     this.logger.log(`[ANALYZER] Emitted analyzer.started event`);
+
+    // Run domain analysis first
+    await this.runDomainAnalysis(projectId, pages, project);
 
     try {
       for (const page of pages) {
@@ -125,32 +135,56 @@ export class ContentAnalyzerService {
   }
 
   async analyzePage(page: any, project: any): Promise<Partial<ContentScore>> {
-    // Check analysis mode configuration
-    const useAI = this.configService.get<boolean>('CONTENT_KPI_USE_AI', false);
-    const useHybrid = this.configService.get<boolean>('CONTENT_KPI_USE_HYBRID', true);
-    const fallbackToStatic = this.configService.get<boolean>('CONTENT_KPI_FALLBACK_TO_STATIC', true);
-
-    if (useAI) {
-      try {
-        if (useHybrid) {
-          // Use hybrid approach (static + targeted LLM)
-          return await this.analyzePageHybrid(page, project);
-        } else {
-          // Use full LLM approach (legacy)
-          return await this.analyzePageUnified(page, project);
-        }
-      } catch (error) {
-        this.logger.error(`AI analysis failed for ${page.url}:`, error);
-        
-        if (fallbackToStatic) {
-          this.logger.log(`Falling back to static analysis for ${page.url}`);
-          return await this.analyzePageStatic(page, project);
-        } else {
-          throw error;
-        }
-      }
-    } else {
-      return await this.analyzePageStatic(page, project);
+    // Start tracking LLM calls for this page
+    this.llmCallTracker.startTracking(page.url);
+    
+    try {
+      // First, categorize the page to check if it should be excluded
+      const pageCategory = await this.pageCategorizerService.categorize(page.url, page.html, page.metadata);
+    
+    // Check if this page type should be skipped
+    if (pageCategory.type === PageCategoryType.LEGAL_POLICY || pageCategory.type === PageCategoryType.LOGIN_ACCOUNT) {
+      this.logger.log(`[ANALYZER] Skipping ${pageCategory.type} page: ${page.url}`);
+      
+      // Return a minimal score object for skipped pages
+      return {
+        url: page.url,
+        projectId: project.id || project._id,
+        globalScore: 0,
+        scores: {
+          authority: 0,
+          freshness: 0,
+          structure: 0,
+          brandAlignment: 0,
+        },
+        skipped: true,
+        skipReason: `${pageCategory.type} pages are excluded from analysis`,
+        pageCategory: pageCategory.type,
+        analysisLevel: 'excluded',
+        categoryConfidence: pageCategory.confidence,
+      } as any;
+    }
+    
+    let result: Partial<ContentScore>;
+    
+    try {
+      // Always use hybrid approach (static + targeted LLM)
+      result = await this.analyzePageHybrid(page, project);
+    } catch (error) {
+      this.logger.error(`Hybrid analysis failed for ${page.url}:`, error);
+      throw error;
+    }
+    
+    // Add LLM calls to the result
+    const llmCalls = this.llmCallTracker.getCalls(page.url);
+    if (llmCalls.length > 0) {
+      result.llmCalls = llmCalls;
+    }
+    
+    return result;
+    } finally {
+      // Clean up tracking for this URL
+      this.llmCallTracker.clearTracking(page.url);
     }
   }
 
@@ -167,7 +201,7 @@ export class ContentAnalyzerService {
       competitors: project.competitors || [],
     };
 
-    const result = await this.hybridKPIAnalyzer.analyze(page.html, page.metadata, analysisContext, page.url);
+    const result = await this.kpiAnalyzer.analyze(page.html, page.metadata, analysisContext, page.url);
 
     // Convert hybrid result to ContentScore format
     return this.convertHybridResultToContentScore(result, page, project);
@@ -186,7 +220,7 @@ export class ContentAnalyzerService {
       competitors: project.competitors || [],
     };
 
-    const result = await this.unifiedKPIAnalyzer.analyze(page.html, page.metadata, analysisContext);
+    const result = await this.unifiedKPIAnalyzer.analyze(page.html, page.metadata, analysisContext, page.url);
 
     // Convert unified result to ContentScore format
     return this.convertUnifiedResultToContentScore(result, page, project);
@@ -618,6 +652,73 @@ export class ContentAnalyzerService {
     } catch (error) {
       this.logger.warn(`Failed to parse date: ${dateStr}`, error);
       return undefined;
+    }
+  }
+
+  /**
+   * Run domain analysis for all unique domains in the project
+   */
+  private async runDomainAnalysis(projectId: string, pages: any[], project: any): Promise<void> {
+    this.logger.log(`[DOMAIN-ANALYZER] Starting domain analysis for project ${projectId}`);
+
+    try {
+      // Extract unique domains from pages
+      const domainPages: Record<string, any[]> = {};
+      
+      for (const page of pages) {
+        const domain = this.extractDomain(page.url);
+        if (!domainPages[domain]) {
+          domainPages[domain] = [];
+        }
+        domainPages[domain].push({
+          url: page.url,
+          html: page.html,
+          metadata: page.metadata || {}
+        });
+      }
+
+      const domains = Object.keys(domainPages);
+      this.logger.log(`[DOMAIN-ANALYZER] Found ${domains.length} unique domains: ${domains.join(', ')}`);
+
+      // Analyze each domain
+      for (const domain of domains) {
+        this.logger.log(`[DOMAIN-ANALYZER] Analyzing domain: ${domain} (${domainPages[domain].length} pages)`);
+        
+        try {
+          await this.domainAnalysisService.analyzeDomain({
+            domain,
+            projectId,
+            projectContext: {
+              brandName: project.brandName,
+              keyBrandAttributes: project.keyBrandAttributes || [],
+              competitors: project.competitors || []
+            },
+            pages: domainPages[domain]
+          });
+          
+          this.logger.log(`[DOMAIN-ANALYZER] Domain analysis completed for: ${domain}`);
+        } catch (error) {
+          this.logger.error(`[DOMAIN-ANALYZER] Error analyzing domain ${domain}:`, error);
+          // Continue with other domains even if one fails
+        }
+      }
+
+      this.logger.log(`[DOMAIN-ANALYZER] Domain analysis completed for all domains`);
+    } catch (error) {
+      this.logger.error(`[DOMAIN-ANALYZER] Error in domain analysis:`, error);
+      // Don't throw - domain analysis failure shouldn't stop page analysis
+    }
+  }
+
+  /**
+   * Extract domain from URL
+   */
+  private extractDomain(url: string): string {
+    try {
+      const urlObj = new URL(url.startsWith('http') ? url : `https://${url}`);
+      return urlObj.hostname.toLowerCase();
+    } catch {
+      return url.toLowerCase().replace(/^https?:\/\//, '').split('/')[0];
     }
   }
 

@@ -39,6 +39,7 @@ export class RuleAggregatorService {
         result.issues.forEach(issue => {
           allIssues.push({
             ruleId: ruleInfo.id,
+            dimension: dimension, // Ensure dimension is always set
             ...issue
           });
         });

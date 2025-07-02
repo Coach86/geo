@@ -129,7 +129,7 @@ export class CrawlerPipelineService {
     });
   }
 
-  async runContentKPIPipeline(projectId: string): Promise<CrawlerPipelineResult> {
+  async runContentKPIPipeline(projectId: string, options?: Partial<CrawlOptions>): Promise<CrawlerPipelineResult> {
     const startedAt = new Date();
     this.logger.log(`[PIPELINE] Starting Content KPI pipeline for project ${projectId}`);
 
@@ -153,12 +153,12 @@ export class CrawlerPipelineService {
       const crawlOptions: CrawlOptions = {
         ...this.defaultCrawlOptions,
         maxPages: Math.min(
-          project.crawlSettings?.maxPages || this.defaultCrawlOptions.maxPages!,
+          options?.maxPages || project.crawlSettings?.maxPages || this.defaultCrawlOptions.maxPages!,
           maxPagesLimit
         ),
-        crawlDelay: project.crawlSettings?.crawlDelay || this.defaultCrawlOptions.crawlDelay!,
-        includePatterns: project.crawlSettings?.includePatterns,
-        excludePatterns: project.crawlSettings?.excludePatterns,
+        crawlDelay: options?.crawlDelay || project.crawlSettings?.crawlDelay || this.defaultCrawlOptions.crawlDelay!,
+        includePatterns: options?.includePatterns || project.crawlSettings?.includePatterns,
+        excludePatterns: options?.excludePatterns || project.crawlSettings?.excludePatterns,
       } as CrawlOptions;
       
       this.logger.log(`[PIPELINE] Crawl options configured: maxPages=${crawlOptions.maxPages}, crawlDelay=${crawlOptions.crawlDelay}ms`);

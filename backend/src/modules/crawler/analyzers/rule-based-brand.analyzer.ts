@@ -4,7 +4,7 @@ import { ConditionalAggregatorService } from '../rules/registry/conditional-aggr
 import { RuleContext } from '../rules/interfaces/rule.interface';
 import { PageSignals } from '../interfaces/page-signals.interface';
 import { PageCategory } from '../interfaces/page-category.interface';
-import { LlmService } from '../../llm/services/llm.service';
+import { TrackedLLMService } from '../services/tracked-llm.service';
 import { ScoreIssue } from '../schemas/content-score.schema';
 import { DimensionCalculationDetails } from '../interfaces/score-calculation.interface';
 
@@ -33,7 +33,7 @@ export class RuleBasedBrandAnalyzer {
   constructor(
     private readonly ruleRegistry: RuleRegistryService,
     private readonly conditionalAggregator: ConditionalAggregatorService,
-    private readonly llmService: LlmService,
+    private readonly trackedLLMService: TrackedLLMService,
   ) {
     this.registerRules();
   }
@@ -78,11 +78,11 @@ export class RuleBasedBrandAnalyzer {
         keyBrandAttributes: [],
         competitors: []
       },
-      llmService: this.llmService
+      trackedLLMService: this.trackedLLMService
     };
 
     // Get and apply brand rules
-    const brandRules = this.ruleRegistry.getRulesForDimension('brandAlignment', context);
+    const brandRules = this.ruleRegistry.getRulesForDimension('brandAlignment', context, 'page');
     this.logger.log(`[Brand] Found ${brandRules.length} rules to apply`);
 
     const ruleResults = [];

@@ -5,7 +5,8 @@ import {
   RuleResult, 
   RuleDimension, 
   RuleApplicability,
-  RuleIssue 
+  RuleIssue,
+  RuleExecutionScope
 } from '../interfaces/rule.interface';
 
 export abstract class BaseRule implements ScoringRule {
@@ -16,6 +17,7 @@ export abstract class BaseRule implements ScoringRule {
   abstract dimension: RuleDimension;
   abstract description: string;
   abstract applicability: RuleApplicability;
+  abstract executionScope: RuleExecutionScope;
   abstract priority: number;
   
   weight: number = 1.0;

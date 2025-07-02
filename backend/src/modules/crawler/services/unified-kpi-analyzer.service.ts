@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { LlmService } from '../../llm/services/llm.service';
+import { TrackedLLMService } from './tracked-llm.service';
 import { LlmProvider } from '../../llm/interfaces/llm-provider.enum';
 import { PageSignalExtractorService } from './page-signal-extractor.service';
 import { PageSignals } from '../interfaces/page-signals.interface';
@@ -19,7 +19,7 @@ export class UnifiedKPIAnalyzerService {
   private readonly logger = new Logger(UnifiedKPIAnalyzerService.name);
 
   constructor(
-    private readonly llmService: LlmService,
+    private readonly trackedLLMService: TrackedLLMService,
     private readonly pageSignalExtractor: PageSignalExtractorService,
   ) {}
 
@@ -29,7 +29,8 @@ export class UnifiedKPIAnalyzerService {
   async analyze(
     html: string, 
     metadata: any, 
-    context: AnalysisContext
+    context: AnalysisContext,
+    url?: string
   ): Promise<UnifiedKPIResult> {
     try {
       // Extract structured signals first
@@ -41,7 +42,9 @@ export class UnifiedKPIAnalyzerService {
 
       // Call LLM with optimized settings using LangChain adapter
       const model = 'gpt-3.5-turbo-0125';
-      const response = await this.llmService.call(
+      const response = await this.trackedLLMService.call(
+        url || 'unknown',
+        'unified_analysis',
         LlmProvider.OpenAILangChain,
         prompt,
         {

@@ -18,6 +18,7 @@ interface PageIssue {
 
 interface IssuesByDimensionProps {
   issues: PageIssue[];
+  onIssueClick?: (issue: PageIssue) => void;
 }
 
 const DIMENSION_COLORS = {
@@ -41,7 +42,7 @@ const SEVERITY_ICONS = {
   low: CheckCircle,
 };
 
-export function IssuesByDimension({ issues }: IssuesByDimensionProps) {
+export function IssuesByDimension({ issues, onIssueClick }: IssuesByDimensionProps) {
   // Group issues by dimension
   const issuesByDimension = issues.reduce((acc, issue) => {
     if (!acc[issue.dimension]) {
@@ -76,7 +77,11 @@ export function IssuesByDimension({ issues }: IssuesByDimensionProps) {
               {dimensionIssues.map((issue, i) => {
                 const Icon = SEVERITY_ICONS[issue.severity];
                 return (
-                  <div key={i} className="flex items-start gap-2">
+                  <div 
+                    key={i} 
+                    className={`flex items-start gap-2 ${onIssueClick ? 'cursor-pointer hover:bg-muted/50 -mx-2 px-2 py-1 rounded' : ''}`}
+                    onClick={() => onIssueClick?.(issue)}
+                  >
                     <Icon 
                       className="h-4 w-4 mt-0.5" 
                       style={{ color: SEVERITY_COLORS[issue.severity] }}

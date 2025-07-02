@@ -1,11 +1,11 @@
 import { BaseRule } from '../base/base-rule';
-import { RuleContext, RuleResult, RuleDimension, RuleApplicability } from '../interfaces/rule.interface';
+import { RuleContext, RuleResult, RuleDimension, RuleApplicability, RuleExecutionScope } from '../interfaces/rule.interface';
 import { LlmProvider } from '../../../llm/interfaces/llm-provider.enum';
 import { AUTHORITY_CONSTANTS } from '../../config/scoring-constants';
 
 /**
  * Rule that evaluates author presence and credentials using LLM
- * This wraps the existing logic from HybridKPIAnalyzerService
+ * This wraps the existing logic from KPIAnalyzerService
  */
 export class AuthorPresenceRule extends BaseRule {
   id = 'author-presence';
@@ -19,10 +19,12 @@ export class AuthorPresenceRule extends BaseRule {
     scope: 'all' // Applies to all pages
   };
   
+  executionScope: RuleExecutionScope = 'page';
+  
   async evaluate(context: RuleContext): Promise<RuleResult> {
     try {
       // Extract author information from the LLM-analyzed content
-      // Note: This assumes the HybridKPIAnalyzer has already run and we have the results
+      // Note: This assumes the KPIAnalyzer has already run and we have the results
       // In the actual implementation, we'll need to either:
       // 1. Run the LLM analysis here, or
       // 2. Access the cached/stored LLM results

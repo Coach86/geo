@@ -64,12 +64,20 @@ export class RuleRegistryService {
   
   /**
    * Get all rules for a dimension that apply to the given context
+   * Filters by execution scope - page-level analysis gets only page-scoped rules
    */
-  getRulesForDimension(dimension: RuleDimension, context: RuleContext): ScoringRule[] {
+  getRulesForDimension(dimension: RuleDimension, context: RuleContext, executionScope: 'page' | 'domain' = 'page'): ScoringRule[] {
     const allRules = this.rules.get(dimension) || [];
     
-    // Filter rules that apply to this context
+    // Filter rules by execution scope and context applicability
     const applicableRules = allRules.filter(rule => {
+      // Filter by execution scope first
+      if (rule.executionScope !== executionScope) {
+        this.logger.debug(`Rule ${rule.id} has scope ${rule.executionScope}, expected ${executionScope} for ${context.url}`);
+        return false;
+      }
+      
+      // Then check if rule applies to this context
       const applies = rule.appliesTo(context);
       if (!applies) {
         this.logger.debug(`Rule ${rule.id} does not apply to ${context.url}`);
@@ -78,7 +86,7 @@ export class RuleRegistryService {
     });
     
     this.logger.log(
-      `Found ${applicableRules.length} applicable rules for ${dimension} on ${context.url}`
+      `Found ${applicableRules.length} ${executionScope}-scoped applicable rules for ${dimension} on ${context.url}`
     );
     
     return applicableRules;
@@ -142,6 +150,59 @@ export class RuleRegistryService {
    */
   getAllRules(): Map<RuleDimension, ScoringRule[]> {
     return this.rules;
+  }
+  
+  /**
+   * Get all rules with detailed information for the UI
+   */
+  async getAllRulesWithDetails(): Promise<any> {
+    const ruleDetails: any[] = [];
+    
+    this.rules.forEach((rules, dimension) => {
+      rules.forEach(rule => {
+        // Check if rule uses LLM by looking for trackedLLMService usage
+        const usesLLM = this.checkIfRuleUsesLLM(rule);
+        
+        ruleDetails.push({
+          id: rule.id,
+          name: rule.name,
+          dimension,
+          description: rule.description,
+          priority: rule.priority,
+          weight: rule.weight,
+          applicability: rule.applicability,
+          executionScope: rule.executionScope,
+          usesLLM,
+          llmPurpose: usesLLM ? this.getLLMPurpose(rule) : null,
+        });
+      });
+    });
+    
+    return ruleDetails;
+  }
+  
+  private checkIfRuleUsesLLM(rule: ScoringRule): boolean {
+    // Domain Authority Rule is known to use LLM
+    if (rule.id === 'domain-authority') {
+      return true;
+    }
+    // Brand Keyword Alignment Rule now uses LLM
+    if (rule.id === 'brand-keyword-alignment') {
+      return true;
+    }
+    // Add other rules that use LLM here
+    return false;
+  }
+  
+  private getLLMPurpose(rule: ScoringRule): string {
+    switch (rule.id) {
+      case 'domain-authority':
+        return 'Researches domain reputation and authority using web search';
+      case 'brand-keyword-alignment':
+        return 'Analyzes how well brand values are authentically reflected in content';
+      default:
+        return 'Uses AI for advanced analysis';
+    }
   }
   
   /**

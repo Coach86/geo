@@ -44,11 +44,15 @@ interface PageAnalysis {
   pageCategory?: string;
   analysisLevel?: string;
   categoryConfidence?: number;
+  skipped?: boolean;
+  skipReason?: string;
 }
 
 interface PageAnalysisTableProps {
   pages: PageAnalysis[];
   projectId: string;
+  isDomainAnalysis?: boolean;
+  onIssueClick?: (issue: any) => void;
 }
 
 const SEVERITY_COLORS = {
@@ -76,6 +80,8 @@ const formatPageCategory = (category?: string): string => {
     'news_article': 'News',
     'faq': 'FAQ',
     'legal_compliance': 'Legal',
+    'legal_policy': 'Legal',
+    'login_account': 'Login',
     'landing_page': 'Landing',
     'demo_trial': 'Demo',
     'integrations': 'Integrations',
@@ -110,7 +116,7 @@ const getCategoryBadgeVariant = (analysisLevel?: string): "default" | "secondary
   }
 };
 
-export function PageAnalysisTable({ pages, projectId }: PageAnalysisTableProps) {
+export function PageAnalysisTable({ pages, projectId, isDomainAnalysis = false, onIssueClick }: PageAnalysisTableProps) {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDimension, setFilterDimension] = useState<string>('all');
@@ -173,7 +179,7 @@ export function PageAnalysisTable({ pages, projectId }: PageAnalysisTableProps) 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Page-by-Page Analysis</CardTitle>
+        <CardTitle>{isDomainAnalysis ? 'Domain Analysis' : 'Page-by-Page Analysis'}</CardTitle>
         <FilterBar
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
@@ -183,14 +189,14 @@ export function PageAnalysisTable({ pages, projectId }: PageAnalysisTableProps) 
           setFilterDimension={setFilterDimension}
           filterSeverity={filterSeverity}
           setFilterSeverity={setFilterSeverity}
-          filterCategory={filterCategory}
-          setFilterCategory={setFilterCategory}
+          filterCategory={isDomainAnalysis ? undefined : filterCategory}
+          setFilterCategory={isDomainAnalysis ? undefined : setFilterCategory}
         />
       </CardHeader>
 
       <CardContent>
         <div className="text-sm text-muted-foreground mb-4">
-          Showing {filteredPages.length} of {pages.length} pages
+          Showing {filteredPages.length} of {pages.length} {isDomainAnalysis ? 'domains' : 'pages'}
         </div>
 
         <div className="overflow-x-auto">
@@ -198,8 +204,8 @@ export function PageAnalysisTable({ pages, projectId }: PageAnalysisTableProps) 
           <TableHeader>
             <TableRow>
               <TableHead className="w-[30px] sticky left-0 bg-background z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]"></TableHead>
-              <TableHead className="min-w-[200px] sticky left-[30px] bg-background z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Page URL</TableHead>
-              <TableHead className="text-center w-[80px]">Category</TableHead>
+              <TableHead className="min-w-[200px] sticky left-[30px] bg-background z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">{isDomainAnalysis ? 'Domain' : 'Page URL'}</TableHead>
+              {!isDomainAnalysis && <TableHead className="text-center w-[80px]">Category</TableHead>}
               <TableHead className="text-center w-[60px]">Score</TableHead>
               <TableHead className="text-center w-[80px]">Issues</TableHead>
               <TableHead className="text-center w-[60px] text-xs">Auth</TableHead>
@@ -227,33 +233,49 @@ export function PageAnalysisTable({ pages, projectId }: PageAnalysisTableProps) 
                           className="text-sm font-medium hover:underline flex items-center gap-1 line-clamp-1"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          {page.title || page.url}
+                          {isDomainAnalysis ? page.url : (page.title || page.url)}
                           <ExternalLink className="h-3 w-3 flex-shrink-0" />
                         </a>
-                        <div className="text-xs text-muted-foreground line-clamp-1">
-                          {page.url}
-                        </div>
+                        {!isDomainAnalysis && (
+                          <div className="text-xs text-muted-foreground line-clamp-1">
+                            {page.url}
+                          </div>
+                        )}
                       </div>
                     </TableCell>
+                    {!isDomainAnalysis && (
+                      <TableCell className="text-center">
+                        <Badge 
+                          variant={getCategoryBadgeVariant(page.analysisLevel)}
+                          title={`Analysis: ${page.analysisLevel || 'full'} (${Math.round((page.categoryConfidence || 0) * 100)}% confidence)`}
+                          className="text-xs px-2 py-0"
+                        >
+                          {formatPageCategory(page.pageCategory)}
+                        </Badge>
+                      </TableCell>
+                    )}
                     <TableCell className="text-center">
-                      <Badge 
-                        variant={getCategoryBadgeVariant(page.analysisLevel)}
-                        title={`Analysis: ${page.analysisLevel || 'full'} (${Math.round((page.categoryConfidence || 0) * 100)}% confidence)`}
-                        className="text-xs px-2 py-0"
-                      >
-                        {formatPageCategory(page.pageCategory)}
-                      </Badge>
+                      {page.skipped ? (
+                        <Badge 
+                          variant="outline"
+                          className="text-xs px-2 py-0"
+                          title={page.skipReason}
+                        >
+                          Skipped
+                        </Badge>
+                      ) : (
+                        <Badge 
+                          variant={page.globalScore >= 80 ? "success" : page.globalScore >= 60 ? "warning" : "destructive"}
+                          className="text-xs px-2 py-0"
+                        >
+                          {page.globalScore}
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell className="text-center">
-                      <Badge 
-                        variant={page.globalScore >= 80 ? "success" : page.globalScore >= 60 ? "warning" : "destructive"}
-                        className="text-xs px-2 py-0"
-                      >
-                        {page.globalScore}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {page.issues.length > 0 ? (
+                      {page.skipped ? (
+                        <span className="text-xs text-muted-foreground">-</span>
+                      ) : page.issues.length > 0 ? (
                         <div className="flex items-center justify-center gap-1">
                           {Object.entries(
                             page.issues.reduce((acc, issue) => {
@@ -279,31 +301,47 @@ export function PageAnalysisTable({ pages, projectId }: PageAnalysisTableProps) 
                       )}
                     </TableCell>
                     <TableCell className="text-center px-2">
-                      <div className={`text-xs font-medium ${page.scores.authority >= 80 ? 'text-green-600' : page.scores.authority >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
-                        {page.scores.authority}
-                      </div>
+                      {page.skipped ? (
+                        <span className="text-xs text-muted-foreground">-</span>
+                      ) : (
+                        <div className={`text-xs font-medium ${page.scores.authority >= 80 ? 'text-green-600' : page.scores.authority >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+                          {page.scores.authority}
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell className="text-center px-2">
-                      <div className={`text-xs font-medium ${page.scores.freshness >= 80 ? 'text-green-600' : page.scores.freshness >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
-                        {page.scores.freshness}
-                      </div>
+                      {page.skipped ? (
+                        <span className="text-xs text-muted-foreground">-</span>
+                      ) : (
+                        <div className={`text-xs font-medium ${page.scores.freshness >= 80 ? 'text-green-600' : page.scores.freshness >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+                          {page.scores.freshness}
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell className="text-center px-2">
-                      <div className={`text-xs font-medium ${page.scores.structure >= 80 ? 'text-green-600' : page.scores.structure >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
-                        {page.scores.structure}
-                      </div>
+                      {page.skipped ? (
+                        <span className="text-xs text-muted-foreground">-</span>
+                      ) : (
+                        <div className={`text-xs font-medium ${page.scores.structure >= 80 ? 'text-green-600' : page.scores.structure >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+                          {page.scores.structure}
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell className="text-center px-2">
-                      <div className={`text-xs font-medium ${page.scores.brandAlignment >= 80 ? 'text-green-600' : page.scores.brandAlignment >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
-                        {page.scores.brandAlignment}
-                      </div>
+                      {page.skipped ? (
+                        <span className="text-xs text-muted-foreground">-</span>
+                      ) : (
+                        <div className={`text-xs font-medium ${page.scores.brandAlignment >= 80 ? 'text-green-600' : page.scores.brandAlignment >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+                          {page.scores.brandAlignment}
+                        </div>
+                      )}
                     </TableCell>
                   </TableRow>
 
                   {isExpanded && (
                     <TableRow>
-                      <TableCell colSpan={10} className="bg-muted/50">
-                        <PageDetailsSection page={page} projectId={projectId} />
+                      <TableCell colSpan={isDomainAnalysis ? 9 : 10} className="bg-muted/50">
+                        <PageDetailsSection page={page} projectId={projectId} onIssueClick={onIssueClick} />
                       </TableCell>
                     </TableRow>
                   )}

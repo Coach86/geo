@@ -4,15 +4,13 @@ import { ConditionalAggregatorService } from '../rules/registry/conditional-aggr
 import { RuleContext } from '../rules/interfaces/rule.interface';
 import { PageSignalExtractorService } from '../services/page-signal-extractor.service';
 import { PageCategorizerService } from '../services/page-categorizer.service';
-import { LlmService } from '../../llm/services/llm.service';
+import { TrackedLLMService } from '../services/tracked-llm.service';
 import { LlmProvider } from '../../llm/interfaces/llm-provider.enum';
 import { HYBRID_CONSTANTS } from '../config/scoring-constants';
 import { PageCategoryType, AnalysisLevel } from '../interfaces/page-category.interface';
 import { 
-  BaseAuthorityRule,
   AuthorPresenceRule,
-  CitationQualityRule,
-  DomainAuthorityRule
+  CitationQualityRule
 } from '../rules/authority';
 
 interface AuthorityAnalysisResult {
@@ -35,22 +33,27 @@ export class RuleBasedAuthorityAnalyzer {
     private readonly conditionalAggregator: ConditionalAggregatorService,
     private readonly pageSignalExtractor: PageSignalExtractorService,
     private readonly pageCategorizerService: PageCategorizerService,
-    private readonly llmService: LlmService
+    private readonly trackedLLMService: TrackedLLMService,
+    private readonly authorPresenceRule: AuthorPresenceRule,
+    private readonly citationQualityRule: CitationQualityRule,
   ) {
     this.registerRules();
   }
   
   /**
-   * Register all authority rules
+   * Register page-scoped authority rules only
+   * Domain-scoped rules (like Domain Authority) are registered separately for domain analysis
    */
   private registerRules(): void {
-    // Register rules with their configurations
-    this.ruleRegistry.registerRule(BaseAuthorityRule, { weight: 0.2 });
-    this.ruleRegistry.registerRule(AuthorPresenceRule, { weight: 0.4 });
-    this.ruleRegistry.registerRule(CitationQualityRule, { weight: 0.2 });
-    this.ruleRegistry.registerRule(DomainAuthorityRule, { weight: 0.2 });
+    // Register only page-scoped authority rules with adjusted weights
+    // Since we removed Domain Authority (0.25), redistribute its weight
+    this.authorPresenceRule.weight = 0.6;  // increased from 0.5
+    this.citationQualityRule.weight = 0.4; // increased from 0.25
     
-    this.logger.log('Authority rules registered successfully');
+    this.ruleRegistry.register(this.authorPresenceRule);
+    this.ruleRegistry.register(this.citationQualityRule);
+    
+    this.logger.log('Page-scoped authority rules registered successfully');
   }
   
   /**
@@ -101,12 +104,12 @@ export class RuleBasedAuthorityAnalyzer {
           keyBrandAttributes: [],
           competitors: []
         },
-        llmService: this.llmService,
+        trackedLLMService: this.trackedLLMService,
         llmResults
       };
       
-      // Get applicable rules for this context
-      const rules = this.ruleRegistry.getRulesForDimension('authority', context);
+      // Get applicable page-scoped rules for this context
+      const rules = this.ruleRegistry.getRulesForDimension('authority', context, 'page');
       
       this.logger.log(`Running ${rules.length} authority rules for ${url}`);
       
@@ -187,7 +190,9 @@ export class RuleBasedAuthorityAnalyzer {
       const prompt = this.buildAuthorityPrompt(cleanContent, pageSignals);
       
       // Call LLM for authority analysis
-      const response = await this.llmService.call(
+      const response = await this.trackedLLMService.call(
+        url || 'unknown',
+        'authority_analysis',
         LlmProvider.OpenAILangChain,
         prompt,
         {
