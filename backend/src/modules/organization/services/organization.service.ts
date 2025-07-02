@@ -1,5 +1,6 @@
 import { Injectable, Logger, NotFoundException, BadRequestException, Inject, forwardRef } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CreateOrganizationDto } from '../dto/create-organization.dto';
 import { UpdateOrganizationDto } from '../dto/update-organization.dto';
 import { OrganizationResponseDto } from '../dto/organization-response.dto';
@@ -9,6 +10,8 @@ import { Organization as OrganizationEntity } from '../entities/organization.ent
 import { ORGANIZATION_DEFAULTS, UNLIMITED_VALUE } from '../constants/defaults';
 import { ConfigService } from '../../config/services/config.service';
 import { PlanService } from '../../plan/services/plan.service';
+import { OrganizationPlanUpdatedEvent } from '../events/organization-plan-updated.event';
+import { UserService } from '../../user/services/user.service';
 
 @Injectable()
 export class OrganizationService {
@@ -19,6 +22,9 @@ export class OrganizationService {
     private configService: ConfigService,
     @Inject(forwardRef(() => PlanService))
     private planService: PlanService,
+    @Inject(forwardRef(() => UserService))
+    private userService: UserService,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   async create(createOrganizationDto: CreateOrganizationDto): Promise<OrganizationResponseDto> {
@@ -341,12 +347,14 @@ export class OrganizationService {
       trialEndDate.setDate(trialEndDate.getDate() + trialDays);
 
       // Update organization with trial information
+      // SECURITY FIX: Do NOT set stripePlanId during trial activation
+      // stripePlanId should only be set after successful Stripe checkout
       const updateData: any = {
         isOnTrial: true,
         trialStartDate,
         trialEndDate,
         trialPlanId: planId,
-        stripePlanId: planId,
+        // stripePlanId: planId, // REMOVED - Critical security fix
         planSettings: {
           maxProjects: plan.maxProjects,
           maxAIModels: plan.maxModels,
@@ -369,6 +377,25 @@ export class OrganizationService {
       }
 
       this.logger.log(`Trial activated successfully for organization ${organizationId}`);
+      
+      // Get all users in the organization to update their Loops profiles
+      const orgUsers = await this.userService.findByOrganizationId(organizationId);
+      const userEmails = orgUsers.map((u: any) => u.email);
+      
+      // Emit organization plan update event for Loops
+      this.eventEmitter.emit(
+        'organization.plan.updated',
+        new OrganizationPlanUpdatedEvent(
+          organizationId,
+          plan.name,
+          trialStartDate,
+          true, // isOnTrial
+          userEmails,
+          trialEndDate, // trialEndsAt
+          'trialing', // subscriptionStatus
+        ),
+      );
+      
       return this.mapToResponseDto(updatedOrganization);
     } catch (error) {
       this.logger.error(`Failed to activate trial: ${error.message}`, error.stack);
@@ -408,6 +435,24 @@ export class OrganizationService {
         });
 
         this.logger.log(`Organization ${organization.id} downgraded to free plan after trial expiry`);
+        
+        // Get all users in the organization to update their Loops profiles
+        const orgUsers = await this.userService.findByOrganizationId(organization.id);
+        const userEmails = orgUsers.map((u: any) => u.email);
+        
+        // Emit organization plan update event for Loops (trial expired, back to free)
+        this.eventEmitter.emit(
+          'organization.plan.updated',
+          new OrganizationPlanUpdatedEvent(
+            organization.id,
+            'Free',
+            new Date(),
+            false, // isOnTrial
+            userEmails,
+            undefined, // trialEndsAt
+            'trial_expired', // subscriptionStatus
+          ),
+        );
       }
     } catch (error) {
       this.logger.error(`Failed to check and expire trials: ${error.message}`, error.stack);

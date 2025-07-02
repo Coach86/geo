@@ -49,6 +49,12 @@ import { getAllOrganizations } from '../utils/api-organization';
 import { Project, User } from '../utils/types';
 import ProjectCard from '../components/ProjectCard';
 
+interface Organization {
+  id: string;
+  createdAt: string;
+  currentProjects?: number;
+}
+
 const ProjectList: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
@@ -57,7 +63,7 @@ const ProjectList: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [currentView, setCurrentView] = useState<number>(0);
   const [selectedOrganizationId, setSelectedOrganizationId] = useState<string>('');
-  const [organizations, setOrganizations] = useState<any[]>([]);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loadingOrganizations, setLoadingOrganizations] = useState(false);
   const navigate = useNavigate();
   const theme = useTheme();
@@ -70,12 +76,20 @@ const ProjectList: React.FC = () => {
 
       // Fetch projects
       const projectData = await getProjects();
-      setProjects(projectData);
-      setFilteredProjects(projectData);
+      // Sort projects by createdAt (newest to oldest)
+      const sortedProjects = projectData.sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      setProjects(sortedProjects);
+      setFilteredProjects(sortedProjects);
 
       // Fetch organizations
       const orgData = await getAllOrganizations();
-      setOrganizations(orgData);
+      // Sort organizations by createdAt (newest to oldest)  
+      const sortedOrgs = orgData.sort((a: Organization, b: Organization) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      setOrganizations(sortedOrgs);
 
       setError(null);
     } catch (err) {

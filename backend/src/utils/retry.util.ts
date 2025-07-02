@@ -22,6 +22,27 @@ export class RetryUtil {
   private static readonly logger = new Logger(RetryUtil.name);
 
   /**
+   * Determines if an error is a permanent quota/billing error that should NOT be retried
+   */
+  static isQuotaError(error: any): boolean {
+    const errorMessage = error?.message?.toLowerCase() || '';
+    
+    // Quota/billing error indicators that suggest permanent failure
+    const quotaIndicators = [
+      'exceeded your current quota',
+      'check your plan and billing',
+      'insufficient quota',
+      'insufficientquotaerror',
+      'quota has been exhausted',
+      'upgrade your plan',
+      'billing details',
+      'payment required'
+    ];
+
+    return quotaIndicators.some(indicator => errorMessage.includes(indicator));
+  }
+
+  /**
    * Determines if an error is a rate limiting error that should be retried
    */
   static isRateLimitError(error: any): boolean {
@@ -29,14 +50,16 @@ export class RetryUtil {
     const errorCode = error?.code?.toString() || '';
     const statusCode = error?.status || error?.statusCode || 0;
 
-    // Common rate limit indicators
+    // First check if it's a quota error - these should NOT be retried
+    if (this.isQuotaError(error)) {
+      return false;
+    }
+
+    // Common rate limit indicators (temporary issues that can be retried)
     const rateLimitIndicators = [
-      '429',
       'too many requests',
       'rate limit',
       'rate_limit',
-      'quota exceeded',
-      'quota_exceeded',
       'requests per minute',
       'rpm',
       'tpm',
@@ -45,14 +68,15 @@ export class RetryUtil {
       'rate-limited',
       'throttled',
       'throttling',
-      'exceeded your current quota',
       'retry after',
-      'retry-after'
+      'retry-after',
+      'temporarily unavailable'
     ];
 
     // Check status code
     if (statusCode === 429) {
-      return true;
+      // Even with 429, check if it's a quota error
+      return !this.isQuotaError(error);
     }
 
     // Check error message and code
@@ -176,9 +200,16 @@ export class RetryUtil {
 
         // Check if this error should be retried
         if (!retryCondition(error)) {
-          this.logger.debug(
-            `${operationName || 'Operation'} failed with non-retryable error: ${error.message}`
-          );
+          // Check if it's specifically a quota error for better logging
+          if (this.isQuotaError(error)) {
+            this.logger.warn(
+              `${operationName || 'Operation'} failed with quota/billing error (not retrying): ${error.message}`
+            );
+          } else {
+            this.logger.debug(
+              `${operationName || 'Operation'} failed with non-retryable error: ${error.message}`
+            );
+          }
           throw error;
         }
 

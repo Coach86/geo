@@ -59,6 +59,45 @@ export class TopDomainDto {
   percentage: number;
 }
 
+export class DomainSourceAnalysisDto {
+  @ApiProperty({ description: 'Percentage of citations from brand domain' })
+  brandDomainPercentage: number;
+
+  @ApiProperty({ description: 'Percentage of citations from other sources' })
+  otherSourcesPercentage: number;
+
+  @ApiProperty({ description: 'Count of citations from brand domain' })
+  brandDomainCount: number;
+
+  @ApiProperty({ description: 'Count of citations from other sources' })
+  otherSourcesCount: number;
+
+  @ApiProperty({ 
+    description: 'Breakdown of citations by competitor',
+    type: 'array',
+    items: {
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+        count: { type: 'number' },
+        percentage: { type: 'number' }
+      }
+    },
+    required: false
+  })
+  competitorBreakdown?: Array<{
+    name: string;
+    count: number;
+    percentage: number;
+  }>;
+
+  @ApiProperty({ description: 'Count of citations from unknown sources', required: false })
+  unknownSourcesCount?: number;
+
+  @ApiProperty({ description: 'Percentage of citations from unknown sources', required: false })
+  unknownSourcesPercentage?: number;
+}
+
 export class AggregatedVisibilityResponseDto {
   @ApiProperty({ description: 'Average visibility score across all selected reports and models' })
   averageScore: number;
@@ -113,4 +152,11 @@ export class AggregatedVisibilityResponseDto {
 
   @ApiProperty({ description: 'Total number of prompts tested for visibility' })
   totalPromptsTested: number;
+
+  @ApiProperty({ 
+    description: 'Domain source analysis for visibility citations only',
+    type: DomainSourceAnalysisDto,
+    required: false
+  })
+  domainSourceAnalysis?: DomainSourceAnalysisDto;
 }

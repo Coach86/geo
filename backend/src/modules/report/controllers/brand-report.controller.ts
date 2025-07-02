@@ -38,7 +38,11 @@ export class BrandReportController {
     @Query('limit') limit?: number
   ): Promise<BrandReportResponseDto[]> {
     // Token validation is handled by TokenAuthGuard via @TokenRoute decorator
-    return this.brandReportService.getProjectReports(projectId, limit);
+    const userId = request.userId || request.user?.id;
+    if (!userId) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+    return this.brandReportService.getProjectReports(projectId, limit, userId);
   }
 
   @Get(':reportId')
@@ -54,7 +58,11 @@ export class BrandReportController {
     @Param('reportId') reportId: string
   ): Promise<BrandReportResponseDto> {
     // Token validation is handled by TokenAuthGuard via @TokenRoute decorator
-    return this.brandReportService.getReport(reportId);
+    const userId = request.userId || request.user?.id;
+    if (!userId) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+    return this.brandReportService.getReport(reportId, userId);
   }
 
   @Get(':reportId/explorer')
@@ -72,7 +80,11 @@ export class BrandReportController {
     @Param('reportId') reportId: string
   ) {
     // Token validation is handled by TokenAuthGuard via @TokenRoute decorator
-    return this.brandReportService.getExplorerData(reportId);
+    const userId = request.userId || request.user?.id;
+    if (!userId) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+    return this.brandReportService.getExplorerData(reportId, userId);
   }
 
   @Get(':reportId/visibility')
@@ -90,7 +102,11 @@ export class BrandReportController {
     @Param('reportId') reportId: string
   ) {
     // Token validation is handled by TokenAuthGuard via @TokenRoute decorator
-    return this.brandReportService.getVisibilityData(reportId);
+    const userId = request.userId || request.user?.id;
+    if (!userId) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+    return this.brandReportService.getVisibilityData(reportId, userId);
   }
 
   @Get(':reportId/sentiment')
@@ -108,7 +124,11 @@ export class BrandReportController {
     @Param('reportId') reportId: string
   ) {
     // Token validation is handled by TokenAuthGuard via @TokenRoute decorator
-    return this.brandReportService.getSentimentData(reportId);
+    const userId = request.userId || request.user?.id;
+    if (!userId) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+    return this.brandReportService.getSentimentData(reportId, userId);
   }
 
   @Get(':reportId/alignment')
@@ -126,7 +146,11 @@ export class BrandReportController {
     @Param('reportId') reportId: string
   ) {
     // Token validation is handled by TokenAuthGuard via @TokenRoute decorator
-    return this.brandReportService.getAlignmentData(reportId);
+    const userId = request.userId || request.user?.id;
+    if (!userId) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+    return this.brandReportService.getAlignmentData(reportId, userId);
   }
 
   @Get(':reportId/competition')
@@ -144,7 +168,11 @@ export class BrandReportController {
     @Param('reportId') reportId: string
   ): Promise<ReportCompetitionResponseDto> {
     // Token validation is handled by TokenAuthGuard via @TokenRoute decorator
-    return this.brandReportService.getCompetitionData(reportId);
+    const userId = request.userId || request.user?.id;
+    if (!userId) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+    return this.brandReportService.getCompetitionData(reportId, userId);
   }
 
   @Get('project/:projectId/visibility/aggregated')
@@ -161,7 +189,11 @@ export class BrandReportController {
     @Query() query: AggregatedReportQueryDto
   ): Promise<AggregatedVisibilityResponseDto> {
     // Token validation is handled by TokenAuthGuard via @TokenRoute decorator
-    return this.brandReportService.getAggregatedVisibility(projectId, query);
+    const userId = request.userId || request.user?.id;
+    if (!userId) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+    return this.brandReportService.getAggregatedVisibility(projectId, query, userId);
   }
 
   @Get('project/:projectId/alignment/aggregated')
@@ -178,7 +210,11 @@ export class BrandReportController {
     @Query() query: AggregatedReportQueryDto
   ): Promise<AggregatedAlignmentResponseDto> {
     // Token validation is handled by TokenAuthGuard via @TokenRoute decorator
-    return this.brandReportService.getAggregatedAlignment(projectId, query);
+    const userId = request.userId || request.user?.id;
+    if (!userId) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+    return this.brandReportService.getAggregatedAlignment(projectId, query, userId);
   }
 
   @Get('project/:projectId/sentiment/aggregated')
@@ -195,7 +231,11 @@ export class BrandReportController {
     @Query() query: AggregatedReportQueryDto
   ): Promise<AggregatedSentimentResponseDto> {
     // Token validation is handled by TokenAuthGuard via @TokenRoute decorator
-    return this.brandReportService.getAggregatedSentiment(projectId, query);
+    const userId = request.userId || request.user?.id;
+    if (!userId) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+    return this.brandReportService.getAggregatedSentiment(projectId, query, userId);
   }
 
   @Get('project/:projectId/explorer/aggregated')
@@ -212,7 +252,11 @@ export class BrandReportController {
     @Query() query: AggregatedReportQueryDto
   ): Promise<AggregatedExplorerResponseDto> {
     // Token validation is handled by TokenAuthGuard via @TokenRoute decorator
-    return this.brandReportService.getAggregatedExplorer(projectId, query);
+    const userId = request.userId || request.user?.id;
+    if (!userId) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+    return this.brandReportService.getAggregatedExplorer(projectId, query, userId);
   }
 
   @Get('project/:projectId/competition/aggregated')
@@ -229,6 +273,10 @@ export class BrandReportController {
     @Query() query: AggregatedReportQueryDto
   ): Promise<AggregatedCompetitionResponseDto> {
     // Token validation is handled by TokenAuthGuard via @TokenRoute decorator
-    return this.brandReportService.getAggregatedCompetition(projectId, query);
+    const userId = request.userId || request.user?.id;
+    if (!userId) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+    return this.brandReportService.getAggregatedCompetition(projectId, query, userId);
   }
 }

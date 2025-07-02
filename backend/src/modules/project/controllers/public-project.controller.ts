@@ -5,6 +5,7 @@ import {
   BadRequestException,
   NotFoundException,
   ForbiddenException,
+  UnauthorizedException,
   Req,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
@@ -18,6 +19,7 @@ import { BrandReportPersistenceService } from '../../report/services/brand-repor
 import { ReportStructure } from '../../report/interfaces/report.interfaces';
 import { SentimentResults, AlignmentResults, CompetitionResults } from '../../batch/interfaces/batch.interfaces';
 import { ReportBuilderService } from '../../batch/services/report-builder.service';
+import { UserService } from '../../user/services/user.service';
 
 @ApiTags('User - Projects')
 @Controller('projects')
@@ -30,6 +32,7 @@ export class PublicProjectController {
     private readonly planService: PlanService,
     private readonly brandReportPersistenceService: BrandReportPersistenceService,
     private readonly reportBuilderService: ReportBuilderService,
+    private readonly userService: UserService,
   ) {}
 
   @Post(':projectId/run-analysis')
@@ -58,10 +61,27 @@ export class PublicProjectController {
     @Param('projectId') projectId: string,
   ) {
     try {
+      // Get user ID from the request (set by TokenAuthGuard)
+      const userId = request.userId || request.user?.id;
+      if (!userId) {
+        throw new UnauthorizedException('User not authenticated');
+      }
+
+      // Get user to check organization
+      const user = await this.userService.findOne(userId);
+      if (!user) {
+        throw new UnauthorizedException('User not found');
+      }
+
       // First, get project to check organization
       const project = await this.projectService.findById(projectId);
       if (!project) {
         throw new NotFoundException(`Project not found with ID: ${projectId}`);
+      }
+
+      // SECURITY: Validate that user belongs to the same organization as the project
+      if (project.organizationId !== user.organizationId) {
+        throw new UnauthorizedException('You do not have permission to access this project');
       }
 
       // Check if organization has a free plan and block manual analysis for free plans

@@ -14,6 +14,7 @@ import { useEffect, useState, useRef } from "react"
 import { createProject, analyzeWebsite, type CreateFullProjectRequest } from "@/lib/auth-api"
 import { getOnboardingData, updateOnboardingData, clearOnboardingData } from "@/lib/onboarding-storage"
 import { SvgLoader } from "@/components/ui/svg-loader"
+import { updatePhoneNumber } from "@/lib/api/user"
 
 export default function OnboardingLayout({ children }: { children: ReactNode }) {
   return (
@@ -225,6 +226,53 @@ function NavigationButtons() {
 
     try {
       console.log("Processing configuration:", formData)
+      
+      // Update phone number if provided
+      if (formData.contact?.phoneNumber && token) {
+        // Get the country dial code
+        const countryCodes = [
+          { code: "US", dial_code: "+1" },
+          { code: "GB", dial_code: "+44" },
+          { code: "CA", dial_code: "+1" },
+          { code: "AU", dial_code: "+61" },
+          { code: "FR", dial_code: "+33" },
+          { code: "DE", dial_code: "+49" },
+          { code: "JP", dial_code: "+81" },
+          { code: "CN", dial_code: "+86" },
+          { code: "IN", dial_code: "+91" },
+          { code: "BR", dial_code: "+55" },
+          { code: "MX", dial_code: "+52" },
+          { code: "ES", dial_code: "+34" },
+          { code: "IT", dial_code: "+39" },
+          { code: "NL", dial_code: "+31" },
+          { code: "SE", dial_code: "+46" },
+          { code: "CH", dial_code: "+41" },
+          { code: "SG", dial_code: "+65" },
+          { code: "KR", dial_code: "+82" },
+          { code: "RU", dial_code: "+7" },
+          { code: "ZA", dial_code: "+27" },
+        ];
+        
+        const countryCode = formData.contact.phoneCountry || "US";
+        const country = countryCodes.find(c => c.code === countryCode);
+        const dialCode = country ? country.dial_code : "+1";
+        
+        // Format the complete phone number
+        const fullPhoneNumber = `${dialCode}${formData.contact.phoneNumber}`;
+        
+        console.log("[handleGenerateReport] Updating phone number:", fullPhoneNumber);
+        console.log("[handleGenerateReport] Country code:", countryCode, "Dial code:", dialCode);
+        
+        try {
+          await updatePhoneNumber({
+            phoneNumber: fullPhoneNumber
+          }, token);
+          console.log("[handleGenerateReport] Phone number updated successfully");
+        } catch (phoneError) {
+          console.error("[handleGenerateReport] Failed to update phone number:", phoneError);
+          // Don't fail the whole process if phone update fails
+        }
+      }
 
       // Prepare the identity card request
       const identityCardRequest: CreateFullProjectRequest = {

@@ -816,7 +816,7 @@ export class UserProjectController {
     response.competitors = project.competitors;
     response.competitorDetails = project.competitorDetails;
     response.organizationId = project.organizationId;
-    response.createdAt = project.updatedAt;
+    response.createdAt = project.createdAt || project.updatedAt; // Use actual createdAt if available
     response.updatedAt = project.updatedAt;
     response.nextManualAnalysisAllowedAt = project.nextManualAnalysisAllowedAt;
     return response;

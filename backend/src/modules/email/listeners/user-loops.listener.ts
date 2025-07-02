@@ -4,6 +4,7 @@ import { LoopsService } from '../services/loops.service';
 import { UserCreatedEvent } from '../../user/events/user-created.event';
 import { UserUpdatedEvent } from '../../user/events/user-updated.event';
 import { UserDeletedEvent } from '../../user/events/user-deleted.event';
+import { OrganizationPlanUpdatedEvent } from '../../organization/events/organization-plan-updated.event';
 
 @Injectable()
 export class UserLoopsListener {
@@ -85,6 +86,34 @@ export class UserLoopsListener {
         error.stack
       );
       // Don't throw - we don't want to break the user deletion flow
+    }
+  }
+
+  @OnEvent('organization.plan.updated')
+  async handleOrganizationPlanUpdated(event: OrganizationPlanUpdatedEvent) {
+    try {
+      this.logger.log(`Handling organization.plan.updated event for organization: ${event.organizationId} with ${event.userEmails.length} users`);
+
+      // Update all users in the organization with the new plan information
+      const updatePromises = event.userEmails.map(email => 
+        this.loopsService.updateContact(email, {
+          plan: event.planName,
+          planActivatedAt: event.planActivatedAt.toISOString(),
+          isOnTrial: event.isOnTrial,
+          trialEndsAt: event.trialEndsAt?.toISOString(),
+          subscriptionStatus: event.subscriptionStatus,
+        })
+      );
+
+      await Promise.all(updatePromises);
+      
+      this.logger.log(`Successfully updated ${event.userEmails.length} Loops contacts with plan: ${event.planName}`);
+    } catch (error) {
+      this.logger.error(
+        `Failed to handle organization.plan.updated event: ${error.message}`,
+        error.stack
+      );
+      // Don't throw - we don't want to break the plan update flow
     }
   }
 }

@@ -27,7 +27,16 @@ export default function RootPage() {
           return;
         }
 
-        // If user has projects, redirect to home
+        // User has projects, check if they have an active plan
+        const hasActivePlan = organization.stripePlanId || organization.hasActivatedFreePlan;
+        
+        if (!hasActivePlan) {
+          // User has projects but no plan - redirect to pricing
+          router.replace("/pricing");
+          return;
+        }
+
+        // User has projects and a plan, redirect to home
         router.replace("/home");
       } catch (error) {
         console.error("Failed to fetch organization:", error);

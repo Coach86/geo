@@ -72,6 +72,7 @@ export interface PlanResponseDto {
   maxSpontaneousPrompts: number;
   maxCompetitors: number;
   maxUsers: number;
+  refreshFrequency: string;
   isActive: boolean;
   isRecommended: boolean;
   isMostPopular: boolean;

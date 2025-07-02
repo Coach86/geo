@@ -27,7 +27,7 @@ export default function SubscriptionConfirmationEmail({
   billingCycle = 'monthly',
 }: SubscriptionConfirmationEmailProps) {
   const baseUrl = process.env.FRONTEND_URL || 'https://app.getmint.ai';
-  const logoUrl = `https://app.getmint.ai/mint-logo.png`;
+  const logoUrl = `https://app.getmint.ai/logo-small.png`;
   const formattedAmount = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',

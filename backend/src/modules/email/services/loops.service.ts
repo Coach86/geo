@@ -14,6 +14,12 @@ interface LoopsContactProperties {
   organizationId?: string;
   language?: string;
   phoneNumber?: string;
+  // Plan-related properties
+  plan?: string;
+  planActivatedAt?: string;
+  isOnTrial?: boolean;
+  trialEndsAt?: string;
+  subscriptionStatus?: string;
 }
 
 @Injectable()
@@ -73,6 +79,12 @@ export class LoopsService {
         organizationId: contactData.organizationId || null,
         language: contactData.language || null,
         phoneNumber: contactData.phoneNumber || null,
+        // Plan-related properties
+        plan: contactData.plan || null,
+        planActivatedAt: contactData.planActivatedAt || null,
+        isOnTrial: contactData.isOnTrial || null,
+        trialEndsAt: contactData.trialEndsAt || null,
+        subscriptionStatus: contactData.subscriptionStatus || null,
       };
 
       if (contactExists) {

@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsBoolean, IsArray, IsOptional, IsObject, Min } from 'class-validator';
+import { IsString, IsNumber, IsBoolean, IsArray, IsOptional, IsObject, Min, IsEnum } from 'class-validator';
 
 export class CreatePlanDto {
   @IsString()
@@ -58,4 +58,9 @@ export class CreatePlanDto {
   @IsObject()
   @IsOptional()
   metadata?: Record<string, any>;
+
+  @IsString()
+  @IsEnum(['daily', 'weekly', 'unlimited'])
+  @IsOptional()
+  refreshFrequency?: string;
 }
