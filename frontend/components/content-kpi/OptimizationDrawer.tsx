@@ -198,6 +198,90 @@ Best regards,
     ]
   },
 
+  'Improve citations': {
+    dimension: 'authority',
+    icon: Link2,
+    overview: 'Citations and references enhance content credibility by showing that your information is backed by authoritative sources.',
+    impact: 'Can improve authority score by 15-25 points',
+    steps: [
+      {
+        title: 'Add Relevant Citations',
+        description: 'Include citations to authoritative sources throughout your content.',
+        actions: [
+          'Cite industry research and studies',
+          'Reference official documentation',
+          'Link to authoritative news sources',
+          'Include academic papers when relevant'
+        ]
+      },
+      {
+        title: 'Format Citations Properly',
+        description: 'Use consistent citation formatting for better recognition.',
+        actions: [
+          'Use inline citations with source links',
+          'Add a references section at the end',
+          'Include publication dates for sources',
+          'Use schema markup for citations'
+        ]
+      },
+      {
+        title: 'Choose Quality Sources',
+        description: 'Select high-authority sources for maximum impact.',
+        actions: [
+          'Prioritize .gov, .edu, and established .org sites',
+          'Use recent sources (within 2-3 years)',
+          'Verify source credibility and expertise',
+          'Avoid broken or outdated links'
+        ]
+      }
+    ],
+    code: `<!-- Inline Citation Example -->
+<p>According to a recent study by Harvard Business Review<sup><a href="#ref1">[1]</a></sup>, 
+companies that implement SEO best practices see a 40% increase in organic traffic.</p>
+
+<!-- Citation Schema Markup -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "citation": [
+    {
+      "@type": "CreativeWork",
+      "name": "SEO Best Practices Study",
+      "author": "Harvard Business Review",
+      "datePublished": "2024-01-15",
+      "url": "https://hbr.org/2024/01/seo-study"
+    }
+  ]
+}
+</script>
+
+<!-- References Section -->
+<section id="references">
+  <h2>References</h2>
+  <ol>
+    <li id="ref1">
+      Harvard Business Review. (2024, January 15). 
+      <cite>SEO Best Practices Study</cite>. 
+      Retrieved from <a href="https://hbr.org/2024/01/seo-study" rel="nofollow">
+      https://hbr.org/2024/01/seo-study</a>
+    </li>
+  </ol>
+</section>`,
+    bestPractices: [
+      'Cite sources inline where claims are made',
+      'Use a consistent citation format',
+      'Check all links regularly for validity',
+      'Balance citations without overdoing it'
+    ],
+    pitfalls: [
+      'Using low-quality or spam sources',
+      'Excessive self-citations',
+      'Broken or dead links',
+      'Citing outdated information'
+    ]
+  },
+
   'Add author information': {
     dimension: 'authority',
     icon: Users,
@@ -798,6 +882,22 @@ function findGuideMatch(guideName: string): any {
     'brand': 'Increase brand mentions',
     'fresh': 'Update outdated content',
     'structure': 'Fix heading hierarchy',
+    'citation': 'Improve citations',
+    'reference': 'Improve citations',
+    'no author': 'Add author information',
+    'missing author': 'Add author information',
+    'no date': 'Add publish/update dates',
+    'missing date': 'Add publish/update dates',
+    'no schema': 'Add schema markup',
+    'missing schema': 'Add schema markup',
+    'no brand': 'Increase brand mentions',
+    'low brand': 'Increase brand mentions',
+    'no meta': 'Improve meta tags',
+    'missing meta': 'Improve meta tags',
+    'duplicate': 'Improve meta tags',
+    'no h1': 'Fix heading hierarchy',
+    'multiple h1': 'Fix heading hierarchy',
+    'missing h1': 'Fix heading hierarchy',
   };
 
   // Check for keyword matches
