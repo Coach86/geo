@@ -40,11 +40,8 @@ export class ProjectRecoveryService {
           // Match projects created more than 30 minutes ago without recovery attempt
           $match: {
             createdAt: { $lt: thirtyMinutesAgo },
-            $or: [
-              { recoveryAttemptedAt: { $exists: false } },
-              { recoveryAttemptedAt: null }
-            ]
-          }
+            $or: [{ recoveryAttemptedAt: { $exists: false } }, { recoveryAttemptedAt: null }],
+          },
         },
         {
           // Left join with brand_reports
@@ -52,22 +49,24 @@ export class ProjectRecoveryService {
             from: 'brand_reports',
             localField: 'id',
             foreignField: 'projectId',
-            as: 'reports'
-          }
+            as: 'reports',
+          },
         },
         {
           // Filter to only projects with no reports
           $match: {
-            reports: { $size: 0 }
-          }
+            reports: { $size: 0 },
+          },
         },
         {
           // Limit to avoid processing too many at once
-          $limit: 20
-        }
+          $limit: 20,
+        },
       ]);
 
-      this.logger.log(`Found ${projectsWithoutReports.length} projects without reports for recovery`);
+      this.logger.log(
+        `Found ${projectsWithoutReports.length} projects without reports for recovery`,
+      );
 
       // Process each project
       for (const projectDoc of projectsWithoutReports) {
@@ -76,7 +75,7 @@ export class ProjectRecoveryService {
         } catch (error) {
           this.logger.error(
             `Failed to recover project ${projectDoc.id}: ${error.message}`,
-            error.stack
+            error.stack,
           );
         }
       }
@@ -92,14 +91,14 @@ export class ProjectRecoveryService {
    */
   private async recoverSingleProject(projectDoc: ProjectDocument): Promise<void> {
     const projectId = projectDoc.id;
-    
+
     this.logger.log(`Attempting recovery for project ${projectId} (${projectDoc.brandName})`);
 
     try {
       // Mark recovery as attempted immediately to prevent duplicate attempts
       await this.projectModel.updateOne(
         { id: projectId },
-        { $set: { recoveryAttemptedAt: new Date() } }
+        { $set: { recoveryAttemptedAt: new Date() } },
       );
 
       // Get the organization and plan details
@@ -113,7 +112,7 @@ export class ProjectRecoveryService {
       const planSettings = organization.planSettings as { _id?: string };
       const planId = planSettings?._id;
       let isFreePlan = false;
-      
+
       if (planId) {
         const plan = await this.planService.findById(planId);
         isFreePlan = plan?.name?.toLowerCase() === 'free';
@@ -140,12 +139,8 @@ export class ProjectRecoveryService {
         await this.brandReportOrchestratorService.orchestrateProjectBatches(projectId);
         this.logger.log(`Completed full recovery for paid plan project ${projectId}`);
       }
-
     } catch (error) {
-      this.logger.error(
-        `Recovery failed for project ${projectId}: ${error.message}`,
-        error.stack
-      );
+      this.logger.error(`Recovery failed for project ${projectId}: ${error.message}`, error.stack);
       // Don't throw - continue with other projects
     }
   }
@@ -153,62 +148,74 @@ export class ProjectRecoveryService {
   /**
    * Process visibility-only recovery for free plan projects
    */
-  private async processVisibilityOnlyRecovery(projectContext: any, projectId: string): Promise<void> {
+  private async processVisibilityOnlyRecovery(
+    projectContext: any,
+    projectId: string,
+    triggerSource: 'cron' | 'manual' | 'project_creation' = 'manual',
+  ): Promise<void> {
     // Create a new batch execution
-    const batchExecution = await this.batchService.createBatchExecution(projectId);
+    const batchExecution = await this.batchService.createBatchExecution(projectId, triggerSource);
     const batchExecutionId = batchExecution.id;
 
-    // Add batch execution ID to context
-    const contextWithExecId = { ...projectContext, batchExecutionId };
+    // Add batch execution ID and triggerSource to context
+    const contextWithExecId = { ...projectContext, batchExecutionId, triggerSource };
 
     try {
       // Run only visibility pipeline
       const visibilityResults = await this.batchService.runVisibilityPipeline(contextWithExecId);
 
       // Create empty results for other pipelines
-      const sentimentResults = { 
-        results: [], 
+      const sentimentResults = {
+        results: [],
         summary: {
           overallSentiment: 'neutral' as const,
-          overallSentimentPercentage: 0
+          overallSentimentPercentage: 0,
         },
         webSearchSummary: {
           usedWebSearch: false,
           webSearchCount: 0,
-          consultedWebsites: []
-        }
+          consultedWebsites: [],
+        },
       };
-      const alignmentResults = { 
-        results: [], 
+      const alignmentResults = {
+        results: [],
         summary: {
-          averageAttributeScores: {}
+          averageAttributeScores: {},
         },
         webSearchSummary: {
           usedWebSearch: false,
           webSearchCount: 0,
-          consultedWebsites: []
-        }
+          consultedWebsites: [],
+        },
       };
-      const competitionResults = { 
-        results: [], 
+      const competitionResults = {
+        results: [],
         summary: {
           competitorAnalyses: [],
           commonStrengths: [],
-          commonWeaknesses: []
+          commonWeaknesses: [],
         },
         webSearchSummary: {
           usedWebSearch: false,
           webSearchCount: 0,
-          consultedWebsites: []
-        }
+          consultedWebsites: [],
+        },
       };
 
       // Save all results
       await Promise.all([
-        this.batchService.saveSinglePipelineResult(batchExecutionId, 'visibility', visibilityResults),
+        this.batchService.saveSinglePipelineResult(
+          batchExecutionId,
+          'visibility',
+          visibilityResults,
+        ),
         this.batchService.saveSinglePipelineResult(batchExecutionId, 'sentiment', sentimentResults),
         this.batchService.saveSinglePipelineResult(batchExecutionId, 'alignment', alignmentResults),
-        this.batchService.saveSinglePipelineResult(batchExecutionId, 'competition', competitionResults),
+        this.batchService.saveSinglePipelineResult(
+          batchExecutionId,
+          'competition',
+          competitionResults,
+        ),
       ]);
 
       // Create and save the visibility-only report
@@ -218,7 +225,7 @@ export class ProjectRecoveryService {
         sentimentResults,
         alignmentResults,
         competitionResults,
-        projectContext
+        contextWithExecId,
       );
 
       // Mark the batch as completed
@@ -228,10 +235,12 @@ export class ProjectRecoveryService {
         alignment: alignmentResults,
         competition: competitionResults,
       });
-
     } catch (error) {
       // Mark the batch as failed
-      await this.batchService.failBatchExecution(batchExecutionId, error.message || 'Unknown error');
+      await this.batchService.failBatchExecution(
+        batchExecutionId,
+        error.message || 'Unknown error',
+      );
       throw error;
     }
   }

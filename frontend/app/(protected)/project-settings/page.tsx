@@ -22,7 +22,7 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from "@/components/ui/persistent-tooltip";
 import { AlertCircle, RefreshCw, Info } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";

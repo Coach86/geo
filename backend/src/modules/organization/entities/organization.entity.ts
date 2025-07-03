@@ -9,6 +9,7 @@ export class Organization {
   subscriptionCurrentPeriodEnd?: Date;
   subscriptionCancelAt?: Date;
   planSettings: {
+    _id?: string;
     maxProjects: number;
     maxAIModels: number;
     maxSpontaneousPrompts: number;

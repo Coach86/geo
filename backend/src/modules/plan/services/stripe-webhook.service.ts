@@ -95,8 +95,9 @@ export class StripeWebhookService {
         promoCode: undefined, // Remove promo code after successful checkout
       });
 
-      // Update plan settings with plan limits
+      // Update plan settings with plan limits and plan ID
       await this.organizationService.updatePlanSettings(organizationId, {
+        _id: planId,
         maxProjects: plan.maxProjects,
         maxAIModels: plan.maxModels,
         maxSpontaneousPrompts: plan.maxSpontaneousPrompts,

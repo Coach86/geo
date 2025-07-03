@@ -6,7 +6,7 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from "@/components/ui/persistent-tooltip";
 
 interface BatchStatusIndicatorProps {
   isProcessing: boolean;

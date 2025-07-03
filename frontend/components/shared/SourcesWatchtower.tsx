@@ -43,7 +43,7 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from "@/components/ui/persistent-tooltip";
 import { MultiSelectFilter } from "@/components/explorer/MultiSelectFilter";
 import { ModelDisplay } from "@/components/shared/ModelDisplay";
 import { getModelFriendlyName } from "@/utils/model-utils";
@@ -487,7 +487,7 @@ export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowe
           return (
             <div className="space-y-1">
               {uniquePrompts.slice(0, 2).map((prompt, idx) => (
-                <p key={idx} className="text-sm text-gray-700" title={prompt}>
+                <p key={idx} className="text-xs text-gray-700" title={prompt}>
                   {prompt.length > 80 
                     ? `${prompt.substring(0, 80)}...` 
                     : prompt}
@@ -504,7 +504,7 @@ export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowe
                     <TooltipContent side="left" className="max-w-md">
                       <div className="space-y-2">
                         {uniquePrompts.slice(2).map((prompt, idx) => (
-                          <p key={idx} className="text-sm whitespace-pre-wrap">
+                          <p key={idx} className="text-xs whitespace-pre-wrap">
                             {prompt}
                           </p>
                         ))}

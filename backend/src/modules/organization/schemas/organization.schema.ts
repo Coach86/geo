@@ -46,6 +46,7 @@ export class Organization {
     },
   })
   planSettings: {
+    _id?: string;
     maxProjects: number;
     maxAIModels: number;
     maxSpontaneousPrompts: number;

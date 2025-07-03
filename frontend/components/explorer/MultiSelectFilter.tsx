@@ -17,7 +17,7 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from "@/components/ui/persistent-tooltip";
 import { cn } from "@/lib/utils";
 
 interface MultiSelectFilterProps {

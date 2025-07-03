@@ -6,7 +6,7 @@ import { useMemo } from "react";
 import { useFavicons } from "@/hooks/use-favicon";
 import { Button } from "@/components/ui/button";
 import { exportToCSV, formatDomainDataForCSV } from "@/utils/csv-export";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/persistent-tooltip";
 
 interface TopDomainRankingCardProps {
   domains: Array<{

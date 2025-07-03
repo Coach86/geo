@@ -30,6 +30,7 @@ export interface ProjectBatchContext {
   selectedModels?: string[]; // Organization's selected AI models
   isManualRefresh?: boolean; // Indicates if this was triggered by manual refresh
   isNewProject?: boolean; // Indicates if this was triggered by new project creation
+  triggerSource?: 'cron' | 'manual' | 'project_creation';
 }
 
 /**

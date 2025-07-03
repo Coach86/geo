@@ -19,12 +19,12 @@ import { CompetitionPipelineService } from './competition-pipeline.service';
 import { BatchExecutionService } from './batch-execution.service';
 import { BrandReportOrchestratorService } from './brand-report-orchestrator.service';
 import { ReportBuilderService } from './report-builder.service';
-import { 
+import {
   ProjectBatchContext,
   VisibilityResults,
   SentimentResults,
   AlignmentResults,
-  CompetitionResults
+  CompetitionResults,
 } from '../interfaces/batch.interfaces';
 import { Project } from '../../project/entities/project.entity';
 import { OnEvent } from '@nestjs/event-emitter';
@@ -46,7 +46,6 @@ import {
 export class BatchService {
   private readonly logger = new Logger(BatchService.name);
   private readonly limiter: ReturnType<typeof pLimit>;
-  private readonly batchEnabled: boolean;
 
   constructor(
     private readonly configService: ConfigService,
@@ -81,20 +80,10 @@ export class BatchService {
 
     this.logger.log(`Batch service initialized with concurrency limit: ${concurrencyLimit}`);
 
-    // Check if batch processing is enabled
-    this.batchEnabled = this.configService.get<boolean>('BATCH_ENABLED', true);
-
-    this.logger.log(
-      `Batch service initialized. Batch processing ${this.batchEnabled ? 'enabled' : 'disabled'}`,
-    );
+    this.logger.log('Batch service initialized. Batch processing enabled');
   }
 
-  async runBatch() {
-    if (!this.batchEnabled) {
-      this.logger.log('Batch processing is disabled. Skipping.');
-      return;
-    }
-
+  async runBatch(triggerSource: 'cron' | 'manual' | 'project_creation' = 'manual') {
     try {
       this.logger.log('Starting weekly batch processing');
 
@@ -135,12 +124,18 @@ export class BatchService {
               try {
                 const organization = await this.organizationService.findOne(project.organizationId);
                 selectedModels = organization.selectedModels || [];
-                this.logger.log(`Found ${selectedModels.length} selected models for organization ${project.organizationId}: ${selectedModels.join(', ')}`);
+                this.logger.log(
+                  `Found ${selectedModels.length} selected models for organization ${project.organizationId}: ${selectedModels.join(', ')}`,
+                );
               } catch (error) {
-                this.logger.warn(`Failed to get organization selected models for organization ${project.organizationId}: ${error.message}`);
+                this.logger.warn(
+                  `Failed to get organization selected models for organization ${project.organizationId}: ${error.message}`,
+                );
               }
             } else {
-              this.logger.warn(`Project ${project.id} has no associated organization - will use all enabled models`);
+              this.logger.warn(
+                `Project ${project.id} has no associated organization - will use all enabled models`,
+              );
             }
 
             const context: ProjectBatchContext = {
@@ -153,6 +148,7 @@ export class BatchService {
               market: project.market,
               organizationId: project.organizationId,
               selectedModels,
+              triggerSource,
             };
 
             await this.processProjectInternal(context, date);
@@ -188,12 +184,17 @@ export class BatchService {
    * Process a specific project by ID
    * @param projectId The ID of the project to process
    * @param batchExecutionId Optional batch execution ID if one was already created
+   * @param triggerSource The source that triggered the batch ('cron', 'manual', 'project_creation')
    * @returns Result of the batch processing including the batch execution ID
    */
-  async processProject(projectId: string, batchExecutionId?: string) {
+  async processProject(
+    projectId: string,
+    batchExecutionId?: string,
+    triggerSource: 'cron' | 'manual' | 'project_creation' = 'manual',
+  ) {
     try {
       this.logger.log(
-        `Processing project ${projectId} with batchExecutionId: ${batchExecutionId || 'none'}`,
+        `Processing project ${projectId} with batchExecutionId: ${batchExecutionId || 'none'} (triggerSource: ${triggerSource})`,
       );
 
       // Get the project data with context
@@ -207,7 +208,9 @@ export class BatchService {
       const date = new Date();
 
       // Add batchExecutionId to context if provided
-      const contextWithBatchId = batchExecutionId ? { ...project, batchExecutionId } : project;
+      const contextWithBatchId: ProjectBatchContext = batchExecutionId
+        ? { ...project, batchExecutionId, triggerSource }
+        : { ...project, triggerSource };
 
       // Log the context to debug
       this.logger.log(
@@ -215,6 +218,7 @@ export class BatchService {
           projectId: contextWithBatchId.projectId,
           brandName: contextWithBatchId.brandName,
           batchExecutionId: contextWithBatchId.batchExecutionId || 'none',
+          triggerSource: contextWithBatchId.triggerSource,
         })}`,
       );
 
@@ -338,10 +342,11 @@ export class BatchService {
         // Create a new batch execution only if one wasn't provided
         const batchExecution = await this.batchExecutionService.createBatchExecution(
           context.projectId,
+          context.triggerSource || 'manual',
         );
         batchExecutionId = batchExecution.id;
         this.logger.log(
-          `Created batch execution ${batchExecutionId} for project ${context.projectId}`,
+          `Created batch execution ${batchExecutionId} for project ${context.projectId} (triggerSource: ${context.triggerSource || 'manual'})`,
         );
       }
 
@@ -355,13 +360,16 @@ export class BatchService {
           const organization = await this.organizationService.findOne(context.organizationId);
           if (organization.stripePlanId) {
             const plan = await this.planService.findById(organization.stripePlanId);
-            isFreePlan = plan.metadata?.isFree === true || 
-                        plan.name.toLowerCase() === 'free' || 
-                        plan.stripeProductId === null ||
-                        plan.stripeProductId === '';
+            isFreePlan =
+              plan.metadata?.isFree === true ||
+              plan.name.toLowerCase() === 'free' ||
+              plan.stripeProductId === null ||
+              plan.stripeProductId === '';
           }
         } catch (error) {
-          this.logger.warn(`Could not check plan for organization ${context.organizationId}: ${error.message}`);
+          this.logger.warn(
+            `Could not check plan for organization ${context.organizationId}: ${error.message}`,
+          );
         }
       }
 
@@ -439,19 +447,44 @@ export class BatchService {
           market: project.market || '',
           countryCode: project.market || 'US', // Default to US if not specified
           competitors: project.competitors || [],
-          modelsUsed: this.extractModelsUsed(visibilityResults, sentimentResults, alignmentResults, competitionResults),
-          promptsExecuted: this.countPromptsExecuted(visibilityResults, sentimentResults, alignmentResults, competitionResults),
+          modelsUsed: this.extractModelsUsed(
+            visibilityResults,
+            sentimentResults,
+            alignmentResults,
+            competitionResults,
+          ),
+          promptsExecuted: this.countPromptsExecuted(
+            visibilityResults,
+            sentimentResults,
+            alignmentResults,
+            competitionResults,
+          ),
           executionContext: {
             batchId: batchExecutionId,
             pipeline: 'brand-report',
             version: '2.0.0',
           },
         },
-        explorer: this.reportBuilderService.buildExplorerData(visibilityResults, sentimentResults, alignmentResults, competitionResults, project.website, project.competitorDetails),
-        visibility: this.reportBuilderService.buildVisibilityData(visibilityResults, project.brandName, project.competitors || []),
+        explorer: this.reportBuilderService.buildExplorerData(
+          visibilityResults,
+          sentimentResults,
+          alignmentResults,
+          competitionResults,
+          project.website,
+          project.competitorDetails,
+        ),
+        visibility: this.reportBuilderService.buildVisibilityData(
+          visibilityResults,
+          project.brandName,
+          project.competitors || [],
+        ),
         sentiment: this.reportBuilderService.buildSentimentData(sentimentResults),
         alignment: this.reportBuilderService.buildAlignmentData(alignmentResults),
-        competition: this.reportBuilderService.buildCompetitionData(competitionResults, project.brandName, project.competitors || []),
+        competition: this.reportBuilderService.buildCompetitionData(
+          competitionResults,
+          project.brandName,
+          project.competitors || [],
+        ),
       };
 
       // Save the report using the new persistence service
@@ -466,7 +499,7 @@ export class BatchService {
         try {
           const organization = await this.organizationService.findOne(context.organizationId);
           const users = await this.userService.findByOrganizationId(context.organizationId);
-          
+
           // Determine trigger type based on context
           let triggerType: 'manual' | 'cron' | 'new_project' = 'cron';
           if (context.isManualRefresh) {
@@ -474,21 +507,26 @@ export class BatchService {
           } else if (context.isNewProject) {
             triggerType = 'new_project';
           }
-          
+
           // Emit report completed event for each user in the organization
           for (const user of users) {
-            this.eventEmitter.emit('report.completed', new ReportCompletedEvent(
-              context.projectId,
-              project.brandName,
-              batchExecutionId, // Use batch execution ID as report ID
-              batchExecutionId,
-              user.id,
-              user.email,
-              triggerType,
-            ));
+            this.eventEmitter.emit(
+              'report.completed',
+              new ReportCompletedEvent(
+                context.projectId,
+                project.brandName,
+                batchExecutionId, // Use batch execution ID as report ID
+                batchExecutionId,
+                user.id,
+                user.email,
+                triggerType,
+              ),
+            );
           }
-          
-          this.logger.log(`Emitted report.completed event for ${users.length} users in organization ${context.organizationId}`);
+
+          this.logger.log(
+            `Emitted report.completed event for ${users.length} users in organization ${context.organizationId}`,
+          );
         } catch (error) {
           this.logger.warn(`Failed to emit report.completed event: ${error.message}`);
         }
@@ -574,12 +612,18 @@ export class BatchService {
       try {
         const organization = await this.organizationService.findOne(project.organizationId);
         selectedModels = organization.selectedModels || [];
-        this.logger.log(`Found ${selectedModels.length} selected models for organization ${project.organizationId}: ${selectedModels.join(', ')}`);
+        this.logger.log(
+          `Found ${selectedModels.length} selected models for organization ${project.organizationId}: ${selectedModels.join(', ')}`,
+        );
       } catch (error) {
-        this.logger.warn(`Failed to get organization selected models for organization ${project.organizationId}: ${error.message}`);
+        this.logger.warn(
+          `Failed to get organization selected models for organization ${project.organizationId}: ${error.message}`,
+        );
       }
     } else {
-      this.logger.warn(`Project ${projectId} has no associated organization - will use all enabled models`);
+      this.logger.warn(
+        `Project ${projectId} has no associated organization - will use all enabled models`,
+      );
     }
 
     return {
@@ -601,8 +645,13 @@ export class BatchService {
    * @param triggerSource The source that triggered the batch ('cron', 'manual', 'project_creation')
    * @returns The created batch execution
    */
-  async createBatchExecution(projectId: string, triggerSource: 'cron' | 'manual' | 'project_creation' = 'manual'): Promise<any> {
-    this.logger.log(`Creating batch execution for project ${projectId} (trigger: ${triggerSource})`);
+  async createBatchExecution(
+    projectId: string,
+    triggerSource: 'cron' | 'manual' | 'project_creation' = 'manual',
+  ): Promise<any> {
+    this.logger.log(
+      `Creating batch execution for project ${projectId} (trigger: ${triggerSource})`,
+    );
 
     try {
       return await this.batchExecutionService.createBatchExecution(projectId, triggerSource);
@@ -834,7 +883,7 @@ export class BatchService {
   @OnEvent('project.deleted')
   async handleProjectDeleted(event: { projectId: string }) {
     const { projectId } = event;
-    
+
     // Get execution IDs before deletion to clean up related data
     const batchExecutions = await this.batchExecutionRepository.findByProjectId(projectId);
     const batchExecutionIds = batchExecutions.map((be) => be.id);
@@ -846,17 +895,19 @@ export class BatchService {
         await this.batchResultRepository.deleteByExecutionId(execId);
       }
     }
-    
+
     // Delete all batch executions for this project
     const deletedCount = await this.batchExecutionRepository.deleteByProjectId(projectId);
-    
-    this.logger.log(`Cleaned up batch data for deleted project ${projectId}: ${deletedCount} executions, ${batchExecutionIds.length} related records`);
+
+    this.logger.log(
+      `Cleaned up batch data for deleted project ${projectId}: ${deletedCount} executions, ${batchExecutionIds.length} related records`,
+    );
   }
 
   // Helper methods for building report structure
   private extractModelsUsed(...results: any[]): string[] {
     const models = new Set<string>();
-    results.forEach(result => {
+    results.forEach((result) => {
       if (result?.results) {
         result.results.forEach((r: any) => {
           if (r.llmProvider) models.add(r.llmProvider);
@@ -868,7 +919,7 @@ export class BatchService {
 
   private countPromptsExecuted(...results: any[]): number {
     let count = 0;
-    results.forEach(result => {
+    results.forEach((result) => {
       if (result?.results) {
         count += result.results.length;
       }
@@ -891,7 +942,7 @@ export class BatchService {
     sentimentResults: any,
     alignmentResults: any,
     competitionResults: any,
-    context: ProjectBatchContext
+    context: ProjectBatchContext,
   ): Promise<void> {
     try {
       // Get project details for report metadata
@@ -914,24 +965,51 @@ export class BatchService {
           market: project.market || '',
           countryCode: project.market || 'US', // Default to US if not specified
           competitors: project.competitors || [],
-          modelsUsed: this.extractModelsUsed(visibilityResults, sentimentResults, alignmentResults, competitionResults),
-          promptsExecuted: this.countPromptsExecuted(visibilityResults, sentimentResults, alignmentResults, competitionResults),
+          modelsUsed: this.extractModelsUsed(
+            visibilityResults,
+            sentimentResults,
+            alignmentResults,
+            competitionResults,
+          ),
+          promptsExecuted: this.countPromptsExecuted(
+            visibilityResults,
+            sentimentResults,
+            alignmentResults,
+            competitionResults,
+          ),
           executionContext: {
             batchId: batchExecutionId,
             pipeline: 'brand-report',
             version: '2.0.0',
           },
         },
-        explorer: this.reportBuilderService.buildExplorerData(visibilityResults, sentimentResults, alignmentResults, competitionResults, project.website, project.competitorDetails),
-        visibility: this.reportBuilderService.buildVisibilityData(visibilityResults, project.brandName, project.competitors || []),
+        explorer: this.reportBuilderService.buildExplorerData(
+          visibilityResults,
+          sentimentResults,
+          alignmentResults,
+          competitionResults,
+          project.website,
+          project.competitorDetails,
+        ),
+        visibility: this.reportBuilderService.buildVisibilityData(
+          visibilityResults,
+          project.brandName,
+          project.competitors || [],
+        ),
         sentiment: this.reportBuilderService.buildSentimentData(sentimentResults),
         alignment: this.reportBuilderService.buildAlignmentData(alignmentResults),
-        competition: this.reportBuilderService.buildCompetitionData(competitionResults, project.brandName, project.competitors || []),
+        competition: this.reportBuilderService.buildCompetitionData(
+          competitionResults,
+          project.brandName,
+          project.competitors || [],
+        ),
       };
 
       // Save the report using the new persistence service
       await this.brandReportPersistenceService.saveReport(brandReport);
-      this.logger.log(`Successfully saved visibility-only brand report for project ${context.projectId}`);
+      this.logger.log(
+        `Successfully saved visibility-only brand report for project ${context.projectId}`,
+      );
 
       // Mark the batch execution as completed
       await this.batchExecutionService.updateBatchExecutionStatus(batchExecutionId, 'completed');
@@ -941,7 +1019,7 @@ export class BatchService {
         try {
           const organization = await this.organizationService.findOne(context.organizationId);
           const users = await this.userService.findByOrganizationId(context.organizationId);
-          
+
           // Determine trigger type based on context
           let triggerType: 'manual' | 'cron' | 'new_project' = 'new_project';
           if (context.isManualRefresh) {
@@ -950,18 +1028,23 @@ export class BatchService {
 
           // Emit report completed event for each user in the organization
           for (const user of users) {
-            this.eventEmitter.emit('report.completed', new ReportCompletedEvent(
-              context.projectId,
-              project.brandName,
-              batchExecutionId, // Use batch execution ID as report ID
-              batchExecutionId,
-              user.id,
-              user.email,
-              triggerType,
-            ));
+            this.eventEmitter.emit(
+              'report.completed',
+              new ReportCompletedEvent(
+                context.projectId,
+                project.brandName,
+                batchExecutionId, // Use batch execution ID as report ID
+                batchExecutionId,
+                user.id,
+                user.email,
+                triggerType,
+              ),
+            );
           }
-          
-          this.logger.log(`Emitted report.completed event for ${users.length} users for visibility-only report ${brandReport.id}`);
+
+          this.logger.log(
+            `Emitted report.completed event for ${users.length} users for visibility-only report ${brandReport.id}`,
+          );
         } catch (error) {
           this.logger.warn(`Failed to emit report completion event: ${error.message}`);
         }
@@ -971,5 +1054,4 @@ export class BatchService {
       throw error;
     }
   }
-
 }

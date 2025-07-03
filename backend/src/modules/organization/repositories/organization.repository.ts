@@ -138,6 +138,7 @@ export class OrganizationRepository {
       subscriptionStatus: document.subscriptionStatus,
       subscriptionCurrentPeriodEnd: document.subscriptionCurrentPeriodEnd,
       planSettings: {
+        _id: document.planSettings?._id,
         maxProjects: document.planSettings?.maxProjects || ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_PROJECTS,
         maxAIModels: document.planSettings?.maxAIModels || ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_AI_MODELS,
         maxSpontaneousPrompts: document.planSettings?.maxSpontaneousPrompts || ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_SPONTANEOUS_PROMPTS,
@@ -153,6 +154,9 @@ export class OrganizationRepository {
       isOnTrial: document.isOnTrial,
       trialPlanId: document.trialPlanId,
       promoCode: document.promoCode,
+      subscriptionCancelAt: document.subscriptionCancelAt,
+      hasActivatedFreePlan: document.hasActivatedFreePlan,
+      freePlanActivatedAt: document.freePlanActivatedAt,
     };
   }
 

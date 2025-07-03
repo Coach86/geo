@@ -7,7 +7,7 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from "@/components/ui/persistent-tooltip";
 import { comparisonData, featureTooltips } from "./pricing-constants";
 import { ContactSalesDialog } from "@/components/shared/ContactSalesDialog";
 
