@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { ModelIcon } from "@/components/ui/model-icon";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/persistent-tooltip";
 import { Eye, Info } from "lucide-react";
 import { getModelFriendlyName } from "@/utils/model-utils";
 

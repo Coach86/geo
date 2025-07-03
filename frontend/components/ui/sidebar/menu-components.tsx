@@ -9,7 +9,7 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip"
+} from "@/components/ui/persistent-tooltip"
 import { useSidebar } from "./context"
 
 export const SidebarMenu = React.forwardRef<

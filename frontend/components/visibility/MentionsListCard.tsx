@@ -5,7 +5,7 @@ import { Brain, Download } from "lucide-react";
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { exportToCSV, formatMentionsDataForCSV } from "@/utils/csv-export";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/persistent-tooltip";
 
 interface MentionsListCardProps {
   mentions: Array<{

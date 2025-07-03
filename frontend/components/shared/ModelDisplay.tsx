@@ -21,10 +21,17 @@ export function ModelDisplay({
 }: ModelDisplayProps) {
   const friendlyName = getModelFriendlyName(model);
   
+  const textSizeClasses = {
+    xs: "text-xs",
+    sm: "text-sm",
+    md: "text-base",
+    lg: "text-lg"
+  };
+  
   const content = (
     <>
       {showIcon && iconFirst && <ModelIcon model={model} size={size} />}
-      <span>{friendlyName}</span>
+      <span className={textSizeClasses[size]}>{friendlyName}</span>
       {showIcon && !iconFirst && <ModelIcon model={model} size={size} />}
     </>
   );

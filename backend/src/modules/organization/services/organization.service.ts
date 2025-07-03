@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CreateOrganizationDto } from '../dto/create-organization.dto';
 import { UpdateOrganizationDto } from '../dto/update-organization.dto';
+import { UpdatePlanSettingsDto } from '../dto/update-plan-settings.dto';
 import { OrganizationResponseDto } from '../dto/organization-response.dto';
 import { OrganizationRepository } from '../repositories/organization.repository';
 import { OrganizationDocument } from '../schemas/organization.schema';
@@ -164,14 +165,7 @@ export class OrganizationService {
 
   async updatePlanSettings(
     id: string,
-    planSettings: Partial<{
-      maxProjects: number;
-      maxAIModels: number;
-      maxSpontaneousPrompts: number;
-      maxUrls: number;
-      maxUsers: number;
-      maxCompetitors: number;
-    }>,
+    planSettings: Partial<UpdatePlanSettingsDto>,
   ): Promise<OrganizationResponseDto> {
     try {
       const organization = await this.findOne(id);
@@ -356,6 +350,7 @@ export class OrganizationService {
         trialPlanId: planId,
         // stripePlanId: planId, // REMOVED - Critical security fix
         planSettings: {
+          _id: planId,
           maxProjects: plan.maxProjects,
           maxAIModels: plan.maxModels,
           maxSpontaneousPrompts: plan.maxSpontaneousPrompts,

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { TooltipProvider } from "@/components/ui/tooltip"
+import { TooltipProvider } from "@/components/ui/persistent-tooltip"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
 import { SidebarContext as SidebarContextType } from "./types"

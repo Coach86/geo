@@ -6,7 +6,7 @@ import { useFeatureGate } from "@/hooks/use-feature-access";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/persistent-tooltip";
 import { ModelDisplay } from "@/components/shared/ModelDisplay";
 import type { CompetitionData as CompetitionTypeData } from "@/types/competition";
 import { useNavigation } from "@/providers/navigation-provider";
