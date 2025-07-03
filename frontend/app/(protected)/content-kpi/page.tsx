@@ -35,7 +35,7 @@ export default function PageIntelligencePage() {
   
   // Crawler state
   const [isCrawling, setIsCrawling] = useState(false);
-  const [crawlProgress, setCrawlProgress] = useState<{ crawledPages: number; totalPages: number } | null>(null);
+  const [crawlProgress, setCrawlProgress] = useState<{ crawledPages: number; totalPages: number; currentUrl?: string } | null>(null);
   const [initialCheckDone, setInitialCheckDone] = useState(false);
   const [showCrawlDialog, setShowCrawlDialog] = useState(false);
 
@@ -44,19 +44,32 @@ export default function PageIntelligencePage() {
     projectId: selectedProjectId || '',
     token: token || undefined,
     onCrawlerEvent: (event) => {
-      console.log('[PageIntelligencePage] Crawler event received:', event);
-      
-      // Update progress based on WebSocket events
-      if (event.eventType === 'crawler.started' || event.eventType === 'crawler.progress' || event.eventType === 'crawler.page_crawled') {
+      // Update progress based on WebSocket events - prioritize WebSocket over polling
+      if (event.eventType === 'crawler.started') {
         setIsCrawling(true);
         setCrawlProgress({
           crawledPages: event.crawledPages || 0,
           totalPages: event.totalPages || 100,
+          currentUrl: event.currentUrl,
         });
+      } else if (event.eventType === 'crawler.progress' || event.eventType === 'crawler.page_crawled') {
+        // Only update if we have valid progress data
+        if (event.crawledPages !== undefined && event.totalPages !== undefined) {
+          setIsCrawling(true);
+          const urlToUse = event.currentUrl || (event as any).url; // Try both fields
+          setCrawlProgress({
+            crawledPages: event.crawledPages,
+            totalPages: event.totalPages,
+            currentUrl: urlToUse,
+          });
+        }
       } else if (event.eventType === 'crawler.completed') {
         setIsCrawling(false);
         setCrawlProgress(null);
-        refetch(); // Refresh the data
+        // Add a small delay before refetching to ensure backend has finished processing
+        setTimeout(() => {
+          refetch(); // Refresh the data
+        }, 1000);
         toast({
           title: "Crawl completed",
           description: `Successfully analyzed ${event.crawledPages || 0} pages`,
@@ -80,10 +93,11 @@ export default function PageIntelligencePage() {
         const status = await getCrawlStatus();
         if (status.isActive) {
           setIsCrawling(true);
-          setCrawlProgress({
+          setCrawlProgress(prev => ({
             crawledPages: status.crawledPages || 0,
             totalPages: status.totalPages || 100,
-          });
+            currentUrl: prev?.currentUrl, // Preserve URL from WebSocket, API doesn't provide it
+          }));
         }
       } catch (error) {
         // Ignore errors on initial check - likely means no crawl is active
@@ -98,20 +112,24 @@ export default function PageIntelligencePage() {
     }
   }, [getCrawlStatus, initialCheckDone]);
 
-  // Check crawl status periodically when crawling
+  // Check crawl status periodically when crawling, but only as fallback when WebSocket is not connected
   useEffect(() => {
     let interval: NodeJS.Timeout;
     
-    if (isCrawling) {
+    // Only use polling as fallback when WebSocket is not providing updates
+    if (isCrawling && !isCrawlerActive) {
       interval = setInterval(async () => {
         try {
           const status = await getCrawlStatus();
-          setCrawlProgress({
-            crawledPages: status.crawledPages || 0,
-            totalPages: status.totalPages || 100,
-          });
           
-          if (!status.isActive) {
+          // Only update if we get valid data and haven't received WebSocket updates recently
+          if (status.isActive) {
+            setCrawlProgress(prev => ({
+              crawledPages: status.crawledPages || 0,
+              totalPages: status.totalPages || 100,
+              currentUrl: prev?.currentUrl, // Preserve URL from WebSocket, API doesn't provide it
+            }));
+          } else {
             setIsCrawling(false);
             setCrawlProgress(null);
             refetch(); // Refresh the data
@@ -122,20 +140,23 @@ export default function PageIntelligencePage() {
           }
         } catch (error) {
           console.error('Error checking crawl status:', error);
+          // If polling fails, assume crawl is complete
+          setIsCrawling(false);
+          setCrawlProgress(null);
         }
-      }, 2000); // Check every 2 seconds
+      }, 3000); // Reduced frequency to 3 seconds since it's just a fallback
     }
     
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isCrawling, getCrawlStatus, refetch]);
+  }, [isCrawling, isCrawlerActive, getCrawlStatus, refetch]);
 
   const handleStartCrawl = async (maxPages: number) => {
     try {
       console.log('[PageIntelligencePage] Starting crawl with maxPages:', maxPages);
       setIsCrawling(true);
-      setCrawlProgress({ crawledPages: 0, totalPages: maxPages });
+      setCrawlProgress({ crawledPages: 0, totalPages: maxPages, currentUrl: 'Starting...' });
       setShowCrawlDialog(false);
       
       const result = await triggerCrawl({ maxPages });

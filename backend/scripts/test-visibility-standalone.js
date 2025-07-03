@@ -9,20 +9,25 @@ const OpenAI = require('openai');
 const Anthropic = require('@anthropic-ai/sdk');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { Mistral } = require('@mistralai/mistralai');
+const { ChatPerplexity } = require('@langchain/community/chat_models/perplexity');
+const { HumanMessage, SystemMessage } = require('@langchain/core/messages');
+const { createXai } = require('@ai-sdk/xai');
+const { generateText } = require('ai');
+const axios = require('axios');
 
 /**
  * Standalone Visibility Pipeline Testing Script
  * 
- * This script runs visibility tests without requiring the full application context.
- * It directly calls LLM APIs to test brand visibility across multiple models.
+ * This script runs visibility and sentiment tests without requiring the full application context.
+ * It directly calls LLM APIs to test brand visibility and sentiment across multiple models.
  * 
  * Enabled models (from config.json):
  * - GPT-4o (OpenAI)
  * - Gemini 2.0 Flash (Google)
- * - Claude 3.7 Sonnet (Anthropic)
  * - Perplexity Sonar Pro
  * - Mistral Medium 2025
  * - Grok 3 Latest
+ * - Claude models (removed from execution)
  * - DeepSeek Chat (temporarily disabled due to JSON parsing issues)
  * 
  * Usage:
@@ -52,6 +57,7 @@ const { Mistral } = require('@mistralai/mistralai');
  * 
  * Output:
  *   Creates a CSV file in scripts/data/ with detailed results for each company
+ *   Includes both visibility analysis (brand mentions) and sentiment analysis
  */
 
 // Parse command line arguments
@@ -134,12 +140,13 @@ if (process.env.OPENAI_API_KEY) {
   modelConfigs.push({ provider: 'openai', model: 'gpt-4o', name: 'GPT-4o' });
 }
 
-if (process.env.ANTHROPIC_API_KEY) {
-  llmClients.anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  modelConfigs.push(
-    { provider: 'anthropic', model: 'claude-3-7-sonnet-20250219', name: 'Claude 3.7 Sonnet' }
-  );
-}
+// Claude models removed from execution
+// if (process.env.ANTHROPIC_API_KEY) {
+//   llmClients.anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+//   modelConfigs.push(
+//     { provider: 'anthropic', model: 'claude-3-7-sonnet-20250219', name: 'Claude 3.7 Sonnet' }
+//   );
+// }
 
 if (process.env.GOOGLE_API_KEY) {
   llmClients.google = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
@@ -152,19 +159,15 @@ if (process.env.MISTRAL_API_KEY) {
 }
 
 if (process.env.PERPLEXITY_API_KEY) {
-  llmClients.perplexity = new OpenAI({ 
-    apiKey: process.env.PERPLEXITY_API_KEY,
-    baseURL: 'https://api.perplexity.ai'
-  });
+  // Perplexity uses LangChain directly, no client initialization needed
   modelConfigs.push({ provider: 'perplexity', model: 'sonar-pro', name: 'Perplexity Sonar Pro' });
 }
 
 if (process.env.XAI_API_KEY) {
-  llmClients.grok = new OpenAI({ 
+  llmClients.grok = createXai({
     apiKey: process.env.XAI_API_KEY,
-    baseURL: 'https://api.x.ai/v1'
   });
-  modelConfigs.push({ provider: 'grok', model: 'grok-3-latest', name: 'Grok 3 Latest' });
+  modelConfigs.push({ provider: 'grok', model: 'grok-3-beta', name: 'Grok 3 Latest' });
 }
 
 // DeepSeek temporarily disabled due to JSON parsing issues
@@ -199,24 +202,86 @@ function generateBrandId(name) {
     .replace(/^-|-$/g, '');
 }
 
-// Call LLM based on provider and model
+// Helper function to resolve Vertex AI Search redirect URLs (from Google adapter)
+async function resolveRedirectUrl(redirectUrl, title) {
+  try {
+    // Only attempt to resolve if it's a Vertex AI Search redirect URL
+    if (!redirectUrl.includes('vertexaisearch.cloud.google.com/grounding-api-redirect/')) {
+      return redirectUrl;
+    }
+
+    // Make a HEAD request to follow redirects without downloading content
+    const response = await axios.head(redirectUrl, {
+      maxRedirects: 5,
+      validateStatus: (status) => status >= 200 && status < 400,
+      timeout: 5000, // 5 second timeout
+    });
+
+    // In Node.js, axios stores the final URL in response.request.res.responseUrl
+    const finalUrl = response.request.res?.responseUrl || response.config.url;
+
+    if (finalUrl && finalUrl !== redirectUrl && !finalUrl.includes('vertexaisearch.cloud.google.com')) {
+      console.log(`Resolved redirect URL: ${redirectUrl} -> ${finalUrl}`);
+      return finalUrl;
+    }
+
+    // If we still have a vertexai URL, try to construct from title
+    if (title) {
+      // Extract domain from title if possible
+      const domainMatch = title.match(/(?:https?:\/\/)?(?:www\.)?([^\s\/]+\.[^\s\/]+)/i);
+      if (domainMatch) {
+        const constructedUrl = `https://${domainMatch[1]}`;
+        console.log(`Constructed URL from title: ${title} -> ${constructedUrl}`);
+        return constructedUrl;
+      }
+
+      // If title looks like a domain, use it
+      if (title.includes('.') && !title.includes(' ')) {
+        const constructedUrl = title.startsWith('http') ? title : `https://${title}`;
+        console.log(`Using title as URL: ${constructedUrl}`);
+        return constructedUrl;
+      }
+    }
+
+    // As last resort, if we have a title but couldn't extract domain, return empty
+    // This ensures we never return vertexaisearch URLs
+    console.log(`Could not resolve redirect URL and no valid domain in title: ${redirectUrl}`);
+    return '';
+  } catch (error) {
+    // If resolution fails and we have a title, try to use it
+    console.log(`Failed to resolve redirect URL ${redirectUrl}: ${error.message}`);
+
+    if (title) {
+      // Try to extract domain from title
+      const domainMatch = title.match(/(?:https?:\/\/)?(?:www\.)?([^\s\/]+\.[^\s\/]+)/i);
+      if (domainMatch) {
+        return `https://${domainMatch[1]}`;
+      }
+
+      // If title looks like a domain, use it
+      if (title.includes('.') && !title.includes(' ')) {
+        return title.startsWith('http') ? title : `https://${title}`;
+      }
+    }
+
+    // Never return vertexaisearch URLs
+    return '';
+  }
+}
+
+// Call LLM based on provider and model (matches real adapter implementations)
 async function callLLM(provider, model, prompt, temperature = 0.7) {
   try {
+    let websitesConsulted = [];
+    let response;
+    
     switch (provider) {
       case 'openai':
         if (!llmClients.openai) throw new Error('OpenAI client not initialized');
-        // Use OpenAI's web search preview when available
-        const openaiParams = {
-          model: model,
-          messages: [{ role: 'user', content: prompt }],
-          temperature,
-          max_tokens: 1000,
-        };
         
-        // Add web search tool for supported models
+        // Try using the responses endpoint with web search (matches real adapter exactly)
         if (model.includes('gpt-4o')) {
           try {
-            // Try using the responses endpoint with web search
             const responseResult = await llmClients.openai.responses.create({
               model: model,
               input: prompt,
@@ -224,32 +289,55 @@ async function callLLM(provider, model, prompt, temperature = 0.7) {
               tools: [{ type: 'web_search_preview' }]
             });
             
-            // Extract text from response
             let text = '';
+            // Extract websites from url_citation annotations (exact real adapter logic)
             if (Array.isArray(responseResult.output)) {
               for (const item of responseResult.output) {
                 if (item.type === 'message' && Array.isArray(item.content)) {
                   for (const contentItem of item.content) {
-                    if (contentItem.type === 'output_text' && contentItem.text) {
-                      text += contentItem.text;
+                    if (contentItem.type === 'output_text') {
+                      if (contentItem.text) text += contentItem.text;
+                      
+                      // Extract citations from annotations (real adapter logic)
+                      if (Array.isArray(contentItem.annotations)) {
+                        for (const annotation of contentItem.annotations) {
+                          if (annotation.type === 'url_citation' && annotation.url) {
+                            websitesConsulted.push(annotation.url);
+                          }
+                        }
+                      }
                     }
                   }
                 }
               }
+            } else {
+              // Fallback: if not an array, try to get output_text
+              text = responseResult.output_text || '';
             }
-            return text || responseResult.output_text || '';
+            
+            response = text;
+            // Deduplicate websites
+            websitesConsulted = [...new Set(websitesConsulted)];
+            break;
           } catch (error) {
-            // Fallback to regular chat completion if web search fails
             console.log(`Web search failed for ${model}, falling back to regular completion: ${error.message}`);
           }
         }
         
-        const openaiResponse = await llmClients.openai.chat.completions.create(openaiParams);
-        return openaiResponse.choices[0].message.content;
+        // Fallback to regular chat completion (no web search, no citations)
+        const openaiResponse = await llmClients.openai.chat.completions.create({
+          model: model,
+          messages: [{ role: 'user', content: prompt }],
+          temperature,
+          max_tokens: 1000,
+        });
+        response = openaiResponse.choices[0].message.content;
+        break;
 
       case 'anthropic':
         if (!llmClients.anthropic) throw new Error('Anthropic client not initialized');
-        const anthropicParams = {
+        
+        const anthropicResponse = await llmClients.anthropic.messages.create({
           model: model,
           messages: [{ role: 'user', content: prompt }],
           temperature,
@@ -262,47 +350,92 @@ async function callLLM(provider, model, prompt, temperature = 0.7) {
               max_uses: 3
             }
           ]
-        };
+        });
         
-        const anthropicResponse = await llmClients.anthropic.messages.create(anthropicParams);
-        
-        // Extract text from all content blocks
+        // Extract text and websites from blocks (real adapter logic)
         let fullText = '';
+        const webSearchResults = {};
+        
         for (const block of anthropicResponse.content) {
           if (block.type === 'text') {
             fullText += block.text;
+            // Extract citations from text block (real adapter logic)
+            if (block.citations && Array.isArray(block.citations)) {
+              for (const citation of block.citations) {
+                if (citation.url) {
+                  websitesConsulted.push(citation.url);
+                }
+              }
+            }
           } else if (block.type === 'server_tool_use' && block.name === 'web_search') {
-            const queryText = block.input && typeof block.input === 'object' && 'query' in block.input
-              ? block.input.query
-              : 'information';
+            const queryText = block.input?.query || 'information';
             fullText += `\n[Searching for: ${queryText}]\n`;
+          } else if (block.type === 'web_search_tool_result') {
+            // Extract URLs from search results (real adapter logic)
+            if (block.content && Array.isArray(block.content)) {
+              for (const result of block.content) {
+                if (result.type === 'web_search_result' && result.url) {
+                  webSearchResults[result.url] = {
+                    url: result.url,
+                    title: result.title
+                  };
+                  websitesConsulted.push(result.url);
+                }
+              }
+            }
           }
         }
         
-        return fullText;
+        response = fullText;
+        websitesConsulted = [...new Set(websitesConsulted)];
+        break;
 
       case 'google':
         if (!llmClients.google) throw new Error('Google client not initialized');
-        // Configure Google model with grounding (web search)
+        
         const googleModel = llmClients.google.getGenerativeModel({
           model: model,
           generationConfig: {
             temperature: temperature || 0.7,
             maxOutputTokens: 1000,
           },
-          tools: [{
-            google_search: {}
-          }]
+          tools: [{ google_search: {} }]
         });
         
         const googleResponse = await googleModel.generateContent(prompt);
-        return googleResponse.response.text();
+        response = googleResponse.response.text();
+        
+        // Extract grounding metadata from the first candidate (exact real adapter logic)
+        const candidate = googleResponse.response.candidates?.[0];
+        const groundingMetadata = candidate?.groundingMetadata;
+        
+        if (groundingMetadata?.groundingChunks && groundingMetadata.groundingChunks.length > 0) {
+          const processedUrls = new Set();
+          
+          // Process each grounding chunk and resolve redirect URLs (real adapter logic)
+          for (const chunk of groundingMetadata.groundingChunks) {
+            if (chunk.web?.uri && !processedUrls.has(chunk.web.uri)) {
+              processedUrls.add(chunk.web.uri);
+              
+              // Attempt to resolve redirect URLs, passing title for fallback
+              const resolvedUrl = await resolveRedirectUrl(chunk.web.uri, chunk.web.title);
+              
+              // Only add URL if we got a valid URL (not empty)
+              if (resolvedUrl) {
+                websitesConsulted.push(resolvedUrl);
+              }
+            }
+          }
+        }
+        
+        websitesConsulted = [...new Set(websitesConsulted)];
+        break;
 
       case 'mistral':
         if (!llmClients.mistral) throw new Error('Mistral client not initialized');
-        // Mistral doesn't currently support direct web search tools in API
-        // But we can enhance the prompt to encourage web-based knowledge
-        const mistralParams = {
+        
+        // Mistral doesn't support web search tools (real adapter behavior)
+        const mistralResponse = await llmClients.mistral.chat.complete({
           model: model,
           messages: [
             { 
@@ -312,53 +445,116 @@ async function callLLM(provider, model, prompt, temperature = 0.7) {
             { role: 'user', content: prompt }
           ],
           temperature,
-        };
-        
-        const mistralResponse = await llmClients.mistral.chat.complete(mistralParams);
-        return mistralResponse.choices[0].message.content;
+        });
+        response = mistralResponse.choices[0].message.content;
+        // No web search capability
+        break;
 
       case 'perplexity':
-        if (!llmClients.perplexity) throw new Error('Perplexity client not initialized');
-        const perplexityResponse = await llmClients.perplexity.chat.completions.create({
+        if (!process.env.PERPLEXITY_API_KEY) throw new Error('Perplexity API key not configured');
+        
+        // Use LangChain like the real adapter for proper citation extraction
+        const chatModel = new ChatPerplexity({
+          apiKey: process.env.PERPLEXITY_API_KEY,
           model: model,
-          messages: [{ role: 'user', content: prompt }],
-          temperature,
-          max_tokens: 1000,
+          temperature: temperature || 0.7,
+          maxTokens: 1000,
         });
-        return perplexityResponse.choices[0].message.content;
+
+        const messages = [new HumanMessage(prompt)];
+        const perplexityResponse = await chatModel.invoke(messages);
+        
+        // Extract text from response
+        response = perplexityResponse.content.toString();
+        
+        // Extract URLs using the same logic as real adapter
+        const uniqueUrls = [];
+        
+        // Get the raw response data (LangChain provides this)
+        const raw = perplexityResponse._raw || {};
+        
+        // Check for direct citations array (primary source in latest API)
+        const directCitations = raw.citations || perplexityResponse.additional_kwargs?.citations || [];
+        if (Array.isArray(directCitations) && directCitations.length > 0) {
+          for (const url of directCitations) {
+            if (typeof url === 'string' && url.startsWith('http') && !uniqueUrls.includes(url)) {
+              uniqueUrls.push(url);
+            }
+          }
+        }
+        
+        // Fallback to legacy sources if no direct citations
+        if (uniqueUrls.length === 0) {
+          const sources = raw.web_search_results || raw.sources || [];
+          if (Array.isArray(sources)) {
+            for (const source of sources) {
+              if (source.url && !uniqueUrls.includes(source.url)) {
+                uniqueUrls.push(source.url);
+              }
+            }
+          }
+        }
+        
+        // Final fallback to regex extraction from text
+        if (uniqueUrls.length === 0) {
+          const urlRegex = /\b(https?:\/\/[\w\.-]+\.[a-z]{2,}[\w\.\/\-\?\=\&\%]*)/gi;
+          const urls = response.match(urlRegex) || [];
+          for (const url of urls) {
+            if (!uniqueUrls.includes(url)) {
+              uniqueUrls.push(url);
+            }
+          }
+        }
+        
+        websitesConsulted = [...new Set(uniqueUrls)];
+        break;
 
       case 'grok':
         if (!llmClients.grok) throw new Error('Grok client not initialized');
-        // Grok has built-in web access, no additional tools needed
-        // But we can add a system message to encourage web search
-        const grokResponse = await llmClients.grok.chat.completions.create({
-          model: model,
-          messages: [
-            { 
-              role: 'system', 
-              content: 'You have access to real-time web search. Use it to provide current and accurate information when needed.' 
-            },
-            { role: 'user', content: prompt }
-          ],
+        
+        // Use AI SDK like the real adapter
+        const grokResult = await generateText({
+          model: llmClients.grok(model),
+          prompt,
           temperature,
-          max_tokens: 1000,
+          maxTokens: 1000,
         });
-        return grokResponse.choices[0].message.content;
+        
+        response = grokResult.text;
+        
+        // Extract sources from the generateText result (real adapter logic)
+        if (grokResult.sources && grokResult.sources.length > 0) {
+          for (const source of grokResult.sources) {
+            if ('url' in source && source.url) {
+              websitesConsulted.push(source.url);
+            }
+          }
+        }
+        
+        // Check tool calls for additional web search URLs
+        if (grokResult.toolCalls && grokResult.toolCalls.length > 0) {
+          // Tool calls don't directly contain URLs, but indicate web search was used
+          // The actual URLs would be in sources
+        }
+        
+        // Fallback to regex extraction if no sources found
+        if (websitesConsulted.length === 0) {
+          const urlRegex = /\b(https?:\/\/[\w\.-]+\.[a-z]{2,}[\w\.\/\-\?\=\&\%]*)/gi;
+          const urls = response.match(urlRegex) || [];
+          websitesConsulted.push(...urls);
+        }
+        
+        websitesConsulted = [...new Set(websitesConsulted)];
+        break;
 
       case 'deepseek':
         throw new Error('DeepSeek temporarily disabled');
-        // if (!llmClients.deepseek) throw new Error('DeepSeek client not initialized');
-        // const deepseekResponse = await llmClients.deepseek.chat.completions.create({
-        //   model: model,
-        //   messages: [{ role: 'user', content: prompt }],
-        //   temperature,
-        //   max_tokens: 1000,
-        // });
-        // return deepseekResponse.choices[0].message.content;
 
       default:
         throw new Error(`Unknown provider: ${provider}`);
     }
+    
+    return { response, websitesConsulted };
   } catch (error) {
     console.error(`Error calling ${provider}/${model}:`, error.message);
     throw error;
@@ -505,6 +701,199 @@ async function analyzeResponse(llmResponse, brandName, competitors, prompt, mode
   }
 }
 
+// Default sentiment prompts (from the real implementation)
+const SENTIMENT_PROMPTS = [
+  "What's your opinion on {COMPANY}?",
+  "What are the main strengths and weaknesses of {COMPANY}?",
+  "What do customers and reviews say about {COMPANY} and its products or services?"
+];
+
+// Analyze sentiment from LLM response
+async function analyzeSentiment(llmResponse, brandName, originalPrompt) {
+  const systemPrompt = `You are a sentiment analysis expert. Your task is to analyze text for sentiment towards a specific brand and extract relevant keywords.`;
+  
+  const analysisPrompt = `Analyze the sentiment in the following response to the question: "${originalPrompt}"
+
+Determine if the sentiment towards "${brandName}" is positive, neutral, or negative.
+Also extract *the most important* key words (1 to 3 words) about the brand, negative (max 3) or positive (max 3).
+
+Return a JSON object with this exact structure:
+{
+  "sentiment": "positive|neutral|negative",
+  "extractedPositiveKeywords": ["keyword1", "keyword2"],
+  "extractedNegativeKeywords": ["keyword1", "keyword2"]
+}
+
+Response: ${llmResponse}`;
+
+  try {
+    const response = await llmClients.openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: analysisPrompt }
+      ],
+      temperature: 0.2,
+      max_tokens: 500,
+    });
+    
+    const analysisResponseText = response.choices[0].message.content;
+    
+    // Parse the JSON response
+    const jsonMatch = analysisResponseText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('No JSON found in analysis response');
+    }
+    
+    let jsonStr = jsonMatch[0];
+    jsonStr = jsonStr.replace(/,\s*([\]\}])/g, '$1');
+    jsonStr = jsonStr.replace(/[\x00-\x1F\x7F]/g, '');
+    
+    const result = JSON.parse(jsonStr);
+    
+    return {
+      sentiment: result.sentiment || 'neutral',
+      extractedPositiveKeywords: result.extractedPositiveKeywords || [],
+      extractedNegativeKeywords: result.extractedNegativeKeywords || []
+    };
+  } catch (error) {
+    console.error('Error analyzing sentiment:', error.message);
+    return {
+      sentiment: 'neutral',
+      extractedPositiveKeywords: [],
+      extractedNegativeKeywords: []
+    };
+  }
+}
+
+// Calculate overall sentiment score and label
+function calculateSentimentSummary(sentimentResults) {
+  let positiveCount = 0;
+  let neutralCount = 0;
+  let negativeCount = 0;
+  
+  sentimentResults.forEach(result => {
+    switch (result.sentiment) {
+      case 'positive': positiveCount++; break;
+      case 'negative': negativeCount++; break;
+      default: neutralCount++; break;
+    }
+  });
+  
+  // Calculate percentage score
+  const totalResults = sentimentResults.length;
+  if (totalResults === 0) {
+    return { overallSentiment: 'neutral', overallSentimentPercentage: 0 };
+  }
+  
+  const sentimentSum = (positiveCount * 1) + (neutralCount * 0) + (negativeCount * -1);
+  const averageSentiment = sentimentSum / totalResults;
+  const sentimentPercentage = Math.round(averageSentiment * 100);
+  
+  // Determine overall sentiment by majority
+  let overallSentiment = 'neutral';
+  if (positiveCount > neutralCount && positiveCount > negativeCount) {
+    overallSentiment = 'positive';
+  } else if (negativeCount > neutralCount && negativeCount > positiveCount) {
+    overallSentiment = 'negative';
+  }
+  
+  return {
+    overallSentiment,
+    overallSentimentPercentage: sentimentPercentage
+  };
+}
+
+// Run sentiment test for a single company
+async function runSentimentTestForCompany(company) {
+  const companyName = company['Start-up'];
+  const companyUrl = company['URL'] || '';
+  
+  console.log(`Running sentiment test for ${companyName}...`);
+  
+  // Create sentiment prompts with company name
+  const sentimentPrompts = SENTIMENT_PROMPTS.map(template => 
+    template.replace('{COMPANY}', companyName)
+  );
+  
+  // Add context to each prompt
+  const contextualizedPrompts = sentimentPrompts.map(prompt => 
+    `${prompt}\n<context>\nURL: ${companyUrl}\n</context>`
+  );
+  
+  // Create a limiter for parallel execution
+  const limit = pLimit(PARALLEL_LIMIT);
+  
+  const tasks = [];
+  for (let promptIdx = 0; promptIdx < contextualizedPrompts.length; promptIdx++) {
+    const prompt = contextualizedPrompts[promptIdx];
+    const originalPrompt = sentimentPrompts[promptIdx];
+    
+    for (const modelConfig of modelConfigs) {
+      const task = limit(async () => {
+        try {
+          console.log(`  Sentiment Model: ${modelConfig.name}, Prompt ${promptIdx + 1}/${contextualizedPrompts.length}`);
+          
+          // Call LLM
+          const llmResult = await callLLM(modelConfig.provider, modelConfig.model, prompt);
+          const llmResponse = llmResult.response;
+          const websitesConsulted = llmResult.websitesConsulted;
+          
+          // Analyze sentiment
+          const sentimentAnalysis = await analyzeSentiment(llmResponse, companyName, originalPrompt);
+          
+          return {
+            category: 'sentiment',
+            llmProvider: modelConfig.provider,
+            llmModel: modelConfig.model,
+            llmName: modelConfig.name,
+            sentiment: sentimentAnalysis.sentiment,
+            extractedPositiveKeywords: sentimentAnalysis.extractedPositiveKeywords,
+            extractedNegativeKeywords: sentimentAnalysis.extractedNegativeKeywords,
+            originalPrompt: originalPrompt,
+            llmResponse,
+            websitesConsulted,
+            promptIndex: promptIdx
+          };
+          
+        } catch (error) {
+          console.error(`  Error with ${modelConfig.name}: ${error.message}`);
+          return {
+            category: 'sentiment',
+            llmProvider: modelConfig.provider,
+            llmModel: modelConfig.model,
+            llmName: modelConfig.name,
+            sentiment: 'neutral',
+            extractedPositiveKeywords: [],
+            extractedNegativeKeywords: [],
+            originalPrompt: originalPrompt,
+            error: error.message,
+            websitesConsulted: [],
+            promptIndex: promptIdx
+          };
+        }
+      });
+      
+      tasks.push(task);
+    }
+  }
+  
+  const results = await Promise.all(tasks);
+  
+  // Calculate sentiment summary
+  const validResults = results.filter(r => !r.error);
+  const sentimentSummary = calculateSentimentSummary(validResults);
+  
+  console.log(`  Sentiment summary: ${sentimentSummary.overallSentiment} (${sentimentSummary.overallSentimentPercentage}%)`);
+  
+  // Add summary info to each result
+  return results.map(result => ({
+    ...result,
+    overallSentiment: sentimentSummary.overallSentiment,
+    overallSentimentPercentage: sentimentSummary.overallSentimentPercentage
+  }));
+}
+
 // Run visibility test for a single company
 async function runVisibilityTestForCompany(company, competitors) {
   // Parse visibility prompts
@@ -521,6 +910,8 @@ async function runVisibilityTestForCompany(company, competitors) {
     return [];
   }
   
+  console.log(`Running visibility test for ${company['Start-up']}...`);
+  
   // Create a limiter for parallel execution
   const limit = pLimit(PARALLEL_LIMIT);
   
@@ -536,11 +927,9 @@ async function runVisibilityTestForCompany(company, competitors) {
             console.log(`  Run ${run}/${NUM_RUNS}, Model: ${modelConfig.name}, Prompt ${promptIdx + 1}/${visibilityPrompts.length}`);
             
             // Call LLM
-            const llmResponse = await callLLM(modelConfig.provider, modelConfig.model, prompt);
-            
-            // Extract websites consulted from the response text (basic URL extraction)
-            const urlRegex = /https?:\/\/[^\s\)\]]+/g;
-            const websitesConsulted = llmResponse.match(urlRegex) || [];
+            const llmResult = await callLLM(modelConfig.provider, modelConfig.model, prompt);
+            const llmResponse = llmResult.response;
+            const websitesConsulted = llmResult.websitesConsulted;
             
             // Analyze response
             const analysis = await analyzeResponse(
@@ -552,6 +941,7 @@ async function runVisibilityTestForCompany(company, competitors) {
             );
             
             return {
+              category: 'visibility',
               ...analysis,
               websitesConsulted,
               runIndex: run - 1,
@@ -561,6 +951,7 @@ async function runVisibilityTestForCompany(company, competitors) {
           } catch (error) {
             console.error(`  Error with ${modelConfig.name}: ${error.message}`);
             return {
+              category: 'visibility',
               llmProvider: modelConfig.provider,
               llmModel: modelConfig.model,
               llmName: modelConfig.name,
@@ -760,6 +1151,7 @@ function calculateSummaryStats(results) {
 // Initialize CSV file with headers
 async function initializeCSV() {
   const headers = [
+    'Category',
     'Company',
     'URL', 
     'Market',
@@ -778,7 +1170,12 @@ async function initializeCSV() {
     'Top of Mind Brands',
     'Our Brand Count',
     'Competitor Brands Count',
-    'Other Brands Count'
+    'Other Brands Count',
+    'Sentiment',
+    'Sentiment Score',
+    'Overall Sentiment',
+    'Positive Keywords',
+    'Negative Keywords'
   ];
 
   // Write headers to file
@@ -796,12 +1193,13 @@ async function appendResultsToCSV(company, competitors, results) {
     if (result.error) {
       // Still write error rows for completeness
       const row = [
+        result.category || 'visibility',
         company['Start-up'],
         company['URL'],
         company['Main Market (2025)'],
         company['Language'],
         discoveredCompetitorsStr,
-        result.runIndex + 1,
+        result.runIndex + 1 || 1,
         result.promptIndex + 1,
         (result.originalPrompt || ''), // Full prompt text
         result.llmProvider,
@@ -814,7 +1212,12 @@ async function appendResultsToCSV(company, competitors, results) {
         '',
         0,
         0,
-        0
+        0,
+        result.category === 'sentiment' ? 'neutral' : '',
+        result.category === 'sentiment' ? 0 : '',
+        result.category === 'sentiment' ? 'neutral' : '',
+        '',
+        ''
       ];
       
       // Escape and format CSV row
@@ -828,43 +1231,85 @@ async function appendResultsToCSV(company, competitors, results) {
       
       fs.appendFileSync(OUTPUT_CSV, csvRow + '\n');
     } else {
-      // Count brand types
-      const ourBrandCount = result.topOfMind.filter(b => b.type === 'ourbrand').length;
-      const competitorCount = result.topOfMind.filter(b => b.type === 'competitor').length; 
-      const otherCount = result.topOfMind.filter(b => b.type === 'other').length;
-      
-      const row = [
-        company['Start-up'],
-        company['URL'],
-        company['Main Market (2025)'],
-        company['Language'],
-        discoveredCompetitorsStr,
-        result.runIndex + 1,
-        result.promptIndex + 1,
-        (result.originalPrompt || ''), // Full prompt text
-        result.llmProvider,
-        result.llmName, 
-        result.llmModel,
-        result.mentioned ? 'YES' : 'NO',
-        (result.llmResponse || ''), // Full LLM response
-        (result.websitesConsulted || []).join('; '),
-        result.error || '',
-        result.topOfMind.map(b => `${b.name}(${b.type})`).join('; '),
-        ourBrandCount,
-        competitorCount,
-        otherCount
-      ];
-      
-      // Escape and format CSV row
-      const csvRow = row.map(cell => {
-        const cellStr = String(cell || '');
-        if (cellStr.includes(',') || cellStr.includes('\n') || cellStr.includes('"')) {
-          return `"${cellStr.replace(/"/g, '""')}"`;
-        }
-        return cellStr;
-      }).join(',');
-      
-      fs.appendFileSync(OUTPUT_CSV, csvRow + '\n');
+      // Handle visibility vs sentiment results differently
+      if (result.category === 'sentiment') {
+        const row = [
+          result.category,
+          company['Start-up'],
+          company['URL'],
+          company['Main Market (2025)'],
+          company['Language'],
+          discoveredCompetitorsStr,
+          1, // Sentiment runs only once
+          result.promptIndex + 1,
+          (result.originalPrompt || ''),
+          result.llmProvider,
+          result.llmName,
+          result.llmModel,
+          '', // No brand mention for sentiment
+          (result.llmResponse || ''),
+          (result.websitesConsulted || []).join('; '),
+          result.error || '',
+          '', // No top of mind for sentiment
+          0, 0, 0, // No brand counts for sentiment
+          result.sentiment || 'neutral',
+          result.overallSentimentPercentage || 0,
+          result.overallSentiment || 'neutral',
+          (result.extractedPositiveKeywords || []).join('; '),
+          (result.extractedNegativeKeywords || []).join('; ')
+        ];
+        
+        // Escape and format CSV row
+        const csvRow = row.map(cell => {
+          const cellStr = String(cell || '');
+          if (cellStr.includes(',') || cellStr.includes('\n') || cellStr.includes('"')) {
+            return `"${cellStr.replace(/"/g, '""')}"`;
+          }
+          return cellStr;
+        }).join(',');
+        
+        fs.appendFileSync(OUTPUT_CSV, csvRow + '\n');
+      } else {
+        // Visibility results
+        const ourBrandCount = result.topOfMind.filter(b => b.type === 'ourbrand').length;
+        const competitorCount = result.topOfMind.filter(b => b.type === 'competitor').length; 
+        const otherCount = result.topOfMind.filter(b => b.type === 'other').length;
+        
+        const row = [
+          result.category,
+          company['Start-up'],
+          company['URL'],
+          company['Main Market (2025)'],
+          company['Language'],
+          discoveredCompetitorsStr,
+          result.runIndex + 1,
+          result.promptIndex + 1,
+          (result.originalPrompt || ''), // Full prompt text
+          result.llmProvider,
+          result.llmName, 
+          result.llmModel,
+          result.mentioned ? 'YES' : 'NO',
+          (result.llmResponse || ''), // Full LLM response
+          (result.websitesConsulted || []).join('; '),
+          result.error || '',
+          result.topOfMind.map(b => `${b.name}(${b.type})`).join('; '),
+          ourBrandCount,
+          competitorCount,
+          otherCount,
+          '', '', '', '', '' // Empty sentiment columns for visibility
+        ];
+        
+        // Escape and format CSV row
+        const csvRow = row.map(cell => {
+          const cellStr = String(cell || '');
+          if (cellStr.includes(',') || cellStr.includes('\n') || cellStr.includes('"')) {
+            return `"${cellStr.replace(/"/g, '""')}"`;
+          }
+          return cellStr;
+        }).join(',');
+        
+        fs.appendFileSync(OUTPUT_CSV, csvRow + '\n');
+      }
     }
   });
 }
@@ -946,13 +1391,20 @@ async function main() {
 
     // Run visibility tests
     console.log(`\n🚀 Running visibility tests...`);
-    const results = await runVisibilityTestForCompany(company, competitors);
+    const visibilityResults = await runVisibilityTestForCompany(company, competitors);
+    
+    // Run sentiment tests
+    console.log(`\n💭 Running sentiment tests...`);
+    const sentimentResults = await runSentimentTestForCompany(company);
+    
+    // Combine all results
+    const allResults = [...visibilityResults, ...sentimentResults];
     
     // Write results immediately to CSV (one row per model per prompt)
-    await appendResultsToCSV(company, competitors, results);
+    await appendResultsToCSV(company, competitors, allResults);
     
-    // Calculate summary stats for display
-    const stats = calculateSummaryStats(results);
+    // Calculate summary stats for display (only for visibility results)
+    const stats = calculateSummaryStats(visibilityResults);
 
     // Show summary results
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);

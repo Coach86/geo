@@ -29,7 +29,7 @@ import { OptimizationDrawer } from './OptimizationDrawer';
 interface ContentKPIDashboardProps {
   projectId: string;
   isCrawling: boolean;
-  crawlProgress: { crawledPages: number; totalPages: number } | null;
+  crawlProgress: { crawledPages: number; totalPages: number; currentUrl?: string } | null;
   showCrawlDialog: boolean;
   setShowCrawlDialog: (show: boolean) => void;
   handleStartCrawl: (maxPages: number) => void;
@@ -62,6 +62,35 @@ const SEVERITY_ICONS = {
   high: AlertTriangle,
   medium: Info,
   low: CheckCircle,
+};
+
+// Helper function to format URLs for display
+const formatUrlForDisplay = (url: string, maxLength: number = 60): string => {
+  if (!url || url === 'Starting...') return url;
+  
+  try {
+    const urlObj = new URL(url);
+    const path = urlObj.pathname + urlObj.search;
+    const domain = urlObj.hostname;
+    
+    // If the full URL is short enough, show it
+    if (url.length <= maxLength) {
+      return url.replace(/^https?:\/\//, '');
+    }
+    
+    // Otherwise, show domain + truncated path
+    const domainPart = domain;
+    const remainingLength = maxLength - domainPart.length - 3; // 3 for "..."
+    
+    if (path.length > remainingLength) {
+      return `${domainPart}${path.substring(0, remainingLength)}...`;
+    }
+    
+    return `${domainPart}${path}`;
+  } catch {
+    // If URL parsing fails, just truncate the string
+    return url.length > maxLength ? url.substring(0, maxLength) + '...' : url;
+  }
 };
 
 export function ContentKPIDashboard({ 
@@ -181,21 +210,40 @@ export function ContentKPIDashboard({
         </Card>
 
         {/* Progress Bar when crawling */}
-        {isCrawling && crawlProgress && (
+        {isCrawling && crawlProgress && crawlProgress.totalPages > 0 && (
           <Card>
             <CardContent className="pt-6">
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="flex justify-between text-sm">
-                  <span>Analyzing website pages...</span>
-                  <span>{Math.round((crawlProgress.crawledPages / crawlProgress.totalPages) * 100)}%</span>
+                  <div className="flex-1">
+                    <div>Analyzing website content...</div>
+                    {/* Debug info */}
+                    <div className="text-xs text-red-500 mt-1">
+                      Debug: currentUrl = "{crawlProgress.currentUrl || 'undefined'}"
+                    </div>
+                    {crawlProgress.currentUrl && crawlProgress.currentUrl !== 'Starting...' && (
+                      <div className="flex items-center text-xs text-muted-foreground mt-1">
+                        <Globe className="h-3 w-3 mr-1 flex-shrink-0" />
+                        <span className="truncate" title={crawlProgress.currentUrl}>
+                          {formatUrlForDisplay(crawlProgress.currentUrl, 60)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <span className="font-medium">{Math.min(100, Math.round((crawlProgress.crawledPages / crawlProgress.totalPages) * 100))}%</span>
                 </div>
                 <Progress 
-                  value={(crawlProgress.crawledPages / crawlProgress.totalPages) * 100} 
+                  value={Math.min(100, Math.max(0, (crawlProgress.crawledPages / crawlProgress.totalPages) * 100))} 
                   className="h-2"
                 />
-                <p className="text-xs text-muted-foreground">
-                  This process analyzes your website's pages independently from regular batch runs
-                </p>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Pages analyzed: {crawlProgress.crawledPages} / {crawlProgress.totalPages}</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    This process analyzes your website's content independently from regular batch runs
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -246,21 +294,36 @@ export function ContentKPIDashboard({
   return (
     <div className="space-y-6">
       {/* Progress Bar when crawling */}
-      {isCrawling && crawlProgress && (
+      {isCrawling && crawlProgress && crawlProgress.totalPages > 0 && (
         <Card>
           <CardContent className="pt-6">
-            <div className="space-y-2">
+            <div className="space-y-3">
               <div className="flex justify-between text-sm">
-                <span>Analyzing website content...</span>
-                <span>{Math.round((crawlProgress.crawledPages / crawlProgress.totalPages) * 100)}%</span>
+                <div className="flex-1">
+                  <div>Analyzing website content...</div>
+                  {crawlProgress.currentUrl && crawlProgress.currentUrl !== 'Starting...' && (
+                    <div className="flex items-center text-xs text-muted-foreground mt-1">
+                      <Globe className="h-3 w-3 mr-1 flex-shrink-0" />
+                      <span className="truncate" title={crawlProgress.currentUrl}>
+                        {formatUrlForDisplay(crawlProgress.currentUrl, 60)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <span className="font-medium">{Math.min(100, Math.round((crawlProgress.crawledPages / crawlProgress.totalPages) * 100))}%</span>
               </div>
               <Progress 
-                value={(crawlProgress.crawledPages / crawlProgress.totalPages) * 100} 
+                value={Math.min(100, Math.max(0, (crawlProgress.crawledPages / crawlProgress.totalPages) * 100))} 
                 className="h-2"
               />
-              <p className="text-xs text-muted-foreground">
-                This process analyzes your website's content independently from regular batch runs
-              </p>
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Pages analyzed: {crawlProgress.crawledPages} / {crawlProgress.totalPages}</span>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  This process analyzes your website's content independently from regular batch runs
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
