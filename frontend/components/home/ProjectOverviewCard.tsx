@@ -9,6 +9,8 @@ import { getProjectReports } from "@/lib/api/report"
 import { useAuth } from "@/providers/auth-provider"
 import { useNotificationContext } from "@/providers/notification-provider"
 import { useFavicon } from "@/hooks/use-favicon"
+import { ModelIcon } from "@/components/ui/model-icon"
+import { getMyOrganization } from "@/lib/organization-api"
 
 interface ProjectOverviewCardProps {
   project: ProjectResponse
@@ -19,11 +21,26 @@ interface ProjectOverviewCardProps {
 
 export function ProjectOverviewCard({ project, onClick, onGoToProject, onProjectSettings }: ProjectOverviewCardProps) {
   const [isProcessing, setIsProcessing] = useState(false)
+  const [selectedModels, setSelectedModels] = useState<string[]>([])
   const { token } = useAuth()
   const { notifications } = useNotificationContext()
   
   // Get favicon from project URL
   const { faviconUrl } = useFavicon(project.url)
+
+  // Fetch organization to get selected models
+  useEffect(() => {
+    const fetchOrganization = async () => {
+      if (!token) return
+      try {
+        const org = await getMyOrganization(token)
+        setSelectedModels(org.selectedModels || [])
+      } catch (error) {
+        console.error("Failed to fetch organization:", error)
+      }
+    }
+    fetchOrganization()
+  }, [token])
 
   useEffect(() => {
     const checkProcessingStatus = async () => {
@@ -68,20 +85,41 @@ export function ProjectOverviewCard({ project, onClick, onGoToProject, onProject
       onClick={onClick}
     >
       <CardHeader>
-        <CardTitle className="text-xl flex items-center gap-2">
-          {faviconUrl && (
-            <img 
-              src={faviconUrl}
-              alt={`${project.brandName} favicon`}
-              className="h-5 w-5"
-            />
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <CardTitle className="text-xl flex items-center gap-2">
+              {faviconUrl && (
+                <img 
+                  src={faviconUrl}
+                  alt={`${project.brandName} favicon`}
+                  className="h-5 w-5"
+                />
+              )}
+              {project.name || project.brandName}
+            </CardTitle>
+            <CardDescription className="flex items-center gap-2 text-sm mt-1">
+              <ExternalLink className="h-3 w-3" />
+              {project.url}
+            </CardDescription>
+          </div>
+          {selectedModels.length > 0 && (
+            <div className="flex items-center gap-1 ml-4">
+              {selectedModels.slice(0, 3).map((model, index) => (
+                <div 
+                  key={index} 
+                  className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm"
+                >
+                  <ModelIcon model={model} size="sm" />
+                </div>
+              ))}
+              {selectedModels.length > 3 && (
+                <span className="text-xs text-muted-foreground ml-1">
+                  +{selectedModels.length - 3}
+                </span>
+              )}
+            </div>
           )}
-          {project.name || project.brandName}
-        </CardTitle>
-        <CardDescription className="flex items-center gap-2 text-sm">
-          <ExternalLink className="h-3 w-3" />
-          {project.url}
-        </CardDescription>
+        </div>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col">
         <div className="flex-1">

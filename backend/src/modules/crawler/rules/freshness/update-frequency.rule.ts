@@ -12,7 +12,7 @@ export class UpdateFrequencyRule extends BaseRule {
   dimension: RuleDimension = 'freshness';
   description = 'Evaluates how recently content was updated based on page type';
   priority = 90;
-  weight = 0.4; // 40% of freshness score
+  weight = 1.0; // 100% of freshness score (only freshness rule)
   
   applicability: RuleApplicability = {
     scope: 'all'
