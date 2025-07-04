@@ -28,10 +28,10 @@ interface CombinedScoresData {
     totalDomains: number;
   };
   pageScoreBreakdown: {
+    technical: number;
+    content: number;
     authority: number;
-    freshness: number;
-    structure: number;
-    brandAlignment: number;
+    monitoringKpi: number;
   };
   domainScoreBreakdown: Record<string, number[]>;
   pageScores: any[];
@@ -39,10 +39,10 @@ interface CombinedScoresData {
 }
 
 const COLORS = {
+  technical: '#3b82f6',
+  content: '#10b981',
   authority: '#8b5cf6',
-  freshness: '#3b82f6',
-  structure: '#10b981',
-  brandAlignment: '#ef4444',
+  monitoringKpi: '#f59e0b',
   domain: '#f59e0b',
   page: '#6366f1',
 };
@@ -132,7 +132,7 @@ export function CombinedScoresTab({ projectId }: CombinedScoresTabProps) {
       : 0;
 
     return {
-      dimension: dimension.charAt(0).toUpperCase() + dimension.slice(1),
+      dimension: dimension === 'monitoringKpi' ? 'Monitoring' : dimension.charAt(0).toUpperCase() + dimension.slice(1),
       pageScore,
       domainScore: avgDomainScore,
     };
@@ -267,14 +267,18 @@ export function CombinedScoresTab({ projectId }: CombinedScoresTabProps) {
         {/* Page Analysis Breakdown */}
         <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
           <CardHeader>
-            <CardTitle className="text-lg font-semibold text-gray-900">Page Analysis Breakdown</CardTitle>
+            <CardTitle className="text-lg font-semibold text-gray-900">
+              Page Analysis Breakdown
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {Object.entries(data.pageScoreBreakdown).map(([dimension, score]) => (
+              {Object.entries(data.pageScoreBreakdown || {}).map(([dimension, score]) => (
                 <div key={dimension} className="space-y-1">
                   <div className="flex justify-between text-sm">
-                    <span className="capitalize">{dimension.replace(/([A-Z])/g, ' $1')}</span>
+                    <span className="capitalize">
+                      {dimension === 'monitoringKpi' ? 'Monitoring KPI' : dimension}
+                    </span>
                     <span className="font-medium">{Math.round(score)}/100</span>
                   </div>
                   <Progress value={score} className="h-2" />

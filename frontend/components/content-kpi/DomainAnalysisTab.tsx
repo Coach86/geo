@@ -135,22 +135,24 @@ export function DomainAnalysisTab({ projectId, onIssueClick }: DomainAnalysisTab
   }
 
   // Calculate overall domain metrics
-  const avgDomainScore = Math.round(
-    data.domainAnalyses.reduce((sum, domain) => sum + domain.overallScore, 0) / data.domainAnalyses.length
-  );
+  const avgDomainScore = data.domainAnalyses.length > 0 ? Math.round(
+    data.domainAnalyses.reduce((sum, domain) => sum + (domain.overallScore || 0), 0) / data.domainAnalyses.length
+  ) : 0;
 
-  const totalPages = data.domainAnalyses.reduce((sum, domain) => sum + domain.metadata.totalPages, 0);
-  const totalIssues = data.domainAnalyses.reduce((sum, domain) => sum + domain.issues.length, 0);
+  const totalPages = data.domainAnalyses.reduce((sum, domain) => sum + (domain.metadata?.totalPages || 0), 0);
+  const totalIssues = data.domainAnalyses.reduce((sum, domain) => sum + (domain.issues?.length || 0), 0);
 
   // Prepare radar chart data for average domain scores
   const avgDimensionScores = data.domainAnalyses.reduce((acc, domain) => {
-    Object.entries(domain.dimensionScores).forEach(([dimension, data]) => {
-      if (!acc[dimension]) {
-        acc[dimension] = { total: 0, count: 0 };
-      }
-      acc[dimension].total += data.score;
-      acc[dimension].count += 1;
-    });
+    if (domain.dimensionScores) {
+      Object.entries(domain.dimensionScores).forEach(([dimension, data]) => {
+        if (!acc[dimension]) {
+          acc[dimension] = { total: 0, count: 0 };
+        }
+        acc[dimension].total += data.score;
+        acc[dimension].count += 1;
+      });
+    }
     return acc;
   }, {} as Record<string, { total: number; count: number }>);
 
@@ -162,8 +164,8 @@ export function DomainAnalysisTab({ projectId, onIssueClick }: DomainAnalysisTab
   // Prepare domain scores for bar chart
   const domainScoreData = data.domainAnalyses.map(domain => ({
     domain: domain.domain.replace(/^www\./, ''),
-    score: domain.overallScore,
-    pages: domain.metadata.totalPages,
+    score: domain.overallScore || 0,
+    pages: domain.metadata?.totalPages || 0,
   }));
 
   return (
@@ -171,62 +173,22 @@ export function DomainAnalysisTab({ projectId, onIssueClick }: DomainAnalysisTab
       pages={data.domainAnalyses.map(domain => ({
         url: domain.domain,
         title: domain.domain,
-        globalScore: domain.overallScore,
-        scores: {
+        globalScore: domain.overallScore || 0,
+        scores: domain.dimensionScores ? {
+          technical: domain.dimensionScores.technical?.score || 0,
+          content: domain.dimensionScores.content?.score || 0,
           authority: domain.dimensionScores.authority?.score || 0,
-          freshness: domain.dimensionScores.freshness?.score || 0,
-          structure: domain.dimensionScores.structure?.score || 0,
-          brandAlignment: domain.dimensionScores.brand?.score || domain.dimensionScores.brandAlignment?.score || 0,
-        },
-        details: {
-          authority: { score: domain.dimensionScores.authority?.score || 0 },
-          freshness: { score: domain.dimensionScores.freshness?.score || 0 },
-          structure: { score: domain.dimensionScores.structure?.score || 0 },
-          brand: { score: domain.dimensionScores.brand?.score || domain.dimensionScores.brandAlignment?.score || 0 },
-        },
-        calculationDetails: domain.calculationDetails,
-        ruleBasedAnalysis: domain.ruleResults && domain.ruleResults.length > 0 ? {
-          authority: domain.ruleResults.some((rule: any) => rule.dimension === 'authority') ? {
-            score: domain.dimensionScores.authority?.score || 0,
-            calculationDetails: {
-              ruleResults: domain.ruleResults.filter((rule: any) => rule.dimension === 'authority'),
-              finalScore: domain.dimensionScores.authority?.score || 0,
-              dimensionWeight: domain.dimensionScores.authority?.weight || 1
-            }
-          } : undefined,
-          freshness: domain.ruleResults.some((rule: any) => rule.dimension === 'freshness') ? {
-            score: domain.dimensionScores.freshness?.score || 0,
-            calculationDetails: {
-              ruleResults: domain.ruleResults.filter((rule: any) => rule.dimension === 'freshness'),
-              finalScore: domain.dimensionScores.freshness?.score || 0,
-              dimensionWeight: domain.dimensionScores.freshness?.weight || 1
-            }
-          } : undefined,
-          structure: domain.ruleResults.some((rule: any) => rule.dimension === 'structure') ? {
-            score: domain.dimensionScores.structure?.score || 0,
-            calculationDetails: {
-              ruleResults: domain.ruleResults.filter((rule: any) => rule.dimension === 'structure'),
-              finalScore: domain.dimensionScores.structure?.score || 0,
-              dimensionWeight: domain.dimensionScores.structure?.weight || 1
-            }
-          } : undefined,
-          brand: domain.ruleResults.some((rule: any) => rule.dimension === 'brand') ? {
-            score: domain.dimensionScores.brand?.score || 0,
-            calculationDetails: {
-              ruleResults: domain.ruleResults.filter((rule: any) => rule.dimension === 'brand'),
-              finalScore: domain.dimensionScores.brand?.score || 0,
-              dimensionWeight: domain.dimensionScores.brand?.weight || 1
-            }
-          } : undefined,
+          monitoringKpi: domain.dimensionScores.monitoringKpi?.score || 0,
         } : undefined,
-        issues: domain.issues.map((issue, index) => ({
+        ruleResults: domain.ruleResults || [],
+        issues: (domain.issues || []).map((issue, index) => ({
           id: `${domain.domain}-issue-${index}`,
           description: issue,
           severity: 'medium' as const,
           dimension: 'general',
         })),
         strengths: domain.recommendations || [],
-        crawledAt: new Date(domain.metadata.analysisCompletedAt),
+        crawledAt: new Date(domain.metadata?.analysisCompletedAt || Date.now()),
         pageCategory: 'domain' as any,
         analysisLevel: 'domain' as any,
         categoryConfidence: 100,

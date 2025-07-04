@@ -59,23 +59,33 @@ interface ScoringRulesTabProps {
 }
 
 const DIMENSION_COLORS: Record<string, string> = {
+  technical: 'bg-purple-100 text-purple-800',
+  content: 'bg-green-100 text-green-800',
   authority: 'bg-blue-100 text-blue-800',
-  freshness: 'bg-green-100 text-green-800',
-  structure: 'bg-purple-100 text-purple-800',
-  brandAlignment: 'bg-orange-100 text-orange-800',
+  monitoringKpi: 'bg-orange-100 text-orange-800',
 };
 
 const DIMENSION_ICONS: Record<string, React.ElementType> = {
+  technical: Code,
+  content: Database,
   authority: CheckCircle,
-  freshness: AlertCircle,
-  structure: Code,
-  brandAlignment: Tags,
+  monitoringKpi: AlertCircle,
+};
+
+const getDimensionDisplayName = (dimension: string): string => {
+  const names: Record<string, string> = {
+    technical: 'Technical',
+    content: 'Content',
+    authority: 'Authority',
+    monitoringKpi: 'Monitoring KPIs',
+  };
+  return names[dimension] || dimension;
 };
 
 export function ScoringRulesTab({ projectId }: ScoringRulesTabProps) {
   const [loading, setLoading] = useState(true);
   const [rulesData, setRulesData] = useState<RulesData | null>(null);
-  const [expandedDimensions, setExpandedDimensions] = useState<Set<string>>(new Set(['authority']));
+  const [expandedDimensions, setExpandedDimensions] = useState<Set<string>>(new Set(['page-technical']));
   const { token } = useAuth();
 
   useEffect(() => {
@@ -162,8 +172,21 @@ export function ScoringRulesTab({ projectId }: ScoringRulesTabProps) {
     );
   }
 
-  // Group rules by dimension
-  const rulesByDimension = rulesData.rules.reduce((acc, rule) => {
+  // Separate rules by execution scope first
+  const pageRules = rulesData.rules.filter(rule => rule.executionScope === 'page');
+  const domainRules = rulesData.rules.filter(rule => rule.executionScope === 'domain');
+  
+  // Group page rules by dimension
+  const pageRulesByDimension = pageRules.reduce((acc, rule) => {
+    if (!acc[rule.dimension]) {
+      acc[rule.dimension] = [];
+    }
+    acc[rule.dimension].push(rule);
+    return acc;
+  }, {} as Record<string, Rule[]>);
+
+  // Group domain rules by dimension
+  const domainRulesByDimension = domainRules.reduce((acc, rule) => {
     if (!acc[rule.dimension]) {
       acc[rule.dimension] = [];
     }
@@ -172,34 +195,45 @@ export function ScoringRulesTab({ projectId }: ScoringRulesTabProps) {
   }, {} as Record<string, Rule[]>);
 
   // Sort rules within each dimension by priority
-  Object.keys(rulesByDimension).forEach(dimension => {
-    rulesByDimension[dimension].sort((a, b) => b.priority - a.priority);
+  Object.keys(pageRulesByDimension).forEach(dimension => {
+    pageRulesByDimension[dimension].sort((a, b) => b.priority - a.priority);
+  });
+  Object.keys(domainRulesByDimension).forEach(dimension => {
+    domainRulesByDimension[dimension].sort((a, b) => b.priority - a.priority);
   });
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Content Scoring Rules</CardTitle>
-          <CardDescription>
-            Rules used to evaluate and score your website content across four key dimensions
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {rulesData.dimensions.map(dimension => {
-              const rules = rulesByDimension[dimension] || [];
-              const Icon = DIMENSION_ICONS[dimension] || Database;
-              const isExpanded = expandedDimensions.has(dimension);
-              const totalWeight = rules.reduce((sum, rule) => sum + rule.weight, 0);
-              const llmRulesCount = rules.filter(rule => rule.usesLLM).length;
+    <div className="space-y-6">
+      {/* Page-Level Rules Section */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 mb-2">
+          <Globe className="h-5 w-5 text-primary" />
+          <h2 className="text-xl font-semibold">Page-Level Rules</h2>
+          <Badge variant="outline">{pageRules.length} rules</Badge>
+        </div>
+        <Card>
+          <CardHeader>
+            <CardDescription>
+              Rules evaluated for each individual page during content analysis
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {rulesData.dimensions.map(dimension => {
+                const rules = pageRulesByDimension[dimension] || [];
+                if (rules.length === 0) return null;
+                
+                const Icon = DIMENSION_ICONS[dimension] || Database;
+                const isExpanded = expandedDimensions.has(`page-${dimension}`);
+                const totalWeight = rules.reduce((sum, rule) => sum + rule.weight, 0);
+                const llmRulesCount = rules.filter(rule => rule.usesLLM).length;
               
-              return (
-                <Collapsible
-                  key={dimension}
-                  open={isExpanded}
-                  onOpenChange={() => toggleDimension(dimension)}
-                >
+                return (
+                  <Collapsible
+                    key={`page-${dimension}`}
+                    open={isExpanded}
+                    onOpenChange={() => toggleDimension(`page-${dimension}`)}
+                  >
                   <Card>
                     <CollapsibleTrigger asChild>
                       <CardHeader className="cursor-pointer">
@@ -207,7 +241,7 @@ export function ScoringRulesTab({ projectId }: ScoringRulesTabProps) {
                           <div className="flex items-center gap-3">
                             {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                             <Icon className="h-5 w-5" />
-                            <h3 className="text-lg font-semibold capitalize">{dimension}</h3>
+                            <h3 className="text-lg font-semibold">{getDimensionDisplayName(dimension)}</h3>
                             <Badge className={DIMENSION_COLORS[dimension]}>
                               {rules.length} rules
                             </Badge>
@@ -254,7 +288,10 @@ export function ScoringRulesTab({ projectId }: ScoringRulesTabProps) {
                                       )}
                                     </div>
                                   ) : (
-                                    <span className="text-xs text-muted-foreground">Rule-based</span>
+                                    <Badge variant="outline" className="gap-1">
+                                      <Code className="h-3 w-3" />
+                                      Code-based
+                                    </Badge>
                                   )}
                                 </TableCell>
                               </TableRow>
@@ -270,6 +307,112 @@ export function ScoringRulesTab({ projectId }: ScoringRulesTabProps) {
           </div>
         </CardContent>
       </Card>
+      </div>
+
+      {/* Domain-Level Rules Section */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 mb-2">
+          <Database className="h-5 w-5 text-primary" />
+          <h2 className="text-xl font-semibold">Domain-Level Rules</h2>
+          <Badge variant="outline">{domainRules.length} rules</Badge>
+        </div>
+        <Card>
+          <CardHeader>
+            <CardDescription>
+              Rules evaluated once per domain to assess overall website authority and technical setup
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {rulesData.dimensions.map(dimension => {
+                const rules = domainRulesByDimension[dimension] || [];
+                if (rules.length === 0) return null;
+                
+                const Icon = DIMENSION_ICONS[dimension] || Database;
+                const isExpanded = expandedDimensions.has(`domain-${dimension}`);
+                const totalWeight = rules.reduce((sum, rule) => sum + rule.weight, 0);
+                const llmRulesCount = rules.filter(rule => rule.usesLLM).length;
+              
+                return (
+                  <Collapsible
+                    key={`domain-${dimension}`}
+                    open={isExpanded}
+                    onOpenChange={() => toggleDimension(`domain-${dimension}`)}
+                  >
+                    <Card>
+                      <CollapsibleTrigger asChild>
+                        <CardHeader className="cursor-pointer">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                              <Icon className="h-5 w-5" />
+                              <h3 className="text-lg font-semibold">{getDimensionDisplayName(dimension)}</h3>
+                              <Badge className={DIMENSION_COLORS[dimension]}>
+                                {rules.length} rules
+                              </Badge>
+                              {llmRulesCount > 0 && (
+                                <Badge variant="secondary" className="gap-1">
+                                  <Sparkles className="h-3 w-3" />
+                                  {llmRulesCount} AI-powered
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </CardHeader>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <CardContent>
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="w-[200px]">Rule Name</TableHead>
+                                <TableHead className="w-[350px]">Description</TableHead>
+                                <TableHead className="w-[100px]">Weight</TableHead>
+                                <TableHead className="w-[150px]">Applies To</TableHead>
+                                <TableHead className="w-[250px]">AI Usage</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {rules.map(rule => (
+                                <TableRow key={rule.id}>
+                                  <TableCell className="font-medium w-[200px]">{rule.name}</TableCell>
+                                  <TableCell className="text-sm w-[350px]">{rule.description}</TableCell>
+                                  <TableCell className="w-[100px]">{(rule.weight * 100).toFixed(0)}%</TableCell>
+                                  <TableCell className="w-[150px]">{getApplicabilityBadge(rule)}</TableCell>
+                                  <TableCell className="w-[250px]">
+                                    {rule.usesLLM ? (
+                                      <div className="flex items-center gap-2">
+                                        <Badge variant="secondary" className="gap-1">
+                                          <Sparkles className="h-3 w-3" />
+                                          AI
+                                        </Badge>
+                                        {rule.llmPurpose && (
+                                          <span className="text-xs text-muted-foreground">
+                                            {rule.llmPurpose}
+                                          </span>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <Badge variant="outline" className="gap-1">
+                                        <Code className="h-3 w-3" />
+                                        Code-based
+                                      </Badge>
+                                    )}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </CardContent>
+                      </CollapsibleContent>
+                    </Card>
+                  </Collapsible>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       <Card>
         <CardHeader>
@@ -288,8 +431,8 @@ export function ScoringRulesTab({ projectId }: ScoringRulesTabProps) {
           <div>
             <h4 className="font-medium mb-2">AI-Powered Rules</h4>
             <p className="text-sm text-muted-foreground">
-              Some rules use AI to perform advanced analysis that would be difficult with static rules alone. 
-              For example, the Domain Authority rule uses web search to research your domain's reputation.
+              Some rules use AI to perform advanced analysis that would be difficult with code-based rules alone. 
+              These rules provide deeper insights into content quality, brand alignment, and off-site signals.
             </p>
           </div>
           

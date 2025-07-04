@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { WebCrawlerService, CrawlOptions } from './web-crawler.service';
 import { ContentAnalyzerService } from './content-analyzer.service';
+import { AEOContentAnalyzerService } from './aeo-content-analyzer.service';
 import { ProjectService } from '../../project/services/project.service';
 import { BatchEventsGateway } from '../../batch/gateways/batch-events.gateway';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -30,6 +31,7 @@ export class CrawlerPipelineService {
     private readonly configService: ConfigService,
     private readonly webCrawlerService: WebCrawlerService,
     private readonly contentAnalyzerService: ContentAnalyzerService,
+    private readonly aeoContentAnalyzerService: AEOContentAnalyzerService,
     private readonly projectService: ProjectService,
     private readonly batchEventsGateway: BatchEventsGateway,
     private readonly eventEmitter: EventEmitter2,
@@ -47,86 +49,10 @@ export class CrawlerPipelineService {
   }
 
   private setupEventListeners() {
-    // Forward crawler events to WebSocket
-    this.eventEmitter.on('crawler.started', (data) => {
-      this.batchEventsGateway.emitBatchEvent({
-        batchExecutionId: 'content-kpi-' + data.projectId,
-        projectId: data.projectId,
-        projectName: '',
-        eventType: 'pipeline_started',
-        pipelineType: 'full',
-        message: `Started crawling ${data.startUrl}`,
-        timestamp: new Date(),
-        progress: 0,
-      });
-    });
-
-    this.eventEmitter.on('crawler.progress', (data) => {
-      const progress = Math.round((data.crawled / data.total) * 50); // 50% for crawling
-      this.batchEventsGateway.emitBatchEvent({
-        batchExecutionId: 'content-kpi-' + data.projectId,
-        projectId: data.projectId,
-        projectName: '',
-        eventType: 'pipeline_started',
-        pipelineType: 'full',
-        message: `Crawling: ${data.crawled}/${data.total} pages`,
-        timestamp: new Date(),
-        progress,
-      });
-    });
-
-    this.eventEmitter.on('crawler.completed', (data) => {
-      this.batchEventsGateway.emitBatchEvent({
-        batchExecutionId: 'content-kpi-' + data.projectId,
-        projectId: data.projectId,
-        projectName: '',
-        eventType: 'pipeline_started',
-        pipelineType: 'full',
-        message: `Crawling completed. Starting analysis...`,
-        timestamp: new Date(),
-        progress: 50, // Crawling done, analysis starting
-      });
-    });
-
-    this.eventEmitter.on('analyzer.started', (data) => {
-      this.batchEventsGateway.emitBatchEvent({
-        batchExecutionId: 'content-kpi-' + data.projectId,
-        projectId: data.projectId,
-        projectName: '',
-        eventType: 'pipeline_started',
-        pipelineType: 'full',
-        message: `Starting analysis of ${data.totalPages} pages`,
-        timestamp: new Date(),
-        progress: 50,
-      });
-    });
-
-    this.eventEmitter.on('analyzer.progress', (data) => {
-      const progress = 50 + Math.round((data.analyzed / data.total) * 50); // 50-100% for analysis
-      this.batchEventsGateway.emitBatchEvent({
-        batchExecutionId: 'content-kpi-' + data.projectId,
-        projectId: data.projectId,
-        projectName: '',
-        eventType: 'pipeline_started',
-        pipelineType: 'full',
-        message: `Analyzing: ${data.analyzed}/${data.total} pages`,
-        timestamp: new Date(),
-        progress,
-      });
-    });
-
-    this.eventEmitter.on('analyzer.completed', (data) => {
-      this.batchEventsGateway.emitBatchEvent({
-        batchExecutionId: 'content-kpi-' + data.projectId,
-        projectId: data.projectId,
-        projectName: '',
-        eventType: 'pipeline_started',
-        pipelineType: 'full',
-        message: `Analysis completed: ${data.analyzed}/${data.total} pages analyzed`,
-        timestamp: new Date(),
-        progress: 100, // Analysis is done
-      });
-    });
+    // The CrawlerEventsGateway already listens to these events and emits them properly
+    // We don't need to do anything here since the gateway handles the WebSocket emissions
+    // The crawler.* and analyzer.* events are already being emitted by web-crawler.service.ts
+    // and content-analyzer.service.ts respectively
   }
 
   async runContentKPIPipeline(projectId: string, options?: Partial<CrawlOptions>): Promise<CrawlerPipelineResult> {
@@ -161,16 +87,16 @@ export class CrawlerPipelineService {
       const crawlDuration = Date.now() - crawlStartTime;
       this.logger.log(`[PIPELINE] Crawling completed in ${crawlDuration}ms`);
 
-      // Step 2: Analyze crawled content
-      this.logger.log('[PIPELINE] Step 2: Starting content analysis for KPIs');
+      // Step 2: Analyze crawled content with AEO rules (respecting the same limit as crawling)
+      this.logger.log(`[PIPELINE] Step 2: Starting AEO content analysis for KPIs (max ${crawlOptions.maxPages} pages)`);
       const analysisStartTime = Date.now();
-      await this.contentAnalyzerService.analyzeProjectContent(projectId);
+      await this.aeoContentAnalyzerService.analyzeProjectContent(projectId, crawlOptions.maxPages);
       const analysisDuration = Date.now() - analysisStartTime;
-      this.logger.log(`[PIPELINE] Analysis completed in ${analysisDuration}ms`);
+      this.logger.log(`[PIPELINE] AEO Analysis completed in ${analysisDuration}ms`);
 
       // Step 3: Get results
       this.logger.log('[PIPELINE] Step 3: Fetching analysis results');
-      const stats = await this.contentAnalyzerService.getProjectScoreStats(projectId);
+      const stats = await this.aeoContentAnalyzerService.getProjectScoreStats(projectId);
       const crawlStats = await this.webCrawlerService.getCrawlStatus(projectId);
       
       this.logger.log(`[PIPELINE] Results: ${crawlStats.successfulPages} pages crawled, ${stats.totalPages} pages analyzed`);
@@ -266,7 +192,7 @@ export class CrawlerPipelineService {
 
   async getLastPipelineResult(projectId: string): Promise<CrawlerPipelineResult | null> {
     try {
-      const stats = await this.contentAnalyzerService.getProjectScoreStats(projectId);
+      const stats = await this.aeoContentAnalyzerService.getProjectScoreStats(projectId);
       const crawlStats = await this.webCrawlerService.getCrawlStatus(projectId);
 
       if (!stats.lastAnalyzedAt) {

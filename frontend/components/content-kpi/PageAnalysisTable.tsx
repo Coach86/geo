@@ -26,16 +26,43 @@ interface PageIssue {
   recommendation?: string;
 }
 
+interface EvidenceItem {
+  type: 'info' | 'success' | 'warning' | 'error' | 'score' | 'heading';
+  content: string;
+  target?: string;
+  code?: string;
+  metadata?: Record<string, any>;
+}
+
 interface PageAnalysis {
   url: string;
   title?: string;
   globalScore: number;
-  scores: {
+  scores?: {
+    technical: number;
+    content: number;
     authority: number;
-    freshness: number;
-    structure: number;
-    brandAlignment: number;
+    monitoringKpi: number;
   };
+  ruleResults?: Array<{
+    ruleId: string;
+    ruleName: string;
+    category: 'technical' | 'content' | 'authority' | 'monitoringKpi';
+    score: number;
+    maxScore: number;
+    weight: number;
+    contribution: number;
+    passed: boolean;
+    evidence: EvidenceItem[];
+    issues?: Array<{
+      dimension: string;
+      severity: 'critical' | 'high' | 'medium' | 'low';
+      description: string;
+      recommendation: string;
+      affectedElements?: string[];
+    }>;
+    details?: Record<string, any>;
+  }>;
   details?: any;
   calculationDetails?: any;
   issues: PageIssue[];
@@ -67,31 +94,45 @@ const formatPageCategory = (category?: string): string => {
   
   // Map to shorter names
   const shortNames: Record<string, string> = {
+    // Tier 1: Core Business & High-Impact Pages
     'homepage': 'Home',
-    'product_service': 'Product',
-    'pricing_plans': 'Pricing',
-    'about_company': 'About',
-    'careers_jobs': 'Careers',
+    'product_category_page': 'Category',
+    'product_detail_page': 'Product',
+    'services_features_page': 'Services',
+    'pricing': 'Pricing',
+    'comparison_page': 'Compare',
     'blog_article': 'Blog',
-    'help_support': 'Help',
-    'contact_us': 'Contact',
+    'blog_category_tag_page': 'Blog Cat',
+    
+    // Tier 2: Strategic Content & Resources
+    'pillar_page_topic_hub': 'Pillar',
+    'product_roundup_review': 'Product',
+    'how_to_guide_tutorial': 'How-to',
     'case_study': 'Case Study',
-    'documentation_help': 'Docs',
-    'news_article': 'News',
+    'what_is_x_definitional': 'Guide',
+    'in_depth_guide_white_paper': 'Guide',
     'faq': 'FAQ',
-    'legal_compliance': 'Legal',
-    'legal_policy': 'Legal',
+    'glossary_page': 'Glossary',
+    'public_forum_ugc': 'Forum',
+    
+    // Tier 3: Supporting Page Groups
+    'about_company': 'About',
+    'team_page': 'Team',
+    'contact': 'Contact',
+    'careers_page': 'Careers',
+    'press_media_room': 'Press',
+    'store_locator': 'Store',
     'login_account': 'Login',
-    'landing_page': 'Landing',
-    'demo_trial': 'Demo',
-    'integrations': 'Integrations',
-    'changelog': 'Changelog',
-    'roadmap': 'Roadmap',
-    'trust_security': 'Security',
-    'partner': 'Partner',
-    'customers': 'Customers',
-    'press': 'Press',
-    'investors': 'Investors',
+    'user_profile_dashboard': 'Profile',
+    'order_history': 'Orders',
+    'wishlist': 'Wishlist',
+    'search_results': 'Search',
+    'error_404': '404',
+    'privacy_policy': 'Privacy',
+    'terms_of_service': 'Terms',
+    'cookie_policy': 'Cookies',
+    'accessibility_statement': 'Access',
+    
     'unknown': 'Unknown'
   };
   
@@ -208,10 +249,10 @@ export function PageAnalysisTable({ pages, projectId, isDomainAnalysis = false, 
               {!isDomainAnalysis && <TableHead className="text-center w-[80px]">Category</TableHead>}
               <TableHead className="text-center w-[60px]">Score</TableHead>
               <TableHead className="text-center w-[80px]">Issues</TableHead>
+              <TableHead className="text-center w-[60px] text-xs">Tech</TableHead>
+              <TableHead className="text-center w-[60px] text-xs">Content</TableHead>
               <TableHead className="text-center w-[60px] text-xs">Auth</TableHead>
-              <TableHead className="text-center w-[60px] text-xs">Fresh</TableHead>
-              <TableHead className="text-center w-[60px] text-xs">Struct</TableHead>
-              <TableHead className="text-center w-[60px] text-xs">Brand</TableHead>
+              <TableHead className="text-center w-[60px] text-xs">KPIs</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -301,7 +342,25 @@ export function PageAnalysisTable({ pages, projectId, isDomainAnalysis = false, 
                       )}
                     </TableCell>
                     <TableCell className="text-center px-2">
-                      {page.skipped ? (
+                      {page.skipped || !page.scores ? (
+                        <span className="text-xs text-muted-foreground">-</span>
+                      ) : (
+                        <div className={`text-xs font-medium ${page.scores.technical >= 80 ? 'text-green-600' : page.scores.technical >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+                          {page.scores.technical}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center px-2">
+                      {page.skipped || !page.scores ? (
+                        <span className="text-xs text-muted-foreground">-</span>
+                      ) : (
+                        <div className={`text-xs font-medium ${page.scores.content >= 80 ? 'text-green-600' : page.scores.content >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+                          {page.scores.content}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center px-2">
+                      {page.skipped || !page.scores ? (
                         <span className="text-xs text-muted-foreground">-</span>
                       ) : (
                         <div className={`text-xs font-medium ${page.scores.authority >= 80 ? 'text-green-600' : page.scores.authority >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
@@ -310,29 +369,11 @@ export function PageAnalysisTable({ pages, projectId, isDomainAnalysis = false, 
                       )}
                     </TableCell>
                     <TableCell className="text-center px-2">
-                      {page.skipped ? (
+                      {page.skipped || !page.scores ? (
                         <span className="text-xs text-muted-foreground">-</span>
                       ) : (
-                        <div className={`text-xs font-medium ${page.scores.freshness >= 80 ? 'text-green-600' : page.scores.freshness >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
-                          {page.scores.freshness}
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center px-2">
-                      {page.skipped ? (
-                        <span className="text-xs text-muted-foreground">-</span>
-                      ) : (
-                        <div className={`text-xs font-medium ${page.scores.structure >= 80 ? 'text-green-600' : page.scores.structure >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
-                          {page.scores.structure}
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center px-2">
-                      {page.skipped ? (
-                        <span className="text-xs text-muted-foreground">-</span>
-                      ) : (
-                        <div className={`text-xs font-medium ${page.scores.brandAlignment >= 80 ? 'text-green-600' : page.scores.brandAlignment >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
-                          {page.scores.brandAlignment}
+                        <div className={`text-xs font-medium ${page.scores.monitoringKpi >= 80 ? 'text-green-600' : page.scores.monitoringKpi >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+                          {page.scores.monitoringKpi}
                         </div>
                       )}
                     </TableCell>
@@ -341,7 +382,11 @@ export function PageAnalysisTable({ pages, projectId, isDomainAnalysis = false, 
                   {isExpanded && (
                     <TableRow>
                       <TableCell colSpan={isDomainAnalysis ? 9 : 10} className="bg-muted/50">
-                        <PageDetailsSection page={page} projectId={projectId} onIssueClick={onIssueClick} />
+                        <PageDetailsSection 
+                          page={page} 
+                          projectId={projectId} 
+                          onIssueClick={onIssueClick} 
+                        />
                       </TableCell>
                     </TableRow>
                   )}

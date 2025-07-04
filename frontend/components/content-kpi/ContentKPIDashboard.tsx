@@ -16,7 +16,7 @@ import {
   AlertTriangle, CheckCircle, Info, AlertCircle,
   ExternalLink, TrendingUp, TrendingDown, Play, Loader2,
   LayoutDashboard, BarChart3, AlertOctagon, Globe, FileText, Settings,
-  BookOpen
+  BookOpen, Search, Brain
 } from 'lucide-react';
 import { useAuth } from '@/providers/auth-provider';
 import { API_BASE_URL } from '@/lib/api/constants';
@@ -29,24 +29,24 @@ import { OptimizationDrawer } from './OptimizationDrawer';
 interface ContentKPIDashboardProps {
   projectId: string;
   isCrawling: boolean;
-  crawlProgress: { crawledPages: number; totalPages: number; currentUrl?: string } | null;
+  crawlProgress: { crawledPages: number; totalPages: number; currentUrl?: string; status?: string } | null;
   showCrawlDialog: boolean;
   setShowCrawlDialog: (show: boolean) => void;
   handleStartCrawl: (maxPages: number) => void;
 }
 
 const COLORS = {
+  technical: '#3B82F6', // Vibrant Blue
+  content: '#10B981', // Vibrant Emerald
   authority: '#8B5CF6', // Vibrant purple
-  freshness: '#3B82F6', // Vibrant Blue
-  structure: '#10B981', // Vibrant Emerald
-  brand: '#EF4444', // Vibrant Red
+  monitoringKpi: '#F59E0B', // Vibrant Amber
 };
 
 const DIMENSION_COLORS = {
+  Technical: '#3B82F6', // Vibrant Blue
+  Content: '#10B981', // Vibrant Emerald
   Authority: '#8B5CF6', // Vibrant purple
-  Freshness: '#3B82F6', // Vibrant Blue
-  Structure: '#10B981', // Vibrant Emerald
-  Brand: '#EF4444', // Vibrant Red
+  Monitoring: '#F59E0B', // Vibrant Amber
 };
 
 // Using visibility page color scheme for severity
@@ -216,17 +216,30 @@ export function ContentKPIDashboard({
               <div className="space-y-3">
                 <div className="flex justify-between text-sm">
                   <div className="flex-1">
-                    <div>Analyzing website content...</div>
-                    {/* Debug info */}
-                    <div className="text-xs text-red-500 mt-1">
-                      Debug: currentUrl = "{crawlProgress.currentUrl || 'undefined'}"
+                    <div className="flex items-center gap-2">
+                      {crawlProgress.status === 'analyzing' ? (
+                        <>
+                          <Brain className="h-4 w-4 animate-pulse" />
+                          <span>Analyzing content with AI...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Search className="h-4 w-4 animate-pulse" />
+                          <span>Crawling website pages...</span>
+                        </>
+                      )}
                     </div>
-                    {crawlProgress.currentUrl && crawlProgress.currentUrl !== 'Starting...' && (
+                    {crawlProgress.currentUrl && crawlProgress.currentUrl !== 'Starting...' && crawlProgress.status !== 'analyzing' && (
                       <div className="flex items-center text-xs text-muted-foreground mt-1">
                         <Globe className="h-3 w-3 mr-1 flex-shrink-0" />
                         <span className="truncate" title={crawlProgress.currentUrl}>
                           {formatUrlForDisplay(crawlProgress.currentUrl, 60)}
                         </span>
+                      </div>
+                    )}
+                    {crawlProgress.status === 'analyzing' && (
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Processing crawled data and generating insights...
                       </div>
                     )}
                   </div>
@@ -238,7 +251,12 @@ export function ContentKPIDashboard({
                 />
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Pages analyzed: {crawlProgress.crawledPages} / {crawlProgress.totalPages}</span>
+                    <span>
+                      {crawlProgress.status === 'analyzing' 
+                        ? `Analyzing: ${crawlProgress.crawledPages} / ${crawlProgress.totalPages} pages`
+                        : `Pages crawled: ${crawlProgress.crawledPages} / ${crawlProgress.totalPages}`
+                      }
+                    </span>
                   </div>
                   <div className="text-xs text-muted-foreground">
                     This process analyzes your website's content independently from regular batch runs
@@ -255,23 +273,23 @@ export function ContentKPIDashboard({
   // Prepare data for radar chart
   const radarData = [
     { 
+      dimension: 'Technical',
+      value: report.summary.scoreBreakdown?.technical || 0,
+      fullMark: 100
+    },
+    { 
+      dimension: 'Content',
+      value: report.summary.scoreBreakdown?.content || 0,
+      fullMark: 100
+    },
+    { 
       dimension: 'Authority',
-      value: report.summary.scoreBreakdown.authority,
+      value: report.summary.scoreBreakdown?.authority || 0,
       fullMark: 100
     },
     { 
-      dimension: 'Freshness',
-      value: report.summary.scoreBreakdown.freshness,
-      fullMark: 100
-    },
-    { 
-      dimension: 'Structure',
-      value: report.summary.scoreBreakdown.structure,
-      fullMark: 100
-    },
-    { 
-      dimension: 'Brand',
-      value: report.summary.scoreBreakdown.brandAlignment,
+      dimension: 'Monitoring',
+      value: report.summary.scoreBreakdown?.monitoringKpi || 0,
       fullMark: 100
     },
   ];
@@ -300,13 +318,30 @@ export function ContentKPIDashboard({
             <div className="space-y-3">
               <div className="flex justify-between text-sm">
                 <div className="flex-1">
-                  <div>Analyzing website content...</div>
-                  {crawlProgress.currentUrl && crawlProgress.currentUrl !== 'Starting...' && (
+                  <div className="flex items-center gap-2">
+                    {crawlProgress.status === 'analyzing' ? (
+                      <>
+                        <Brain className="h-4 w-4 animate-pulse" />
+                        <span>Analyzing content with AI...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Search className="h-4 w-4 animate-pulse" />
+                        <span>Crawling website pages...</span>
+                      </>
+                    )}
+                  </div>
+                  {crawlProgress.currentUrl && crawlProgress.currentUrl !== 'Starting...' && crawlProgress.status !== 'analyzing' && (
                     <div className="flex items-center text-xs text-muted-foreground mt-1">
                       <Globe className="h-3 w-3 mr-1 flex-shrink-0" />
                       <span className="truncate" title={crawlProgress.currentUrl}>
                         {formatUrlForDisplay(crawlProgress.currentUrl, 60)}
                       </span>
+                    </div>
+                  )}
+                  {crawlProgress.status === 'analyzing' && (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Processing crawled data and generating insights...
                     </div>
                   )}
                 </div>
@@ -318,7 +353,12 @@ export function ContentKPIDashboard({
               />
               <div className="space-y-1">
                 <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Pages analyzed: {crawlProgress.crawledPages} / {crawlProgress.totalPages}</span>
+                  <span>
+                    {crawlProgress.status === 'analyzing' 
+                      ? `Analyzing: ${crawlProgress.crawledPages} / ${crawlProgress.totalPages} pages`
+                      : `Pages crawled: ${crawlProgress.crawledPages} / ${crawlProgress.totalPages}`
+                    }
+                  </span>
                 </div>
                 <div className="text-xs text-muted-foreground">
                   This process analyzes your website's content independently from regular batch runs
@@ -451,32 +491,32 @@ export function ContentKPIDashboard({
                       // Analyze each dimension and create targeted recommendations
                       const dimensionData = [
                         { 
+                          name: 'Technical', 
+                          score: report.summary.scoreBreakdown?.technical || 0,
+                          icon: Settings,
+                          color: COLORS.technical,
+                          threshold: 70
+                        },
+                        { 
+                          name: 'Content', 
+                          score: report.summary.scoreBreakdown?.content || 0,
+                          icon: FileText,
+                          color: COLORS.content,
+                          threshold: 75
+                        },
+                        { 
                           name: 'Authority', 
-                          score: report.summary.scoreBreakdown.authority,
+                          score: report.summary.scoreBreakdown?.authority || 0,
                           icon: CheckCircle,
                           color: COLORS.authority,
                           threshold: 70
                         },
                         { 
-                          name: 'Freshness', 
-                          score: report.summary.scoreBreakdown.freshness,
-                          icon: TrendingUp,
-                          color: COLORS.freshness,
-                          threshold: 75
-                        },
-                        { 
-                          name: 'Structure', 
-                          score: report.summary.scoreBreakdown.structure,
-                          icon: Info,
-                          color: COLORS.structure,
-                          threshold: 80
-                        },
-                        { 
-                          name: 'Brand', 
-                          score: report.summary.scoreBreakdown.brandAlignment,
-                          icon: AlertTriangle,
-                          color: COLORS.brand,
-                          threshold: 70
+                          name: 'Monitoring', 
+                          score: report.summary.scoreBreakdown?.monitoringKpi || 0,
+                          icon: BarChart3,
+                          color: COLORS.monitoringKpi,
+                          threshold: 60
                         }
                       ];
 
@@ -519,29 +559,33 @@ export function ContentKPIDashboard({
                           };
 
                           // Add specific actions based on dimension
-                          if (dim.name === 'Authority') {
+                          if (dim.name === 'Technical') {
                             recommendation.actions = [
-                              'Build more high-quality backlinks to key pages',
-                              'Improve internal linking structure',
-                              'Create authoritative content with expert citations'
+                              'Optimize internal linking structure',
+                              'Implement structured data (Schema.org)',
+                              'Add llms.txt file for AI visibility',
+                              'Ensure proper XML sitemap configuration'
                             ];
-                          } else if (dim.name === 'Freshness') {
+                          } else if (dim.name === 'Content') {
                             recommendation.actions = [
-                              'Update outdated content on high-traffic pages',
-                              'Establish a regular content refresh schedule',
-                              'Add "last updated" dates to important pages'
+                              'Add more how-to and instructional content',
+                              'Create comprehensive FAQ sections',
+                              'Include more comparison and definitional content',
+                              'Improve content freshness with regular updates'
                             ];
-                          } else if (dim.name === 'Structure') {
+                          } else if (dim.name === 'Authority') {
                             recommendation.actions = [
-                              'Fix missing or duplicate meta tags',
-                              'Improve heading hierarchy (H1-H6)',
-                              'Optimize page load speed and Core Web Vitals'
+                              'Build high-quality backlinks from authoritative sources',
+                              'Cite reputable sources and studies',
+                              'Increase brand mentions across content',
+                              'Establish thought leadership with expert content'
                             ];
-                          } else if (dim.name === 'Brand') {
+                          } else if (dim.name === 'Monitoring') {
                             recommendation.actions = [
-                              'Increase brand mentions in key content',
-                              'Ensure consistent brand messaging',
-                              'Add brand-specific schema markup'
+                              'Track brand citations across AI platforms',
+                              'Monitor brand sentiment in AI responses',
+                              'Measure AI visibility metrics regularly',
+                              'Optimize content based on AI performance data'
                             ];
                           }
 
@@ -748,10 +792,10 @@ export function ContentKPIDashboard({
                       </div>
                       <div className="flex flex-wrap gap-1">
                         {[
-                          ...(page.scores.authority >= 80 ? ['Strong Authority'] : []),
-                          ...(page.scores.freshness >= 80 ? ['Fresh Content'] : []),
-                          ...(page.scores.structure >= 80 ? ['Well Structured'] : []),
-                          ...(page.scores.brandAlignment >= 80 ? ['Brand Aligned'] : []),
+                          ...(page.aeoScores?.technical >= 80 ? ['Technical Excellence'] : []),
+                          ...(page.aeoScores?.content >= 80 ? ['AI-Ready Content'] : []),
+                          ...(page.aeoScores?.authority >= 80 ? ['High Authority'] : []),
+                          ...(page.aeoScores?.monitoringKpi >= 80 ? ['Great AI Visibility'] : []),
                         ].map((strength, i) => (
                           <Badge key={i} variant="outline" className="text-xs">
                             {strength}
@@ -1103,15 +1147,15 @@ export function ContentKPIDashboard({
               title: page.url, // ContentScore doesn't have title field
               globalScore: page.globalScore,
               scores: page.scores, // Already in correct format
+              ruleResults: page.ruleResults || [], // Pass the rule results for PageDetailsSection
               details: page.details, // Pass the LLM analysis details
               calculationDetails: page.calculationDetails, // Pass calculation breakdowns
               issues: page.issues || [], // Already in correct format
               strengths: [
-                ...(page.scores.authority >= 80 ? ['Strong Authority Signals'] : []),
-                ...(page.scores.freshness >= 80 ? ['Fresh Content'] : []),
-                ...(page.scores.structure >= 80 ? ['Well Structured'] : []),
-                // Only show brand strength if score is high AND there are actual brand mentions
-                ...(page.scores.brandAlignment >= 80 && page.details?.brand?.brandMentions > 0 ? ['Strong Brand Alignment'] : []),
+                ...(page.scores?.authority >= 80 ? ['Strong Authority Signals'] : []),
+                ...(page.scores?.content >= 80 ? ['Quality Content'] : []),
+                ...(page.scores?.technical >= 80 ? ['Well Structured'] : []),
+                ...(page.scores?.monitoringKpi >= 80 ? ['Strong Monitoring KPIs'] : []),
               ],
               crawledAt: new Date(page.analyzedAt),
               // Add the missing category fields
