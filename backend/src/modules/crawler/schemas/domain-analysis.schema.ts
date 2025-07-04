@@ -20,6 +20,29 @@ export class DomainAnalysis {
 
   @Prop({ type: Object, required: true })
   analysisResults: {
+    // AEO categories for domain-level analysis
+    technical: {
+      score: number;
+      maxScore: number;
+      evidence: string[];
+      details: Record<string, any>;
+      issues: Array<{
+        severity: 'critical' | 'high' | 'medium' | 'low';
+        description: string;
+        recommendation: string;
+      }>;
+    };
+    content: {
+      score: number;
+      maxScore: number;
+      evidence: string[];
+      details: Record<string, any>;
+      issues: Array<{
+        severity: 'critical' | 'high' | 'medium' | 'low';
+        description: string;
+        recommendation: string;
+      }>;
+    };
     authority: {
       score: number;
       maxScore: number;
@@ -31,17 +54,24 @@ export class DomainAnalysis {
         recommendation: string;
       }>;
     };
-    // Future domain-level dimensions can be added here
-    // freshness?: { ... };
-    // structure?: { ... };
-    // brandAlignment?: { ... };
+    monitoringKpi: {
+      score: number;
+      maxScore: number;
+      evidence: string[];
+      details: Record<string, any>;
+      issues: Array<{
+        severity: 'critical' | 'high' | 'medium' | 'low';
+        description: string;
+        recommendation: string;
+      }>;
+    };
   };
 
   @Prop({ type: [Object], required: true })
   ruleResults: Array<{
     ruleId: string;
     ruleName: string;
-    dimension: string;
+    dimension: 'technical' | 'content' | 'authority' | 'monitoringKpi';
     score: number;
     maxScore: number;
     weight: number;
@@ -64,7 +94,7 @@ export class DomainAnalysis {
     totalWeight: number;
     weightedScore: number;
     finalScore: number;
-    dimensionBreakdown: Record<string, {
+    dimensionBreakdown: Record<'technical' | 'content' | 'authority' | 'monitoringKpi', {
       score: number;
       weight: number;
       contribution: number;

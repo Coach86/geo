@@ -25,6 +25,8 @@ export class RetryUtil {
    * Determines if an error is a permanent quota/billing error that should NOT be retried
    */
   static isQuotaError(error: any): boolean {
+    if (!error) return false;
+    
     const errorMessage = error?.message?.toLowerCase() || '';
     
     // Quota/billing error indicators that suggest permanent failure
@@ -46,6 +48,8 @@ export class RetryUtil {
    * Determines if an error is a rate limiting error that should be retried
    */
   static isRateLimitError(error: any): boolean {
+    if (!error) return false;
+    
     const errorMessage = error?.message?.toLowerCase() || '';
     const errorCode = error?.code?.toString() || '';
     const statusCode = error?.status || error?.statusCode || 0;

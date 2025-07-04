@@ -108,6 +108,9 @@ export class WebCrawlerService {
         await this.loadRobotsTxt(normalizedStartUrl);
       }
 
+      // Randomize the crawl queue to avoid crawling all pages from same section
+      this.randomizeCrawlQueue(projectId);
+      
       // Start crawling
       this.logger.log(`[CRAWLER] Starting crawl loop for project ${projectId}`);
       while (
@@ -759,5 +762,31 @@ export class WebCrawlerService {
     } catch (error) {
       return false;
     }
+  }
+
+  /**
+   * Randomize the crawl queue to avoid crawling all pages from the same section
+   */
+  private randomizeCrawlQueue(projectId: string): void {
+    const queue = this.crawlQueue.get(projectId);
+    if (!queue || queue.size <= 1) {
+      return;
+    }
+
+    // Convert Set to Array, shuffle, then convert back to Set
+    const urls = Array.from(queue);
+    this.logger.log(`[CRAWLER] Randomizing crawl queue with ${urls.length} URLs`);
+    
+    // Fisher-Yates shuffle algorithm
+    for (let i = urls.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [urls[i], urls[j]] = [urls[j], urls[i]];
+    }
+
+    // Clear and rebuild the queue with shuffled URLs
+    queue.clear();
+    urls.forEach(url => queue.add(url));
+    
+    this.logger.log(`[CRAWLER] Queue randomized successfully`);
   }
 }

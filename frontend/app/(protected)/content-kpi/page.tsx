@@ -35,7 +35,7 @@ export default function PageIntelligencePage() {
   
   // Crawler state
   const [isCrawling, setIsCrawling] = useState(false);
-  const [crawlProgress, setCrawlProgress] = useState<{ crawledPages: number; totalPages: number; currentUrl?: string } | null>(null);
+  const [crawlProgress, setCrawlProgress] = useState<{ crawledPages: number; totalPages: number; currentUrl?: string; status?: string } | null>(null);
   const [initialCheckDone, setInitialCheckDone] = useState(false);
   const [showCrawlDialog, setShowCrawlDialog] = useState(false);
 
@@ -51,6 +51,7 @@ export default function PageIntelligencePage() {
           crawledPages: event.crawledPages || 0,
           totalPages: event.totalPages || 100,
           currentUrl: event.currentUrl,
+          status: event.status,
         });
       } else if (event.eventType === 'crawler.progress' || event.eventType === 'crawler.page_crawled') {
         // Only update if we have valid progress data
@@ -61,6 +62,7 @@ export default function PageIntelligencePage() {
             crawledPages: event.crawledPages,
             totalPages: event.totalPages,
             currentUrl: urlToUse,
+            status: event.status,
           });
         }
       } else if (event.eventType === 'crawler.completed') {

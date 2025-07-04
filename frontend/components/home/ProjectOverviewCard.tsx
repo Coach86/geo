@@ -11,6 +11,7 @@ import { useNotificationContext } from "@/providers/notification-provider"
 import { useFavicon } from "@/hooks/use-favicon"
 import { ModelIcon } from "@/components/ui/model-icon"
 import { getMyOrganization } from "@/lib/organization-api"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/persistent-tooltip"
 
 interface ProjectOverviewCardProps {
   project: ProjectResponse
@@ -104,19 +105,36 @@ export function ProjectOverviewCard({ project, onClick, onGoToProject, onProject
           </div>
           {selectedModels.length > 0 && (
             <div className="flex items-center gap-1 ml-4">
-              {selectedModels.slice(0, 3).map((model, index) => (
-                <div 
-                  key={index} 
-                  className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm"
-                >
-                  <ModelIcon model={model} size="sm" />
-                </div>
-              ))}
-              {selectedModels.length > 3 && (
-                <span className="text-xs text-muted-foreground ml-1">
-                  +{selectedModels.length - 3}
-                </span>
-              )}
+              <TooltipProvider>
+                {selectedModels.slice(0, 3).map((model, index) => (
+                  <Tooltip key={index}>
+                    <TooltipTrigger asChild>
+                      <div className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm cursor-pointer">
+                        <ModelIcon model={model} size="sm" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      <p>{model}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
+                {selectedModels.length > 3 && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-xs text-muted-foreground ml-1 cursor-pointer">
+                        +{selectedModels.length - 3}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      <div className="space-y-1">
+                        {selectedModels.slice(3).map((model, index) => (
+                          <p key={index}>{model}</p>
+                        ))}
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+              </TooltipProvider>
             </div>
           )}
         </div>

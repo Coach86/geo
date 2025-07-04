@@ -66,7 +66,8 @@ function parseArgs() {
   const config = {
     runs: 5,
     parallel: 10,
-    companies: 0
+    companies: 0,
+    urls: []
   };
   
   for (let i = 0; i < args.length; i++) {
@@ -92,6 +93,15 @@ function parseArgs() {
           i++; // Skip next argument as it's the value
         }
         break;
+      case '--urls':
+        // Collect all URLs until the next flag or end of args
+        i++;
+        while (i < args.length && !args[i].startsWith('--')) {
+          config.urls.push(args[i]);
+          i++;
+        }
+        i--; // Back up one since the loop will increment
+        break;
       case '--help':
       case '-h':
         console.log(`
@@ -101,12 +111,15 @@ Options:
   --runs <number>      Number of runs per company (default: 5)
   --parallel <number>  Number of parallel API calls (default: 10)
   --companies <number> Maximum companies to process, 0 for all (default: 0)
+  --urls <url1> <url2> ... Process only companies with these URLs
   --help, -h           Show this help message
 
 Examples:
   node scripts/test-visibility-standalone.js --runs 3 --parallel 5 --companies 2
   node scripts/test-visibility-standalone.js --runs 10 --parallel 20
   node scripts/test-visibility-standalone.js --companies 5
+  node scripts/test-visibility-standalone.js --urls https://example.com https://another.com
+  node scripts/test-visibility-standalone.js --runs 1 --urls https://specific-company.com
 `);
         process.exit(0);
         break;
@@ -128,6 +141,7 @@ const config = parseArgs();
 const NUM_RUNS = config.runs;
 const PARALLEL_LIMIT = config.parallel; // Number of parallel API calls
 const MAX_COMPANIES = config.companies; // 0 means process all
+const FILTER_URLS = config.urls; // Array of URLs to filter companies
 const INPUT_CSV = path.join(__dirname, 'data', 'Database Citations - Next 40 v2.csv');
 const OUTPUT_CSV = path.join(__dirname, 'data', `visibility-results-${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}-${NUM_RUNS}runs.csv`);
 
@@ -1323,6 +1337,9 @@ async function main() {
   console.log(`- Runs per company: ${NUM_RUNS}`);
   console.log(`- Parallel API calls: ${PARALLEL_LIMIT}`);
   console.log(`- Max companies: ${MAX_COMPANIES || 'all'}`);
+  if (FILTER_URLS.length > 0) {
+    console.log(`- Filter URLs: ${FILTER_URLS.join(', ')}`);
+  }
   console.log(`- Input: ${INPUT_CSV}`);
   console.log(`- Output: ${OUTPUT_CSV}`);
   
@@ -1355,9 +1372,28 @@ async function main() {
   const allCompanies = await parseCSV(INPUT_CSV);
   console.log(`\nLoaded ${allCompanies.length} companies from CSV`);
   
+  // Apply URL filtering if specified
+  let companies = allCompanies;
+  if (FILTER_URLS.length > 0) {
+    companies = allCompanies.filter(company => {
+      const companyUrl = company['URL'];
+      return FILTER_URLS.some(filterUrl => {
+        // Normalize URLs for comparison (remove trailing slashes, protocol differences)
+        const normalizedCompanyUrl = companyUrl?.toLowerCase().replace(/\/$/, '').replace(/^https?:\/\//, '');
+        const normalizedFilterUrl = filterUrl.toLowerCase().replace(/\/$/, '').replace(/^https?:\/\//, '');
+        return normalizedCompanyUrl === normalizedFilterUrl;
+      });
+    });
+    console.log(`Filtered to ${companies.length} companies matching specified URLs`);
+    if (companies.length === 0) {
+      console.error('No companies found matching the specified URLs');
+      process.exit(1);
+    }
+  }
+  
   // Apply max companies limit if specified
-  const companies = MAX_COMPANIES > 0 ? allCompanies.slice(0, MAX_COMPANIES) : allCompanies;
   if (MAX_COMPANIES > 0) {
+    companies = companies.slice(0, MAX_COMPANIES);
     console.log(`Processing only the first ${MAX_COMPANIES} companies`);
   }
   console.log('');

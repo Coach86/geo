@@ -3,7 +3,8 @@ import { PageCategory } from '../../interfaces/page-category.interface';
 import { LlmService } from '../../../llm/services/llm.service';
 import { TrackedLLMService } from '../../services/tracked-llm.service';
 
-export type RuleDimension = 'authority' | 'freshness' | 'structure' | 'brandAlignment';
+// Legacy dimensions - replaced by AEO categories
+export type RuleDimension = 'technical' | 'content' | 'authority' | 'monitoringKpi';
 export type RuleScope = 'all' | 'category' | 'domain';
 export type RuleExecutionScope = 'page' | 'domain';
 

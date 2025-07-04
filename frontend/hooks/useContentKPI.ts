@@ -6,11 +6,30 @@ export interface ContentScore {
   url: string;
   globalScore: number;
   scores: {
+    technical: number;
+    content: number;
     authority: number;
-    freshness: number;
-    structure: number;
-    brandAlignment: number;
+    monitoringKpi: number;
   };
+  ruleResults?: Array<{
+    ruleId: string;
+    ruleName: string;
+    category: 'technical' | 'content' | 'authority' | 'monitoringKpi';
+    score: number;
+    maxScore: number;
+    weight: number;
+    contribution: number;
+    passed: boolean;
+    evidence: string[];
+    issues?: Array<{
+      dimension: string;
+      severity: 'critical' | 'high' | 'medium' | 'low';
+      description: string;
+      recommendation: string;
+      affectedElements?: string[];
+    }>;
+    details?: Record<string, any>;
+  }>;
   details?: {
     authority: {
       hasAuthor: boolean;
@@ -114,11 +133,10 @@ export interface ContentScore {
 export interface ContentKPIStats {
   totalPages: number;
   avgGlobalScore: number;
+  avgTechnicalScore: number;
+  avgContentScore: number;
   avgAuthorityScore: number;
-  avgFreshnessScore: number;
-  avgStructureScore: number;
-  avgSnippetScore: number;
-  avgBrandScore: number;
+  avgMonitoringKpiScore: number;
   scoreDistribution: Array<{
     _id: string;
     count: number;
@@ -138,10 +156,10 @@ export interface ContentKPIReport {
     totalPages: number;
     avgGlobalScore: number;
     scoreBreakdown: {
+      technical: number;
+      content: number;
       authority: number;
-      freshness: number;
-      structure: number;
-        brandAlignment: number;
+      monitoringKpi: number;
     };
     lastAnalyzedAt: string | null;
   };
@@ -190,11 +208,10 @@ export function useContentKPI(projectId: string) {
           stats: {
             totalPages: 0,
             avgGlobalScore: 0,
+            avgTechnicalScore: 0,
+            avgContentScore: 0,
             avgAuthorityScore: 0,
-            avgFreshnessScore: 0,
-            avgStructureScore: 0,
-            avgSnippetScore: 0,
-            avgBrandScore: 0,
+            avgMonitoringKpiScore: 0,
             scoreDistribution: [],
             issuesSummary: [],
           },
@@ -223,10 +240,10 @@ export function useContentKPI(projectId: string) {
             totalPages: 0,
             avgGlobalScore: 0,
             scoreBreakdown: {
+              technical: 0,
+              content: 0,
               authority: 0,
-              freshness: 0,
-              structure: 0,
-              brandAlignment: 0,
+              monitoringKpi: 0,
             },
             lastAnalyzedAt: null,
           },

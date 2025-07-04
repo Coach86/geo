@@ -1,19 +1,30 @@
 export enum PageCategoryType {
+  // Tier 1: Core Business & High-Impact Pages
   HOMEPAGE = 'homepage',
-  PRODUCT_SERVICE = 'product_service',
-  BLOG_ARTICLE = 'blog_article',
-  DOCUMENTATION_HELP = 'documentation_help',
-  ABOUT_COMPANY = 'about_company',
-  CONTACT = 'contact',
-  LEGAL_POLICY = 'legal_policy',
-  NAVIGATION_CATEGORY = 'navigation_category',
-  LANDING_CAMPAIGN = 'landing_campaign',
-  FAQ = 'faq',
-  CASE_STUDY = 'case_study',
-  PRICING = 'pricing',
-  ERROR_404 = 'error_404',
-  LOGIN_ACCOUNT = 'login_account',
-  SEARCH_RESULTS = 'search_results',
+  PRODUCT_CATEGORY_PAGE = 'product_category_page', // PLP
+  PRODUCT_DETAIL_PAGE = 'product_detail_page', // PDP
+  SERVICES_FEATURES_PAGE = 'services_features_page',
+  PRICING_PAGE = 'pricing_page',
+  COMPARISON_PAGE = 'comparison_page',
+  BLOG_POST_ARTICLE = 'blog_post_article',
+  BLOG_CATEGORY_TAG_PAGE = 'blog_category_tag_page',
+  
+  // Tier 2: Strategic Content & Resources
+  PILLAR_PAGE_TOPIC_HUB = 'pillar_page_topic_hub',
+  PRODUCT_ROUNDUP_REVIEW_ARTICLE = 'product_roundup_review_article',
+  HOW_TO_GUIDE_TUTORIAL = 'how_to_guide_tutorial',
+  CASE_STUDY_SUCCESS_STORY = 'case_study_success_story',
+  WHAT_IS_X_DEFINITIONAL_PAGE = 'what_is_x_definitional_page',
+  IN_DEPTH_GUIDE_WHITE_PAPER = 'in_depth_guide_white_paper',
+  FAQ_GLOSSARY_PAGES = 'faq_glossary_pages',
+  PUBLIC_FORUM_UGC_PAGES = 'public_forum_ugc_pages',
+  
+  // Tier 3: Supporting Page Groups
+  CORPORATE_CONTACT_PAGES = 'corporate_contact_pages', // About Us, Team Page, Contact Us, Careers, Press/Media Room, Store Locator
+  PRIVATE_USER_ACCOUNT_PAGES = 'private_user_account_pages', // Login/Sign-up, User Profile/Dashboard, Order History, Wishlist
+  SEARCH_RESULTS_ERROR_PAGES = 'search_results_error_pages', // Search Results Page, 404 Error Page  
+  LEGAL_PAGES = 'legal_pages', // Privacy Policy, Terms of Service, Cookie Policy, Accessibility Statement
+  
   UNKNOWN = 'unknown'
 }
 
@@ -24,33 +35,9 @@ export enum AnalysisLevel {
   EXCLUDED = 'excluded'
 }
 
-export interface DimensionWeights {
-  freshness?: number;
-  structure?: number;
-  authority?: number;
-  brandAlignment?: number;
-}
-
 export interface PageCategory {
   type: PageCategoryType;
   confidence: number;
   analysisLevel: AnalysisLevel;
-  weightModifiers?: DimensionWeights;
   reason?: string;
-}
-
-export interface CategoryPattern {
-  urlPatterns?: RegExp[];
-  schemaTypes?: string[];
-  metaPatterns?: RegExp[];
-  contentPatterns?: RegExp[];
-  domSelectors?: string[];
-}
-
-export interface CategoryDetectionRule {
-  category: PageCategoryType;
-  analysisLevel: AnalysisLevel;
-  patterns: CategoryPattern;
-  priority: number;
-  weightModifiers?: DimensionWeights;
 }

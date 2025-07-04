@@ -10,6 +10,7 @@ export interface CrawlerEvent {
   crawledPages?: number;
   totalPages?: number;
   progress?: number; // 0-100
+  status?: 'started' | 'crawling' | 'analyzing' | 'completed' | 'analysis_completed' | 'failed';
   message?: string;
   error?: string;
   timestamp: Date;
