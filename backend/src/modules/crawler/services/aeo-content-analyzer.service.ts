@@ -238,6 +238,7 @@ export class AEOContentAnalyzerService extends ContentAnalyzerService {
         if (result.issues && result.issues.length > 0) {
           result.issues.forEach(issue => {
             allIssues.push({
+              id: issue.id,
               dimension,
               severity: issue.severity,
               description: issue.description,

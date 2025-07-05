@@ -82,7 +82,22 @@ const getDimensionDisplayName = (dimension: string): string => {
 export function ScoringRulesTab({ projectId }: ScoringRulesTabProps) {
   const [loading, setLoading] = useState(true);
   const [rulesData, setRulesData] = useState<RulesData | null>(null);
+  const [openTooltipId, setOpenTooltipId] = useState<string | null>(null);
   const { token } = useAuth();
+
+  // Close tooltip when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (openTooltipId) {
+        setOpenTooltipId(null);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [openTooltipId]);
 
   useEffect(() => {
     const fetchRules = async () => {
@@ -127,10 +142,19 @@ export function ScoringRulesTab({ projectId }: ScoringRulesTabProps) {
         ? categories.join(', ')
         : 'No categories specified';
       
+      const isOpen = openTooltipId === rule.id;
+      
       return (
-        <Tooltip>
+        <Tooltip open={isOpen} onOpenChange={(open) => setOpenTooltipId(open ? rule.id : null)}>
           <TooltipTrigger asChild>
-            <Badge variant="outline" className="text-xs cursor-help">
+            <Badge 
+              variant="outline" 
+              className="text-xs cursor-help"
+              onClick={(e) => {
+                e.stopPropagation();
+                setOpenTooltipId(isOpen ? null : rule.id);
+              }}
+            >
               {categories.length} Categories
             </Badge>
           </TooltipTrigger>

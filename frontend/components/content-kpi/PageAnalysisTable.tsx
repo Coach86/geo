@@ -27,10 +27,14 @@ import { PageDetailsSection } from './PageDetailsSection';
 import { DIMENSION_COLORS, getDimensionColor } from '@/lib/constants/colors';
 
 interface PageIssue {
+  id?: string;
   dimension: string;
   severity: 'critical' | 'high' | 'medium' | 'low';
   description: string;
   recommendation?: string;
+  affectedElements?: string[];
+  ruleId?: string;
+  ruleName?: string;
 }
 
 interface EvidenceItem {

@@ -190,9 +190,177 @@ export function DomainAnalysisTab({ projectId, onIssueClick }: DomainAnalysisTab
     pages: domain.metadata?.totalPages || 0,
   }));
 
+  // Collect all issues from all domains
+  const allIssues = data.domainAnalyses.flatMap(domain => {
+    // First, collect issues from ruleResults that have issues
+    const ruleIssues = (domain.ruleResults || [])
+      .filter((result: any) => result.issues && result.issues.length > 0)
+      .flatMap((result: any) => 
+        result.issues.map((issue: any, issueIndex: number) => ({
+          id: issue.id || `${domain.domain}-${result.ruleId}-issue-${issueIndex}`,
+          domain: domain.domain,
+          description: issue.description,
+          severity: issue.severity || 'medium',
+          dimension: result.category?.toLowerCase() || 'technical',
+          recommendation: issue.recommendation,
+          ruleId: result.ruleId,
+          ruleName: result.ruleName
+        }))
+      );
+    
+    // If we have rule issues, use them
+    if (ruleIssues.length > 0) {
+      return ruleIssues;
+    }
+    
+    // Otherwise, convert the domain-level string issues
+    return (domain.issues || []).map((issue: string | any, index: number) => {
+      if (typeof issue === 'string') {
+        // Try to determine dimension from the issue text
+        let dimension = 'authority'; // Default for domain-level issues
+        const issueLower = issue.toLowerCase();
+        
+        if (issueLower.includes('technical') || issueLower.includes('mobile') || issueLower.includes('https')) {
+          dimension = 'technical';
+        } else if (issueLower.includes('structure') || issueLower.includes('content')) {
+          dimension = 'structure';
+        } else if (issueLower.includes('monitoring') || issueLower.includes('kpi') || issueLower.includes('quality')) {
+          dimension = 'quality';
+        }
+        
+        return {
+          id: `${domain.domain}-issue-${index}`,
+          domain: domain.domain,
+          description: issue,
+          severity: 'medium' as const,
+          dimension,
+        };
+      }
+      return { ...issue, domain: domain.domain }; // Already an object, add domain
+    });
+  });
+
+  // Group issues by severity
+  const criticalIssues = allIssues.filter(issue => issue.severity === 'critical');
+  const highIssues = allIssues.filter(issue => issue.severity === 'high');
+  const mediumIssues = allIssues.filter(issue => issue.severity === 'medium');
+  const lowIssues = allIssues.filter(issue => issue.severity === 'low');
+
+  const SEVERITY_ICONS = {
+    critical: AlertCircle,
+    high: AlertTriangle,
+    medium: Info,
+    low: CheckCircle,
+  };
+
+  const SEVERITY_COLORS = {
+    critical: 'text-red-600 dark:text-red-500',
+    high: 'text-orange-600 dark:text-orange-500',
+    medium: 'text-yellow-600 dark:text-yellow-500',
+    low: 'text-blue-600 dark:text-blue-500',
+  };
+
   return (
-    <PageAnalysisTable 
-      pages={data.domainAnalyses.map(domain => ({
+    <div className="space-y-6">
+      {/* Issues Card - Only show if there are issues */}
+      {allIssues.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-orange-600" />
+              Domain Issues Summary
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* Issue counts by severity */}
+              <div className="grid grid-cols-4 gap-4">
+                {criticalIssues.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <Badge variant="destructive" className="px-2 py-1">
+                      {criticalIssues.length} Critical
+                    </Badge>
+                  </div>
+                )}
+                {highIssues.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <Badge variant="destructive" className="bg-orange-100 text-orange-800 hover:bg-orange-100">
+                      {highIssues.length} High
+                    </Badge>
+                  </div>
+                )}
+                {mediumIssues.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <Badge variant="warning" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
+                      {mediumIssues.length} Medium
+                    </Badge>
+                  </div>
+                )}
+                {lowIssues.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+                      {lowIssues.length} Low
+                    </Badge>
+                  </div>
+                )}
+              </div>
+
+              {/* Issues list */}
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {['critical', 'high', 'medium', 'low'].map(severity => {
+                  const severityIssues = allIssues.filter(issue => issue.severity === severity);
+                  if (severityIssues.length === 0) return null;
+                  
+                  const Icon = SEVERITY_ICONS[severity as keyof typeof SEVERITY_ICONS];
+                  const colorClass = SEVERITY_COLORS[severity as keyof typeof SEVERITY_COLORS];
+                  
+                  return (
+                    <div key={severity} className="space-y-2">
+                      {severityIssues.map((issue, idx) => (
+                        <div 
+                          key={issue.id || idx} 
+                          className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg"
+                        >
+                          <Icon className={`h-4 w-4 mt-0.5 flex-shrink-0 ${colorClass}`} />
+                          <div className="flex-1 space-y-1">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-foreground">
+                                  {issue.description}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {issue.domain} • {issue.dimension}
+                                  {issue.ruleName && ` • ${issue.ruleName}`}
+                                </p>
+                              </div>
+                              <Badge 
+                                variant="outline" 
+                                className="text-xs"
+                                style={{ color: DIMENSION_COLORS[issue.dimension as keyof typeof DIMENSION_COLORS] }}
+                              >
+                                {issue.dimension}
+                              </Badge>
+                            </div>
+                            {issue.recommendation && (
+                              <p className="text-sm text-muted-foreground">
+                                {issue.recommendation}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Domain Analysis Table */}
+      <PageAnalysisTable 
+        pages={data.domainAnalyses.map(domain => ({
         url: domain.domain,
         title: domain.domain,
         globalScore: domain.overallScore || 0,
@@ -238,8 +406,8 @@ export function DomainAnalysisTab({ projectId, onIssueClick }: DomainAnalysisTab
                 dimension = 'technical';
               } else if (issueLower.includes('structure') || issueLower.includes('content')) {
                 dimension = 'structure';
-              } else if (issueLower.includes('monitoring') || issueLower.includes('kpi')) {
-                dimension = 'monitoringkpi';
+              } else if (issueLower.includes('monitoring') || issueLower.includes('kpi') || issueLower.includes('quality')) {
+                dimension = 'quality';
               }
               
               return {
@@ -260,6 +428,7 @@ export function DomainAnalysisTab({ projectId, onIssueClick }: DomainAnalysisTab
       }))}
       projectId={projectId}
       isDomainAnalysis={true}
-    />
+      />
+    </div>
   );
 }
