@@ -54,7 +54,7 @@ export function ContentKPIWidget({ projectId, compact = false }: ContentKPIWidge
       await triggerCrawl({ maxPages: 100 });
       toast({
         title: "Analysis started",
-        description: "Content KPI analysis is running...",
+        description: "Structure KPI analysis is running...",
       });
     } catch (error) {
       setIsCrawling(false);
@@ -76,7 +76,7 @@ export function ContentKPIWidget({ projectId, compact = false }: ContentKPIWidge
         <CardHeader className={compact ? "pb-2" : ""}>
           <CardTitle className="text-sm flex items-center gap-2">
             <FileText className="h-4 w-4" />
-            Content KPI
+            Structure KPI
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -96,7 +96,7 @@ export function ContentKPIWidget({ projectId, compact = false }: ContentKPIWidge
         <CardHeader className={compact ? "pb-2" : ""}>
           <CardTitle className="text-sm flex items-center gap-2">
             <FileText className="h-4 w-4" />
-            Content KPI
+            Structure KPI
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -138,7 +138,7 @@ export function ContentKPIWidget({ projectId, compact = false }: ContentKPIWidge
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium flex items-center gap-2">
             <FileText className="h-4 w-4" />
-            Content Score
+            Structure Score
           </span>
           <span className={`text-sm font-bold ${scoreColor}`}>
             {report.summary.avgGlobalScore}/100
@@ -158,7 +158,7 @@ export function ContentKPIWidget({ projectId, compact = false }: ContentKPIWidge
         <CardTitle className="text-sm flex items-center justify-between">
           <span className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
-            Content KPI
+            Structure KPI
           </span>
           <TrendingUp className="h-4 w-4 text-muted-foreground" />
         </CardTitle>

@@ -9,10 +9,9 @@ interface TargetPillProps {
 
 export function TargetPill({ target }: TargetPillProps) {
   return (
-    <div className="mt-1">
-      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-full text-xs text-blue-700 dark:text-blue-300">
-        <Target className="h-3 w-3" />
-        <span>{target}</span>
+    <div className="mt-2 flex justify-center">
+      <div className="px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded text-xs text-blue-800 dark:text-blue-200 font-medium">
+        {target}
       </div>
     </div>
   );

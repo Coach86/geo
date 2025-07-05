@@ -9,7 +9,7 @@ import { RuleContext, RuleDimension } from '../rules/interfaces/rule.interface';
 import { PageSignals } from '../interfaces/page-signals.interface';
 import { PageCategory } from '../interfaces/page-category.interface';
 import { EvidenceHelper } from '../utils/evidence.helper';
-import { PageContent, Category, CategoryScore, RuleResult } from '../interfaces/rule.interface';
+import { PageContent, Category, CategoryScore, RuleResult, Recommendation } from '../interfaces/rule.interface';
 import { BaseAEORule as BaseRule } from '../rules/aeo/base-aeo.rule';
 // Old rule import removed - using AEO rules now
 
@@ -118,6 +118,7 @@ export class DomainAnalysisService {
           allRuleResults.push({
             ruleId: result.ruleId,
             ruleName: result.ruleName,
+            category: categoryScore.category.toLowerCase().replace(/_/g, '').replace('monitoringkpi', 'quality') as 'technical' | 'structure' | 'authority' | 'quality',
             score: result.score,
             maxScore: result.maxScore,
             weight: result.weight,
@@ -126,7 +127,7 @@ export class DomainAnalysisService {
             evidence: result.evidence,
             issues: result.issues?.map(issue => ({
               ...issue,
-              dimension: categoryScore.category.toLowerCase().replace(/_/g, '').replace('monitoringkpi', 'monitoringKpi')
+              dimension: categoryScore.category.toLowerCase().replace(/_/g, '').replace('monitoringkpi', 'quality') as 'technical' | 'structure' | 'authority' | 'quality'
             })),
             details: result.details
           });
@@ -134,7 +135,7 @@ export class DomainAnalysisService {
       }
 
       // Ensure all categories have scores
-      const allCategories: Category[] = ['TECHNICAL', 'CONTENT', 'AUTHORITY', 'MONITORING_KPI'];
+      const allCategories: Category[] = ['TECHNICAL', 'STRUCTURE', 'AUTHORITY', 'QUALITY'];
       for (const category of allCategories) {
         const key = category.toLowerCase().replace(/_/g, '');
         if (!categoryScores[key]) {
@@ -157,12 +158,12 @@ export class DomainAnalysisService {
           details: {},
           issues: categoryScores.technical.issues
         },
-        content: {
-          score: categoryScores.content.score,
+        structure: {
+          score: categoryScores.structure.score,
           maxScore: 100,
-          evidence: categoryScores.content.ruleResults.flatMap(r => r.evidence),
+          evidence: categoryScores.structure.ruleResults.flatMap(r => r.evidence),
           details: {},
-          issues: categoryScores.content.issues
+          issues: categoryScores.structure.issues
         },
         authority: {
           score: categoryScores.authority.score,
@@ -171,7 +172,7 @@ export class DomainAnalysisService {
           details: {},
           issues: categoryScores.authority.issues
         },
-        monitoringKpi: {
+        quality: {
           score: categoryScores.monitoringkpi.score,
           maxScore: 100,
           evidence: categoryScores.monitoringkpi.ruleResults.flatMap(r => r.evidence),
@@ -193,9 +194,9 @@ export class DomainAnalysisService {
           finalScore: overallScore,
           dimensionBreakdown: {
             technical: { score: analysisResults.technical.score, weight: 1, contribution: 25 },
-            content: { score: analysisResults.content.score, weight: 1, contribution: 25 },
+            structure: { score: analysisResults.structure.score, weight: 1, contribution: 25 },
             authority: { score: analysisResults.authority.score, weight: 1, contribution: 25 },
-            monitoringKpi: { score: analysisResults.monitoringKpi.score, weight: 1, contribution: 25 },
+            quality: { score: analysisResults.quality.score, weight: 1, contribution: 25 },
           }
         },
         issues: Object.values(categoryScores).flatMap(cat => cat.issues),
@@ -325,7 +326,7 @@ export class DomainAnalysisService {
           weight: rule.getWeight(),
           contribution: 0,
           passed: false,
-          evidence: [EvidenceHelper.error(`Error executing rule: ${error.message}`)],
+          evidence: [EvidenceHelper.error('Error', `Error executing rule: ${error.message}`)],
           issues: [{
             severity: 'critical' as const,
             description: `Rule execution failed: ${error.message}`,
@@ -346,7 +347,7 @@ export class DomainAnalysisService {
       passedRules,
       ruleResults,
       issues: ruleResults.flatMap(r => r.issues?.map(i => i.description) || []),
-      recommendations: ruleResults.flatMap(r => r.issues?.map(i => i.recommendation) || [])
+      recommendations: this.extractRecommendations(ruleResults, category)
     };
   }
 
@@ -361,6 +362,43 @@ export class DomainAnalysisService {
       issues: [],
       recommendations: []
     };
+  }
+
+  private extractRecommendations(ruleResults: RuleResult[], category: Category): Recommendation[] {
+    const recommendations: Recommendation[] = [];
+    const uniqueRecommendations = new Map<string, Recommendation>();
+
+    ruleResults.forEach(result => {
+      // Extract from issues
+      if (result.issues) {
+        result.issues.forEach(issue => {
+          const recommendationKey = `${result.ruleId}-${issue.recommendation}`;
+          if (!uniqueRecommendations.has(recommendationKey)) {
+            uniqueRecommendations.set(recommendationKey, {
+              content: issue.recommendation,
+              ruleId: result.ruleId,
+              ruleCategory: category
+            });
+          }
+        });
+      }
+      
+      // Extract from recommendations array
+      if (result.recommendations) {
+        result.recommendations.forEach((rec: string) => {
+          const recommendationKey = `${result.ruleId}-${rec}`;
+          if (!uniqueRecommendations.has(recommendationKey)) {
+            uniqueRecommendations.set(recommendationKey, {
+              content: rec,
+              ruleId: result.ruleId,
+              ruleCategory: category
+            });
+          }
+        });
+      }
+    });
+
+    return Array.from(uniqueRecommendations.values());
   }
 
   private extractStructuralElements(html: string): any {

@@ -7,6 +7,16 @@ import { LlmProvider } from '../../../../llm/interfaces/llm-provider.enum';
 import { z } from 'zod';
 import { PageCategoryType } from '../../../interfaces/page-category.interface';
 
+
+// Evidence topics for this rule
+enum CitingSourcesTopic {
+  CITATION_ANALYSIS = 'Citation Analysis',
+  HIGH_QUALITY_CITATIONS = 'High Quality Citations',
+  SCORING_INFO = 'Scoring Info',
+  NOT_HIGH_QUALITY_CITATIONS = 'High Quality Citations',
+  NO_CITATIONS = 'No Citations'
+}
+
 // Zod schema for structured output
 const CitationSchema = z.object({
   url: z.string().describe('The full URL of the cited source'),
@@ -68,7 +78,7 @@ export class CitingSourcesRule extends BaseAEORule {
     super(
       'citing_sources',
       'Citing Reputable Sources',
-      'CONTENT' as Category,
+      'AUTHORITY' as Category,
       {
         impactScore: 3,
         pageTypes: [PageCategoryType.BLOG_POST_ARTICLE, PageCategoryType.IN_DEPTH_GUIDE_WHITE_PAPER, PageCategoryType.CASE_STUDY_SUCCESS_STORY, PageCategoryType.WHAT_IS_X_DEFINITIONAL_PAGE],
@@ -107,8 +117,13 @@ export class CitingSourcesRule extends BaseAEORule {
   async evaluate(url: string, content: PageContent): Promise<RuleResult> {
     const evidence: EvidenceItem[] = [];
     const recommendations: string[] = [];
-    let score = 0;
-    const scoreBreakdown: { component: string; points: number }[] = [];
+    let score = 20; // Base score
+    const scoreBreakdown: { component: string; points: number }[] = [
+      { component: 'Base score', points: 20 }
+    ];
+
+    // Add base score evidence item
+    evidence.push(EvidenceHelper.base(20));
 
     const cleanText = content.cleanContent || '';
     const html = content.html || '';
@@ -118,7 +133,7 @@ export class CitingSourcesRule extends BaseAEORule {
 
     // Validate content
     if (!contentForAnalysis || contentForAnalysis.trim().length < CitingSourcesRule.MIN_CONTENT_LENGTH) {
-      evidence.push(EvidenceHelper.error('Insufficient content to analyze for citations'));
+      evidence.push(EvidenceHelper.error(CitingSourcesTopic.CITATION_ANALYSIS, 'Insufficient content to analyze for citations'));
       return this.createResult(CitingSourcesRule.SCORE_NOT_PRESENT, evidence);
     }
 
@@ -214,49 +229,150 @@ ${html.substring(0, 5000)}`;
       const wordCount = cleanText.split(/\s+/).length;
       const citationDensity = wordCount > 0 ? (totalCitations / wordCount) * 1000 : 0;
 
-      // Calculate base score based on density and quality
-      if (reputableCitations.length >= CitingSourcesRule.MIN_REPUTABLE_EXCELLENT &&
-          citationDensity >= CitingSourcesRule.EXCELLENT_DENSITY) {
-        score = CitingSourcesRule.SCORE_EXCELLENT;
-        scoreBreakdown.push({ component: 'Excellent citation quality', points: CitingSourcesRule.SCORE_EXCELLENT });
-        evidence.push(EvidenceHelper.success(`Excellent citation density: ${citationDensity.toFixed(1)} per 1000 words with ${reputableCitations.length} reputable sources`, { target: 'Excellent citation practice', score: CitingSourcesRule.SCORE_EXCELLENT }));
-      } else if (reputableCitations.length >= CitingSourcesRule.MIN_REPUTABLE_GOOD &&
-                 citationDensity >= CitingSourcesRule.GOOD_DENSITY) {
-        score = CitingSourcesRule.SCORE_GOOD;
-        scoreBreakdown.push({ component: 'Good citation practice', points: CitingSourcesRule.SCORE_GOOD });
-        evidence.push(EvidenceHelper.success(`Good citation practice: ${reputableCitations.length} reputable sources`, { target: 'Good citation practice', score: CitingSourcesRule.SCORE_GOOD }));
-      } else if (reputableCitations.length >= 1) {
-        score = CitingSourcesRule.SCORE_MODERATE;
-        scoreBreakdown.push({ component: 'Moderate citations', points: CitingSourcesRule.SCORE_MODERATE });
-        evidence.push(EvidenceHelper.warning(`Moderate citations: ${reputableCitations.length} reputable sources`, { target: 'Improve citation quality', score: CitingSourcesRule.SCORE_MODERATE }));
-      } else if (totalCitations > 0) {
-        score = CitingSourcesRule.SCORE_POOR;
-        scoreBreakdown.push({ component: 'Poor citation quality', points: CitingSourcesRule.SCORE_POOR });
-        evidence.push(EvidenceHelper.warning(`Found ${totalCitations} citations but none from highly reputable sources`, { target: 'Add reputable sources', score: CitingSourcesRule.SCORE_POOR }));
+      // Score based on CSV specifications: density per 1000 words
+      let citationDensityScore = 0;
+      let citationQualityScore = 0;
+      let recencyScore = 0;
+      
+      if (totalCitations === 0) {
+        evidence.push(EvidenceHelper.error(CitingSourcesTopic.NO_CITATIONS, 'No external citations found', { 
+          score: 0, 
+          maxScore: 60,
+          target: 'Add citations to external sources' 
+        }));
+        recommendations.push('Add citations from reputable sources (.gov, .edu, peer-reviewed journals)');
       } else {
-        score = CitingSourcesRule.SCORE_NOT_PRESENT;
-        scoreBreakdown.push({ component: 'Base score', points: CitingSourcesRule.SCORE_NOT_PRESENT });
-        evidence.push(EvidenceHelper.info('Base score', { target: 'Starting point', score: CitingSourcesRule.SCORE_NOT_PRESENT }));
-        evidence.push(EvidenceHelper.error('No external citations found', { target: 'Add citations to external sources' }));
-        recommendations.push(`${CitingSourcesRule.MIN_REPUTABLE_GOOD}+ reputable sources for good score (80/100)`);
-        recommendations.push(`${CitingSourcesRule.MIN_REPUTABLE_EXCELLENT}+ reputable sources for excellent score (100/100)`);
+        // Citation density scoring (40 points max) - based on CSV thresholds
+        if (citationDensity >= 2.0) { // ≥1 per ≤500 words
+          citationDensityScore = 40;
+          evidence.push(EvidenceHelper.success(CitingSourcesTopic.CITATION_ANALYSIS, `Excellent citation density: ${citationDensity.toFixed(2)} per 1000 words`, { 
+            score: 40, 
+            maxScore: 40,
+            target: '≥2.0 per 1000 words for excellent score' 
+          }));
+        } else if (citationDensity >= 1.0) { // ≥1 per 500-999 words  
+          citationDensityScore = 30;
+          evidence.push(EvidenceHelper.success(CitingSourcesTopic.CITATION_ANALYSIS, `Good citation density: ${citationDensity.toFixed(2)} per 1000 words`, { 
+            score: 30, 
+            maxScore: 40,
+            target: '≥1.0 per 1000 words for good score' 
+          }));
+        } else if (citationDensity >= 0.5) { // ≥1 per 1000-1999 words
+          citationDensityScore = 20;
+          evidence.push(EvidenceHelper.warning(CitingSourcesTopic.CITATION_ANALYSIS, `Moderate citation density: ${citationDensity.toFixed(2)} per 1000 words`, { 
+            score: 20, 
+            maxScore: 40,
+            target: 'Increase to ≥1.0 per 1000 words for better score' 
+          }));
+        } else if (citationDensity >= 0.25) { // ~1 per 2000+ words
+          citationDensityScore = 10;
+          evidence.push(EvidenceHelper.warning(CitingSourcesTopic.CITATION_ANALYSIS, `Low citation density: ${citationDensity.toFixed(2)} per 1000 words`, { 
+            score: 10, 
+            maxScore: 40,
+            target: 'Increase to ≥0.5 per 1000 words for moderate score' 
+          }));
+        } else {
+          citationDensityScore = 0;
+          evidence.push(EvidenceHelper.error(CitingSourcesTopic.CITATION_ANALYSIS, `Very low citation density: ${citationDensity.toFixed(2)} per 1000 words`, { 
+            score: 0, 
+            maxScore: 40,
+            target: 'Add more citations for better density' 
+          }));
+        }
+        
+        // Citation quality scoring (20 points max) - based on reputable sources
+        if (reputableCitations.length >= 5) {
+          citationQualityScore = 20;
+          evidence.push(EvidenceHelper.success(CitingSourcesTopic.HIGH_QUALITY_CITATIONS, `Excellent reputable sources: ${reputableCitations.length}`, { 
+            score: 20, 
+            maxScore: 20,
+            target: '≥5 reputable sources for excellent' 
+          }));
+        } else if (reputableCitations.length >= 2) {
+          citationQualityScore = 15;
+          evidence.push(EvidenceHelper.success(CitingSourcesTopic.HIGH_QUALITY_CITATIONS, `Good reputable sources: ${reputableCitations.length}`, { 
+            score: 15, 
+            maxScore: 20,
+            target: '≥2 reputable sources for good score' 
+          }));
+        } else if (reputableCitations.length >= 1) {
+          citationQualityScore = 10;
+          evidence.push(EvidenceHelper.warning(CitingSourcesTopic.HIGH_QUALITY_CITATIONS, `Limited reputable sources: ${reputableCitations.length}`, { 
+            score: 10, 
+            maxScore: 20,
+            target: 'Add more .gov/.edu/peer-reviewed sources' 
+          }));
+        } else {
+          citationQualityScore = 0;
+          evidence.push(EvidenceHelper.error(CitingSourcesTopic.NOT_HIGH_QUALITY_CITATIONS, 'No reputable sources found', { 
+            score: 0, 
+            maxScore: 20,
+            target: 'Add citations from .gov, .edu, or peer-reviewed sources' 
+          }));
+        }
+        
+        score += citationDensityScore + citationQualityScore;
+        scoreBreakdown.push({ component: 'Citation density', points: citationDensityScore });
+        scoreBreakdown.push({ component: 'Citation quality', points: citationQualityScore });
       }
 
-      // Add bonus for formal references section
-      if (llmResponse.hasFormalReferences) {
-        const bonus = Math.min(10, 100 - score);
-        score = Math.min(100, score + bonus);
-        scoreBreakdown.push({ component: 'Formal references section', points: bonus });
-        evidence.push(EvidenceHelper.success('Has dedicated references/bibliography section', { target: 'Maintain formal references', score: bonus }));
-      }
-
-      // Add bonus for citation recency
-      const recencyBonus = this.calculateRecencyScore(llmResponse.citations);
-      if (recencyBonus > 0) {
-        const actualBonus = Math.min(recencyBonus, 100 - score);
-        score = Math.min(100, score + actualBonus);
-        scoreBreakdown.push({ component: 'Recent sources', points: actualBonus });
-        evidence.push(EvidenceHelper.success(`Sources are current (recency bonus: +${actualBonus})`, { target: 'Keep sources current', score: actualBonus }));
+      // Citation recency scoring (20 points max) - based on CSV: ≤24 months for 100%
+      const currentYear = new Date().getFullYear();
+      let recentCount = 0;
+      let totalDated = 0;
+      
+      llmResponse.citations.forEach(citation => {
+        if (citation.publicationDate) {
+          totalDated++;
+          const yearMatch = citation.publicationDate.match(/20\d{2}/);
+          if (yearMatch) {
+            const year = parseInt(yearMatch[0]);
+            const age = currentYear - year;
+            if (age <= 2) recentCount++; // ≤24 months
+          }
+        }
+      });
+      
+      if (totalDated > 0) {
+        const recentRatio = recentCount / totalDated;
+        if (recentRatio >= 0.7) { // 70%+ are recent
+          recencyScore = 20;
+          evidence.push(EvidenceHelper.success(CitingSourcesTopic.CITATION_ANALYSIS, `Excellent source recency: ${Math.round(recentRatio * 100)}% recent (≤24 months)`, { 
+            score: 20, 
+            maxScore: 20,
+            target: '≥70% sources ≤24 months for excellent' 
+          }));
+        } else if (recentRatio >= 0.5) { // 50%+ are recent
+          recencyScore = 15;
+          evidence.push(EvidenceHelper.success(CitingSourcesTopic.CITATION_ANALYSIS, `Good source recency: ${Math.round(recentRatio * 100)}% recent (≤24 months)`, { 
+            score: 15, 
+            maxScore: 20,
+            target: 'Increase recent sources to ≥70% for excellent' 
+          }));
+        } else if (recentRatio >= 0.3) { // 30%+ are recent
+          recencyScore = 10;
+          evidence.push(EvidenceHelper.warning(CitingSourcesTopic.CITATION_ANALYSIS, `Moderate source recency: ${Math.round(recentRatio * 100)}% recent (≤24 months)`, { 
+            score: 10, 
+            maxScore: 20,
+            target: 'Update sources to be more recent' 
+          }));
+        } else {
+          recencyScore = 0;
+          evidence.push(EvidenceHelper.error(CitingSourcesTopic.CITATION_ANALYSIS, `Poor source recency: ${Math.round(recentRatio * 100)}% recent (≤24 months)`, { 
+            score: 0, 
+            maxScore: 20,
+            target: 'Use more recent sources (≤24 months)' 
+          }));
+        }
+        
+        score += recencyScore;
+        scoreBreakdown.push({ component: 'Source recency', points: recencyScore });
+      } else {
+        evidence.push(EvidenceHelper.warning(CitingSourcesTopic.CITATION_ANALYSIS, 'No publication dates found in citations', { 
+          score: 0, 
+          maxScore: 20,
+          target: 'Include publication dates for recency scoring' 
+        }));
       }
 
       // Break down citations by type
@@ -265,36 +381,36 @@ ${html.substring(0, 5000)}`;
         return acc;
       }, {} as Record<string, number>);
 
-      evidence.push(EvidenceHelper.info(`Total citations: ${totalCitations}`, { target: `≥${CitingSourcesRule.MIN_REPUTABLE_GOOD} reputable sources for good score` }));
-      evidence.push(EvidenceHelper.info(`Reputable sources: ${reputableCitations.length}`, { target: `≥${CitingSourcesRule.MIN_REPUTABLE_GOOD} for good, ≥${CitingSourcesRule.MIN_REPUTABLE_EXCELLENT} for excellent` }));
-      evidence.push(EvidenceHelper.info(`Citation density: ${citationDensity.toFixed(2)} per 1000 words`, { target: `≥${CitingSourcesRule.GOOD_DENSITY} per 1000 words for good score` }));
-      evidence.push(EvidenceHelper.info(`Citation style: ${llmResponse.citationStyle}`, { target: 'Academic or journalistic style preferred' }));
+      evidence.push(EvidenceHelper.info(CitingSourcesTopic.SCORING_INFO, `Total citations: ${totalCitations}`, { target: `≥${CitingSourcesRule.MIN_REPUTABLE_GOOD} reputable sources for good score` }));
+      evidence.push(EvidenceHelper.info(CitingSourcesTopic.SCORING_INFO, `Reputable sources: ${reputableCitations.length}`, { target: `≥${CitingSourcesRule.MIN_REPUTABLE_GOOD} for good, ≥${CitingSourcesRule.MIN_REPUTABLE_EXCELLENT} for excellent` }));
+      evidence.push(EvidenceHelper.info(CitingSourcesTopic.SCORING_INFO, `Citation density: ${citationDensity.toFixed(2)} per 1000 words`, { target: `≥${CitingSourcesRule.GOOD_DENSITY} per 1000 words for good score` }));
+      evidence.push(EvidenceHelper.info(CitingSourcesTopic.SCORING_INFO, `Citation style: ${llmResponse.citationStyle}`, { target: 'Academic or journalistic style preferred' }));
       
       if (totalCitations > 0) {
-        evidence.push(EvidenceHelper.info('By source type:'));
+        evidence.push(EvidenceHelper.info(CitingSourcesTopic.SCORING_INFO, 'By source type:'));
         if (citationsByType.government > 0) {
-          evidence.push(EvidenceHelper.info(`${citationsByType.government} government sources`));
+          evidence.push(EvidenceHelper.info(CitingSourcesTopic.SCORING_INFO, `${citationsByType.government} government sources`));
         }
         if (citationsByType.education > 0) {
-          evidence.push(EvidenceHelper.info(`${citationsByType.education} educational sources`));
+          evidence.push(EvidenceHelper.info(CitingSourcesTopic.SCORING_INFO, `${citationsByType.education} educational sources`));
         }
         if (citationsByType.research > 0) {
-          evidence.push(EvidenceHelper.info(`${citationsByType.research} research/academic sources`));
+          evidence.push(EvidenceHelper.info(CitingSourcesTopic.SCORING_INFO, `${citationsByType.research} research/academic sources`));
         }
         if (citationsByType.news > 0) {
-          evidence.push(EvidenceHelper.info(`${citationsByType.news} news sources`));
+          evidence.push(EvidenceHelper.info(CitingSourcesTopic.SCORING_INFO, `${citationsByType.news} news sources`));
         }
         if (citationsByType.industry > 0) {
-          evidence.push(EvidenceHelper.info(`${citationsByType.industry} industry sources`));
+          evidence.push(EvidenceHelper.info(CitingSourcesTopic.SCORING_INFO, `${citationsByType.industry} industry sources`));
         }
       }
 
       // Add specific examples of high-quality citations
       const directCitations = llmResponse.citations.filter(c => c.contextQuality === 'direct' && c.isReputable);
       if (directCitations.length > 0) {
-        evidence.push(EvidenceHelper.info('High-quality citations found:'));
+        evidence.push(EvidenceHelper.info(CitingSourcesTopic.HIGH_QUALITY_CITATIONS, 'High-quality citations found:'));
         directCitations.slice(0, 3).forEach((citation, index) => {
-          evidence.push(EvidenceHelper.info(`  ${index + 1}. ${citation.domain} - ${citation.claimSupported}`, citation.excerpt ? { code: `     📝 ${citation.excerpt}` } : {}));
+          evidence.push(EvidenceHelper.info(CitingSourcesTopic.HIGH_QUALITY_CITATIONS, `  ${index + 1}. ${citation.domain} - ${citation.claimSupported}`, citation.excerpt ? { code: `     📝 ${citation.excerpt}` } : {}));
         });
       }
 
@@ -312,7 +428,7 @@ ${html.substring(0, 5000)}`;
         if (!llmResponse.hasFormalReferences) {
           recommendations.push('Add a formal references or bibliography section (+10 points bonus)');
         }
-        if (recencyBonus < 10) {
+        if (recencyScore < 10) {
           recommendations.push('Update sources to include more recent publications (within 24 months for maximum +20 points bonus)');
         }
       }

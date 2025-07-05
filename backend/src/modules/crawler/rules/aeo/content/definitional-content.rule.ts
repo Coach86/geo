@@ -7,6 +7,19 @@ import { LlmProvider } from '../../../../llm/interfaces/llm-provider.enum';
 import { z } from 'zod';
 import { PageCategoryType } from '../../../interfaces/page-category.interface';
 
+
+// Evidence topics for this rule
+enum DefinitionalContentTopic {
+  DEFINITION_ANALYSIS = 'Definition Analysis',
+  DEFINITIONS_LIST = 'Definitions List',
+  IMPROVEMENT_TIPS = 'Improvement Tips',
+  RELATED_TERMS = 'Related Terms',
+  NOT_DEFINITIONS_LIST = 'Definitions List',
+  SCHEMA_MARKUP = 'Schema Markup',
+  SEMANTIC_MARKUP = 'Semantic Markup',
+  NO_DEFINITIONS = 'No Definitions'
+}
+
 // Zod schema for structured output
 const DefinitionSchema = z.object({
   term: z.string().describe('The term or concept being defined'),
@@ -69,7 +82,7 @@ export class DefinitionalContentRule extends BaseAEORule {
     super(
       'definitional_content',
       'What is X? Definitional Content',
-      'CONTENT' as Category,
+      'QUALITY' as Category,
       {
         impactScore: 3,
         pageTypes: [PageCategoryType.WHAT_IS_X_DEFINITIONAL_PAGE, PageCategoryType.FAQ_GLOSSARY_PAGES, PageCategoryType.BLOG_POST_ARTICLE],
@@ -94,7 +107,7 @@ export class DefinitionalContentRule extends BaseAEORule {
     // Quick check if this is likely a definitional page
     const isDefinitionalPage = this.isDefinitionalUrl(url);
     if (isDefinitionalPage) {
-      evidence.push(EvidenceHelper.success('URL indicates definitional content', { target: 'URL optimization' }));
+      evidence.push(EvidenceHelper.success(DefinitionalContentTopic.DEFINITION_ANALYSIS, 'URL indicates definitional content', { target: 'URL optimization' }));
     }
     
     // Prepare content for LLM analysis
@@ -102,7 +115,7 @@ export class DefinitionalContentRule extends BaseAEORule {
     
     // Validate content
     if (!contentForAnalysis || contentForAnalysis.trim().length < DefinitionalContentRule.MIN_CONTENT_LENGTH) {
-      evidence.push(EvidenceHelper.error('Insufficient content to analyze for definitions'));
+      evidence.push(EvidenceHelper.error(DefinitionalContentTopic.DEFINITION_ANALYSIS, 'Insufficient content to analyze for definitions'));
       return this.createResult(DefinitionalContentRule.SCORE_NOT_PRESENT, evidence);
     }
     
@@ -203,55 +216,55 @@ ${html.substring(0, 5000)}`;
       if (isDedicatedPage && clearDefinitions >= DefinitionalContentRule.MIN_DEFINITIONS_EXCELLENT) {
         score = DefinitionalContentRule.SCORE_EXCELLENT;
         scoreBreakdown.push({ component: 'Comprehensive definitional content', points: DefinitionalContentRule.SCORE_EXCELLENT });
-        evidence.push(EvidenceHelper.success(`Comprehensive definitional page with ${clearDefinitions} clear definitions`, { target: 'Comprehensive definitional content', score: DefinitionalContentRule.SCORE_EXCELLENT }));
+        evidence.push(EvidenceHelper.success(DefinitionalContentTopic.DEFINITION_ANALYSIS, `Comprehensive definitional page with ${clearDefinitions} clear definitions`, { target: 'Comprehensive definitional content', score: DefinitionalContentRule.SCORE_EXCELLENT, maxScore: 100 }));
       } else if (isDedicatedPage && clearDefinitions >= DefinitionalContentRule.MIN_DEFINITIONS_GOOD) {
         score = DefinitionalContentRule.SCORE_GOOD;
         scoreBreakdown.push({ component: 'Good definitional content', points: DefinitionalContentRule.SCORE_GOOD });
-        evidence.push(EvidenceHelper.success(`Good definitional content with ${clearDefinitions} clear definitions`, { target: 'Good definitional content', score: DefinitionalContentRule.SCORE_GOOD }));
+        evidence.push(EvidenceHelper.success(DefinitionalContentTopic.DEFINITION_ANALYSIS, `Good definitional content with ${clearDefinitions} clear definitions`, { target: 'Good definitional content', score: DefinitionalContentRule.SCORE_GOOD, maxScore: 100 }));
       } else if (definitionCount >= DefinitionalContentRule.MIN_DEFINITIONS_POOR) {
         score = DefinitionalContentRule.SCORE_MODERATE;
         scoreBreakdown.push({ component: 'Basic definitional content', points: DefinitionalContentRule.SCORE_MODERATE });
-        evidence.push(EvidenceHelper.warning(`Basic definitional content with ${definitionCount} definitions`, { target: 'Improve definition quality', score: DefinitionalContentRule.SCORE_MODERATE }));
+        evidence.push(EvidenceHelper.warning(DefinitionalContentTopic.DEFINITION_ANALYSIS, `Basic definitional content with ${definitionCount} definitions`, { target: 'Improve definition quality', score: DefinitionalContentRule.SCORE_MODERATE, maxScore: 100 }));
       } else if (definitionCount > 0) {
         score = DefinitionalContentRule.SCORE_POOR;
         scoreBreakdown.push({ component: 'Limited definitional content', points: DefinitionalContentRule.SCORE_POOR });
-        evidence.push(EvidenceHelper.warning('Limited definitional content, mostly buried in other text', { target: 'Create clear definitions', score: DefinitionalContentRule.SCORE_POOR }));
+        evidence.push(EvidenceHelper.warning(DefinitionalContentTopic.DEFINITION_ANALYSIS, 'Limited definitional content, mostly buried in other text', { target: 'Create clear definitions', score: DefinitionalContentRule.SCORE_POOR, maxScore: 100 }));
       } else {
         score = DefinitionalContentRule.SCORE_NOT_PRESENT;
         scoreBreakdown.push({ component: 'No definitional content', points: DefinitionalContentRule.SCORE_NOT_PRESENT });
-        evidence.push(EvidenceHelper.error('No definitional content found', { target: 'Add definitional content', score: DefinitionalContentRule.SCORE_NOT_PRESENT }));
+        evidence.push(EvidenceHelper.error(DefinitionalContentTopic.NO_DEFINITIONS, 'No definitional content found', { target: 'Add definitional content', score: DefinitionalContentRule.SCORE_NOT_PRESENT, maxScore: 100 }));
         recommendations.push(`Create ${DefinitionalContentRule.MIN_DEFINITIONS_POOR}+ definition for 40 points`);
         recommendations.push(`Create ${DefinitionalContentRule.MIN_DEFINITIONS_GOOD}+ definitions for 80 points`);
         recommendations.push(`Create ${DefinitionalContentRule.MIN_DEFINITIONS_EXCELLENT}+ definitions for 100 points`);
       }
       
       // Page type assessment
-      evidence.push(EvidenceHelper.info(`Page type: ${llmResponse.pageType.replace(/_/g, ' ')}`));
-      evidence.push(EvidenceHelper.info(`Definition density: ${llmResponse.definitionDensity}`));
-      evidence.push(EvidenceHelper.info(`Target audience: ${llmResponse.targetAudience}`));
+      evidence.push(EvidenceHelper.info(DefinitionalContentTopic.DEFINITION_ANALYSIS, `Page type: ${llmResponse.pageType.replace(/_/g, ' ')}`));
+      evidence.push(EvidenceHelper.info(DefinitionalContentTopic.DEFINITION_ANALYSIS, `Definition density: ${llmResponse.definitionDensity}`));
+      evidence.push(EvidenceHelper.info(DefinitionalContentTopic.DEFINITION_ANALYSIS, `Target audience: ${llmResponse.targetAudience}`));
       
       // Structure assessment
       if (llmResponse.hasStructuredMarkup) {
-        evidence.push(EvidenceHelper.success('Uses semantic definition markup (dl/dt/dd)', { target: 'Semantic markup' }));
+        evidence.push(EvidenceHelper.success(DefinitionalContentTopic.IMPROVEMENT_TIPS, 'Uses semantic definition markup (dl/dt/dd)', { target: 'Semantic markup' }));
       }
       if (llmResponse.hasSchemaMarkup) {
-        evidence.push(EvidenceHelper.success('Includes DefinedTerm schema markup', { target: 'Schema markup' }));
+        evidence.push(EvidenceHelper.success(DefinitionalContentTopic.SCHEMA_MARKUP, 'Includes DefinedTerm schema markup', { target: 'Schema markup' }));
       }
       
       // List definitions found
       if (definitionCount > 0) {
-        evidence.push(EvidenceHelper.info('Definitions found:'));
+        evidence.push(EvidenceHelper.info(DefinitionalContentTopic.DEFINITIONS_LIST, 'Definitions found:'));
         llmResponse.definitions.forEach((def, index) => {
           const quality = def.isDirectDefinition ? '✓' : '○';
-          evidence.push(EvidenceHelper.info(`  ${quality} ${def.term}`, def.excerpt ? { code: `     📝 ${def.excerpt}` } : {}));
-          evidence.push(EvidenceHelper.info(`     Clarity: ${def.definitionClarity}, Completeness: ${def.definitionCompleteness}`));
+          evidence.push(EvidenceHelper.info(DefinitionalContentTopic.DEFINITION_ANALYSIS, `  ${quality} ${def.term}`, def.excerpt ? { code: `     📝 ${def.excerpt}` } : {}));
+          evidence.push(EvidenceHelper.info(DefinitionalContentTopic.DEFINITION_ANALYSIS, `     Clarity: ${def.definitionClarity}, Completeness: ${def.definitionCompleteness}`));
           
           const features = [];
           if (def.hasExamples) features.push('examples');
           if (def.hasRelatedTerms) features.push('related terms');
           if (def.hasEtymology) features.push('etymology');
           if (features.length > 0) {
-            evidence.push(EvidenceHelper.info(`     Features: ${features.join(', ')}`));
+            evidence.push(EvidenceHelper.info(DefinitionalContentTopic.DEFINITION_ANALYSIS, `     Features: ${features.join(', ')}`));
           }
         });
       }
@@ -259,36 +272,36 @@ ${html.substring(0, 5000)}`;
       // Quality insights
       const comprehensiveCount = llmResponse.definitions.filter(d => d.definitionCompleteness === 'comprehensive').length;
       if (comprehensiveCount > 0) {
-        evidence.push(EvidenceHelper.success(`${comprehensiveCount} comprehensive definitions with full context`, { target: 'Comprehensive definitions' }));
+        evidence.push(EvidenceHelper.success(DefinitionalContentTopic.DEFINITION_ANALYSIS, `${comprehensiveCount} comprehensive definitions with full context`, { target: 'Comprehensive definitions' }));
       }
       
       // Recommendations
       if (score < DefinitionalContentRule.SCORE_GOOD) {
-        evidence.push(EvidenceHelper.info('💡 To improve definitional content:'));
+        evidence.push(EvidenceHelper.info(DefinitionalContentTopic.DEFINITION_ANALYSIS, '💡 To improve definitional content:'));
         if (!isDedicatedPage) {
-          evidence.push(EvidenceHelper.info('  • Create dedicated "What is X?" pages for key terms'));
+          evidence.push(EvidenceHelper.info(DefinitionalContentTopic.IMPROVEMENT_TIPS, `  • Create dedicated "What is X?" pages for key terms`));
         }
         if (clearDefinitions < DefinitionalContentRule.MIN_DEFINITIONS_GOOD) {
-          evidence.push(EvidenceHelper.info('  • Add more clear, direct definitions ("X is...")'));
+          evidence.push(EvidenceHelper.info(DefinitionalContentTopic.IMPROVEMENT_TIPS, '  • Add more clear, direct definitions ("X is...")'));
         }
         if (!llmResponse.hasStructuredMarkup) {
-          evidence.push(EvidenceHelper.info('  • Use definition lists (dl/dt/dd) for better structure'));
+          evidence.push(EvidenceHelper.info(DefinitionalContentTopic.SEMANTIC_MARKUP, '  • Use definition lists (dl/dt/dd) for better structure'));
         }
         if (!llmResponse.hasSchemaMarkup) {
-          evidence.push(EvidenceHelper.info('  • Add DefinedTerm schema markup'));
+          evidence.push(EvidenceHelper.info(DefinitionalContentTopic.SCHEMA_MARKUP, '  • Add DefinedTerm schema markup'));
         }
         
         const needsExamples = llmResponse.definitions.filter(d => !d.hasExamples).length;
         if (needsExamples > 0) {
-          evidence.push(EvidenceHelper.info('  • Include examples to illustrate concepts'));
+          evidence.push(EvidenceHelper.info(DefinitionalContentTopic.IMPROVEMENT_TIPS, '  • Include examples to illustrate concepts'));
         }
         
         const needsRelated = llmResponse.definitions.filter(d => !d.hasRelatedTerms).length;
         if (needsRelated > 0) {
-          evidence.push(EvidenceHelper.info('  • Link to related terms and concepts'));
+          evidence.push(EvidenceHelper.info(DefinitionalContentTopic.RELATED_TERMS, '  • Link to related terms and concepts'));
         }
         
-        evidence.push(EvidenceHelper.info('  • Build a comprehensive glossary (aim for 5+ key terms)'));
+        evidence.push(EvidenceHelper.info(DefinitionalContentTopic.IMPROVEMENT_TIPS, '  • Build a comprehensive glossary (aim for 5+ key terms)'));
       }
       
     } catch (error) {

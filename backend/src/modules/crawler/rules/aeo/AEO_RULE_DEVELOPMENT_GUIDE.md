@@ -13,7 +13,15 @@ AEO rules analyze web content to assess how well it's optimized for AI systems l
 ```typescript
 import { Injectable, Logger } from '@nestjs/common';
 import { BaseAEORule } from '../base-aeo.rule';
-import { AEORuleResult, PageContent, AEOCategory } from '../../../interfaces/aeo-rule.interface';
+import { RuleResult, PageContent, Category, EvidenceItem } from '../../../interfaces/rule.interface';
+import { EvidenceHelper } from '../../../utils/evidence.helper';
+
+// Evidence topics for this rule
+enum YourRuleTopic {
+  FEATURE_CHECK = 'Feature Check',
+  CONTENT_QUALITY = 'Content Quality',
+  STRUCTURE_ANALYSIS = 'Structure Analysis'
+}
 
 @Injectable()
 export class YourRule extends BaseAEORule {
@@ -29,7 +37,7 @@ export class YourRule extends BaseAEORule {
     super(
       'rule_id',              // Unique identifier (snake_case)
       'Rule Display Name',    // Human-readable name
-      'CONTENT' as AEOCategory, // Category: TECHNICAL, CONTENT, AUTHORITY, or MONITORING_KPI
+      'CONTENT' as Category, // Category: TECHNICAL, CONTENT, AUTHORITY, or MONITORING_KPI
       {
         impactScore: 3,       // 1-3, where 3 is highest impact
         pageTypes: ['blog_article', 'faq'],  // Applicable page types
@@ -38,11 +46,28 @@ export class YourRule extends BaseAEORule {
     );
   }
 
-  async evaluate(url: string, content: PageContent): Promise<AEORuleResult> {
-    const evidence: string[] = [];
+  async evaluate(url: string, content: PageContent): Promise<RuleResult> {
+    const evidence: EvidenceItem[] = [];
+    const scoreBreakdown: { component: string; points: number }[] = [];
     let score = 0;
     
+    // For penalty-based scoring (technical rules):
+    // evidence.push(EvidenceHelper.base(100));
+    // score = 100;
+    
     // Your evaluation logic here
+    if (someCondition) {
+      evidence.push(EvidenceHelper.success(YourRuleTopic.FEATURE_CHECK, 'Feature found', {
+        score: 30,
+        maxScore: 30,
+        target: 'Target description'
+      }));
+      score += 30;
+      scoreBreakdown.push({ component: 'Feature present', points: 30 });
+    }
+    
+    // Add final score calculation
+    evidence.push(...EvidenceHelper.scoreCalculation(scoreBreakdown, score, 100));
     
     return this.createResult(score, evidence);
   }
@@ -275,12 +300,55 @@ async evaluate(url: string, content: PageContent): Promise<AEORuleResult> {
 - Group related constants with comments
 - Document the rationale for thresholds and limits
 
-### 2. Evidence Quality
-- Always include specific excerpts from the content (provided by LLM, not extracted via code)
-- Use emojis sparingly but consistently (✓, ✗, ○, 📝, 📊, 💡)
-- Provide actionable feedback for improvements
-- Show what was found AND what's missing
-- Never use hardcoded keyword extraction for multilingual content
+### 2. Evidence Types and Quality
+
+#### Available Evidence Types
+Use `EvidenceHelper` to create structured evidence:
+
+```typescript
+// Basic evidence types with topic, content, and optional parameters
+EvidenceHelper.info(topic, content, options?)     // General information
+EvidenceHelper.success(topic, content, options?)  // Success/passing items (✓)
+EvidenceHelper.warning(topic, content, options?)  // Warnings/minor issues (⚠)
+EvidenceHelper.error(topic, content, options?)    // Errors/failures (✗)
+
+// Special evidence types
+EvidenceHelper.base(score, options?)              // Base score evidence (penalty-based only)
+EvidenceHelper.score(content, metadata?)          // Score calculations
+EvidenceHelper.heading(content, metadata?)        // Section headers
+```
+
+#### Evidence Options
+All evidence methods accept optional parameters:
+
+```typescript
+{
+  target?: string;              // Target value displayed aligned right
+  code?: string;                // Code snippet displayed below content
+  score?: number;               // Score value for this evidence item
+  maxScore?: number;            // Maximum possible score for this item
+  metadata?: Record<string, any>; // Special rendering metadata
+}
+```
+
+#### Evidence Quality Guidelines
+- **Topics**: **ALWAYS use enum values**, never hardcoded strings
+  ```typescript
+  // ✓ CORRECT: Use enum
+  enum YourRuleTopic {
+    FEATURE_CHECK = 'Feature Check',
+    CONTENT_QUALITY = 'Content Quality'
+  }
+  evidence.push(EvidenceHelper.success(YourRuleTopic.FEATURE_CHECK, 'Found feature'));
+  
+  // ✗ WRONG: Hardcoded string
+  evidence.push(EvidenceHelper.success('Feature Check', 'Found feature'));
+  ```
+- **Content**: Be specific and actionable, avoid vague descriptions
+- **Targets**: Provide clear guidance on what users should achieve
+- **Code**: Include relevant code snippets, excerpts, or examples
+- **Excerpts**: Always use LLM-provided excerpts, not hardcoded extraction
+- **Multilingual**: Never use keyword extraction for multilingual content
 
 ### 3. Error Handling
 - Validate input content before processing
@@ -294,13 +362,106 @@ async evaluate(url: string, content: PageContent): Promise<AEORuleResult> {
 - Handle edge cases explicitly
 - Use structured output (Zod schemas) for consistency
 
-### 5. Scoring Philosophy
+### 5. Scoring Patterns
+
+There are **two distinct scoring patterns** used in AEO rules:
+
+#### A. Penalty-Based Scoring (for Technical Rules)
+Used when you expect features to work correctly by default and penalize when they don't.
+
+**When to use**: Technical requirements like HTTPS, mobile optimization, HTML structure
+
+**Pattern**:
+```typescript
+// Start with perfect score
+let score = 100;
+const scoreBreakdown: { component: string; points: number }[] = [
+  { component: 'Base score', points: 100 }
+];
+
+// Add base score evidence (REQUIRED)
+evidence.push(EvidenceHelper.base(100));
+
+// Success case: No penalty (score: 0, no maxScore)
+if (hasFeature) {
+  evidence.push(EvidenceHelper.success(YourRuleTopic.FEATURE_CHECK, 'Feature works correctly', { 
+    score: 0,  // No penalty
+    target: 'Feature is working properly' 
+  }));
+  // No score change
+} else {
+  // Failure case: Apply penalty (score: negative, no maxScore)
+  evidence.push(EvidenceHelper.error(YourRuleTopic.FEATURE_CHECK, 'Feature is missing', { 
+    score: -30,  // Penalty
+    target: 'Fix feature for +30 points' 
+  }));
+  score -= 30;
+  scoreBreakdown.push({ component: 'Missing feature', points: -30 });
+}
+
+// Add final score calculation
+evidence.push(...EvidenceHelper.scoreCalculation(scoreBreakdown, score, 100));
+```
+
+**Key Rules**:
+- Always use `EvidenceHelper.base(100)` as first evidence
+- Success evidence: `score: 0` (no penalty)
+- Failure evidence: `score: -X` (penalty)
+- **Never use `maxScore`** with base scoring
+- Score breakdown tracks penalties as negative values
+
+#### B. Additive Scoring (for Content Rules)
+Used when you build up points for having good content features.
+
+**When to use**: Content quality like case studies, comparisons, guides
+
+**Pattern**:
+```typescript
+// Start with zero and build up
+let score = 0;
+const scoreBreakdown: { component: string; points: number }[] = [];
+
+// No base score evidence for additive scoring
+
+// Award points for features
+if (hasGoodContent) {
+  evidence.push(EvidenceHelper.success(YourRuleTopic.CONTENT_QUALITY, 'Excellent content found', { 
+    score: 30,     // Points earned
+    maxScore: 30,  // Max possible for this component
+    target: 'Keep up the good work',
+    code: 'Content excerpt or example here'
+  }));
+  score += 30;
+  scoreBreakdown.push({ component: 'Excellent content', points: 30 });
+} else {
+  evidence.push(EvidenceHelper.warning(YourRuleTopic.CONTENT_QUALITY, 'Content could be improved', { 
+    score: 0,      // No points earned
+    maxScore: 30,  // Max possible for this component
+    target: 'Add better content for +30 points' 
+  }));
+  scoreBreakdown.push({ component: 'Missing content', points: 0 });
+}
+
+// Add final score calculation  
+evidence.push(...EvidenceHelper.scoreCalculation(scoreBreakdown, score, 100));
+```
+
+**Key Rules**:
+- **Never use `EvidenceHelper.base()`** with additive scoring
+- Evidence shows `score: X, maxScore: Y` to show earned vs possible points
+- Total maxScore across all evidence should equal 100
+- Score breakdown tracks positive points earned
+
+#### C. Hybrid Scoring (Special Cases)
+Some rules combine both patterns - rare but allowed for complex scenarios.
+
+### 6. Scoring Philosophy
 - 100 (Excellent): Exceeds best practices significantly
 - 80 (Good): Meets most requirements well
 - 40 (Poor): Basic implementation present
 - 0 (Not Present): Missing or completely inadequate
 
-### 6. Registration
+### 7. Registration
 Add your rule to `aeo-rule-registry.service.ts`:
 
 ```typescript

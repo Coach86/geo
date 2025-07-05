@@ -21,7 +21,7 @@ export function ContentKPIOverview({ projectId }: ContentKPIOverviewProps) {
     try {
       setCrawling(true);
       await triggerCrawl({ maxPages: 50 });
-      toast.success('Content crawl started');
+      toast.success('Structure crawl started');
       
       // Poll for status
       const pollInterval = setInterval(async () => {
@@ -32,7 +32,7 @@ export function ContentKPIOverview({ projectId }: ContentKPIOverviewProps) {
             setCrawling(false);
             setCrawlProgress(0);
             await refetch();
-            toast.success('Content analysis completed');
+            toast.success('Structure analysis completed');
           } else {
             const progress = Math.round(
               (status.crawl.successfulPages / status.crawl.totalPages) * 100
@@ -46,7 +46,7 @@ export function ContentKPIOverview({ projectId }: ContentKPIOverviewProps) {
       }, 5000);
     } catch (error) {
       setCrawling(false);
-      toast.error('Failed to start content crawl');
+      toast.error('Failed to start structure crawl');
     }
   };
 
@@ -54,7 +54,7 @@ export function ContentKPIOverview({ projectId }: ContentKPIOverviewProps) {
     return (
       <Card className="animate-pulse">
         <CardHeader>
-          <CardTitle>Content KPI Analysis</CardTitle>
+          <CardTitle>Structure KPI Analysis</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-32 bg-gray-200 rounded" />
@@ -81,7 +81,7 @@ export function ContentKPIOverview({ projectId }: ContentKPIOverviewProps) {
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            Content KPI Analysis
+            Structure KPI Analysis
           </CardTitle>
           <Button
             onClick={handleTriggerCrawl}
@@ -97,7 +97,7 @@ export function ContentKPIOverview({ projectId }: ContentKPIOverviewProps) {
             ) : (
               <>
                 <Search className="mr-2 h-4 w-4" />
-                Analyze Content
+                Analyze Structure
               </>
             )}
           </Button>
@@ -109,7 +109,7 @@ export function ContentKPIOverview({ projectId }: ContentKPIOverviewProps) {
           <div className={`text-4xl font-bold ${getScoreColor(report.summary.avgGlobalScore)}`}>
             {report.summary.avgGlobalScore}
           </div>
-          <p className="text-sm text-muted-foreground">Overall Content Score</p>
+          <p className="text-sm text-muted-foreground">Overall Structure Score</p>
         </div>
 
         {/* Score Breakdown */}
@@ -146,11 +146,14 @@ export function ContentKPIOverview({ projectId }: ContentKPIOverviewProps) {
               Top Recommendations
             </h4>
             <ul className="space-y-1">
-              {report.recommendations.slice(0, 3).map((rec, index) => (
-                <li key={index} className="text-xs text-muted-foreground">
-                  • {rec}
-                </li>
-              ))}
+              {report.recommendations.slice(0, 3).map((rec, index) => {
+                const content = typeof rec === 'object' && rec !== null ? rec.content : rec;
+                return (
+                  <li key={index} className="text-xs text-muted-foreground">
+                    • {content}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}

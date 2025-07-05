@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Sheet,
   SheetContent,
@@ -9,6 +9,7 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Tooltip,
   TooltipContent,
@@ -21,8 +22,10 @@ import {
   Info,
   TrendingUp,
   Bot,
+  Lightbulb,
 } from 'lucide-react';
 import { EvidenceItemRenderer, type EvidenceItem } from './evidence/EvidenceItemRenderer';
+import { DIMENSION_COLORS } from '@/lib/constants/colors';
 
 interface AIUsage {
   modelName: string;
@@ -33,13 +36,14 @@ interface AIUsage {
 interface RuleResult {
   ruleId: string;
   ruleName: string;
-  category: 'technical' | 'content' | 'authority' | 'monitoringKpi';
+  category: 'technical' | 'content' | 'authority' | 'quality';
   score: number;
   maxScore: number;
   weight: number;
   contribution: number;
   passed: boolean;
   evidence: EvidenceItem[];
+  recommendations?: string[];
   issues?: Array<{
     dimension: string;
     severity: 'critical' | 'high' | 'medium' | 'low';
@@ -51,19 +55,13 @@ interface RuleResult {
   aiUsage?: AIUsage;
 }
 
-interface EvidenceDrawerProps {
+interface RuleDetailsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   rule: RuleResult | null;
   pageUrl?: string;
 }
 
-const DIMENSION_COLORS = {
-  technical: '#8b5cf6',
-  content: '#10b981',
-  authority: '#3b82f6',
-  monitoringKpi: '#ef4444',
-};
 
 const SEVERITY_ICONS = {
   critical: AlertCircle,
@@ -88,12 +86,18 @@ const AI_BASED_RULES = [
   'in-depth-guides'
 ];
 
-export function EvidenceDrawer({ isOpen, onClose, rule, pageUrl }: EvidenceDrawerProps) {
+export function RuleDetailsDrawer({ isOpen, onClose, rule, pageUrl }: RuleDetailsDrawerProps) {
+  const [activeTab, setActiveTab] = useState('summary');
+  
   if (!rule) return null;
 
-  // Separate score items from other evidence
+  // Separate score items from other evidence, but include base items with other evidence
   const scoreItems = rule.evidence.filter(item => item.type === 'score');
-  const otherEvidence = rule.evidence.filter(item => item.type !== 'score');
+  const baseItems = rule.evidence.filter(item => item.type === 'base');
+  const regularEvidence = rule.evidence.filter(item => item.type !== 'score' && item.type !== 'base');
+  
+  // Combine base items first, then regular evidence
+  const otherEvidence = [...baseItems, ...regularEvidence];
 
   const hasIssues = rule.issues && rule.issues.length > 0;
   const percentage = (rule.score / rule.maxScore) * 100;
@@ -203,23 +207,51 @@ export function EvidenceDrawer({ isOpen, onClose, rule, pageUrl }: EvidenceDrawe
           </SheetDescription>
         </SheetHeader>
         
-        {/* Scrollable Content Area */}
-        <div className="flex-1 overflow-y-auto mt-6 pb-4">
-          <div className="space-y-4">
+        {/* Tabs Content Area */}
+        <div className="flex-1 overflow-hidden mt-2 pb-4">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="summary">Summary</TabsTrigger>
+              <TabsTrigger value="recommendations" className="flex items-center gap-2">
+                <Lightbulb className="h-4 w-4" />
+                Recommendations ({rule.recommendations?.length || 0})
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="summary" className="flex-1 overflow-y-auto mt-8">
+              <div className="space-y-4">
             {/* Evidence Section */}
             {otherEvidence.length > 0 && (
               <div className="space-y-1">
                 <h5 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">
                   Evidence ({otherEvidence.length})
+                  {/* Debug: Show total maxScore in dev mode */}
+                  {process.env.NODE_ENV === 'development' && (() => {
+                    // Include base scores in the calculation
+                    const totalMaxScore = otherEvidence.reduce((sum, item) => {
+                      if (item.type === 'base') {
+                        // For base scores, add the base score value itself
+                        return sum + (item.score || 0);
+                      }
+                      return sum + (item.maxScore || 0);
+                    }, 0);
+                    const hasMaxScores = otherEvidence.some(item => item.maxScore !== undefined || item.type === 'base');
+                    
+                    if (!hasMaxScores) return null;
+                    
+                    const isNot100 = totalMaxScore !== 100;
+                    return (
+                      <span className={`ml-2 text-xs ${isNot100 ? 'font-bold text-red-600 dark:text-red-400' : 'font-normal text-orange-600 dark:text-orange-400'}`}>
+                        [DEBUG: maxScore total = {totalMaxScore}]
+                      </span>
+                    );
+                  })()}
                 </h5>
-                {otherEvidence.map((item, idx) => (
-                  <React.Fragment key={idx}>
-                    <EvidenceItemRenderer item={item} />
-                    {idx < otherEvidence.length - 1 && (
-                      <div className="border-t border-gray-100 dark:border-gray-800 my-2" />
-                    )}
-                  </React.Fragment>
-                ))}
+                <div className="space-y-1">
+                  {otherEvidence.map((item, idx) => (
+                    <EvidenceItemRenderer key={idx} item={item} />
+                  ))}
+                </div>
               </div>
             )}
 
@@ -272,7 +304,43 @@ export function EvidenceDrawer({ isOpen, onClose, rule, pageUrl }: EvidenceDrawe
                 </div>
               </div>
             )}
-          </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="recommendations" className="flex-1 overflow-y-auto mt-8">
+              <div className="space-y-4">
+                {rule.recommendations && rule.recommendations.length > 0 ? (
+                  <>
+                    <h5 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">
+                      Recommendations ({rule.recommendations.length})
+                    </h5>
+                    <div className="space-y-3">
+                      {rule.recommendations.map((recommendation, idx) => (
+                        <div 
+                          key={idx}
+                          className="flex items-start gap-3 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg"
+                        >
+                          <Lightbulb className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-600 dark:text-blue-400" />
+                          <div className="flex-1">
+                            <p className="text-sm text-gray-900 dark:text-gray-100">
+                              {recommendation}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <Lightbulb className="h-12 w-12 text-gray-300 dark:text-gray-600 mb-3" />
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      No recommendations available for this rule.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
 
         {/* Fixed Score Computation at Bottom */}

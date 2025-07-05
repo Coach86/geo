@@ -5,6 +5,12 @@ import { RuleResult,
   Category , EvidenceItem } from '../../../interfaces/rule.interface';
 import { EvidenceHelper } from '../../../utils/evidence.helper';
 
+// Evidence topics for this rule
+enum AuthorCredentialsTopic {
+  EXTERNAL_DATA = 'External Data Required',
+  ANALYSIS_SCOPE = 'Analysis Scope'
+}
+
 /**
  * NOT IMPLEMENTED - OFF-SITE RULE
  * 
@@ -33,11 +39,11 @@ export class AuthorCredentialsRule extends BaseAEORule {
     // Note: This is an Off-Site rule that would require external data sources
     // For now, we return a placeholder result indicating external analysis is needed
     
-    evidence.push(EvidenceHelper.info('Author credentials analysis requires external data sources'));
-    evidence.push(EvidenceHelper.info('Would analyze: Author bio page existence across domain'));
-    evidence.push(EvidenceHelper.info('Would check: Bio page linking from articles'));
-    evidence.push(EvidenceHelper.info('Would verify: Person and ProfilePage schema implementation'));
-    evidence.push(EvidenceHelper.info('Would assess: Credential detail and professional experience documentation'));
+    evidence.push(EvidenceHelper.info(AuthorCredentialsTopic.EXTERNAL_DATA, 'Author credentials analysis requires external data sources'));
+    evidence.push(EvidenceHelper.info(AuthorCredentialsTopic.ANALYSIS_SCOPE, 'Would analyze: Author bio page existence across domain'));
+    evidence.push(EvidenceHelper.info(AuthorCredentialsTopic.ANALYSIS_SCOPE, 'Would check: Bio page linking from articles'));
+    evidence.push(EvidenceHelper.info(AuthorCredentialsTopic.ANALYSIS_SCOPE, 'Would verify: Person and ProfilePage schema implementation'));
+    evidence.push(EvidenceHelper.info(AuthorCredentialsTopic.ANALYSIS_SCOPE, 'Would assess: Credential detail and professional experience documentation'));
     
     // Placeholder score - in production, this would integrate with external APIs
     const score = 0;
@@ -66,7 +72,7 @@ export class AuthorCredentialsRule extends BaseAEORule {
     details.issueMessage = 'Missing or incomplete author bio pages reduces content credibility and authority signals.';
     details.recommendationMessage = 'Create comprehensive author bio pages with proper schema markup and ensure all content links to author bios.';
     
-    evidence.push(EvidenceHelper.score(`Final Score: ${score}/100 (Requires external monitoring or manual assessment)`));
+    evidence.push(EvidenceHelper.score(`Final Score: ${score}/100 (Requires external monitoring or manual assessment)`, { maxScore: 100 }));
     
     return this.createResult(score, evidence, score < 60 ? [{
       severity: 'high',

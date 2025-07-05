@@ -234,9 +234,9 @@ export class UserCrawlerController {
         avgGlobalScore: Math.round(stats.avgGlobalScore),
         scoreBreakdown: {
           technical: Math.round(stats.avgTechnicalScore || 0),
-          content: Math.round(stats.avgContentScore || 0),
+          structure: Math.round(stats.avgStructureScore || 0),
           authority: Math.round(stats.avgAuthorityScore || 0),
-          monitoringKpi: Math.round(stats.avgMonitoringKpiScore || 0),
+          quality: Math.round(stats.avgMonitoringKpiScore || 0),
         },
         lastAnalyzedAt: stats.lastAnalyzedAt,
       },
@@ -264,7 +264,7 @@ export class UserCrawlerController {
     if (scores.technical >= 80) strengths.push('Excellent technical optimization');
     if (scores.content >= 80) strengths.push('High-quality AI-ready content');
     if (scores.authority >= 80) strengths.push('Strong authority signals');
-    if (scores.monitoringKpi >= 80) strengths.push('Great AI visibility metrics');
+    if (scores.quality >= 80) strengths.push('Great AI visibility metrics');
     
     return strengths;
   }
@@ -279,7 +279,7 @@ export class UserCrawlerController {
     if (stats.avgTechnicalScore < 60) {
       recommendations.push('Optimize technical infrastructure: add llms.txt, improve internal linking, implement structured data');
     }
-    if (stats.avgContentScore < 60) {
+    if (stats.avgStructureScore < 60) {
       recommendations.push('Create more AI-optimized content: how-to guides, FAQs, and definitional content');
     }
     if (stats.avgAuthorityScore < 60) {
@@ -383,7 +383,7 @@ export class UserCrawlerController {
       return {
         id: rule.id,
         name: rule.name,
-        dimension: rule.category.toLowerCase().replace(/_/g, '').replace('monitoringkpi', 'monitoringKpi'),
+        dimension: rule.category.toLowerCase().replace(/_/g, '').replace('monitoringkpi', 'quality'),
         description: this.getRuleDescription(rule),
         priority: rule.impactScore,
         weight: this.getRuleWeight(rule.impactScore),
@@ -400,7 +400,7 @@ export class UserCrawlerController {
     
     return {
       rules,
-      dimensions: ['technical', 'content', 'authority', 'monitoringKpi'],
+      dimensions: ['technical', 'structure', 'authority', 'quality'],
     };
   }
 
@@ -442,7 +442,7 @@ export class UserCrawlerController {
       'url_structure': 'Assesses URL structure and readability',
       'xml_sitemap': 'Verifies XML sitemap presence and validity',
       
-      // Content
+      // Structure
       'how_to_content': 'Detects and evaluates how-to and instructional content',
       'definitional_content': 'Identifies "What is" definitional content',
       'case-studies': 'Finds and evaluates case studies with metrics',
@@ -468,13 +468,10 @@ export class UserCrawlerController {
       'industry_publications': 'Measures industry publication mentions',
       'industry_recognition': 'Evaluates awards and recognition',
       'influencer_community': 'Checks influencer relationships',
-      'knowledge_panel': 'Verifies Google Knowledge Panel',
       'linkedin_thought_leadership': 'Evaluates LinkedIn presence',
       'podcasting': 'Checks podcast presence',
       'press_release': 'Evaluates press release strategy',
       'social_media_presence': 'Measures social media authority',
-      'strategic_media_relations': 'Evaluates media coverage',
-      'topic_brand_association': 'Measures brand-topic association',
       'user_reviews_integration': 'Checks review integration',
       'wikipedia_presence': 'Verifies Wikipedia presence',
       'youtube_authority': 'Evaluates YouTube channel authority',
@@ -589,13 +586,13 @@ export class UserCrawlerController {
       },
       pageScoreBreakdown: {
         technical: Math.round(pageStats.avgTechnicalScore || 0),
-        content: Math.round(pageStats.avgContentScore || 0),
+        structure: Math.round(pageStats.avgStructureScore || 0),
         authority: Math.round(pageStats.avgAuthorityScore || 0),
-        monitoringKpi: Math.round(pageStats.avgMonitoringKpiScore || 0),
+        quality: Math.round(pageStats.avgMonitoringKpiScore || 0),
       },
       domainScoreBreakdown: domainAnalyses.reduce((breakdown, domain) => {
-        if (domain.dimensionScores) {
-          Object.entries(domain.dimensionScores).forEach(([dimension, data]: [string, any]) => {
+        if (domain.calculationDetails?.dimensionBreakdown) {
+          Object.entries(domain.calculationDetails.dimensionBreakdown).forEach(([dimension, data]: [string, any]) => {
             if (!breakdown[dimension]) {
               breakdown[dimension] = [];
             }

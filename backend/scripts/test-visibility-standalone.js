@@ -67,7 +67,8 @@ function parseArgs() {
     runs: 5,
     parallel: 10,
     companies: 0,
-    urls: []
+    urls: [],
+    model: null
   };
   
   for (let i = 0; i < args.length; i++) {
@@ -102,6 +103,12 @@ function parseArgs() {
         }
         i--; // Back up one since the loop will increment
         break;
+      case '--model':
+        if (nextArg && !nextArg.startsWith('--')) {
+          config.model = nextArg;
+          i++; // Skip next argument as it's the value
+        }
+        break;
       case '--help':
       case '-h':
         console.log(`
@@ -112,6 +119,7 @@ Options:
   --parallel <number>  Number of parallel API calls (default: 10)
   --companies <number> Maximum companies to process, 0 for all (default: 0)
   --urls <url1> <url2> ... Process only companies with these URLs
+  --model <name>       Run only specific model (e.g., gpt-4o, gemini-2.0-flash)
   --help, -h           Show this help message
 
 Examples:
@@ -120,6 +128,8 @@ Examples:
   node scripts/test-visibility-standalone.js --companies 5
   node scripts/test-visibility-standalone.js --urls https://example.com https://another.com
   node scripts/test-visibility-standalone.js --runs 1 --urls https://specific-company.com
+  node scripts/test-visibility-standalone.js --model gpt-4o --runs 1
+  node scripts/test-visibility-standalone.js --model gemini-2.0-flash --companies 2
 `);
         process.exit(0);
         break;
@@ -448,7 +458,7 @@ async function callLLM(provider, model, prompt, temperature = 0.7) {
       case 'mistral':
         if (!llmClients.mistral) throw new Error('Mistral client not initialized');
         
-        // Mistral doesn't support web search tools (real adapter behavior)
+        // Mistral doesn't have native web search tools, but we extract URLs from response
         const mistralResponse = await llmClients.mistral.chat.complete({
           model: model,
           messages: [
@@ -461,7 +471,30 @@ async function callLLM(provider, model, prompt, temperature = 0.7) {
           temperature,
         });
         response = mistralResponse.choices[0].message.content;
-        // No web search capability
+        
+        // Extract URLs from the response (like the real adapter)
+        const urlRegex = /https?:\/\/[^\s\)\]]+/g;
+        const urls = response.match(urlRegex) || [];
+        
+        // Look for markdown links [title](url)
+        const markdownLinkRegex = /\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g;
+        let match;
+        const foundUrls = new Set();
+        
+        while ((match = markdownLinkRegex.exec(response)) !== null) {
+          if (!foundUrls.has(match[2])) {
+            foundUrls.add(match[2]);
+          }
+        }
+        
+        // Add standalone URLs not already captured
+        for (const url of urls) {
+          if (!foundUrls.has(url)) {
+            foundUrls.add(url);
+          }
+        }
+        
+        websitesConsulted = Array.from(foundUrls);
         break;
 
       case 'perplexity':
@@ -838,12 +871,15 @@ async function runSentimentTestForCompany(company) {
   // Create a limiter for parallel execution
   const limit = pLimit(PARALLEL_LIMIT);
   
+  // Get models to use (either filtered or all)
+  const modelsToUse = modelConfigs;
+  
   const tasks = [];
   for (let promptIdx = 0; promptIdx < contextualizedPrompts.length; promptIdx++) {
     const prompt = contextualizedPrompts[promptIdx];
     const originalPrompt = sentimentPrompts[promptIdx];
     
-    for (const modelConfig of modelConfigs) {
+    for (const modelConfig of modelsToUse) {
       const task = limit(async () => {
         try {
           console.log(`  Sentiment Model: ${modelConfig.name}, Prompt ${promptIdx + 1}/${contextualizedPrompts.length}`);

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/providers/auth-provider';
 import { API_BASE_URL } from '@/lib/api/constants';
+import { DIMENSION_COLORS } from '@/lib/constants/colors';
 
 interface CombinedScoresTabProps {
   projectId: string;
@@ -29,9 +30,9 @@ interface CombinedScoresData {
   };
   pageScoreBreakdown: {
     technical: number;
-    content: number;
+    structure: number;
     authority: number;
-    monitoringKpi: number;
+    quality: number;
   };
   domainScoreBreakdown: Record<string, number[]>;
   pageScores: any[];
@@ -39,10 +40,7 @@ interface CombinedScoresData {
 }
 
 const COLORS = {
-  technical: '#3b82f6',
-  content: '#10b981',
-  authority: '#8b5cf6',
-  monitoringKpi: '#f59e0b',
+  ...DIMENSION_COLORS,
   domain: '#f59e0b',
   page: '#6366f1',
 };
@@ -132,7 +130,7 @@ export function CombinedScoresTab({ projectId }: CombinedScoresTabProps) {
       : 0;
 
     return {
-      dimension: dimension === 'monitoringKpi' ? 'Monitoring' : dimension.charAt(0).toUpperCase() + dimension.slice(1),
+      dimension: dimension === 'quality' ? 'Quality' : dimension.charAt(0).toUpperCase() + dimension.slice(1),
       pageScore,
       domainScore: avgDomainScore,
     };
@@ -264,26 +262,98 @@ export function CombinedScoresTab({ projectId }: CombinedScoresTabProps) {
           </CardContent>
         </Card>
 
-        {/* Page Analysis Breakdown */}
+        {/* Breakdown */}
         <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
           <CardHeader>
-            <CardTitle className="text-lg font-semibold text-gray-900">
-              Page Analysis Breakdown
+            <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-blue-600" />
+              Breakdown
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {Object.entries(data.pageScoreBreakdown || {}).map(([dimension, score]) => (
-                <div key={dimension} className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span className="capitalize">
-                      {dimension === 'monitoringKpi' ? 'Monitoring KPI' : dimension}
-                    </span>
-                    <span className="font-medium">{Math.round(score)}/100</span>
-                  </div>
-                  <Progress value={score} className="h-2" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Page Breakdown */}
+              <div>
+                <h4 className="text-sm font-semibold text-gray-900 mb-3">Page Scores</h4>
+                <div className="space-y-3">
+                  {Object.entries(data.pageScoreBreakdown || {}).map(([dimension, score]) => {
+                    const colorKey = dimension as keyof typeof COLORS;
+                    const color = COLORS[colorKey] || '#6b7280';
+                    return (
+                      <div key={dimension} className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: color }}
+                            />
+                            <span className="capitalize">
+                              {dimension === 'quality' ? 'Quality' : dimension}
+                            </span>
+                          </div>
+                          <span className="font-medium">{Math.round(score)}/100</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="h-2 rounded-full transition-all duration-300"
+                            style={{ 
+                              backgroundColor: color,
+                              width: `${Math.min(100, Math.max(0, score))}%`
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              ))}
+              </div>
+
+              {/* Domain Breakdown */}
+              <div>
+                <h4 className="text-sm font-semibold text-gray-900 mb-3">Domain Scores</h4>
+                {Object.keys(data.domainScoreBreakdown || {}).length > 0 ? (
+                  <div className="space-y-3">
+                    {Object.entries(data.domainScoreBreakdown || {}).map(([dimension, scores]) => {
+                      const colorKey = dimension as keyof typeof COLORS;
+                      const color = COLORS[colorKey] || '#6b7280';
+                      const avgScore = scores.length > 0 
+                        ? Math.round(scores.reduce((sum: number, score: number) => sum + score, 0) / scores.length)
+                        : 0;
+                      return (
+                        <div key={dimension} className="space-y-1">
+                          <div className="flex justify-between text-sm">
+                            <div className="flex items-center gap-2">
+                              <div 
+                                className="w-3 h-3 rounded-full" 
+                                style={{ backgroundColor: color }}
+                              />
+                              <span className="capitalize">
+                                {dimension === 'quality' ? 'Quality' : dimension}
+                              </span>
+                            </div>
+                            <span className="font-medium">{avgScore}/100</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div 
+                              className="h-2 rounded-full transition-all duration-300"
+                              style={{ 
+                                backgroundColor: color,
+                                width: `${Math.min(100, Math.max(0, avgScore))}%`
+                              }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <Globe className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                    <p className="text-sm text-gray-500">No domain analysis data available</p>
+                    <p className="text-xs text-gray-400 mt-1">Domain scores will appear after running domain analysis</p>
+                  </div>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>

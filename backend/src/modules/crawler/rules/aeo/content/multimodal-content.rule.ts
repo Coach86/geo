@@ -3,13 +3,22 @@ import { BaseAEORule } from '../base-aeo.rule';
 import { RuleResult, PageContent, Category , EvidenceItem } from '../../../interfaces/rule.interface';
 import { EvidenceHelper } from '../../../utils/evidence.helper';
 
+
+// Evidence topics for this rule
+enum MultimodalContentTopic {
+  MEDIA_OPTIMIZATION = 'Media Optimization',
+  FRESHNESS = 'Freshness',
+  MEDIA_STATS = 'Media Stats',
+  NO_MULTIMEDIA = 'No Multimedia'
+}
+
 @Injectable()
 export class MultimodalContentRule extends BaseAEORule {
   constructor() {
     super(
       'multimodal_content',
       'Multimodal Content',
-      'CONTENT' as Category,
+      'STRUCTURE' as Category,
       {
         impactScore: 3,
         pageTypes: [],
@@ -22,6 +31,7 @@ export class MultimodalContentRule extends BaseAEORule {
     const evidence: EvidenceItem[] = [];
     const recommendations: string[] = [];
     let score = 0;
+    const scoreBreakdown: { component: string; points: number }[] = [];
     
     const html = content.html || '';
     
@@ -91,36 +101,46 @@ export class MultimodalContentRule extends BaseAEORule {
     const totalMedia = Object.values(mediaTypes).reduce((sum, count) => sum + count, 0);
     const uniqueMediaTypes = Object.values(mediaTypes).filter(count => count > 0).length;
     
-    evidence.push(EvidenceHelper.info(`Total media elements: ${totalMedia}`));
-    evidence.push(EvidenceHelper.info(`Media types used: ${uniqueMediaTypes} (Images: ${mediaTypes.images}, Videos: ${mediaTypes.videos}, Audio: ${mediaTypes.audio}, Interactive: ${mediaTypes.interactive})`));
+    evidence.push(EvidenceHelper.info(MultimodalContentTopic.MEDIA_STATS, `Total media elements: ${totalMedia}`));
+    evidence.push(EvidenceHelper.info(MultimodalContentTopic.MEDIA_STATS, `Media types used: ${uniqueMediaTypes} (Images: ${mediaTypes.images}, Videos: ${mediaTypes.videos}, Audio: ${mediaTypes.audio}, Interactive: ${mediaTypes.interactive})`));
     
-    // Score based on total media count
+    // Score based on total media count (30 points max)
     if (totalMedia >= 10) {
-      evidence.push(EvidenceHelper.success('Rich multimedia content', { target: 'guidance', score: 30 }));
+      evidence.push(EvidenceHelper.success(MultimodalContentTopic.FRESHNESS, 'Rich multimedia content', { target: '≥10 media elements', score: 30, maxScore: 30 }));
       score += 30;
+      scoreBreakdown.push({ component: 'Rich multimedia content', points: 30 });
     } else if (totalMedia >= 5) {
-      evidence.push(EvidenceHelper.warning('Good multimedia presence', { target: 'guidance', score: 20 }));
+      evidence.push(EvidenceHelper.warning(MultimodalContentTopic.FRESHNESS, 'Good multimedia presence', { target: '≥10 media elements for full points', score: 20, maxScore: 30 }));
       score += 20;
+      scoreBreakdown.push({ component: 'Good multimedia presence', points: 20 });
     } else if (totalMedia >= 2) {
-      evidence.push(EvidenceHelper.warning('Limited multimedia content', { target: 'guidance', score: 10 }));
+      evidence.push(EvidenceHelper.warning(MultimodalContentTopic.FRESHNESS, 'Limited multimedia content', { target: '≥10 media elements for full points', score: 10, maxScore: 30 }));
       score += 10;
+      scoreBreakdown.push({ component: 'Limited multimedia content', points: 10 });
     } else if (totalMedia >= 1) {
-      evidence.push(EvidenceHelper.warning('Minimal multimedia', { target: 'guidance', score: 5 }));
+      evidence.push(EvidenceHelper.warning(MultimodalContentTopic.FRESHNESS, 'Minimal multimedia', { target: '≥10 media elements for full points', score: 5, maxScore: 30 }));
       score += 5;
+      scoreBreakdown.push({ component: 'Minimal multimedia', points: 5 });
     } else {
-      evidence.push(EvidenceHelper.error('No multimedia content found'));
+      evidence.push(EvidenceHelper.error(MultimodalContentTopic.NO_MULTIMEDIA, 'No multimedia content found', { target: 'Add images, videos, or interactive content', score: 0, maxScore: 30 }));
+      scoreBreakdown.push({ component: 'No multimedia content', points: 0 });
     }
     
-    // Score based on diversity of media types
+    // Score based on diversity of media types (20 points max)
     if (uniqueMediaTypes >= 3) {
-      evidence.push(EvidenceHelper.success('Diverse media types', { target: 'guidance', score: 25 }));
-      score += 25;
+      evidence.push(EvidenceHelper.success(MultimodalContentTopic.MEDIA_STATS, 'Diverse media types', { target: '≥3 different media types', score: 20, maxScore: 20 }));
+      score += 20;
+      scoreBreakdown.push({ component: 'Diverse media types', points: 20 });
     } else if (uniqueMediaTypes >= 2) {
-      evidence.push(EvidenceHelper.warning('Multiple media types', { target: 'guidance', score: 15 }));
+      evidence.push(EvidenceHelper.warning(MultimodalContentTopic.MEDIA_STATS, 'Multiple media types', { target: '≥3 different media types for full points', score: 15, maxScore: 20 }));
       score += 15;
+      scoreBreakdown.push({ component: 'Multiple media types', points: 15 });
     } else if (uniqueMediaTypes === 1) {
-      evidence.push(EvidenceHelper.warning('Single media type only', { target: 'guidance', score: 5 }));
-      score += 5;
+      evidence.push(EvidenceHelper.warning(MultimodalContentTopic.MEDIA_STATS, 'Single media type only', { target: '≥3 different media types for full points', score: 10, maxScore: 20 }));
+      score += 10;
+      scoreBreakdown.push({ component: 'Single media type only', points: 10 });
+    } else {
+      scoreBreakdown.push({ component: 'No media diversity', points: 0 });
     }
     
     // Check for media optimization
@@ -132,19 +152,29 @@ export class MultimodalContentRule extends BaseAEORule {
       const srcsetPercentage = (srcsetCount / mediaTypes.images) * 100;
       
       if (lazyLoadPercentage >= 50) {
-        evidence.push(EvidenceHelper.success(`Lazy loading implemented (${lazyLoadPercentage.toFixed(0)}% of images)`, { target: 'guidance', score: 10 }));
-        score += 10;
+        evidence.push(EvidenceHelper.success(MultimodalContentTopic.MEDIA_OPTIMIZATION, `Lazy loading implemented (${lazyLoadPercentage.toFixed(0)}% of images)`, { target: '≥50% images with lazy loading', score: 15, maxScore: 15 }));
+        score += 15;
+        scoreBreakdown.push({ component: 'Lazy loading optimization', points: 15 });
       } else if (lazyLoadingCount > 0) {
-        evidence.push(EvidenceHelper.warning(`Some lazy loading (${lazyLoadingCount} images)`, { target: 'guidance', score: 5 }));
-        score += 5;
+        evidence.push(EvidenceHelper.warning(MultimodalContentTopic.MEDIA_OPTIMIZATION, `Some lazy loading (${lazyLoadingCount} images)`, { target: '≥50% images with lazy loading for full points', score: 8, maxScore: 15 }));
+        score += 8;
+        scoreBreakdown.push({ component: 'Partial lazy loading', points: 8 });
+      } else {
+        evidence.push(EvidenceHelper.error(MultimodalContentTopic.MEDIA_OPTIMIZATION, 'No lazy loading implemented', { target: '≥50% images with lazy loading', score: 0, maxScore: 15 }));
+        scoreBreakdown.push({ component: 'No lazy loading', points: 0 });
       }
       
       if (srcsetPercentage >= 50) {
-        evidence.push(EvidenceHelper.success(`Responsive images with srcset (${srcsetPercentage.toFixed(0)}%)`, { target: 'guidance', score: 10 }));
-        score += 10;
+        evidence.push(EvidenceHelper.success(MultimodalContentTopic.MEDIA_OPTIMIZATION, `Responsive images with srcset (${srcsetPercentage.toFixed(0)}%)`, { target: '≥50% images with srcset', score: 15, maxScore: 15 }));
+        score += 15;
+        scoreBreakdown.push({ component: 'Responsive images (srcset)', points: 15 });
       } else if (srcsetCount > 0) {
-        evidence.push(EvidenceHelper.warning(`Some responsive images (${srcsetCount})`, { target: 'guidance', score: 5 }));
-        score += 5;
+        evidence.push(EvidenceHelper.warning(MultimodalContentTopic.MEDIA_OPTIMIZATION, `Some responsive images (${srcsetCount})`, { target: '≥50% images with srcset for full points', score: 8, maxScore: 15 }));
+        score += 8;
+        scoreBreakdown.push({ component: 'Partial responsive images', points: 8 });
+      } else {
+        evidence.push(EvidenceHelper.error(MultimodalContentTopic.MEDIA_OPTIMIZATION, 'No responsive images (srcset)', { target: '≥50% images with srcset', score: 0, maxScore: 15 }));
+        scoreBreakdown.push({ component: 'No responsive images', points: 0 });
       }
     }
     
@@ -153,8 +183,12 @@ export class MultimodalContentRule extends BaseAEORule {
     const figcaptionCount = (html.match(/<figcaption[^>]*>/gi) || []).length;
     
     if (figureCount > 0 && figcaptionCount > 0) {
-      evidence.push(EvidenceHelper.success(`Media with captions (${figcaptionCount} captions)`, { target: 'guidance', score: 10 }));
+      evidence.push(EvidenceHelper.success(MultimodalContentTopic.MEDIA_OPTIMIZATION, `Media with captions (${figcaptionCount} captions)`, { target: 'Use <figcaption> for media descriptions', score: 10, maxScore: 10 }));
       score += 10;
+      scoreBreakdown.push({ component: 'Media captions', points: 10 });
+    } else {
+      evidence.push(EvidenceHelper.error(MultimodalContentTopic.MEDIA_OPTIMIZATION, 'No media captions found', { target: 'Use <figcaption> for media descriptions', score: 0, maxScore: 10 }));
+      scoreBreakdown.push({ component: 'No media captions', points: 0 });
     }
     
     // Check for transcripts or alternative content
@@ -173,26 +207,31 @@ export class MultimodalContentRule extends BaseAEORule {
     });
     
     if (hasAccessibility) {
-      evidence.push(EvidenceHelper.success('Accessibility features (transcripts/captions)', { target: 'guidance', score: 10 }));
+      evidence.push(EvidenceHelper.success(MultimodalContentTopic.MEDIA_STATS, 'Accessibility features (transcripts/captions)', { target: 'Include transcripts and alt text', score: 10, maxScore: 10 }));
       score += 10;
+      scoreBreakdown.push({ component: 'Accessibility features', points: 10 });
+    } else {
+      evidence.push(EvidenceHelper.error(MultimodalContentTopic.MEDIA_STATS, 'No accessibility features found', { target: 'Include transcripts and alt text', score: 0, maxScore: 10 }));
+      scoreBreakdown.push({ component: 'No accessibility features', points: 0 });
     }
     
     // Final scoring
     score = Math.min(100, Math.max(0, score));
     
     if (score >= 80) {
-      evidence.push(EvidenceHelper.info('◐ Excellent multimodal content implementation'));
+      evidence.push(EvidenceHelper.info(MultimodalContentTopic.MEDIA_OPTIMIZATION, '◐ Excellent multimodal content implementation'));
     } else if (score >= 60) {
-      evidence.push(EvidenceHelper.warning('Good multimedia usage'));
+      evidence.push(EvidenceHelper.warning(MultimodalContentTopic.FRESHNESS, 'Good multimedia usage'));
     } else if (score >= 40) {
-      evidence.push(EvidenceHelper.warning('Basic multimedia presence'));
+      evidence.push(EvidenceHelper.warning(MultimodalContentTopic.FRESHNESS, 'Basic multimedia presence'));
     } else if (score >= 20) {
-      evidence.push(EvidenceHelper.warning('Limited multimedia engagement'));
+      evidence.push(EvidenceHelper.warning(MultimodalContentTopic.FRESHNESS, 'Limited multimedia engagement'));
     } else {
-      evidence.push(EvidenceHelper.error('Lacks multimodal content'));
+      evidence.push(EvidenceHelper.error(MultimodalContentTopic.MEDIA_OPTIMIZATION, 'Lacks multimodal content'));
     }
     
-    evidence.push(EvidenceHelper.score(`Final Score: ${score}/100`));
+    // Add detailed score calculation
+    evidence.push(...EvidenceHelper.scoreCalculation(scoreBreakdown, score, 100));
     
     return this.createResult(score, evidence, [], {}, recommendations);
   }

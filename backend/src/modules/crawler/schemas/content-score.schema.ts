@@ -53,6 +53,9 @@ export class ContentScore extends Document {
   @Prop({ required: true, index: true })
   url: string;
 
+  @Prop()
+  title?: string;
+
   // Legacy fields - will be removed after migration
   @Prop({ type: Object })
   legacyScores?: DimensionScores;
@@ -64,9 +67,9 @@ export class ContentScore extends Document {
   @Prop({ required: true, type: Object })
   scores: {
     technical: number;
-    content: number;
+    structure: number;
     authority: number;
-    monitoringKpi: number;
+    quality: number;
   };
 
   @Prop({ required: true })
@@ -119,8 +122,12 @@ export class ContentScore extends Document {
   @Prop({ type: [Object] })
   ruleResults?: RuleResult[];
 
-  @Prop({ type: [String] })
-  recommendations?: string[]; // Aggregated recommendations from all rules
+  @Prop({ type: [Object] })
+  recommendations?: {
+    content: string;
+    ruleId: string;
+    ruleCategory: string;
+  }[]; // Aggregated recommendations from all rules with context
 
   @Prop({ type: Object })
   pageSignals?: any;
@@ -133,6 +140,6 @@ ContentScoreSchema.index({ projectId: 1, analyzedAt: -1 });
 ContentScoreSchema.index({ projectId: 1, globalScore: -1 });
 ContentScoreSchema.index({ projectId: 1, url: 1 }, { unique: true });
 ContentScoreSchema.index({ projectId: 1, 'scores.technical': -1 });
-ContentScoreSchema.index({ projectId: 1, 'scores.content': -1 });
+ContentScoreSchema.index({ projectId: 1, 'scores.structure': -1 });
 ContentScoreSchema.index({ projectId: 1, 'scores.authority': -1 });
-ContentScoreSchema.index({ projectId: 1, 'scores.monitoringKpi': -1 });
+ContentScoreSchema.index({ projectId: 1, 'scores.quality': -1 });

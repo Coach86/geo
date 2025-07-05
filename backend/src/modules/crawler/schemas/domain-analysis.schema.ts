@@ -30,9 +30,10 @@ export class DomainAnalysis {
         severity: 'critical' | 'high' | 'medium' | 'low';
         description: string;
         recommendation: string;
+        dimension?: 'technical' | 'structure' | 'authority' | 'quality';
       }>;
     };
-    content: {
+    structure: {
       score: number;
       maxScore: number;
       evidence: string[];
@@ -41,6 +42,7 @@ export class DomainAnalysis {
         severity: 'critical' | 'high' | 'medium' | 'low';
         description: string;
         recommendation: string;
+        dimension?: 'technical' | 'structure' | 'authority' | 'quality';
       }>;
     };
     authority: {
@@ -52,9 +54,10 @@ export class DomainAnalysis {
         severity: 'critical' | 'high' | 'medium' | 'low';
         description: string;
         recommendation: string;
+        dimension?: 'technical' | 'structure' | 'authority' | 'quality';
       }>;
     };
-    monitoringKpi: {
+    quality: {
       score: number;
       maxScore: number;
       evidence: string[];
@@ -63,6 +66,7 @@ export class DomainAnalysis {
         severity: 'critical' | 'high' | 'medium' | 'low';
         description: string;
         recommendation: string;
+        dimension?: 'technical' | 'structure' | 'authority' | 'quality';
       }>;
     };
   };
@@ -71,7 +75,7 @@ export class DomainAnalysis {
   ruleResults: Array<{
     ruleId: string;
     ruleName: string;
-    dimension: 'technical' | 'content' | 'authority' | 'monitoringKpi';
+    dimension: 'technical' | 'structure' | 'authority' | 'quality';
     score: number;
     maxScore: number;
     weight: number;
@@ -94,7 +98,7 @@ export class DomainAnalysis {
     totalWeight: number;
     weightedScore: number;
     finalScore: number;
-    dimensionBreakdown: Record<'technical' | 'content' | 'authority' | 'monitoringKpi', {
+    dimensionBreakdown: Record<'technical' | 'structure' | 'authority' | 'quality', {
       score: number;
       weight: number;
       contribution: number;
@@ -104,8 +108,12 @@ export class DomainAnalysis {
   @Prop({ type: [String] })
   issues: string[];
 
-  @Prop({ type: [String] })
-  recommendations: string[];
+  @Prop({ type: [Object] })
+  recommendations: Array<{
+    content: string;
+    ruleId: string;
+    ruleCategory: string;
+  }>;
 
   @Prop({ type: Object })
   metadata: {

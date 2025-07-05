@@ -18,7 +18,7 @@ export class RuleRegistryService {
       'technical',
       'content',
       'authority',
-      'monitoringKpi'
+      'quality'
     ];
     
     dimensions.forEach(dimension => {

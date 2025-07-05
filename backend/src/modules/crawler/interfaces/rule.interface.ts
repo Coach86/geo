@@ -1,7 +1,7 @@
 import { PageSignals } from './page-signals.interface';
 import { PageCategory } from './page-category.interface';
 
-export type Category = 'TECHNICAL' | 'CONTENT' | 'AUTHORITY' | 'MONITORING_KPI';
+export type Category = 'TECHNICAL' | 'STRUCTURE' | 'AUTHORITY' | 'QUALITY';
 export type ApplicationLevel = 'Page' | 'Domain' | 'Off-Site';
 export type SEOLLMType = 'SEO' | 'SEO adapted to LLM' | 'LLM';
 export type ImpactLevel = 'High' | 'Medium' | 'Low';
@@ -75,13 +75,16 @@ export type EvidenceType =
   | 'error'     // Errors or failures (✗)
   | 'score'     // Score calculations
   | 'heading'   // Section headers
+  | 'base'      // Base score evidence
 
 export interface EvidenceItem {
   type: EvidenceType;
+  topic: string; // Topic/category for the evidence (e.g., "Semantic HTML5 Tags", "Content Ratio")
   content: string;
   target?: string; // Optional target value to display aligned right
   code?: string; // Optional code snippet to display below
   score?: number; // Optional score value for this evidence item
+  maxScore?: number; // Optional maximum possible score for this evidence item
   metadata?: Record<string, any>; // Optional metadata for special rendering
 }
 
@@ -168,19 +171,22 @@ export interface CategoryScore {
   passedRules: number;
   ruleResults: RuleResult[];
   issues: string[];
-  recommendations: string[];
+  recommendations: Recommendation[];
 }
 
 export interface RuleIssue {
+  id?: string; // Unique identifier for the issue
   severity: 'critical' | 'high' | 'medium' | 'low';
   description: string;
   recommendation: string;
+  dimension?: 'technical' | 'structure' | 'authority' | 'quality';
   affectedElements?: string[];
 }
 
 export interface RuleResult {
   ruleId: string;
   ruleName: string;
+  category?: 'technical' | 'structure' | 'authority' | 'quality'; // Rule category
   score: number;
   maxScore: number;
   weight: number;
@@ -193,15 +199,21 @@ export interface RuleResult {
   aiUsage?: AIUsage; // Detailed AI/LLM usage information when AI was used
 }
 
+export interface Recommendation {
+  content: string;
+  ruleId: string;
+  ruleCategory: string;
+}
+
 export interface Score {
   url: string;
   pageType: string;
   timestamp: Date;
   categoryScores: {
     technical: CategoryScore;
-    content: CategoryScore;
+    structure: CategoryScore;
     authority: CategoryScore;
-    monitoringKpi: CategoryScore;
+    quality: CategoryScore;
   };
   globalScore: number;
   totalIssues: number;

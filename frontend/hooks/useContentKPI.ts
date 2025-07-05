@@ -4,17 +4,18 @@ import { useAuth } from '@/providers/auth-provider';
 
 export interface ContentScore {
   url: string;
+  title?: string;
   globalScore: number;
   scores: {
     technical: number;
-    content: number;
+    structure: number;
     authority: number;
-    monitoringKpi: number;
+    quality: number;
   };
   ruleResults?: Array<{
     ruleId: string;
     ruleName: string;
-    category: 'technical' | 'content' | 'authority' | 'monitoringKpi';
+    category: 'technical' | 'structure' | 'authority' | 'quality';
     score: number;
     maxScore: number;
     weight: number;
@@ -128,15 +129,17 @@ export interface ContentScore {
   pageCategory?: string;
   analysisLevel?: string;
   categoryConfidence?: number;
+  skipped?: boolean;
+  skipReason?: string;
 }
 
 export interface ContentKPIStats {
   totalPages: number;
   avgGlobalScore: number;
   avgTechnicalScore: number;
-  avgContentScore: number;
+  avgStructureScore: number;
   avgAuthorityScore: number;
-  avgMonitoringKpiScore: number;
+  avgQualityScore: number;
   scoreDistribution: Array<{
     _id: string;
     count: number;
@@ -151,21 +154,28 @@ export interface ContentKPIStats {
   }>;
 }
 
+export interface Recommendation {
+  content: string;
+  ruleId: string;
+  ruleCategory: string;
+}
+
 export interface ContentKPIReport {
   summary: {
     totalPages: number;
     avgGlobalScore: number;
     scoreBreakdown: {
       technical: number;
-      content: number;
+      structure: number;
       authority: number;
-      monitoringKpi: number;
+      quality: number;
     };
     lastAnalyzedAt: string | null;
   };
   scoreDistribution: any[];
   topPerformingPages: Array<{
     url: string;
+    title?: string;
     globalScore: number;
     strengths: string[];
   }>;
@@ -176,7 +186,7 @@ export interface ContentKPIReport {
   }>;
   issuesSummary: any[];
   criticalIssuesCount: number;
-  recommendations: string[];
+  recommendations: string[] | Recommendation[];
 }
 
 export function useContentKPI(projectId: string) {
@@ -209,9 +219,9 @@ export function useContentKPI(projectId: string) {
             totalPages: 0,
             avgGlobalScore: 0,
             avgTechnicalScore: 0,
-            avgContentScore: 0,
+            avgStructureScore: 0,
             avgAuthorityScore: 0,
-            avgMonitoringKpiScore: 0,
+            avgQualityScore: 0,
             scoreDistribution: [],
             issuesSummary: [],
           },
@@ -241,9 +251,9 @@ export function useContentKPI(projectId: string) {
             avgGlobalScore: 0,
             scoreBreakdown: {
               technical: 0,
-              content: 0,
+              structure: 0,
               authority: 0,
-              monitoringKpi: 0,
+              quality: 0,
             },
             lastAnalyzedAt: null,
           },
