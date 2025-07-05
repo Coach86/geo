@@ -4,13 +4,22 @@ import { RuleResult, PageContent, Category , EvidenceItem } from '../../../inter
 import { EvidenceHelper } from '../../../utils/evidence.helper';
 import { PageCategoryType } from '../../../interfaces/page-category.interface';
 
+
+// Evidence topics for this rule
+enum HowToContentTopic {
+  INSTRUCTIONAL_PATTERNS = 'Instructional Patterns',
+  ACTION_VERBS = 'Action Verbs',
+  NO_INSTRUCTIONS = 'No Instructions',
+  STEP_STRUCTURE = 'Step Structure'
+}
+
 @Injectable()
 export class HowToContentRule extends BaseAEORule {
   constructor() {
     super(
       'how_to_content',
       'How-to & Instructional Content',
-      'CONTENT' as Category,
+      'QUALITY' as Category,
       {
         impactScore: 3,
         pageTypes: [PageCategoryType.BLOG_POST_ARTICLE, PageCategoryType.HOW_TO_GUIDE_TUTORIAL, PageCategoryType.IN_DEPTH_GUIDE_WHITE_PAPER],
@@ -47,10 +56,10 @@ export class HowToContentRule extends BaseAEORule {
     });
     
     if (howToMatches > 0) {
-      evidence.push(EvidenceHelper.success(`Found ${howToMatches} how-to/instructional patterns`, { target: 'How-to patterns', score: 30 }));
+      evidence.push(EvidenceHelper.success(HowToContentTopic.INSTRUCTIONAL_PATTERNS, `Found ${howToMatches} how-to/instructional patterns`, { target: 'How-to patterns', score: 30, maxScore: 30 }));
       score += 30;
     } else {
-      evidence.push(EvidenceHelper.error('No how-to or instructional patterns found', { target: 'Add how-to patterns', score: 0 }));
+      evidence.push(EvidenceHelper.error(HowToContentTopic.NO_INSTRUCTIONS, 'No how-to or instructional patterns found', { target: 'Add how-to patterns', score: 0, maxScore: 30 }));
     }
     
     // Check for numbered or bulleted lists (common in instructions)
@@ -59,10 +68,10 @@ export class HowToContentRule extends BaseAEORule {
     const totalLists = orderedLists + unorderedLists;
     
     if (totalLists > 0) {
-      evidence.push(EvidenceHelper.success(`Found ${totalLists} lists (${orderedLists} ordered, ${unorderedLists} unordered)`, { target: 'Structured lists', score: 20 }));
+      evidence.push(EvidenceHelper.success(HowToContentTopic.INSTRUCTIONAL_PATTERNS, `Found ${totalLists} lists (${orderedLists} ordered, ${unorderedLists} unordered)`, { target: 'Structured lists', score: 20, maxScore: 20 }));
       score += 20;
     } else {
-      evidence.push(EvidenceHelper.warning('No structured lists found for step-by-step instructions', { target: 'Add structured lists', score: 0 }));
+      evidence.push(EvidenceHelper.warning(HowToContentTopic.NO_INSTRUCTIONS, 'No structured lists found for step-by-step instructions', { target: 'Add structured lists', score: 0, maxScore: 20 }));
     }
     
     // Check for action verbs at beginning of sentences
@@ -83,13 +92,13 @@ export class HowToContentRule extends BaseAEORule {
     });
     
     if (actionVerbCount >= 3) {
-      evidence.push(EvidenceHelper.success(`Found ${actionVerbCount} sentences starting with action verbs`, { target: 'Action verbs', score: 20 }));
+      evidence.push(EvidenceHelper.success(HowToContentTopic.INSTRUCTIONAL_PATTERNS, `Found ${actionVerbCount} sentences starting with action verbs`, { target: 'Action verbs', score: 20, maxScore: 20 }));
       score += 20;
     } else if (actionVerbCount > 0) {
-      evidence.push(EvidenceHelper.warning(`Found only ${actionVerbCount} sentences with action verbs`, { target: 'More action verbs needed', score: 10 }));
+      evidence.push(EvidenceHelper.warning(HowToContentTopic.INSTRUCTIONAL_PATTERNS, `Found only ${actionVerbCount} sentences with action verbs`, { target: 'More action verbs needed', score: 10, maxScore: 20 }));
       score += 10;
     } else {
-      evidence.push(EvidenceHelper.error('No sentences starting with action verbs', { target: 'Add action verbs', score: 0 }));
+      evidence.push(EvidenceHelper.error(HowToContentTopic.ACTION_VERBS, 'No sentences starting with action verbs', { target: 'Add action verbs', score: 0, maxScore: 20 }));
     }
     
     // Check for visual aids mentions
@@ -111,10 +120,10 @@ export class HowToContentRule extends BaseAEORule {
     });
     
     if (visualReferences > 0) {
-      evidence.push(EvidenceHelper.success(`Found ${visualReferences} references to visual aids`, { target: 'Visual aids', score: 15 }));
+      evidence.push(EvidenceHelper.success(HowToContentTopic.INSTRUCTIONAL_PATTERNS, `Found ${visualReferences} references to visual aids`, { target: 'Visual aids', score: 15, maxScore: 15 }));
       score += 15;
     } else {
-      evidence.push(EvidenceHelper.warning('No references to visual aids or screenshots', { target: 'Add visual aids', score: 0 }));
+      evidence.push(EvidenceHelper.warning(HowToContentTopic.ACTION_VERBS, 'No references to visual aids or screenshots', { target: 'Add visual aids', score: 0, maxScore: 15 }));
     }
     
     // Check for outcome/result descriptions
@@ -134,23 +143,23 @@ export class HowToContentRule extends BaseAEORule {
     });
     
     if (outcomeMatches > 0) {
-      evidence.push(EvidenceHelper.success(`Found ${outcomeMatches} outcome/result descriptions`, { target: 'Outcome descriptions', score: 15 }));
+      evidence.push(EvidenceHelper.success(HowToContentTopic.INSTRUCTIONAL_PATTERNS, `Found ${outcomeMatches} outcome/result descriptions`, { target: 'Outcome descriptions', score: 15, maxScore: 15 }));
       score += 15;
     } else {
-      evidence.push(EvidenceHelper.warning('No clear outcome or result descriptions', { target: 'Add outcome descriptions', score: 0 }));
+      evidence.push(EvidenceHelper.warning(HowToContentTopic.ACTION_VERBS, 'No clear outcome or result descriptions', { target: 'Add outcome descriptions', score: 0, maxScore: 15 }));
     }
     
     // Final scoring
     score = Math.min(100, Math.max(0, score));
     
     if (score >= 80) {
-      evidence.push(EvidenceHelper.info('◐ Excellent how-to/instructional content structure'));
+      evidence.push(EvidenceHelper.info(HowToContentTopic.STEP_STRUCTURE, '◐ Excellent how-to/instructional content structure'));
     } else if (score >= 60) {
-      evidence.push(EvidenceHelper.warning('Good instructional content, could be enhanced'));
+      evidence.push(EvidenceHelper.warning(HowToContentTopic.INSTRUCTIONAL_PATTERNS, 'Good instructional content, could be enhanced'));
     } else if (score >= 40) {
-      evidence.push(EvidenceHelper.warning('Limited instructional value'));
+      evidence.push(EvidenceHelper.warning(HowToContentTopic.ACTION_VERBS, 'Limited instructional value'));
     } else {
-      evidence.push(EvidenceHelper.error('Lacks instructional content structure'));
+      evidence.push(EvidenceHelper.error(HowToContentTopic.STEP_STRUCTURE, 'Lacks instructional content structure'));
     }
     
     // Calculate score breakdown

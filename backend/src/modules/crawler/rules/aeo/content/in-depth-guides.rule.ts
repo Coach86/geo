@@ -7,6 +7,15 @@ import { LlmProvider } from '../../../../llm/interfaces/llm-provider.enum';
 import { z } from 'zod';
 import { PageCategoryType } from '../../../interfaces/page-category.interface';
 
+// Evidence topics for this rule
+enum InDepthGuidesTopic {
+  GUIDE_ANALYSIS = 'Guide Analysis',
+  GUIDE_STRUCTURE = 'Guide Structure',
+  NO_GUIDE_INDICATORS = 'No Guide Indicators',
+  STRUCTURE = 'Structure',
+  GUIDE_SECTIONS = 'Guide Sections'
+}
+
 // Zod schema for structured output (focused on semantic analysis)
 const GuideTopicSchema = z.object({
   topic: z.string().describe('The main topic or subtopic covered'),
@@ -105,7 +114,7 @@ export class InDepthGuidesRule extends BaseAEORule {
     super(
       'in_depth_guides',
       'In-Depth Guides',
-      'CONTENT' as Category,
+      'QUALITY' as Category,
       {
         impactScore: 3,
         pageTypes: [PageCategoryType.IN_DEPTH_GUIDE_WHITE_PAPER, PageCategoryType.HOW_TO_GUIDE_TUTORIAL, PageCategoryType.BLOG_POST_ARTICLE, PageCategoryType.PILLAR_PAGE_TOPIC_HUB],
@@ -125,11 +134,16 @@ export class InDepthGuidesRule extends BaseAEORule {
     const cleanText = content.cleanContent || '';
     const html = content.html || '';
     
+    // Add base score evidence
+    evidence.push(EvidenceHelper.base(100));
+    
     // Quick check if this is likely a guide page
     const isGuidePage = this.isGuideUrl(url);
     if (isGuidePage) {
-      evidence.push(EvidenceHelper.success('URL indicates guide content', { target: 'guidance', score: 5 }));
+      evidence.push(EvidenceHelper.success(InDepthGuidesTopic.GUIDE_ANALYSIS, 'URL indicates guide content', { target: 'URL contains guide keywords', score: 5, maxScore: 5 }));
       score += 5;
+    } else {
+      evidence.push(EvidenceHelper.info(InDepthGuidesTopic.GUIDE_ANALYSIS, 'URL does not indicate guide content', { target: 'URLs with "guide", "ultimate", "complete" for +5 points', score: 0, maxScore: 5 }));
     }
     
     // CODE-BASED ANALYSIS: Word count (objective metric)
@@ -148,39 +162,39 @@ export class InDepthGuidesRule extends BaseAEORule {
     // Basic scoring based on word count
     let wordCountScore = 0;
     if (wordCount >= InDepthGuidesRule.MIN_WORD_COUNT_EXCELLENT) {
-      evidence.push(EvidenceHelper.success(`Comprehensive length (${wordCount.toLocaleString()} words)`, { target: 'guidance', score: 30 }));
+      evidence.push(EvidenceHelper.success(InDepthGuidesTopic.GUIDE_ANALYSIS, `Comprehensive length (${wordCount.toLocaleString()} words)`, { target: '≥3,000 words for comprehensive guides', score: 30, maxScore: 30 }));
       wordCountScore = 30;
     } else if (wordCount >= InDepthGuidesRule.MIN_WORD_COUNT_GOOD) {
-      evidence.push(EvidenceHelper.warning(`Good length (${wordCount.toLocaleString()} words)`, { target: 'guidance', score: 20 }));
+      evidence.push(EvidenceHelper.warning(InDepthGuidesTopic.GUIDE_ANALYSIS, `Good length (${wordCount.toLocaleString()} words)`, { target: '≥3,000 words for +10 points', score: 20, maxScore: 30 }));
       wordCountScore = 20;
     } else if (wordCount >= InDepthGuidesRule.MIN_WORD_COUNT_BASIC) {
-      evidence.push(EvidenceHelper.warning(`Moderate length (${wordCount.toLocaleString()} words)`, { target: 'guidance', score: 10 }));
+      evidence.push(EvidenceHelper.warning(InDepthGuidesTopic.GUIDE_ANALYSIS, `Moderate length (${wordCount.toLocaleString()} words)`, { target: '≥3,000 words for +20 points', score: 10, maxScore: 30 }));
       wordCountScore = 10;
     } else {
-      evidence.push(EvidenceHelper.error(`Too short for in-depth guide (${wordCount.toLocaleString()} words)`));
+      evidence.push(EvidenceHelper.error(InDepthGuidesTopic.GUIDE_ANALYSIS, `Too short for in-depth guide (${wordCount.toLocaleString()} words)`));
       return this.createResult(InDepthGuidesRule.SCORE_NOT_PRESENT, evidence);
     }
     score += wordCountScore;
     
     // Structure scoring
     if (totalHeadings >= 10 && h2Count >= 3) {
-      evidence.push(EvidenceHelper.success(`Well-structured`, { code: `${h2Count} main sections, ${h3Count} subsections`, target: 'guidance', score: 15 }));
+      evidence.push(EvidenceHelper.success(InDepthGuidesTopic.STRUCTURE, `Well-structured`, { code: `${h2Count} main sections, ${h3Count} subsections`, target: '≥10 headings with ≥3 H2s', score: 15, maxScore: 15 }));
       score += 15;
     } else if (totalHeadings >= 5) {
-      evidence.push(EvidenceHelper.warning(`Good structure`, { code: `${totalHeadings} headings`, target: 'guidance', score: 10 }));
+      evidence.push(EvidenceHelper.warning(InDepthGuidesTopic.STRUCTURE, `Good structure`, { code: `${totalHeadings} headings`, target: '≥10 headings for +5 points', score: 10, maxScore: 15 }));
       score += 10;
     } else {
-      evidence.push(EvidenceHelper.warning(`Limited structure`, { code: `${totalHeadings} headings`, target: 'guidance', score: 5 }));
+      evidence.push(EvidenceHelper.warning(InDepthGuidesTopic.STRUCTURE, `Limited structure`, { code: `${totalHeadings} headings`, target: '≥10 headings for +10 points', score: 5, maxScore: 15 }));
       score += 5;
     }
     
     // Media elements scoring
     const totalMedia = imageCount + videoCount + codeBlockCount;
     if (totalMedia >= 10) {
-      evidence.push(EvidenceHelper.success(`Rich media`, { code: `${imageCount} images, ${videoCount} videos, ${codeBlockCount} code blocks`, target: 'guidance', score: 10 }));
+      evidence.push(EvidenceHelper.success(InDepthGuidesTopic.GUIDE_ANALYSIS, `Rich media`, { code: `${imageCount} images, ${videoCount} videos, ${codeBlockCount} code blocks`, target: '≥10 media elements', score: 10, maxScore: 10 }));
       score += 10;
     } else if (totalMedia >= 5) {
-      evidence.push(EvidenceHelper.warning(`Good media usage`, { code: `${totalMedia} elements`, target: 'guidance', score: 5 }));
+      evidence.push(EvidenceHelper.warning(InDepthGuidesTopic.GUIDE_ANALYSIS, `Good media usage`, { code: `${totalMedia} elements`, target: '≥10 media elements for +5 points', score: 5, maxScore: 10 }));
       score += 5;
     }
     
@@ -261,51 +275,55 @@ ${contentForAnalysis}`;
       
       // Adjust score based on LLM analysis
       if (llmResponse.hasTableOfContents) {
-        evidence.push(EvidenceHelper.success('Table of contents or navigation present', { code: 'TOC present', target: 'guidance', score: 10 }));
+        evidence.push(EvidenceHelper.success(InDepthGuidesTopic.STRUCTURE, 'Table of contents or navigation present', { code: 'TOC present', target: 'Includes table of contents', score: 10, maxScore: 10 }));
         score += 10;
       } else {
-        evidence.push(EvidenceHelper.warning('No table of contents found', { target: 'Add table of contents for +10 points' }));
+        evidence.push(EvidenceHelper.warning(InDepthGuidesTopic.STRUCTURE, 'No table of contents found', { target: 'Add table of contents for +10 points' }));
       }
       
       // Guide type bonus
       if (llmResponse.guideType === 'ultimate_guide' || llmResponse.guideType === 'complete_guide') {
-        evidence.push(EvidenceHelper.success(`Positioned as complete guide`, { code: llmResponse.guideType.replace(/_/g, ' '), target: 'guidance', score: 15 }));
-        score += 15;
-      } else if (llmResponse.guideType === 'pillar_page') {
-        evidence.push(EvidenceHelper.success('Structured as a pillar page', { code: 'pillar page', target: 'guidance', score: 10 }));
+        evidence.push(EvidenceHelper.success(InDepthGuidesTopic.GUIDE_ANALYSIS, `Positioned as complete guide`, { code: llmResponse.guideType.replace(/_/g, ' '), target: 'Ultimate/complete guide positioning', score: 10, maxScore: 10 }));
         score += 10;
+      } else if (llmResponse.guideType === 'pillar_page') {
+        evidence.push(EvidenceHelper.success(InDepthGuidesTopic.STRUCTURE, 'Structured as a pillar page', { code: 'pillar page', target: 'Pillar page structure', score: 7, maxScore: 10 }));
+        score += 7;
       }
       
       // Examples and practical content
       if (llmResponse.hasExamples) {
-        evidence.push(EvidenceHelper.success('Includes practical examples', { target: 'guidance', score: 5 }));
+        evidence.push(EvidenceHelper.success(InDepthGuidesTopic.GUIDE_ANALYSIS, 'Includes practical examples', { target: 'Has practical examples/case studies', score: 5, maxScore: 5 }));
         score += 5;
+      } else {
+        evidence.push(EvidenceHelper.info(InDepthGuidesTopic.GUIDE_ANALYSIS, 'No practical examples found', { target: 'Add examples/case studies for +5 points', score: 0, maxScore: 5 }));
       }
       
       // Linking strategy
       if (llmResponse.hasInternalLinks && llmResponse.hasExternalReferences) {
-        evidence.push(EvidenceHelper.success('Strong linking strategy (internal + external)', { target: 'guidance', score: 5 }));
+        evidence.push(EvidenceHelper.success(InDepthGuidesTopic.STRUCTURE, 'Strong linking strategy (internal + external)', { target: 'Both internal and external links', score: 5, maxScore: 5 }));
         score += 5;
       } else if (llmResponse.hasInternalLinks) {
-        evidence.push(EvidenceHelper.warning('Has internal linking', { target: 'guidance', score: 3 }));
+        evidence.push(EvidenceHelper.warning(InDepthGuidesTopic.STRUCTURE, 'Has internal linking', { target: 'Add external references for +2 points', score: 3, maxScore: 5 }));
         score += 3;
+      } else {
+        evidence.push(EvidenceHelper.info(InDepthGuidesTopic.STRUCTURE, 'No internal or external linking found', { target: 'Add internal and external links for +5 points', score: 0, maxScore: 5 }));
       }
       
       // Comprehensiveness assessment
-      evidence.push(EvidenceHelper.info(`Comprehensiveness: ${llmResponse.comprehensiveness}`));
+      evidence.push(EvidenceHelper.info(InDepthGuidesTopic.GUIDE_ANALYSIS, `Comprehensiveness: ${llmResponse.comprehensiveness}`, { target: 'Thoroughness of content coverage' }));
       if (!isComprehensive && wordCount >= InDepthGuidesRule.MIN_WORD_COUNT_GOOD) {
         score -= 10; // Penalty for length without depth
-        evidence.push(EvidenceHelper.warning('Long content but lacks comprehensive coverage', { target: 'guidance', score: -10 }));
+        evidence.push(EvidenceHelper.warning(InDepthGuidesTopic.GUIDE_ANALYSIS, 'Long content but lacks comprehensive coverage', { target: 'Increase depth and comprehensiveness', score: -10, maxScore: 10 }));
       }
       
       // Freshness
       if (llmResponse.lastUpdated) {
-        evidence.push(EvidenceHelper.info(`Last updated: ${llmResponse.lastUpdated}`));
+        evidence.push(EvidenceHelper.info(InDepthGuidesTopic.GUIDE_ANALYSIS, `Last updated: ${llmResponse.lastUpdated}`, { target: 'Content freshness indicator' }));
       }
       
       // Industry focus
       if (llmResponse.industryFocus) {
-        evidence.push(EvidenceHelper.info(`Industry focus: ${llmResponse.industryFocus}`, { target: 'guidance', score: 5 }));
+        evidence.push(EvidenceHelper.info(InDepthGuidesTopic.GUIDE_ANALYSIS, `Industry focus: ${llmResponse.industryFocus}`, { target: 'Industry-specific content', score: 5, maxScore: 5 }));
         score += 5;
       }
       
@@ -318,15 +336,15 @@ ${contentForAnalysis}`;
         const topicSummary = `${llmResponse.topics.length} major topics covered • ${comprehensiveTopics.length} with comprehensive depth • Average entity coverage: ${Math.round(averageEntityCoverage)}%`;
         
         if (averageEntityCoverage >= 75) {
-          evidence.push(EvidenceHelper.success('Topic coverage', { code: topicSummary, target: '≥75% entity coverage', score: 5 }));
+          evidence.push(EvidenceHelper.success(InDepthGuidesTopic.GUIDE_ANALYSIS, `Topic coverage: ${Math.round(averageEntityCoverage)}%`, { code: topicSummary, target: '≥75% entity coverage', score: 5, maxScore: 5 }));
           score += 5;
         } else if (averageEntityCoverage >= 50) {
-          evidence.push(EvidenceHelper.warning('Topic coverage', { code: topicSummary, target: '≥75% entity coverage for +5 points' }));
+          evidence.push(EvidenceHelper.warning(InDepthGuidesTopic.GUIDE_ANALYSIS, `Topic coverage: ${Math.round(averageEntityCoverage)}%`, { code: topicSummary, target: '≥75% entity coverage for +5 points' }));
         } else if (averageEntityCoverage < 25) {
-          evidence.push(EvidenceHelper.error('Topic coverage', { code: topicSummary, target: '≥75% entity coverage for +5 points', score: -10 }));
+          evidence.push(EvidenceHelper.error(InDepthGuidesTopic.GUIDE_ANALYSIS, `Topic coverage: ${Math.round(averageEntityCoverage)}%`, { code: topicSummary, target: '≥75% entity coverage for +5 points', score: -10, maxScore: 10 }));
           score -= 10;
         } else {
-          evidence.push(EvidenceHelper.warning('Topic coverage', { code: topicSummary, target: '≥75% entity coverage for +5 points' }));
+          evidence.push(EvidenceHelper.warning(InDepthGuidesTopic.GUIDE_ANALYSIS, `Topic coverage: ${Math.round(averageEntityCoverage)}%`, { code: topicSummary, target: '≥75% entity coverage for +5 points' }));
         }
         
         // Create topics details as code snippet
@@ -339,9 +357,9 @@ ${contentForAnalysis}`;
         }).join('\n');
         
         if (llmResponse.topics.length > 3) {
-          evidence.push(EvidenceHelper.info('Major topics covered', { code: topicDetails + '\n... (more topics)' }));
+          evidence.push(EvidenceHelper.info(InDepthGuidesTopic.GUIDE_ANALYSIS, 'Major topics covered', { code: topicDetails + '\n... (more topics)' }));
         } else {
-          evidence.push(EvidenceHelper.info('Major topics covered', { code: topicDetails }));
+          evidence.push(EvidenceHelper.info(InDepthGuidesTopic.GUIDE_ANALYSIS, 'Major topics covered', { code: topicDetails }));
         }
       }
       
@@ -394,9 +412,9 @@ ${contentForAnalysis}`;
       }
       
       if (llmResponse.guideType === 'ultimate_guide' || llmResponse.guideType === 'complete_guide') {
-        scoreBreakdown.push({ component: `Guide type (${llmResponse.guideType.replace(/_/g, ' ')})`, points: 15 });
+        scoreBreakdown.push({ component: `Guide type (${llmResponse.guideType.replace(/_/g, ' ')})`, points: 10 });
       } else if (llmResponse.guideType === 'pillar_page') {
-        scoreBreakdown.push({ component: 'Guide type (pillar page)', points: 10 });
+        scoreBreakdown.push({ component: 'Guide type (pillar page)', points: 7 });
       }
       
       if (llmResponse.hasExamples) {

@@ -1,7 +1,19 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BaseAEORule } from '../base-aeo.rule';
-import { RuleResult, PageContent, Category , EvidenceItem } from '../../../interfaces/rule.interface';
+import { RuleResult, PageContent, Category, EvidenceItem, RuleIssue } from '../../../interfaces/rule.interface';
 import { EvidenceHelper } from '../../../utils/evidence.helper';
+import { SubheadingsIssueId, createSubheadingsIssue } from './subheadings.issues';
+
+
+// Evidence topics for this rule
+enum SubheadingsTopic {
+  HEADING_ANALYSIS = 'Heading Analysis',
+  HEADING_HIERARCHY = 'Heading Hierarchy',
+  NO_SUBHEADINGS = 'No Subheadings',
+  SUBHEADINGS = 'Subheadings',
+  QUESTION_BASED_H2S = 'Question-based H2s',
+  GENERIC_HEADINGS = 'Generic Headings'
+}
 
 @Injectable()
 export class SubheadingsRule extends BaseAEORule {
@@ -35,7 +47,7 @@ export class SubheadingsRule extends BaseAEORule {
     super(
       'subheadings',
       'Subheadings (<h2>-<h6>)',
-      'CONTENT' as Category,
+      'STRUCTURE' as Category,
       {
         impactScore: 3,
         pageTypes: [], // Applies to all page types
@@ -70,13 +82,13 @@ export class SubheadingsRule extends BaseAEORule {
     
     // If no content or very short, not applicable
     if (wordCount < 50) {
-      evidence.push(EvidenceHelper.warning('Content too short to evaluate subheadings'));
+      evidence.push(EvidenceHelper.warning(SubheadingsTopic.HEADING_ANALYSIS, 'Content too short to evaluate subheadings'));
       return this.createResult(0, evidence);
     }
     
     // Check if there are any subheadings
     if (totalSubheadings === 0) {
-      evidence.push(EvidenceHelper.error('No subheadings found (<h2>-<h6>)', { target: 'Add descriptive subheadings to break up content', score: 20 }));
+      evidence.push(EvidenceHelper.error(SubheadingsTopic.NO_SUBHEADINGS, 'No subheadings found (<h2>-<h6>)', { target: 'Add descriptive subheadings to break up content', score: 20, maxScore: 100 }));
       score = 20;
       scoreBreakdown.push({ component: 'No subheadings', points: 20 });
     } else {
@@ -94,23 +106,23 @@ export class SubheadingsRule extends BaseAEORule {
       // Build heading structure for code snippet
       const headingStructure = this.buildHeadingStructure(html);
       
-      evidence.push(EvidenceHelper.info(`Found ${totalSubheadings} subheadings (${headingCounts.join(', ')})`, { code: headingStructure }));
+      evidence.push(EvidenceHelper.info(SubheadingsTopic.HEADING_ANALYSIS, `Found ${totalSubheadings} subheadings (${headingCounts.join(', ')})`, { code: headingStructure }));
       
       // Score based on density and show density info in single line
       if (wordsPerSubheading <= 100) {
-        evidence.push(EvidenceHelper.success(`Excellent density: 1 subheading every ${wordsPerSubheading} words (≤100 words per subheading)`, { target: '≤100 words per subheading', score: 100 }));
-        score = 100;
-        scoreBreakdown.push({ component: 'Excellent density (≤100 words)', points: 100 });
+        evidence.push(EvidenceHelper.success(SubheadingsTopic.SUBHEADINGS, `Excellent density: 1 subheading every ${wordsPerSubheading} words (≤100 words per subheading)`, { target: '≤100 words per subheading', score: 90, maxScore: 90 }));
+        score = 90;
+        scoreBreakdown.push({ component: 'Excellent density (≤100 words)', points: 90 });
       } else if (wordsPerSubheading <= 199) {
-        evidence.push(EvidenceHelper.success(`Good density: 1 subheading every ${wordsPerSubheading} words (100-199 words per subheading)`, { target: '≤100 words per subheading for +20 points', score: 80 }));
+        evidence.push(EvidenceHelper.success(SubheadingsTopic.SUBHEADINGS, `Good density: 1 subheading every ${wordsPerSubheading} words (100-199 words per subheading)`, { target: '≤100 words per subheading for +10 points', score: 80, maxScore: 90 }));
         score = 80;
         scoreBreakdown.push({ component: 'Good density (100-199 words)', points: 80 });
       } else if (wordsPerSubheading <= 300) {
-        evidence.push(EvidenceHelper.warning(`Moderate density: 1 subheading every ${wordsPerSubheading} words (200-300 words per subheading)`, { target: '≤100 words per subheading for +40 points', score: 60 }));
+        evidence.push(EvidenceHelper.warning(SubheadingsTopic.SUBHEADINGS, `Moderate density: 1 subheading every ${wordsPerSubheading} words (200-300 words per subheading)`, { target: '≤100 words per subheading for +30 points', score: 60, maxScore: 90 }));
         score = 60;
         scoreBreakdown.push({ component: 'Moderate density (200-300 words)', points: 60 });
       } else {
-        evidence.push(EvidenceHelper.error(`Poor density: 1 subheading every ${wordsPerSubheading} words (>300 words per subheading)`, { target: '≤100 words per subheading for +60 points', score: 40 }));
+        evidence.push(EvidenceHelper.error(SubheadingsTopic.SUBHEADINGS, `Poor density: 1 subheading every ${wordsPerSubheading} words (>300 words per subheading)`, { target: '≤100 words per subheading for +50 points', score: 40, maxScore: 90 }));
         score = 40;
         scoreBreakdown.push({ component: 'Poor density (>300 words)', points: 40 });
       }
@@ -126,19 +138,17 @@ export class SubheadingsRule extends BaseAEORule {
       questionPercentage = h2Texts.length > 0 ? (questionH2s.length / h2Texts.length) * 100 : 0;
       
       if (questionPercentage >= 30) {
-        evidence.push(EvidenceHelper.success(`${Math.round(questionPercentage)}% of H2s are question-based`, { target: '≥30% question-based H2s', score: 10 }));
-        if (score >= 80) {
-          score += 10; // Bonus for question-based headers
-          scoreBreakdown.push({ component: 'Question-based H2s bonus', points: 10 });
-        }
+        evidence.push(EvidenceHelper.success(SubheadingsTopic.QUESTION_BASED_H2S, `${Math.round(questionPercentage)}% of H2s are question-based`, { target: '≥30% question-based H2s', score: 10, maxScore: 10 }));
+        score += 10; // Add question-based bonus to reach full 100
+        scoreBreakdown.push({ component: 'Question-based H2s bonus', points: 10 });
       } else if (questionPercentage > 0) {
-        evidence.push(EvidenceHelper.warning(`${Math.round(questionPercentage)}% of H2s are question-based`, { target: '≥30% for +10 points bonus', score: 0 }));
+        evidence.push(EvidenceHelper.warning(SubheadingsTopic.QUESTION_BASED_H2S, `${Math.round(questionPercentage)}% of H2s are question-based`, { target: '≥30% for +10 points', score: Math.round(questionPercentage * 10 / 30), maxScore: 10 }));
+        const partialBonus = Math.round(questionPercentage * 10 / 30);
+        score += partialBonus;
+        scoreBreakdown.push({ component: 'Partial question-based H2s bonus', points: partialBonus });
       } else {
-        evidence.push(EvidenceHelper.warning('No question-based H2s found', { target: '≥30% question-based H2s for +10 points bonus', score: 0 }));
-        if (score >= 80) {
-          score -= 10; // Penalty for lack of questions
-          scoreBreakdown.push({ component: 'No question-based H2s penalty', points: -10 });
-        }
+        evidence.push(EvidenceHelper.warning(SubheadingsTopic.QUESTION_BASED_H2S, 'No question-based H2s found', { target: '≥30% question-based H2s for +10 points', score: 0, maxScore: 10 }));
+        scoreBreakdown.push({ component: 'No question-based H2s', points: 0 });
       }
       
       // Check for generic headings
@@ -149,7 +159,7 @@ export class SubheadingsRule extends BaseAEORule {
       
       if (genericCount > 0) {
         const penalty = genericCount * 5;
-        evidence.push(EvidenceHelper.warning(`Found ${genericCount} generic subheading(s)`, { target: 'Use descriptive, keyword-rich subheadings', score: -penalty }));
+        evidence.push(EvidenceHelper.warning(SubheadingsTopic.GENERIC_HEADINGS, `Found ${genericCount} generic subheading(s)`, { target: 'Use descriptive, keyword-rich subheadings', score: -penalty, maxScore: penalty }));
         score = Math.max(20, score - penalty);
         scoreBreakdown.push({ component: 'Generic headings penalty', points: -penalty });
       }
@@ -157,7 +167,7 @@ export class SubheadingsRule extends BaseAEORule {
       // Check heading hierarchy
       const hasProperHierarchy = this.checkHeadingHierarchy(html);
       if (!hasProperHierarchy) {
-        evidence.push(EvidenceHelper.warning('Improper heading hierarchy detected', { target: 'Ensure H3s follow H2s, H4s follow H3s, etc.', score: -10 }));
+        evidence.push(EvidenceHelper.warning(SubheadingsTopic.HEADING_HIERARCHY, 'Improper heading hierarchy detected', { target: 'Ensure H3s follow H2s, H4s follow H3s, etc.', score: -10, maxScore: 10 }));
         score = Math.max(20, score - 10);
         scoreBreakdown.push({ component: 'Improper hierarchy penalty', points: -10 });
       } else {
@@ -171,7 +181,50 @@ export class SubheadingsRule extends BaseAEORule {
     // Add score calculation explanation using the same format as structured-data
     evidence.push(...EvidenceHelper.scoreCalculation(scoreBreakdown, score, 100));
     
-    return this.createResult(score, evidence);
+    // Generate issues based on problems found
+    const issues: RuleIssue[] = [];
+    
+    // Check heading hierarchy
+    const hasProperHierarchy = this.checkHeadingHierarchy(html);
+    
+    if (h2Matches.length === 0 && totalSubheadings > 0) {
+      issues.push(createSubheadingsIssue(SubheadingsIssueId.NO_H2_HEADINGS));
+    }
+    
+    if (totalSubheadings === 0) {
+      issues.push(createSubheadingsIssue(SubheadingsIssueId.NO_SUBHEADINGS));
+    } else if (totalSubheadings < 3 && wordCount > 300) {
+      issues.push(createSubheadingsIssue(
+        SubheadingsIssueId.TOO_FEW_SUBHEADINGS,
+        undefined,
+        `Only ${totalSubheadings} subheading(s) found for ${wordCount} words`
+      ));
+    }
+    
+    if (!hasProperHierarchy) {
+      issues.push(createSubheadingsIssue(SubheadingsIssueId.BROKEN_HIERARCHY));
+    }
+    
+    // Check for missing H3 when having H4
+    if (h4Matches.length > 0 && h3Matches.length === 0) {
+      issues.push(createSubheadingsIssue(SubheadingsIssueId.H4_WITHOUT_H3));
+    }
+    
+    // Check for poor density
+    if (wordsPerSubheading > 300) {
+      issues.push(createSubheadingsIssue(
+        SubheadingsIssueId.POOR_DENSITY,
+        undefined,
+        `Content has ${wordsPerSubheading} words per subheading`
+      ));
+    }
+    
+    // Check question percentage
+    if (questionPercentage === 0 && totalSubheadings > 3) {
+      issues.push(createSubheadingsIssue(SubheadingsIssueId.NO_QUESTIONS));
+    }
+    
+    return this.createResult(score, evidence, issues);
   }
   
   private buildHeadingStructure(html: string): string {

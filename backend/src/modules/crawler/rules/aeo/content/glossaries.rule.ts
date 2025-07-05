@@ -4,13 +4,24 @@ import { RuleResult, PageContent, Category , EvidenceItem } from '../../../inter
 import { EvidenceHelper } from '../../../utils/evidence.helper';
 import { PageCategoryType } from '../../../interfaces/page-category.interface';
 
+
+// Evidence topics for this rule
+enum GlossariesTopic {
+  GLOSSARY_ANALYSIS = 'Glossary Analysis',
+  GLOSSARY_INDICATORS = 'Glossary Indicators',
+  ORGANIZATION_STRUCTURE = 'Organization Structure',
+  NOT_GLOSSARY_INDICATORS = 'Glossary Indicators',
+  STRUCTURE = 'Structure',
+  NO_GLOSSARY = 'No Glossary'
+}
+
 @Injectable()
 export class GlossariesRule extends BaseAEORule {
   constructor() {
     super(
       'glossaries',
       'Glossaries & Terminology Pages',
-      'CONTENT' as Category,
+      'QUALITY' as Category,
       {
         impactScore: 2,
         pageTypes: [PageCategoryType.FAQ_GLOSSARY_PAGES],
@@ -30,7 +41,7 @@ export class GlossariesRule extends BaseAEORule {
     
     // Check URL for glossary indicators
     if (/(?:glossary|dictionary|terminology|definitions|terms)/i.test(urlLower)) {
-      evidence.push(EvidenceHelper.success('URL indicates glossary/terminology content', { target: 'guidance', score: 25 }));
+      evidence.push(EvidenceHelper.success(GlossariesTopic.GLOSSARY_ANALYSIS, 'URL indicates glossary/terminology content', { target: 'guidance', score: 25, maxScore: 25 }));
       score += 25;
     }
     
@@ -53,13 +64,13 @@ export class GlossariesRule extends BaseAEORule {
     });
     
     if (glossaryMatches >= 3) {
-      evidence.push(EvidenceHelper.success(`Found ${glossaryMatches} glossary/terminology indicators`, { target: 'guidance', score: 30 }));
+      evidence.push(EvidenceHelper.success(GlossariesTopic.GLOSSARY_INDICATORS, `Found ${glossaryMatches} glossary/terminology indicators`, { target: 'guidance', score: 30, maxScore: 30 }));
       score += 30;
     } else if (glossaryMatches > 0) {
-      evidence.push(EvidenceHelper.warning(`Found ${glossaryMatches} glossary indicators`, { target: 'guidance', score: 15 }));
+      evidence.push(EvidenceHelper.warning(GlossariesTopic.GLOSSARY_INDICATORS, `Found ${glossaryMatches} glossary indicators`, { target: 'guidance', score: 15, maxScore: 30 }));
       score += 15;
     } else {
-      evidence.push(EvidenceHelper.error('No glossary patterns found'));
+      evidence.push(EvidenceHelper.error(GlossariesTopic.NO_GLOSSARY, 'No glossary patterns found'));
     }
     
     // Check for definition list structures
@@ -68,13 +79,13 @@ export class GlossariesRule extends BaseAEORule {
     const ddElements = (html.match(/<dd[^>]*>/gi) || []).length;
     
     if (definitionLists > 0 && dtElements > 0 && ddElements > 0) {
-      evidence.push(EvidenceHelper.success(`Semantic definition lists found (${dtElements} terms, ${ddElements} definitions)`, { target: 'guidance', score: 25 }));
+      evidence.push(EvidenceHelper.success(GlossariesTopic.GLOSSARY_INDICATORS, `Semantic definition lists found (${dtElements} terms, ${ddElements} definitions)`, { target: 'guidance', score: 25, maxScore: 25 }));
       score += 25;
     } else if (dtElements > 0 || ddElements > 0) {
-      evidence.push(EvidenceHelper.warning('Some definition elements found', { target: 'guidance', score: 10 }));
+      evidence.push(EvidenceHelper.warning(GlossariesTopic.GLOSSARY_INDICATORS, 'Some definition elements found', { target: 'guidance', score: 10, maxScore: 25 }));
       score += 10;
     } else {
-      evidence.push(EvidenceHelper.warning('No semantic definition structures'));
+      evidence.push(EvidenceHelper.warning(GlossariesTopic.STRUCTURE, 'No semantic definition structures'));
     }
     
     // Check for alphabetical organization
@@ -93,7 +104,7 @@ export class GlossariesRule extends BaseAEORule {
     });
     
     if (hasAlphabetical) {
-      evidence.push(EvidenceHelper.success('Alphabetical organization detected', { target: 'guidance', score: 10 }));
+      evidence.push(EvidenceHelper.success(GlossariesTopic.ORGANIZATION_STRUCTURE, 'Alphabetical organization detected', { target: 'guidance', score: 10, maxScore: 10 }));
       score += 10;
     }
     
@@ -114,10 +125,10 @@ export class GlossariesRule extends BaseAEORule {
     });
     
     if (crossRefCount >= 3) {
-      evidence.push(EvidenceHelper.success(`Multiple cross-references found (${crossRefCount})`, { target: 'guidance', score: 10 }));
+      evidence.push(EvidenceHelper.success(GlossariesTopic.GLOSSARY_INDICATORS, `Multiple cross-references found (${crossRefCount})`, { target: 'guidance', score: 10, maxScore: 10 }));
       score += 10;
     } else if (crossRefCount > 0) {
-      evidence.push(EvidenceHelper.warning(`Some cross-references (${crossRefCount})`, { target: 'guidance', score: 5 }));
+      evidence.push(EvidenceHelper.warning(GlossariesTopic.GLOSSARY_ANALYSIS, `Some cross-references (${crossRefCount})`, { target: 'guidance', score: 5, maxScore: 10 }));
       score += 5;
     }
     
@@ -125,13 +136,13 @@ export class GlossariesRule extends BaseAEORule {
     score = Math.min(100, Math.max(0, score));
     
     if (score >= 80) {
-      evidence.push(EvidenceHelper.info('◐ Excellent glossary/terminology structure'));
+      evidence.push(EvidenceHelper.info(GlossariesTopic.STRUCTURE, '◐ Excellent glossary/terminology structure'));
     } else if (score >= 60) {
-      evidence.push(EvidenceHelper.warning('Good glossary content'));
+      evidence.push(EvidenceHelper.warning(GlossariesTopic.GLOSSARY_ANALYSIS, 'Good glossary content'));
     } else if (score >= 40) {
-      evidence.push(EvidenceHelper.warning('Basic glossary elements'));
+      evidence.push(EvidenceHelper.warning(GlossariesTopic.ORGANIZATION_STRUCTURE, 'Basic glossary elements'));
     } else {
-      evidence.push(EvidenceHelper.error('Lacks glossary structure'));
+      evidence.push(EvidenceHelper.error(GlossariesTopic.STRUCTURE, 'Lacks glossary structure'));
     }
     
     evidence.push(EvidenceHelper.score(`Final Score: ${score}/100`));

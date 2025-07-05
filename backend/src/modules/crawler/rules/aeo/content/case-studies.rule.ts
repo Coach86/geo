@@ -7,6 +7,17 @@ import { LlmProvider } from '../../../../llm/interfaces/llm-provider.enum';
 import { z } from 'zod';
 import { PageCategoryType } from '../../../interfaces/page-category.interface';
 
+
+// Evidence topics for this rule
+enum CaseStudiesTopic {
+  CASE_STUDIES = 'Case Studies',
+  QUALITY_METRICS = 'Quality Metrics',
+  CLIENT_DETAILS = 'Client Details',
+  STRUCTURE = 'Structure',
+  CONTENT_ANALYSIS = 'Content Analysis',
+  SCORING = 'Scoring'
+}
+
 // Zod schema for structured output
 const CaseStudySchema = z.object({
   description: z.string().describe('A 1-2 sentence summary of the case study INCLUDING the key metric or result if available'),
@@ -68,7 +79,7 @@ export class CaseStudiesRule extends BaseAEORule {
     super(
       'case_studies',
       'Case Studies & Success Stories',
-      'CONTENT' as Category,
+      'QUALITY' as Category,
       {
         impactScore: 3,
         pageTypes: [PageCategoryType.CASE_STUDY_SUCCESS_STORY, PageCategoryType.BLOG_POST_ARTICLE],
@@ -97,7 +108,7 @@ export class CaseStudiesRule extends BaseAEORule {
     
     // Validate content is sufficient for analysis
     if (!contentForAnalysis || contentForAnalysis.trim().length < CaseStudiesRule.MIN_CONTENT_LENGTH) {
-      evidence.push(EvidenceHelper.error('Insufficient content to analyze for case studies'));
+      evidence.push(EvidenceHelper.error(CaseStudiesTopic.CONTENT_ANALYSIS, 'Insufficient content to analyze for case studies'));
       return this.createResult(CaseStudiesRule.SCORE_NOT_PRESENT, evidence);
     }
     
@@ -181,40 +192,40 @@ ${contentForAnalysis}`;
       // Apply scoring based on CSV requirements
       if (highQualityCount >= CaseStudiesRule.EXCELLENT_THRESHOLD) {
         score = CaseStudiesRule.SCORE_EXCELLENT;
-        evidence.push(EvidenceHelper.success(`Found ${highQualityCount} high-quality case studies with detailed structure and metrics`, { target: 'guidance', score: 100 }));
-        evidence.push(EvidenceHelper.info('◐ Excellent portfolio of case studies demonstrating proven results'));
+        evidence.push(EvidenceHelper.success(CaseStudiesTopic.CASE_STUDIES, `Found ${highQualityCount} high-quality case studies with detailed structure and metrics`, { target: 'guidance', score: 100, maxScore: 100 }));
+        evidence.push(EvidenceHelper.info(CaseStudiesTopic.CASE_STUDIES, '◐ Excellent portfolio of case studies demonstrating proven results'));
       } else if (highQualityCount >= CaseStudiesRule.GOOD_THRESHOLD) {
         score = CaseStudiesRule.SCORE_GOOD;
-        evidence.push(EvidenceHelper.success(`Found ${highQualityCount} case studies with good structure`, { target: 'guidance', score: 80 }));
-        evidence.push(EvidenceHelper.warning('Good case study content, could expand portfolio for stronger credibility'));
+        evidence.push(EvidenceHelper.success(CaseStudiesTopic.CASE_STUDIES, `Found ${highQualityCount} case studies with good structure`, { target: 'guidance', score: 80, maxScore: 100 }));
+        evidence.push(EvidenceHelper.warning(CaseStudiesTopic.CASE_STUDIES, 'Good case study content, could expand portfolio for stronger credibility'));
       } else if (totalCount >= CaseStudiesRule.POOR_THRESHOLD) {
         score = CaseStudiesRule.SCORE_POOR;
-        evidence.push(EvidenceHelper.warning(`Found ${totalCount} case studies but only ${highQualityCount} meet quality standards`, { target: 'guidance', score: 40 }));
-        evidence.push(EvidenceHelper.warning('Case studies need more detail, metrics, and client authenticity'));
+        evidence.push(EvidenceHelper.warning(CaseStudiesTopic.CASE_STUDIES, `Found ${totalCount} case studies but only ${highQualityCount} meet quality standards`, { target: 'guidance', score: 40, maxScore: 100 }));
+        evidence.push(EvidenceHelper.warning(CaseStudiesTopic.QUALITY_METRICS, 'Case studies need more detail, metrics, and client authenticity'));
       } else {
         score = CaseStudiesRule.SCORE_NOT_PRESENT;
-        evidence.push(EvidenceHelper.error('No substantial case studies or success stories found', { target: 'guidance', score: 0 }));
-        evidence.push(EvidenceHelper.error('Add detailed case studies to demonstrate expertise and build trust'));
+        evidence.push(EvidenceHelper.error(CaseStudiesTopic.CASE_STUDIES, 'No substantial case studies or success stories found', { target: 'guidance', score: 0, maxScore: 100 }));
+        evidence.push(EvidenceHelper.error(CaseStudiesTopic.CASE_STUDIES, 'Add detailed case studies to demonstrate expertise and build trust'));
       }
       
       // Add specific feedback about found case studies with content excerpts
       llmResponse.caseStudies.forEach((study, index) => {
         const quality = this.isHighQuality(study) ? '✓' : '○';
-        evidence.push(EvidenceHelper.info(`${quality} Case Study #${index + 1}: ${study.description}`));
+        evidence.push(EvidenceHelper.info(CaseStudiesTopic.CASE_STUDIES, `${quality} Case Study #${index + 1}: ${study.description}`));
         
         // Add client name if available
         if (study.clientName) {
-          evidence.push(EvidenceHelper.info(`  🏢 Client: ${study.clientName}`));
+          evidence.push(EvidenceHelper.info(CaseStudiesTopic.CLIENT_DETAILS, `  🏢 Client: ${study.clientName}`));
         }
         
         // Add key metric if available
         if (study.keyMetric) {
-          evidence.push(EvidenceHelper.info(`  📊 Key Result: ${study.keyMetric}`));
+          evidence.push(EvidenceHelper.info(CaseStudiesTopic.QUALITY_METRICS, `  📊 Key Result: ${study.keyMetric}`));
         }
         
         // Add the exact excerpt provided by LLM
         if (study.excerpt) {
-          evidence.push(EvidenceHelper.info(`  📝 Excerpt: "${study.excerpt}"`));
+          evidence.push(EvidenceHelper.info(CaseStudiesTopic.CONTENT_ANALYSIS, `  📝 Excerpt: "${study.excerpt}"`));
         }
         
         // Add specific quality indicators
@@ -237,27 +248,27 @@ ${contentForAnalysis}`;
           qualityIndicators.push('✗ Anonymous client');
         }
         
-        evidence.push(EvidenceHelper.info(`  Quality: ${qualityIndicators.join(', ')}`));
-        evidence.push(EvidenceHelper.info(`  Location: ${study.sourceSection}`));
+        evidence.push(EvidenceHelper.info(CaseStudiesTopic.QUALITY_METRICS, `  Quality: ${qualityIndicators.join(', ')}`));
+        evidence.push(EvidenceHelper.info(CaseStudiesTopic.CASE_STUDIES, `  Location: ${study.sourceSection}`));
       });
       
       // Add specific examples of missing elements if score is low
       if (score < CaseStudiesRule.SCORE_GOOD && llmResponse.caseStudies.length > 0) {
-        evidence.push(EvidenceHelper.info('💡 To improve case studies, add:'));
+        evidence.push(EvidenceHelper.info(CaseStudiesTopic.CASE_STUDIES, '💡 To improve case studies, add:'));
         
         const needsMetrics = llmResponse.caseStudies.some(s => !s.hasQuantifiableMetrics);
         if (needsMetrics) {
-          evidence.push(EvidenceHelper.info('  • Specific metrics (e.g., "reduced processing time by 47%", "saved $125,000 annually")'));
+          evidence.push(EvidenceHelper.info(CaseStudiesTopic.QUALITY_METRICS, '  • Specific metrics (e.g., "reduced processing time by 47%", "saved $125,000 annually")'));
         }
         
         const needsStructure = llmResponse.caseStudies.some(s => !s.hasChallengeSolutionResultStructure);
         if (needsStructure) {
-          evidence.push(EvidenceHelper.info('  • Clear problem → solution → result narrative structure'));
+          evidence.push(EvidenceHelper.info(CaseStudiesTopic.STRUCTURE, '  • Clear problem → solution → result narrative structure'));
         }
         
         const needsAuthenticity = llmResponse.caseStudies.some(s => !s.hasAuthenticClientDetails);
         if (needsAuthenticity) {
-          evidence.push(EvidenceHelper.info('  • Real client names, titles, and direct quotes'));
+          evidence.push(EvidenceHelper.info(CaseStudiesTopic.CLIENT_DETAILS, '  • Real client names, titles, and direct quotes'));
         }
       }
       

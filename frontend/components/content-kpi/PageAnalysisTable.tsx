@@ -12,12 +12,19 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
+  ExternalLink,
   ChevronDown,
   ChevronRight,
-  ExternalLink,
 } from 'lucide-react';
 import { FilterBar } from './FilterBar';
 import { PageDetailsSection } from './PageDetailsSection';
+import { DIMENSION_COLORS, getDimensionColor } from '@/lib/constants/colors';
 
 interface PageIssue {
   dimension: string;
@@ -31,6 +38,8 @@ interface EvidenceItem {
   content: string;
   target?: string;
   code?: string;
+  score?: number;
+  maxScore?: number;
   metadata?: Record<string, any>;
 }
 
@@ -40,14 +49,14 @@ interface PageAnalysis {
   globalScore: number;
   scores?: {
     technical: number;
-    content: number;
+    structure: number;
     authority: number;
-    monitoringKpi: number;
+    quality: number;
   };
   ruleResults?: Array<{
     ruleId: string;
     ruleName: string;
-    category: 'technical' | 'content' | 'authority' | 'monitoringKpi';
+    category: 'technical' | 'structure' | 'authority' | 'quality';
     score: number;
     maxScore: number;
     weight: number;
@@ -66,7 +75,6 @@ interface PageAnalysis {
   details?: any;
   calculationDetails?: any;
   issues: PageIssue[];
-  strengths: string[];
   crawledAt: Date;
   pageCategory?: string;
   analysisLevel?: string;
@@ -92,86 +100,127 @@ const SEVERITY_COLORS = {
 const formatPageCategory = (category?: string): string => {
   if (!category) return 'Unknown';
   
-  // Map to shorter names
+  // Map to shorter names - handle both enum values and display names
   const shortNames: Record<string, string> = {
-    // Tier 1: Core Business & High-Impact Pages
+    // Enum values (from backend)
     'homepage': 'Home',
     'product_category_page': 'Category',
     'product_detail_page': 'Product',
     'services_features_page': 'Services',
-    'pricing': 'Pricing',
+    'pricing_page': 'Pricing',
     'comparison_page': 'Compare',
-    'blog_article': 'Blog',
+    'blog_post_article': 'Blog/Article',
     'blog_category_tag_page': 'Blog Cat',
-    
-    // Tier 2: Strategic Content & Resources
     'pillar_page_topic_hub': 'Pillar',
-    'product_roundup_review': 'Product',
+    'product_roundup_review_article': 'Review',
     'how_to_guide_tutorial': 'How-to',
-    'case_study': 'Case Study',
-    'what_is_x_definitional': 'Guide',
+    'case_study_success_story': 'Case Study',
+    'what_is_x_definitional_page': 'Guide',
     'in_depth_guide_white_paper': 'Guide',
-    'faq': 'FAQ',
-    'glossary_page': 'Glossary',
-    'public_forum_ugc': 'Forum',
+    'faq_glossary_pages': 'FAQ',
+    'public_forum_ugc_pages': 'Forum',
+    'corporate_contact_pages': 'Corporate',
+    'private_user_account_pages': 'Account',
+    'search_results_error_pages': 'Search/Error',
+    'legal_pages': 'Legal',
     
-    // Tier 3: Supporting Page Groups
-    'about_company': 'About',
-    'team_page': 'Team',
-    'contact': 'Contact',
-    'careers_page': 'Careers',
-    'press_media_room': 'Press',
-    'store_locator': 'Store',
-    'login_account': 'Login',
-    'user_profile_dashboard': 'Profile',
-    'order_history': 'Orders',
-    'wishlist': 'Wishlist',
-    'search_results': 'Search',
-    'error_404': '404',
-    'privacy_policy': 'Privacy',
-    'terms_of_service': 'Terms',
-    'cookie_policy': 'Cookies',
-    'accessibility_statement': 'Access',
+    // Display names (from backend getCategoryDisplayName)
+    'Homepage': 'Home',
+    'Product Category (PLP)': 'Category',
+    'Product Detail (PDP)': 'Product',
+    'Services/Features': 'Services',
+    'Pricing Page': 'Pricing',
+    'Comparison Page': 'Compare',
+    'Blog Post/Article': 'Blog/Article',
+    'Blog Post Article': 'Blog/Article',
+    'Blog Category/Tag Page': 'Blog Cat',
+    'Pillar Page/Topic Hub': 'Pillar',
+    'Product Roundup/Review Article': 'Review',
+    'Product Roundup Review Article': 'Review',
+    'How-To Guide/Tutorial': 'How-to',
+    'Case Study/Success Story': 'Case Study',
+    'What is X/Definitional Page': 'Guide',
+    'What Is X Definitional Page': 'Guide',
+    'In-Depth Guide/White Paper': 'Guide',
+    'FAQ & Glossary Pages': 'FAQ',
+    'Public Forum & UGC Pages': 'Forum',
+    'Corporate & Contact Pages': 'Corporate',
+    'Private User Account Pages': 'Account',
+    'Search Results & Error Pages': 'Search/Error',
+    'Legal Pages': 'Legal',
     
-    'unknown': 'Unknown'
+    'unknown': 'Unknown',
+    'Unknown': 'Unknown'
   };
   
-  return shortNames[category] || category
-    .split('_')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(' ');
+  return shortNames[category] || shortNames[category.toLowerCase()] || category;
 };
 
-const getCategoryBadgeVariant = (analysisLevel?: string): "default" | "secondary" | "outline" | "destructive" => {
-  switch (analysisLevel) {
-    case 'full':
-      return 'default';
-    case 'partial':
-      return 'secondary';
-    case 'limited':
-      return 'outline';
-    case 'excluded':
-      return 'destructive';
-    default:
-      return 'default';
-  }
+// Get color for a category with explicit mapping for common categories
+const getCategoryColor = (category: string): { bg: string; text: string; border: string } => {
+  // Explicit mapping for better color distribution - avoiding colors used elsewhere in UI
+  const categoryColors: Record<string, { bg: string; text: string; border: string }> = {
+    // Sky blue - Home/Main pages
+    'Home': { bg: 'bg-sky-50 dark:bg-sky-950/30', text: 'text-sky-700 dark:text-sky-300', border: 'border-sky-200 dark:border-sky-800' },
+    
+    // Violet/Purple - Blog content (avoiding green which is used for "Clean")
+    'Blog/Article': { bg: 'bg-violet-50 dark:bg-violet-950/30', text: 'text-violet-700 dark:text-violet-300', border: 'border-violet-200 dark:border-violet-800' },
+    'Blog Cat': { bg: 'bg-purple-50 dark:bg-purple-950/30', text: 'text-purple-700 dark:text-purple-300', border: 'border-purple-200 dark:border-purple-800' },
+    
+    // Pink/Rose - Product pages
+    'Product': { bg: 'bg-pink-50 dark:bg-pink-950/30', text: 'text-pink-700 dark:text-pink-300', border: 'border-pink-200 dark:border-pink-800' },
+    'Category': { bg: 'bg-rose-50 dark:bg-rose-950/30', text: 'text-rose-700 dark:text-rose-300', border: 'border-rose-200 dark:border-rose-800' },
+    'Review': { bg: 'bg-fuchsia-50 dark:bg-fuchsia-950/30', text: 'text-fuchsia-700 dark:text-fuchsia-300', border: 'border-fuchsia-200 dark:border-fuchsia-800' },
+    
+    // Orange - How-to/Tutorial
+    'How-to': { bg: 'bg-orange-50 dark:bg-orange-950/30', text: 'text-orange-700 dark:text-orange-300', border: 'border-orange-200 dark:border-orange-800' },
+    'Guide': { bg: 'bg-amber-50 dark:bg-amber-950/30', text: 'text-amber-700 dark:text-amber-300', border: 'border-amber-200 dark:border-amber-800' },
+    
+    // Indigo - Business pages
+    'Services': { bg: 'bg-indigo-50 dark:bg-indigo-950/30', text: 'text-indigo-700 dark:text-indigo-300', border: 'border-indigo-200 dark:border-indigo-800' },
+    'Pricing': { bg: 'bg-blue-50 dark:bg-blue-950/30', text: 'text-blue-700 dark:text-blue-300', border: 'border-blue-200 dark:border-blue-800' },
+    'Case Study': { bg: 'bg-cyan-50 dark:bg-cyan-950/30', text: 'text-cyan-700 dark:text-cyan-300', border: 'border-cyan-200 dark:border-cyan-800' },
+    
+    // Teal - Info pages
+    'FAQ': { bg: 'bg-teal-50 dark:bg-teal-950/30', text: 'text-teal-700 dark:text-teal-300', border: 'border-teal-200 dark:border-teal-800' },
+    'Pillar': { bg: 'bg-emerald-50 dark:bg-emerald-950/30', text: 'text-emerald-700 dark:text-emerald-300', border: 'border-emerald-200 dark:border-emerald-800' },
+    
+    // Slate - Corporate
+    'Corporate': { bg: 'bg-slate-50 dark:bg-slate-950/30', text: 'text-slate-700 dark:text-slate-300', border: 'border-slate-200 dark:border-slate-800' },
+    'Compare': { bg: 'bg-zinc-50 dark:bg-zinc-950/30', text: 'text-zinc-700 dark:text-zinc-300', border: 'border-zinc-200 dark:border-zinc-800' },
+    
+    // Gray/Stone - Other/System pages
+    'Forum': { bg: 'bg-stone-50 dark:bg-stone-950/30', text: 'text-stone-700 dark:text-stone-300', border: 'border-stone-200 dark:border-stone-800' },
+    'Account': { bg: 'bg-gray-50 dark:bg-gray-950/30', text: 'text-gray-700 dark:text-gray-300', border: 'border-gray-200 dark:border-gray-800' },
+    'Legal': { bg: 'bg-neutral-50 dark:bg-neutral-950/30', text: 'text-neutral-700 dark:text-neutral-300', border: 'border-neutral-200 dark:border-neutral-800' },
+    'Search/Error': { bg: 'bg-red-50 dark:bg-red-950/30', text: 'text-red-600 dark:text-red-400', border: 'border-red-200 dark:border-red-800' },
+    'Unknown': { bg: 'bg-yellow-50 dark:bg-yellow-950/30', text: 'text-yellow-700 dark:text-yellow-300', border: 'border-yellow-200 dark:border-yellow-800' },
+  };
+  
+  // Return specific color if mapped, otherwise use a default
+  return categoryColors[category] || { 
+    bg: 'bg-gray-50 dark:bg-gray-950/30', 
+    text: 'text-gray-700 dark:text-gray-300', 
+    border: 'border-gray-200 dark:border-gray-800' 
+  };
 };
 
 export function PageAnalysisTable({ pages, projectId, isDomainAnalysis = false, onIssueClick }: PageAnalysisTableProps) {
-  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDimension, setFilterDimension] = useState<string>('all');
   const [filterSeverity, setFilterSeverity] = useState<string>('all');
   const [filterScore, setFilterScore] = useState<string>('all');
   const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
-  // Toggle row expansion
-  const toggleRow = (url: string) => {
+  const toggleRowExpansion = (pageUrl: string) => {
+    if (isDomainAnalysis) return; // No accordion for domain analysis
+    
     const newExpanded = new Set(expandedRows);
-    if (newExpanded.has(url)) {
-      newExpanded.delete(url);
+    if (newExpanded.has(pageUrl)) {
+      newExpanded.delete(pageUrl);
     } else {
-      newExpanded.add(url);
+      newExpanded.add(pageUrl);
     }
     setExpandedRows(newExpanded);
   };
@@ -219,80 +268,138 @@ export function PageAnalysisTable({ pages, projectId, isDomainAnalysis = false, 
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>{isDomainAnalysis ? 'Domain Analysis' : 'Page-by-Page Analysis'}</CardTitle>
-        <FilterBar
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-          filterScore={filterScore}
-          setFilterScore={setFilterScore}
-          filterDimension={filterDimension}
-          setFilterDimension={setFilterDimension}
-          filterSeverity={filterSeverity}
-          setFilterSeverity={setFilterSeverity}
-          filterCategory={isDomainAnalysis ? undefined : filterCategory}
-          setFilterCategory={isDomainAnalysis ? undefined : setFilterCategory}
-        />
-      </CardHeader>
+      {!isDomainAnalysis && (
+        <CardHeader>
+          <FilterBar
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            filterScore={filterScore}
+            setFilterScore={setFilterScore}
+            filterDimension={filterDimension}
+            setFilterDimension={setFilterDimension}
+            filterSeverity={filterSeverity}
+            setFilterSeverity={setFilterSeverity}
+            filterCategory={filterCategory}
+            setFilterCategory={setFilterCategory}
+          />
+        </CardHeader>
+      )}
 
-      <CardContent>
-        <div className="text-sm text-muted-foreground mb-4">
-          Showing {filteredPages.length} of {pages.length} {isDomainAnalysis ? 'domains' : 'pages'}
-        </div>
+      <CardContent className={isDomainAnalysis ? "pt-6" : ""}>
+        {!isDomainAnalysis && (
+          <div className="text-sm text-muted-foreground mb-4">
+            Showing {filteredPages.length} of {pages.length} pages
+          </div>
+        )}
 
         <div className="overflow-x-auto">
           <Table className="min-w-full">
           <TableHeader>
             <TableRow>
               <TableHead className="w-[30px] sticky left-0 bg-background z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]"></TableHead>
-              <TableHead className="min-w-[200px] sticky left-[30px] bg-background z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">{isDomainAnalysis ? 'Domain' : 'Page URL'}</TableHead>
-              {!isDomainAnalysis && <TableHead className="text-center w-[80px]">Category</TableHead>}
+              <TableHead className="min-w-[200px] max-w-[400px] sticky left-[30px] bg-background z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">{isDomainAnalysis ? 'Domain' : 'Page URL'}</TableHead>
+              {!isDomainAnalysis && <TableHead className="text-center w-[100px]">Category</TableHead>}
               <TableHead className="text-center w-[60px]">Score</TableHead>
               <TableHead className="text-center w-[80px]">Issues</TableHead>
               <TableHead className="text-center w-[60px] text-xs">Tech</TableHead>
-              <TableHead className="text-center w-[60px] text-xs">Content</TableHead>
+              <TableHead className="text-center w-[60px] text-xs">Structure</TableHead>
               <TableHead className="text-center w-[60px] text-xs">Auth</TableHead>
-              <TableHead className="text-center w-[60px] text-xs">KPIs</TableHead>
+              <TableHead className="text-center w-[60px] text-xs">Quality</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredPages.map((page) => {
-              const isExpanded = expandedRows.has(page.url);
+              const isExpanded = isDomainAnalysis || expandedRows.has(page.url);
               
               return (
                 <React.Fragment key={page.url}>
-                  <TableRow className="cursor-pointer" onClick={() => toggleRow(page.url)}>
+                  <TableRow 
+                    className={!isDomainAnalysis ? "cursor-pointer hover:bg-muted/50" : ""}
+                    onClick={() => !isDomainAnalysis && toggleRowExpansion(page.url)}
+                  >
                     <TableCell className="sticky left-0 bg-background z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                    </TableCell>
-                    <TableCell className="sticky left-[30px] bg-background z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      <div className="space-y-0.5">
-                        <a
-                          href={page.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm font-medium hover:underline flex items-center gap-1 line-clamp-1"
-                          onClick={(e) => e.stopPropagation()}
+                      {!isDomainAnalysis && (
+                        <button
+                          className="p-1 hover:bg-muted rounded-sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleRowExpansion(page.url);
+                          }}
                         >
-                          {isDomainAnalysis ? page.url : (page.title || page.url)}
-                          <ExternalLink className="h-3 w-3 flex-shrink-0" />
-                        </a>
-                        {!isDomainAnalysis && (
-                          <div className="text-xs text-muted-foreground line-clamp-1">
-                            {page.url}
+                          {isExpanded ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                        </button>
+                      )}
+                    </TableCell>
+                    <TableCell className="min-w-[200px] max-w-[400px] sticky left-[30px] bg-background z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                      <div className="space-y-0.5 min-w-0 max-w-full">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <a
+                                href={page.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm font-medium hover:underline flex items-center gap-1 min-w-0 group"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <span className="truncate block">
+                                  {isDomainAnalysis ? page.url : (() => {
+                                    try {
+                                      const urlObj = new URL(page.url);
+                                      return urlObj.pathname + urlObj.search + urlObj.hash;
+                                    } catch {
+                                      return page.url;
+                                    }
+                                  })()}
+                                </span>
+                                <ExternalLink className="h-3 w-3 flex-shrink-0 opacity-50 group-hover:opacity-100" />
+                              </a>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs break-all">{page.url}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        {!isDomainAnalysis && page.title && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="text-xs text-muted-foreground truncate cursor-default">
+                                  {page.title}
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">{page.title}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                        {!isDomainAnalysis && !page.title && (
+                          <div className="text-xs text-muted-foreground truncate">
+                            Untitled Page
                           </div>
                         )}
                       </div>
                     </TableCell>
                     {!isDomainAnalysis && (
                       <TableCell className="text-center">
-                        <Badge 
-                          variant={getCategoryBadgeVariant(page.analysisLevel)}
-                          title={`Analysis: ${page.analysisLevel || 'full'} (${Math.round((page.categoryConfidence || 0) * 100)}% confidence)`}
-                          className="text-xs px-2 py-0"
-                        >
-                          {formatPageCategory(page.pageCategory)}
-                        </Badge>
+                        {(() => {
+                          const categoryName = formatPageCategory(page.pageCategory);
+                          const colorScheme = getCategoryColor(categoryName);
+                          return (
+                            <Badge 
+                              variant="outline"
+                              title={`Analysis: ${page.analysisLevel || 'full'} (${Math.round((page.categoryConfidence || 0) * 100)}% confidence)`}
+                              className={`text-xs px-2 py-0 ${colorScheme.bg} ${colorScheme.text} ${colorScheme.border}`}
+                            >
+                              {categoryName}
+                            </Badge>
+                          );
+                        })()}
                       </TableCell>
                     )}
                     <TableCell className="text-center">
@@ -345,7 +452,10 @@ export function PageAnalysisTable({ pages, projectId, isDomainAnalysis = false, 
                       {page.skipped || !page.scores ? (
                         <span className="text-xs text-muted-foreground">-</span>
                       ) : (
-                        <div className={`text-xs font-medium ${page.scores.technical >= 80 ? 'text-green-600' : page.scores.technical >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+                        <div 
+                          className="text-xs font-bold"
+                          style={{ color: DIMENSION_COLORS.technical }}
+                        >
                           {page.scores.technical}
                         </div>
                       )}
@@ -354,8 +464,11 @@ export function PageAnalysisTable({ pages, projectId, isDomainAnalysis = false, 
                       {page.skipped || !page.scores ? (
                         <span className="text-xs text-muted-foreground">-</span>
                       ) : (
-                        <div className={`text-xs font-medium ${page.scores.content >= 80 ? 'text-green-600' : page.scores.content >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
-                          {page.scores.content}
+                        <div 
+                          className="text-xs font-bold"
+                          style={{ color: DIMENSION_COLORS.structure }}
+                        >
+                          {page.scores.structure}
                         </div>
                       )}
                     </TableCell>
@@ -363,7 +476,10 @@ export function PageAnalysisTable({ pages, projectId, isDomainAnalysis = false, 
                       {page.skipped || !page.scores ? (
                         <span className="text-xs text-muted-foreground">-</span>
                       ) : (
-                        <div className={`text-xs font-medium ${page.scores.authority >= 80 ? 'text-green-600' : page.scores.authority >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+                        <div 
+                          className="text-xs font-bold"
+                          style={{ color: DIMENSION_COLORS.authority }}
+                        >
                           {page.scores.authority}
                         </div>
                       )}
@@ -372,8 +488,11 @@ export function PageAnalysisTable({ pages, projectId, isDomainAnalysis = false, 
                       {page.skipped || !page.scores ? (
                         <span className="text-xs text-muted-foreground">-</span>
                       ) : (
-                        <div className={`text-xs font-medium ${page.scores.monitoringKpi >= 80 ? 'text-green-600' : page.scores.monitoringKpi >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
-                          {page.scores.monitoringKpi}
+                        <div 
+                          className="text-xs font-bold"
+                          style={{ color: DIMENSION_COLORS.quality }}
+                        >
+                          {page.scores.quality}
                         </div>
                       )}
                     </TableCell>

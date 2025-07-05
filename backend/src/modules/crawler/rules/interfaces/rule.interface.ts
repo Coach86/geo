@@ -4,7 +4,7 @@ import { LlmService } from '../../../llm/services/llm.service';
 import { TrackedLLMService } from '../../services/tracked-llm.service';
 
 // Legacy dimensions - replaced by AEO categories
-export type RuleDimension = 'technical' | 'content' | 'authority' | 'monitoringKpi';
+export type RuleDimension = 'technical' | 'content' | 'authority' | 'quality';
 export type RuleScope = 'all' | 'category' | 'domain';
 export type RuleExecutionScope = 'page' | 'domain';
 

@@ -118,7 +118,7 @@ export class RuleAggregatorService {
       technical: `Technical optimization is ${scoreBand}. ${topContributors.join(', ')}`,
       content: `Content quality for AI is ${scoreBand}. ${topContributors.join(', ')}`,
       authority: `The page has ${scoreBand} authority signals. ${topContributors.join(', ')}`,
-      monitoringKpi: `AI visibility metrics are ${scoreBand}. ${topContributors.join(', ')}`
+      quality: `AI visibility metrics are ${scoreBand}. ${topContributors.join(', ')}`
     };
     
     return explanations[dimension] || `Overall ${dimension} score is ${scoreBand}`;

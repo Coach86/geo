@@ -25,7 +25,8 @@ import {
   Eye
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { EvidenceDrawer } from './EvidenceDrawer';
+import { RuleDetailsDrawer } from './RuleDetailsDrawer';
+import { DIMENSION_COLORS } from '@/lib/constants/colors';
 
 type EvidenceType = 
   | 'info'      // General information (default)
@@ -41,6 +42,7 @@ interface EvidenceItem {
   target?: string;
   code?: string;
   score?: number;
+  maxScore?: number;
   metadata?: Record<string, any>;
 }
 
@@ -53,13 +55,14 @@ interface AIUsage {
 interface RuleResult {
   ruleId: string;
   ruleName: string;
-  category: 'technical' | 'content' | 'authority' | 'monitoringKpi';
+  category: 'technical' | 'structure' | 'authority' | 'quality';
   score: number;
   maxScore: number;
   weight: number;
   contribution: number;
   passed: boolean;
   evidence: EvidenceItem[];
+  recommendations?: string[];
   issues?: Array<{
     dimension: string;
     severity: 'critical' | 'high' | 'medium' | 'low';
@@ -74,20 +77,14 @@ interface RuleResult {
 interface ScoreCalculationTableProps {
   scores?: {
     technical: number;
-    content: number;
+    structure: number;
     authority: number;
-    monitoringKpi: number;
+    quality: number;
   };
   ruleResults: RuleResult[];
   pageUrl?: string;
 }
 
-const DIMENSION_COLORS = {
-  technical: '#8b5cf6',
-  content: '#10b981',
-  authority: '#3b82f6',
-  monitoringKpi: '#ef4444',
-};
 
 const SEVERITY_COLORS = {
   critical: 'text-red-600',
@@ -103,7 +100,15 @@ const SEVERITY_ICONS = {
   low: Info,
 };
 
-
+const formatCategoryName = (category: string): string => {
+  const categoryNames: Record<string, string> = {
+    technical: 'Technical',
+    structure: 'Structure',
+    authority: 'Authority',
+    quality: 'Quality',
+  };
+  return categoryNames[category] || category;
+};
 
 export function ScoreCalculationTable({ scores, ruleResults, pageUrl }: ScoreCalculationTableProps) {
   const [selectedRule, setSelectedRule] = useState<RuleResult | null>(null);
@@ -157,18 +162,15 @@ export function ScoreCalculationTable({ scores, ruleResults, pageUrl }: ScoreCal
             const hasEvidenceContent = hasEvidence || hasIssues;
 
             return (
-              <TableRow key={rule.ruleId}>
+              <TableRow 
+                key={rule.ruleId} 
+                className={hasEvidenceContent ? "cursor-pointer hover:bg-white transition-colors" : ""}
+                onClick={hasEvidenceContent ? () => openEvidenceDrawer(rule) : undefined}
+                title={hasEvidenceContent ? "Click to view evidence" : ""}
+              >
                 <TableCell>
                   {hasEvidenceContent && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 w-7 p-0"
-                      onClick={() => openEvidenceDrawer(rule)}
-                      title="View evidence"
-                    >
-                      <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                    </Button>
+                    <Eye className="h-4 w-4 text-muted-foreground" />
                   )}
                 </TableCell>
                     <TableCell>
@@ -180,7 +182,7 @@ export function ScoreCalculationTable({ scores, ruleResults, pageUrl }: ScoreCal
                           border: `1px solid ${DIMENSION_COLORS[rule.category]}30`
                         }}
                       >
-                        {rule.category}
+                        {formatCategoryName(rule.category)}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -240,7 +242,7 @@ export function ScoreCalculationTable({ scores, ruleResults, pageUrl }: ScoreCal
         </TableBody>
       </Table>
       
-      <EvidenceDrawer
+      <RuleDetailsDrawer
         isOpen={isDrawerOpen}
         onClose={closeEvidenceDrawer}
         rule={selectedRule}

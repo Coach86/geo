@@ -1,8 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { BaseAEORule } from '../base-aeo.rule';
-import { RuleResult, PageContent, Category, EvidenceItem } from '../../../interfaces/rule.interface';
+import { RuleResult, PageContent, Category, EvidenceItem, RuleIssue } from '../../../interfaces/rule.interface';
 import { PageCategoryType } from '../../../interfaces/page-category.interface';
 import { EvidenceHelper } from '../../../utils/evidence.helper';
+import { StructuredDataIssueId, createStructuredDataIssue } from './structured-data.issues';
+
+
+// Evidence topics for this rule
+enum StructuredDataTopic {
+  SCHEMA_ANALYSIS = 'Schema Analysis',
+  NO_STRUCTURED_DATA = 'No Structured Data',
+  SCHEMA = 'Schema',
+  STRUCTURE = 'Structure'
+}
 
 interface StructuredDataItem {
   type: string;
@@ -56,34 +66,43 @@ export class StructuredDataRule extends BaseAEORule {
       { component: 'Base score', points: 20 }
     ];
 
+    // Add base score evidence item
+    evidence.push(EvidenceHelper.base(20));
+
+    // Initialize variables at the top level
+    let jsonLdData: StructuredDataItem[] = [];
+    let microdataItems: StructuredDataItem[] = [];
+    let rdfaItems: StructuredDataItem[] = [];
+    let totalStructuredData = 0;
+
     try {
       // Extract structured data
-      const jsonLdData = this.extractJsonLd(content.html || '');
-      const microdataItems = this.extractMicrodata(content.html || '');
-      const rdfaItems = this.extractRdfa(content.html || '');
+      jsonLdData = this.extractJsonLd(content.html || '');
+      microdataItems = this.extractMicrodata(content.html || '');
+      rdfaItems = this.extractRdfa(content.html || '');
 
-      const totalStructuredData = jsonLdData.length + microdataItems.length + rdfaItems.length;
+      totalStructuredData = jsonLdData.length + microdataItems.length + rdfaItems.length;
       
-      evidence.push(EvidenceHelper.info(`Found ${totalStructuredData} structured data item(s)`));
+      evidence.push(EvidenceHelper.info(StructuredDataTopic.SCHEMA_ANALYSIS, `Found ${totalStructuredData} structured data item(s)`));
       
       if (totalStructuredData === 0) {
         score = 20;
-        evidence.push(EvidenceHelper.error('No structured data found', { score: 20 }));
+        evidence.push(EvidenceHelper.error(StructuredDataTopic.NO_STRUCTURED_DATA, 'No structured data found', { score: 20, maxScore: 100 }));
         recommendations.push('Add schema.org markup to help AI understand your content');
       } else {
         // Analyze JSON-LD (preferred format)
         if (jsonLdData.length > 0) {
-          evidence.push(EvidenceHelper.success(`JSON-LD format detected (${jsonLdData.length} item(s)) - Preferred format`, { score: 40 }));
+          evidence.push(EvidenceHelper.success(StructuredDataTopic.SCHEMA_ANALYSIS, `JSON-LD format detected (${jsonLdData.length} item(s)) - Preferred format`, { score: 40, maxScore: 40 }));
           
           // Show detected schema types
           const schemaTypes = jsonLdData.map(item => item.type).filter(type => type !== 'Unknown');
           const unknownCount = jsonLdData.filter(item => item.type === 'Unknown').length;
           
           if (schemaTypes.length > 0) {
-            evidence.push(EvidenceHelper.info(`  Schemas found: ${schemaTypes.join(', ')}`));
+            evidence.push(EvidenceHelper.info(StructuredDataTopic.SCHEMA_ANALYSIS, `  Schemas found: ${schemaTypes.join(', ')}`));
           }
           if (unknownCount > 0) {
-            evidence.push(EvidenceHelper.warning(`${unknownCount} schema(s) missing @type property`));
+            evidence.push(EvidenceHelper.warning(StructuredDataTopic.NO_STRUCTURED_DATA, `${unknownCount} schema(s) missing @type property`));
           }
           
           score = 60; // Base score for having JSON-LD
@@ -91,17 +110,17 @@ export class StructuredDataRule extends BaseAEORule {
           
           jsonLdData.forEach(item => {
             const schemaStatus = item.isValid ? ' ✓' : ' ⚠ Invalid';
-            evidence.push(EvidenceHelper.info(`  • ${item.type} schema${schemaStatus}`));
+            evidence.push(EvidenceHelper.info(StructuredDataTopic.SCHEMA_ANALYSIS, `  • ${item.type} schema${schemaStatus}`));
             
             // Add validation error details
             if (!item.isValid && item.validationErrors && item.validationErrors.length > 0) {
               item.validationErrors.forEach(error => {
-                evidence.push(EvidenceHelper.warning(`Validation error: ${error}`));
+                evidence.push(EvidenceHelper.warning(StructuredDataTopic.SCHEMA_ANALYSIS, `Validation error: ${error}`));
               });
             }
             
             if (item.properties.length > 0) {
-              evidence.push(EvidenceHelper.info(`    Properties: ${item.properties.slice(0, 5).join(', ')}${item.properties.length > 5 ? '...' : ''}`));
+              evidence.push(EvidenceHelper.info(StructuredDataTopic.SCHEMA_ANALYSIS, `    Properties: ${item.properties.slice(0, 5).join(', ')}${item.properties.length > 5 ? '...' : ''}`));
             }
             
             // Add source code snippet for better debugging
@@ -119,7 +138,7 @@ export class StructuredDataRule extends BaseAEORule {
                   if (truncated) {
                     codeContent += '\n      ... (truncated)';
                   }
-                  evidence.push(EvidenceHelper.info('    Source:', { code: `    ${codeContent}` }));
+                  evidence.push(EvidenceHelper.info(StructuredDataTopic.SCHEMA_ANALYSIS, '    Source:', { code: `    ${codeContent}` }));
                 }
               } catch (e) {
                 // Ignore stringify errors
@@ -140,70 +159,161 @@ export class StructuredDataRule extends BaseAEORule {
           const bonus = Math.min(20, 100 - score);
           score = Math.min(100, score + bonus);
           scoreBreakdown.push({ component: 'Recommended schema types', points: bonus });
-          evidence.push(EvidenceHelper.success('Implements recommended schema types for this page type', { score: bonus }));
+          evidence.push(EvidenceHelper.success(StructuredDataTopic.SCHEMA, 'Implements recommended schema types for this page type', { score: bonus, maxScore: 20 }));
         } else if (recommendedSchemas.length > 0) {
-          evidence.push(EvidenceHelper.warning('Missing recommended schemas'));
+          evidence.push(EvidenceHelper.warning(StructuredDataTopic.SCHEMA, 'Missing recommended schemas', {
+            code: `Recommended for this page type: ${recommendedSchemas.join(', ')}`,
+            target: 'Add schema.org structured data to help AI understand your content',
+            score: 0,
+            maxScore: 20
+          }));
           recommendations.push(`Consider adding: ${recommendedSchemas.join(', ')} schemas`);
         }
 
         // Check for essential properties
         const missingProperties = this.getMissingEssentialProperties(jsonLdData);
+        const foundProperties = this.getFoundEssentialProperties(jsonLdData);
+        
         if (missingProperties.length === 0 && jsonLdData.length > 0) {
           const bonus = Math.min(20, 100 - score);
           score = Math.min(100, score + bonus);
           scoreBreakdown.push({ component: 'Essential properties present', points: bonus });
-          evidence.push(EvidenceHelper.success('Essential schema properties are present', { score: bonus }));
+          
+          // Show what essential properties were found
+          const foundSummary = foundProperties.map(found => 
+            `${found.schema}: ${found.properties.join(', ')}`
+          ).join('\n');
+          
+          evidence.push(EvidenceHelper.success(StructuredDataTopic.SCHEMA, 'Essential schema properties are present', { 
+            score: bonus, 
+            maxScore: 20,
+            code: foundSummary,
+            target: 'All required properties found for schema validation'
+          }));
         } else if (missingProperties.length > 0) {
-          evidence.push(EvidenceHelper.warning('Missing some essential schema properties'));
+          // Show both found and missing properties
+          let propertiesStatus = '';
+          
+          if (foundProperties.length > 0) {
+            propertiesStatus += 'Found properties:\n';
+            propertiesStatus += foundProperties.map(found => 
+              `${found.schema}: ${found.properties.join(', ')}`
+            ).join('\n');
+            propertiesStatus += '\n\n';
+          }
+          
+          propertiesStatus += 'Missing properties:\n';
+          propertiesStatus += missingProperties.map(missing => 
+            `${missing.schema}: ${missing.properties.join(', ')}`
+          ).join('\n');
+          
+          evidence.push(EvidenceHelper.warning(StructuredDataTopic.SCHEMA, 'Missing some essential schema properties', {
+            code: propertiesStatus,
+            target: 'Add missing properties to improve schema validation'
+          }));
+          
           missingProperties.forEach(missing => {
-            evidence.push(EvidenceHelper.warning(`${missing.schema} missing properties`));
             recommendations.push(`Add to ${missing.schema}: ${missing.properties.join(', ')}`);
           });
         }
 
-        // Bonus for multiple relevant schemas
+        // Rich implementation info (no points awarded, just informational)
         if (totalStructuredData >= 3) {
-          const bonus = Math.min(10, 100 - score);
-          score = Math.min(100, score + bonus);
-          scoreBreakdown.push({ component: 'Rich implementation (3+ schemas)', points: bonus });
-          evidence.push(EvidenceHelper.success('Rich structured data implementation (3+ schemas)', { score: bonus }));
+          evidence.push(EvidenceHelper.success(StructuredDataTopic.STRUCTURE, 'Rich structured data implementation (3+ schemas)', { target: 'Multiple schemas provide comprehensive data' }));
         } else if (totalStructuredData < 3) {
-          evidence.push(EvidenceHelper.info('Opportunity for richer implementation'));
+          evidence.push(EvidenceHelper.info(StructuredDataTopic.SCHEMA_ANALYSIS, 'Opportunity for richer implementation', { 
+            score: 0,
+            maxScore: 0,
+            target: `Implement ${3 - totalStructuredData} more schema(s) for richer implementation`
+          }));
           recommendations.push(`Implement ${3 - totalStructuredData} more schema(s) to reach 3+ for rich implementation`);
         }
 
-        // Check for schema nesting and relationships
+        // Schema nesting info (no points awarded, just informational)
         const nestedRelationships = this.getNestedSchemaRelationships(content.html || '');
         if (nestedRelationships.length > 0) {
-          const bonus = Math.min(10, 100 - score);
-          score = Math.min(100, score + bonus);
-          scoreBreakdown.push({ component: 'Nested schema relationships', points: bonus });
-          evidence.push(EvidenceHelper.success('Advanced: Uses nested schema relationships', { score: bonus }));
+          evidence.push(EvidenceHelper.success(StructuredDataTopic.SCHEMA, 'Advanced: Uses nested schema relationships', { target: 'Nested relationships provide rich context' }));
           nestedRelationships.forEach(rel => {
-            evidence.push(EvidenceHelper.info(`${rel}`));
+            evidence.push(EvidenceHelper.info(StructuredDataTopic.SCHEMA_ANALYSIS, `${rel}`));
           });
         }
       }
 
       // Microdata check (less preferred)
       if (microdataItems.length > 0 && jsonLdData.length === 0) {
-        evidence.push(EvidenceHelper.warning(`Microdata format detected (${microdataItems.length} item(s)) - Consider migrating to JSON-LD`));
+        evidence.push(EvidenceHelper.warning(StructuredDataTopic.SCHEMA_ANALYSIS, `Microdata format detected (${microdataItems.length} item(s)) - Consider migrating to JSON-LD`));
       }
 
       // RDFa check (least preferred)
       if (rdfaItems.length > 0 && jsonLdData.length === 0) {
-        evidence.push(EvidenceHelper.warning(`RDFa format detected (${rdfaItems.length} item(s)) - Consider migrating to JSON-LD`));
+        evidence.push(EvidenceHelper.warning(StructuredDataTopic.SCHEMA_ANALYSIS, `RDFa format detected (${rdfaItems.length} item(s)) - Consider migrating to JSON-LD`));
       }
 
     } catch (error) {
-      evidence.push(EvidenceHelper.error(`Error evaluating structured data: ${error.message}`));
+      evidence.push(EvidenceHelper.error(StructuredDataTopic.SCHEMA_ANALYSIS, `Error evaluating structured data: ${error.message}`));
       score = 20;
     }
 
     // Add score calculation explanation
     evidence.push(...EvidenceHelper.scoreCalculation(scoreBreakdown, score, 100));
     
-    return this.createResult(score, evidence, [], { scoreBreakdown }, recommendations);
+    // Generate issues based on problems found
+    const issues: RuleIssue[] = [];
+    
+    const allStructuredDataItems = [...jsonLdData, ...microdataItems, ...rdfaItems];
+    
+    if (totalStructuredData === 0) {
+      issues.push(createStructuredDataIssue(StructuredDataIssueId.NO_STRUCTURED_DATA));
+    } else {
+      // Check for validation errors
+      const itemsWithErrors = allStructuredDataItems.filter(item => item.validationErrors && item.validationErrors.length > 0);
+      if (itemsWithErrors.length > 0) {
+        const affectedTypes = itemsWithErrors.map(item => item.type);
+        issues.push(createStructuredDataIssue(
+          StructuredDataIssueId.VALIDATION_ERRORS,
+          affectedTypes,
+          `Structured data validation errors found in ${itemsWithErrors.length} item(s)`
+        ));
+      }
+      
+      // Check for missing recommended types based on page category
+      if (content.pageCategory?.type) {
+        const pageType = content.pageCategory.type;
+        const hasRecommendedType = this.hasRecommendedSchemaForPageType(allStructuredDataItems, pageType);
+        
+        if (!hasRecommendedType) {
+          const recommendedTypes = this.getRecommendedTypes(pageType);
+          if (recommendedTypes.length > 0) {
+            issues.push(createStructuredDataIssue(
+              StructuredDataIssueId.MISSING_RECOMMENDED_TYPE,
+              recommendedTypes,
+              `Missing recommended structured data for ${pageType} page`
+            ));
+          }
+        }
+      }
+      
+      // Check for incomplete schemas
+      const incompleteSchemas = allStructuredDataItems.filter(item => 
+        item.properties.length < 3 && item.type !== 'BreadcrumbList'
+      );
+      
+      if (incompleteSchemas.length > 0) {
+        const affectedTypes = incompleteSchemas.map(item => item.type);
+        issues.push(createStructuredDataIssue(
+          StructuredDataIssueId.INCOMPLETE_SCHEMAS,
+          affectedTypes,
+          `${incompleteSchemas.length} schema(s) have minimal properties`
+        ));
+      }
+      
+      // Check for missing JSON-LD format
+      if (jsonLdData.length === 0) {
+        issues.push(createStructuredDataIssue(StructuredDataIssueId.NO_JSON_LD));
+      }
+    }
+    
+    return this.createResult(score, evidence, issues, { scoreBreakdown }, recommendations);
   }
 
   private extractJsonLd(html: string): StructuredDataItem[] {
@@ -322,6 +432,34 @@ export class StructuredDataRule extends BaseAEORule {
     return recommendations[pageType || ''] || ['Organization', 'WebPage'];
   }
 
+  private hasRecommendedSchemaForPageType(items: StructuredDataItem[], pageType: string): boolean {
+    const recommendedTypes = this.getRecommendedTypes(pageType);
+    const foundTypes = items.map(item => item.type.split(',')[0].trim());
+    
+    return recommendedTypes.some(recommended => 
+      foundTypes.some(found => found.toLowerCase() === recommended.toLowerCase())
+    );
+  }
+  
+  private getRecommendedTypes(pageType: string): string[] {
+    const typeMap: { [key: string]: string[] } = {
+      [PageCategoryType.HOMEPAGE]: ['Organization', 'WebSite'],
+      [PageCategoryType.PRODUCT_DETAIL_PAGE]: ['Product'],
+      [PageCategoryType.PRODUCT_CATEGORY_PAGE]: ['ItemList'],
+      [PageCategoryType.BLOG_POST_ARTICLE]: ['Article', 'BlogPosting'],
+      [PageCategoryType.SERVICES_FEATURES_PAGE]: ['Service'],
+      [PageCategoryType.FAQ_GLOSSARY_PAGES]: ['FAQPage'],
+      [PageCategoryType.HOW_TO_GUIDE_TUTORIAL]: ['HowTo'],
+      [PageCategoryType.WHAT_IS_X_DEFINITIONAL_PAGE]: ['DefinedTerm', 'Article'],
+      [PageCategoryType.CASE_STUDY_SUCCESS_STORY]: ['Article'],
+      [PageCategoryType.CORPORATE_CONTACT_PAGES]: ['Organization', 'ContactPoint'],
+      [PageCategoryType.PRICING_PAGE]: ['Product', 'Offer'],
+      [PageCategoryType.COMPARISON_PAGE]: ['ItemList']
+    };
+    
+    return typeMap[pageType] || [];
+  }
+
   private getMissingEssentialProperties(jsonLdData: StructuredDataItem[]): Array<{schema: string, properties: string[]}> {
     // Check if essential properties are present for common schemas
     const essentialProps: { [key: string]: string[] } = {
@@ -352,6 +490,38 @@ export class StructuredDataRule extends BaseAEORule {
     });
     
     return missingProps;
+  }
+
+  private getFoundEssentialProperties(jsonLdData: StructuredDataItem[]): Array<{schema: string, properties: string[]}> {
+    // Check which essential properties are present for common schemas
+    const essentialProps: { [key: string]: string[] } = {
+      Article: ['headline', 'author', 'datePublished'],
+      Product: ['name', 'description', 'image'],
+      Organization: ['name', 'url'],
+      Person: ['name'],
+      Review: ['reviewRating', 'author'],
+      HowTo: ['name', 'step'],
+      FAQPage: ['mainEntity'],
+      Service: ['name', 'provider'],
+      LocalBusiness: ['name', 'address'],
+      BreadcrumbList: ['itemListElement']
+    };
+    
+    const foundProps: Array<{schema: string, properties: string[]}> = [];
+    
+    jsonLdData.forEach(item => {
+      const schemaType = item.type.split(',')[0].trim();
+      const required = essentialProps[schemaType];
+      
+      if (required) {
+        const found = required.filter(prop => item.properties.includes(prop));
+        if (found.length > 0) {
+          foundProps.push({ schema: schemaType, properties: found });
+        }
+      }
+    });
+    
+    return foundProps;
   }
 
   private getNestedSchemaRelationships(html: string): string[] {

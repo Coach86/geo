@@ -3,6 +3,15 @@ import { BaseAEORule } from '../base-aeo.rule';
 import { RuleResult, PageContent, Category , EvidenceItem } from '../../../interfaces/rule.interface';
 import { EvidenceHelper } from '../../../utils/evidence.helper';
 
+
+// Evidence topics for this rule
+enum StatusCodeTopic {
+  HTTP_STATUS = 'Http Status',
+  PAGE_NOT_FOUND = 'Page Not Found',
+  STATUS_SUCCESS = 'Status Success',
+  STATUS = 'Status'
+}
+
 @Injectable()
 export class StatusCodeRule extends BaseAEORule {
   constructor() {
@@ -22,6 +31,12 @@ export class StatusCodeRule extends BaseAEORule {
     const evidence: EvidenceItem[] = [];
     const recommendations: string[] = [];
     let score = 100; // Assume success if we have content
+    const scoreBreakdown: { component: string; points: number }[] = [
+      { component: 'Base score', points: 100 }
+    ];
+
+    // Add base score evidence item
+    evidence.push(EvidenceHelper.base(100));
 
     // Standard status code analysis without GSC integration
 
@@ -30,52 +45,56 @@ export class StatusCodeRule extends BaseAEORule {
       // In a real implementation, this would check actual HTTP status from crawler metadata
       const statusCode = content.metadata?.statusCode || 200;
       
-      evidence.push(EvidenceHelper.info(`HTTP Status Code: ${statusCode}`));
+      evidence.push(EvidenceHelper.info(StatusCodeTopic.HTTP_STATUS, `HTTP Status Code: ${statusCode}`));
 
       // Check various status code ranges
       if (statusCode >= 200 && statusCode < 300) {
         score = 100;
-        evidence.push(EvidenceHelper.success('Success status code (2xx)', { score: 100 }));
+        evidence.push(EvidenceHelper.success(StatusCodeTopic.STATUS, 'Success status code (2xx)', { score: 0 }));
         
         if (statusCode === 200) {
-          evidence.push(EvidenceHelper.success('Standard success response'));
+          evidence.push(EvidenceHelper.success(StatusCodeTopic.STATUS_SUCCESS, 'Standard success response'));
         } else if (statusCode === 201) {
-          evidence.push(EvidenceHelper.success('Resource created successfully'));
+          evidence.push(EvidenceHelper.success(StatusCodeTopic.STATUS_SUCCESS, 'Resource created successfully'));
         } else if (statusCode === 204) {
-          evidence.push(EvidenceHelper.success('No content (intentional)'));
+          evidence.push(EvidenceHelper.success(StatusCodeTopic.HTTP_STATUS, 'No content (intentional)'));
         }
       } else if (statusCode >= 300 && statusCode < 400) {
         score = 60;
-        evidence.push(EvidenceHelper.warning('Redirect status code (3xx)', { score: -40 }));
+        scoreBreakdown.push({ component: 'Redirect penalty', points: -40 });
+        evidence.push(EvidenceHelper.warning(StatusCodeTopic.STATUS, 'Redirect status code (3xx)', { score: -40, target: 'Use direct URLs to avoid penalty' }));
         
         if (statusCode === 301) {
-          evidence.push(EvidenceHelper.warning('Permanent redirect - ensure redirect chain is minimal'));
+          evidence.push(EvidenceHelper.warning(StatusCodeTopic.STATUS_SUCCESS, 'Permanent redirect - ensure redirect chain is minimal'));
         } else if (statusCode === 302) {
-          evidence.push(EvidenceHelper.warning('Temporary redirect - consider using 301 for permanent moves'));
+          evidence.push(EvidenceHelper.warning(StatusCodeTopic.STATUS_SUCCESS, 'Temporary redirect - consider using 301 for permanent moves'));
         } else if (statusCode === 304) {
-          evidence.push(EvidenceHelper.warning('Not modified - good for caching'));
+          evidence.push(EvidenceHelper.warning(StatusCodeTopic.STATUS_SUCCESS, 'Not modified - good for caching'));
         }
       } else if (statusCode >= 400 && statusCode < 500) {
         score = 0;
-        evidence.push(EvidenceHelper.error('Client error status code (4xx)', { score: -100 }));
+        scoreBreakdown.push({ component: 'Client error penalty', points: -100 });
+        evidence.push(EvidenceHelper.error(StatusCodeTopic.STATUS, 'Client error status code (4xx)', { score: -100, target: 'Fix client errors to avoid penalty' }));
         
         if (statusCode === 404) {
-          evidence.push(EvidenceHelper.error('Page not found - fix broken link or implement redirect'));
+          evidence.push(EvidenceHelper.error(StatusCodeTopic.PAGE_NOT_FOUND, 'Page not found - fix broken link or implement redirect'));
         } else if (statusCode === 403) {
-          evidence.push(EvidenceHelper.error('Forbidden - check access permissions'));
+          evidence.push(EvidenceHelper.error(StatusCodeTopic.STATUS_SUCCESS, 'Forbidden - check access permissions'));
         } else if (statusCode === 401) {
-          evidence.push(EvidenceHelper.error('Unauthorized - authentication required'));
+          evidence.push(EvidenceHelper.error(StatusCodeTopic.STATUS_SUCCESS, 'Unauthorized - authentication required'));
         }
       } else if (statusCode >= 500) {
         score = 0;
-        evidence.push(EvidenceHelper.error('Server error status code (5xx)', { score: -100 }));
-        evidence.push(EvidenceHelper.error('Critical: Server errors prevent AI from accessing content'));
+        scoreBreakdown.push({ component: 'Server error penalty', points: -100 });
+        evidence.push(EvidenceHelper.error(StatusCodeTopic.STATUS, 'Server error status code (5xx)', { score: -100, target: 'Fix server errors to avoid penalty' }));
+        evidence.push(EvidenceHelper.error(StatusCodeTopic.HTTP_STATUS, 'Critical: Server errors prevent AI from accessing content'));
       }
 
       // Check for soft 404 indicators
       const soft404Indicators = this.checkForSoft404(content.html || '', statusCode);
       if (soft404Indicators.length > 0) {
         score = Math.max(0, score - 40);
+        scoreBreakdown.push({ component: 'Soft 404 penalty', points: -40 });
         soft404Indicators.forEach(indicator => evidence.push(indicator));
       }
 
@@ -83,28 +102,21 @@ export class StatusCodeRule extends BaseAEORule {
       if (content.metadata?.redirectCount) {
         const redirects = content.metadata.redirectCount;
         if (redirects > 0) {
-          evidence.push(EvidenceHelper.info(`Redirect detection: Detected ${redirects} redirect(s)`));
+          evidence.push(EvidenceHelper.info(StatusCodeTopic.HTTP_STATUS, `Redirect detection: Detected ${redirects} redirect(s)`));
           if (redirects > 2) {
             score = Math.max(0, score - 20);
-            evidence.push(EvidenceHelper.warning('Long redirect chain detected (>2 hops)', { score: -20 }));
+            scoreBreakdown.push({ component: 'Long redirect chain penalty', points: -20 });
+            evidence.push(EvidenceHelper.warning(StatusCodeTopic.STATUS_SUCCESS, 'Long redirect chain detected (>2 hops)', { score: -20, target: 'Reduce redirect hops to avoid penalty' }));
           }
         }
       }
 
     } catch (error) {
-      evidence.push(EvidenceHelper.info(`Error evaluating status code: ${error.message}`));
+      evidence.push(EvidenceHelper.info(StatusCodeTopic.HTTP_STATUS, `Error evaluating status code: ${error.message}`));
       score = 0;
     }
 
-    // Calculate score breakdown
-    const scoreBreakdown: { component: string; points: number }[] = [
-      { component: 'Base score', points: 100 }
-    ];
-    
-    if (score < 100) {
-      scoreBreakdown.push({ component: 'Status code issues', points: score - 100 });
-    }
-    
+    // Add standardized score calculation
     evidence.push(...EvidenceHelper.scoreCalculation(scoreBreakdown, score, 100));
     
     return this.createResult(score, evidence, [], {}, recommendations);
@@ -133,14 +145,14 @@ export class StatusCodeRule extends BaseAEORule {
     const matchedPatterns = soft404Patterns.filter(pattern => htmlLower.includes(pattern));
     
     if (matchedPatterns.length > 0) {
-      indicators.push(EvidenceHelper.warning('Possible soft 404: Page returns 200 but contains error messages'));
-      indicators.push(EvidenceHelper.info(`  Found patterns: ${matchedPatterns.join(', ')}`));
+      indicators.push(EvidenceHelper.warning(StatusCodeTopic.STATUS_SUCCESS, 'Possible soft 404: Page returns 200 but contains error messages'));
+      indicators.push(EvidenceHelper.info(StatusCodeTopic.PAGE_NOT_FOUND, `  Found patterns: ${matchedPatterns.join(', ')}`));
     }
     
     // Check for very short content that might indicate an error page
     const textContent = html.replace(/<[^>]*>/g, '').trim();
     if (textContent.length < 200 && matchedPatterns.length > 0) {
-      indicators.push(EvidenceHelper.warning('Very short content with error patterns suggests soft 404'));
+      indicators.push(EvidenceHelper.warning(StatusCodeTopic.HTTP_STATUS, 'Very short content with error patterns suggests soft 404'));
     }
     
     return indicators;

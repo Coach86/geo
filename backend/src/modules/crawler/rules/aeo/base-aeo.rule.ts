@@ -49,7 +49,7 @@ export abstract class BaseAEORule {
     recommendations?: string[],
     aiUsage?: AIUsage
   ): RuleResult {
-    const maxScore = 100;
+    const maxScore = 100; // Always use 100 scale for AEO rules
     const weight = this.getWeight();
     
     return {
@@ -59,7 +59,7 @@ export abstract class BaseAEORule {
       maxScore,
       weight,
       contribution: (score / maxScore) * weight,
-      passed: score >= 60, // Consider >60 as passing
+      passed: score >= 60, // Consider >=60 as passing
       evidence,
       recommendations,
       details: details || {},

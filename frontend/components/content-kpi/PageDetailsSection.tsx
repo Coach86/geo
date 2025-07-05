@@ -15,6 +15,7 @@ interface EvidenceItem {
   target?: string;
   code?: string;
   score?: number;
+  maxScore?: number;
   metadata?: Record<string, any>;
 }
 
@@ -27,7 +28,7 @@ interface AIUsage {
 interface RuleResult {
   ruleId: string;
   ruleName: string;
-  category: 'technical' | 'content' | 'authority' | 'monitoringKpi';
+  category: 'technical' | 'structure' | 'authority' | 'quality';
   score: number;
   maxScore: number;
   weight: number;
@@ -46,20 +47,25 @@ interface RuleResult {
   aiUsage?: AIUsage;
 }
 
+interface Recommendation {
+  content: string;
+  ruleId: string;
+  ruleCategory: string;
+}
+
 interface PageDetailsSectionProps {
   page: {
     url: string;
     details?: any;
     scores?: {
       technical: number;
-      content: number;
+      structure: number;
       authority: number;
-      monitoringKpi: number;
+      quality: number;
     };
     globalScore?: number;
     ruleResults?: RuleResult[];
-    recommendations?: string[];
-    strengths: string[];
+    recommendations?: string[] | Recommendation[];
     issues: any[];
     skipped?: boolean;
     skipReason?: string;
@@ -70,9 +76,9 @@ interface PageDetailsSectionProps {
 
 const DIMENSION_COLORS = {
   technical: '#8b5cf6',
-  content: '#10b981',
+  structure: '#10b981',
   authority: '#3b82f6',
-  monitoringKpi: '#ef4444',
+  quality: '#ef4444',
 };
 
 export function PageDetailsSection({ page, projectId, onIssueClick }: PageDetailsSectionProps) {
@@ -107,23 +113,6 @@ export function PageDetailsSection({ page, projectId, onIssueClick }: PageDetail
         />
       )}
 
-      {/* Strengths */}
-      {page.strengths.length > 0 && (
-        <div>
-          <h4 className="font-medium mb-2 flex items-center gap-2">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            Strengths
-          </h4>
-          <div className="flex flex-wrap gap-2">
-            {page.strengths.map((strength, i) => (
-              <Badge key={i} variant="success">
-                {strength}
-              </Badge>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Recommendations */}
       {page.recommendations && page.recommendations.length > 0 && (
         <div>
@@ -131,13 +120,43 @@ export function PageDetailsSection({ page, projectId, onIssueClick }: PageDetail
             <Lightbulb className="h-4 w-4 text-yellow-600" />
             Recommendations
           </h4>
-          <div className="space-y-2">
-            {page.recommendations.map((recommendation, i) => (
-              <div key={i} className="flex items-start gap-2 text-sm">
-                <span className="text-muted-foreground">•</span>
-                <span className="text-muted-foreground">{recommendation}</span>
-              </div>
-            ))}
+          <div className="space-y-3">
+            {page.recommendations.map((recommendation, i) => {
+              const isObject = typeof recommendation === 'object' && recommendation !== null;
+              const content = isObject ? (recommendation as Recommendation).content : recommendation;
+              const category = isObject ? (recommendation as Recommendation).ruleCategory : null;
+              const ruleId = isObject ? (recommendation as Recommendation).ruleId : null;
+              
+              return (
+                <div key={i} className="flex items-start gap-2 text-sm">
+                  <span className="text-muted-foreground">•</span>
+                  <div className="flex-1">
+                    <span className="text-muted-foreground">{content}</span>
+                    {isObject && (
+                      <div className="flex gap-2 mt-1">
+                        {category && (
+                          <Badge 
+                            variant="outline" 
+                            className="text-xs" 
+                            style={{ 
+                              borderColor: DIMENSION_COLORS[category.toLowerCase() as keyof typeof DIMENSION_COLORS],
+                              color: DIMENSION_COLORS[category.toLowerCase() as keyof typeof DIMENSION_COLORS]
+                            }}
+                          >
+                            {category}
+                          </Badge>
+                        )}
+                        {ruleId && (
+                          <span className="text-xs text-muted-foreground/60">
+                            {ruleId.replace(/_/g, ' ')}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

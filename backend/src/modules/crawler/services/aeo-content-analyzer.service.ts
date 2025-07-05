@@ -5,7 +5,7 @@ import { ContentAnalyzerService } from './content-analyzer.service';
 import { AEOScoringService } from './aeo-scoring.service';
 import { ContentScore } from '../schemas/content-score.schema';
 import { RuleResult } from '../interfaces/rule.interface';
-import { PageContent, Score } from '../interfaces/rule.interface';
+import { PageContent, Score, Recommendation } from '../interfaces/rule.interface';
 import { PageCategoryType, AnalysisLevel } from '../interfaces/page-category.interface';
 import { CrawledPageRepository } from '../repositories/crawled-page.repository';
 import { ContentScoreRepository } from '../repositories/content-score.repository';
@@ -126,22 +126,24 @@ export class AEOContentAnalyzerService extends ContentAnalyzerService {
       const aeoScore = await this.aeoScoringService.calculateScore(page.url, pageContent);
       
       // Create ContentScore from AEO analysis
-      const { ruleResults, recommendations } = this.flattenRuleResults(aeoScore);
+      const { ruleResults, recommendations, issues } = this.flattenRuleResults(aeoScore);
       const mergedScore: Partial<ContentScore> = {
         // Add scores (formerly AEO scores)
         scores: {
           technical: aeoScore.categoryScores.technical.score,
-          content: aeoScore.categoryScores.content.score,
+          structure: aeoScore.categoryScores.structure.score,
           authority: aeoScore.categoryScores.authority.score,
-          monitoringKpi: aeoScore.categoryScores.monitoringKpi.score
+          quality: aeoScore.categoryScores.quality.score
         },
         globalScore: aeoScore.globalScore,
+        title: page.metadata?.title,
         pageType: aeoScore.pageType,
         pageCategory: pageCategory.type,
         analysisLevel: pageCategory.analysisLevel,
         categoryConfidence: pageCategory.confidence,
         ruleResults,
-        recommendations
+        recommendations,
+        issues // Add aggregated issues at root level
       };
       
       this.aeoLogger.log(`[AEO] Page analyzed - AEO Global Score: ${aeoScore.globalScore}, Issues: ${aeoScore.totalIssues}, Critical: ${aeoScore.criticalIssues}`);
@@ -201,16 +203,22 @@ export class AEOContentAnalyzerService extends ContentAnalyzerService {
     };
   }
   
-  private flattenRuleResults(aeoScore: Score): { ruleResults: any[]; recommendations: string[] } {
+  private flattenRuleResults(aeoScore: Score): { ruleResults: any[]; recommendations: Recommendation[]; issues: any[] } {
     const allResults: any[] = [];
-    const allRecommendations: string[] = [];
+    const allIssues: any[] = [];
+    
+    // Use recommendations already processed by AEOScoringService
+    const allRecommendations = this.aeoScoringService.generateRecommendations(aeoScore);
     
     Object.values(aeoScore.categoryScores).forEach(categoryScore => {
+      const dimension = categoryScore.category.toLowerCase().replace(/_/g, '').replace('monitoringkpi', 'quality') as 'technical' | 'structure' | 'authority' | 'quality';
+      
       categoryScore.ruleResults.forEach(result => {
+        // Process rule result
         allResults.push({
           ruleId: result.ruleId,
           ruleName: result.ruleName,
-          category: categoryScore.category.toLowerCase().replace(/_/g, '').replace('monitoringkpi', 'monitoringKpi') as 'technical' | 'content' | 'authority' | 'monitoringKpi',
+          category: dimension,
           score: result.score,
           maxScore: result.maxScore,
           weight: result.weight,
@@ -220,22 +228,29 @@ export class AEOContentAnalyzerService extends ContentAnalyzerService {
           recommendations: result.recommendations,
           issues: result.issues?.map(issue => ({
             ...issue,
-            dimension: categoryScore.category.toLowerCase().replace(/_/g, '').replace('monitoringkpi', 'monitoringKpi')
+            dimension
           })),
           details: result.details,
           aiUsage: result.aiUsage // Include AI usage information
         });
         
-        // Aggregate recommendations
-        if (result.recommendations && result.recommendations.length > 0) {
-          allRecommendations.push(...result.recommendations);
+        // Aggregate issues to root level
+        if (result.issues && result.issues.length > 0) {
+          result.issues.forEach(issue => {
+            allIssues.push({
+              dimension,
+              severity: issue.severity,
+              description: issue.description,
+              recommendation: issue.recommendation,
+              affectedElements: issue.affectedElements,
+              ruleId: result.ruleId,
+              ruleName: result.ruleName
+            });
+          });
         }
       });
     });
     
-    // Remove duplicates from recommendations
-    const uniqueRecommendations = [...new Set(allRecommendations)];
-    
-    return { ruleResults: allResults, recommendations: uniqueRecommendations };
+    return { ruleResults: allResults, recommendations: allRecommendations, issues: allIssues };
   }
 }

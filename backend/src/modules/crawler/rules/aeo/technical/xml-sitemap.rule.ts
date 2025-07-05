@@ -3,6 +3,14 @@ import { BaseAEORule } from '../base-aeo.rule';
 import { RuleResult, PageContent, Category , EvidenceItem } from '../../../interfaces/rule.interface';
 import { EvidenceHelper } from '../../../utils/evidence.helper';
 
+// Evidence topics for this rule
+enum XmlSitemapTopic {
+  SITEMAP_FOUND = 'Sitemap Found',
+  SITEMAP_CHECK = 'Sitemap Check',
+  NO_SITEMAP = 'No Sitemap',
+  SITEMAP = 'Sitemap'
+}
+
 @Injectable()
 export class XmlSitemapRule extends BaseAEORule {
   constructor() {
@@ -21,9 +29,12 @@ export class XmlSitemapRule extends BaseAEORule {
   async evaluate(url: string, content: PageContent): Promise<RuleResult> {
     const evidence: EvidenceItem[] = [];
     const recommendations: string[] = [];
-    let score = 0;
+    let score = 15; // Base score
     let validSitemaps: any[] = [];
     let robotsSitemaps: string[] = [];
+
+    // Add base score evidence
+    evidence.push(EvidenceHelper.base(15));
 
     // Standard sitemap detection without GSC integration
 
@@ -35,21 +46,21 @@ export class XmlSitemapRule extends BaseAEORule {
         `https://${domain}/sitemaps/sitemap.xml`
       ];
       
-      evidence.push(EvidenceHelper.info(`Checking for XML sitemap at standard locations`));
+      evidence.push(EvidenceHelper.info(XmlSitemapTopic.SITEMAP_CHECK, `Checking for XML sitemap at standard locations`));
 
       // First, directly check if sitemaps exist at standard locations
       validSitemaps = await this.checkSitemapLocations(sitemapUrls);
       
       if (validSitemaps.length > 0) {
-        score = Math.max(score, 70); // Good base score for having actual sitemaps
-        evidence.push(EvidenceHelper.success(`Found ${validSitemaps.length} accessible sitemap(s):`, { score: 70 }));
+        score = Math.max(score, 85); // Base score (15) + sitemap found (70)
+        evidence.push(EvidenceHelper.success(XmlSitemapTopic.SITEMAP_FOUND, `Found ${validSitemaps.length} accessible sitemap(s):`, { score: 70, maxScore: 70 }));
         validSitemaps.forEach(sitemap => {
-          evidence.push(EvidenceHelper.info(`  • ${sitemap.url} (${sitemap.type})`));
+          evidence.push(EvidenceHelper.info(XmlSitemapTopic.SITEMAP_CHECK, `  • ${sitemap.url} (${sitemap.type})`));
           if (sitemap.urls > 0) {
-            evidence.push(EvidenceHelper.info(`Contains ${sitemap.urls} URL(s)`));
+            evidence.push(EvidenceHelper.info(XmlSitemapTopic.SITEMAP_CHECK, `Contains ${sitemap.urls} URL(s)`));
           }
           if (sitemap.lastModified) {
-            evidence.push(EvidenceHelper.info(`Last modified: ${sitemap.lastModified}`));
+            evidence.push(EvidenceHelper.info(XmlSitemapTopic.SITEMAP_CHECK, `Last modified: ${sitemap.lastModified}`));
           }
         });
       }
@@ -61,14 +72,14 @@ export class XmlSitemapRule extends BaseAEORule {
         if (sitemapReferences.length > 0) {
           if (validSitemaps.length === 0) {
             score = Math.max(score, 40); // Points for references even if not accessible
-            evidence.push(EvidenceHelper.success(`Found ${sitemapReferences.length} sitemap reference(s) in HTML`, { score: 40 }));
+            evidence.push(EvidenceHelper.success(XmlSitemapTopic.SITEMAP_FOUND, `Found ${sitemapReferences.length} sitemap reference(s) in HTML`, { score: 40, maxScore: 70 }));
           } else {
             score = Math.min(100, score + 10); // Bonus for having references too
-            evidence.push(EvidenceHelper.success(`Found ${sitemapReferences.length} sitemap reference(s) in HTML`, { score: 10 }));
+            evidence.push(EvidenceHelper.success(XmlSitemapTopic.SITEMAP_FOUND, `Found ${sitemapReferences.length} sitemap reference(s) in HTML`, { score: 10, maxScore: 10 }));
           }
-          sitemapReferences.forEach(ref => evidence.push(EvidenceHelper.info(`  • ${ref}`)));
+          sitemapReferences.forEach(ref => evidence.push(EvidenceHelper.info(XmlSitemapTopic.SITEMAP_CHECK, `  • ${ref}`)));
         } else if (validSitemaps.length === 0) {
-          evidence.push(EvidenceHelper.error('No sitemap references found in HTML', { score: 0 }));
+          evidence.push(EvidenceHelper.error(XmlSitemapTopic.NO_SITEMAP, 'No sitemap references found in HTML', { score: 0, maxScore: 70 }));
           recommendations.push(`Expected locations: ${sitemapUrls.join(', ')}`);
         }
 
@@ -76,15 +87,15 @@ export class XmlSitemapRule extends BaseAEORule {
         const hasSitemapLink = this.checkForSitemapLink(content.html);
         if (hasSitemapLink) {
           score = Math.min(100, score + 10);
-          evidence.push(EvidenceHelper.success('Sitemap link found in HTML <head>', { score: 10 }));
+          evidence.push(EvidenceHelper.success(XmlSitemapTopic.SITEMAP_FOUND, 'Sitemap link found in HTML <head>', { score: 10, maxScore: 10 }));
         }
 
         // Check for multiple sitemap types (news, video, image)
         const specializedSitemaps = this.checkForSpecializedSitemaps(content.html);
         if (specializedSitemaps.length > 0) {
           score = Math.min(100, score + 15);
-          evidence.push(EvidenceHelper.success('Specialized sitemaps detected:', { score: 15 }));
-          specializedSitemaps.forEach(type => evidence.push(EvidenceHelper.info(`  • ${type} sitemap`)));
+          evidence.push(EvidenceHelper.success(XmlSitemapTopic.SITEMAP, 'Specialized sitemaps detected:', { score: 15, maxScore: 15 }));
+          specializedSitemaps.forEach(type => evidence.push(EvidenceHelper.info(XmlSitemapTopic.SITEMAP_CHECK, `  • ${type} sitemap`)));
         }
       }
 
@@ -92,37 +103,37 @@ export class XmlSitemapRule extends BaseAEORule {
       robotsSitemaps = await this.checkRobotsTxtForSitemaps(domain);
       if (robotsSitemaps.length > 0) {
         score = Math.min(100, score + 15);
-        evidence.push(EvidenceHelper.success('Sitemap(s) referenced in robots.txt:', { score: 15 }));
-        robotsSitemaps.forEach(sitemap => evidence.push(EvidenceHelper.info(`  • ${sitemap}`)));
+        evidence.push(EvidenceHelper.success(XmlSitemapTopic.SITEMAP, 'Sitemap(s) referenced in robots.txt:', { score: 15, maxScore: 15 }));
+        robotsSitemaps.forEach(sitemap => evidence.push(EvidenceHelper.info(XmlSitemapTopic.SITEMAP_CHECK, `  • ${sitemap}`)));
       } else if (validSitemaps.length === 0) {
-        evidence.push(EvidenceHelper.warning('No sitemap reference in robots.txt'));
+        evidence.push(EvidenceHelper.warning(XmlSitemapTopic.SITEMAP, 'No sitemap reference in robots.txt'));
         recommendations.push('Consider adding sitemap reference to robots.txt');
       }
 
       // Final scoring adjustments
-      if (score === 0) {
-        evidence.push(EvidenceHelper.error('No XML sitemap detected', { score: 0 }));
+      if (score === 15) {
+        evidence.push(EvidenceHelper.error(XmlSitemapTopic.SITEMAP, 'No XML sitemap detected', { score: 0, maxScore: 100 }));
         recommendations.push('Create an XML sitemap to help AI engines discover all your content');
         recommendations.push('Submit sitemap to search engines and reference in robots.txt');
       } else if (score < 60) {
-        evidence.push(EvidenceHelper.warning('Limited sitemap implementation'));
+        evidence.push(EvidenceHelper.warning(XmlSitemapTopic.SITEMAP, 'Limited sitemap implementation'));
       } else if (score < 100) {
-        evidence.push(EvidenceHelper.info('◐ Good sitemap implementation with room for improvement'));
+        evidence.push(EvidenceHelper.info(XmlSitemapTopic.SITEMAP, '◐ Good sitemap implementation with room for improvement'));
       } else {
-        evidence.push(EvidenceHelper.info('● Excellent sitemap implementation'));
+        evidence.push(EvidenceHelper.info(XmlSitemapTopic.SITEMAP, '● Excellent sitemap implementation'));
       }
 
       // Additional recommendations
       this.addSitemapRecommendations(evidence, content, recommendations);
 
     } catch (error) {
-      evidence.push(EvidenceHelper.info(`Error evaluating XML sitemap: ${error.message}`));
-      score = 0;
+      evidence.push(EvidenceHelper.info(XmlSitemapTopic.SITEMAP_CHECK, `Error evaluating XML sitemap: ${error.message}`));
+      score = 15; // Keep base score even on error
     }
 
     // Calculate score breakdown
     const scoreBreakdown: { component: string; points: number }[] = [
-      { component: 'Base score', points: 0 }
+      { component: 'Base score', points: 15 }
     ];
     
     if (validSitemaps && validSitemaps.length > 0) {
@@ -206,17 +217,17 @@ export class XmlSitemapRule extends BaseAEORule {
     
     const recommendation = pageTypeRecommendations[content.pageType || ''];
     if (recommendation) {
-      evidence.push(EvidenceHelper.info('Page-specific recommendation'));
+      evidence.push(EvidenceHelper.info(XmlSitemapTopic.SITEMAP_CHECK, 'Page-specific recommendation'));
       recommendations.push(recommendation);
     }
     
     // General best practices
     if (!evidence.some(e => e.content.includes('lastmod'))) {
-      evidence.push(EvidenceHelper.info('Best practice'));
+      evidence.push(EvidenceHelper.info(XmlSitemapTopic.SITEMAP_CHECK, 'Best practice'));
       recommendations.push('Include <lastmod> tags in sitemap for freshness signals');
     }
     if (!evidence.some(e => e.content.includes('priority'))) {
-      evidence.push(EvidenceHelper.info('Best practice'));
+      evidence.push(EvidenceHelper.info(XmlSitemapTopic.SITEMAP_CHECK, 'Best practice'));
       recommendations.push('Use <priority> tags to indicate page importance (0.0-1.0)');
     }
   }

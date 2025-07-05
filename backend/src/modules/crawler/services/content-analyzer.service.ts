@@ -92,6 +92,7 @@ export class ContentAnalyzerService {
             ...score,
             projectId,
             url: page.url,
+            title: page.metadata?.title,
             analyzedAt: new Date(),
           } as ContentScore);
 

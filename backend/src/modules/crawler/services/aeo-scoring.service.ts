@@ -8,7 +8,8 @@ import {
   Category, 
   PageContent, 
   RuleResult,
-  PageApplicability 
+  PageApplicability,
+  Recommendation 
 } from '../interfaces/rule.interface';
 import { EvidenceHelper } from '../utils/evidence.helper';
 
@@ -56,7 +57,7 @@ export class AEOScoringService {
     });
     
     // Ensure all categories have scores (even if no rules applied)
-    const allCategories: Category[] = ['TECHNICAL', 'CONTENT', 'AUTHORITY', 'MONITORING_KPI'];
+    const allCategories: Category[] = ['TECHNICAL', 'STRUCTURE', 'AUTHORITY', 'QUALITY'];
     for (const category of allCategories) {
       const key = category.toLowerCase();
       if (!categoryScores[key]) {
@@ -89,9 +90,9 @@ export class AEOScoringService {
       timestamp: new Date(),
       categoryScores: {
         technical: categoryScores['technical'],
-        content: categoryScores['content'],
+        structure: categoryScores['structure'],
         authority: categoryScores['authority'],
-        monitoringKpi: categoryScores['monitoring_kpi']
+        quality: categoryScores['quality']
       },
       globalScore,
       totalIssues,
@@ -119,7 +120,7 @@ export class AEOScoringService {
     content: PageContent
   ): Promise<CategoryScore> {
     const issues: string[] = [];
-    const recommendations: string[] = [];
+    const uniqueRecommendations = new Map<string, Recommendation>();
     
     // Execute all rules in parallel
     this.logger.debug(`Executing ${rules.length} ${category} rules in parallel`);
@@ -140,7 +141,7 @@ export class AEOScoringService {
           weight: 1,
           contribution: 0,
           passed: false,
-          evidence: [EvidenceHelper.error(`Error executing rule: ${error.message}`)],
+          evidence: [EvidenceHelper.error('Error', `Error executing rule: ${error.message}`)],
           details: { error: error.message }
         };
       }
@@ -156,12 +157,35 @@ export class AEOScoringService {
           if (!issues.includes(issue.description)) {
             issues.push(issue.description);
           }
-          if (!recommendations.includes(issue.recommendation)) {
-            recommendations.push(issue.recommendation);
+          // Create recommendation object from issue
+          const recommendationKey = `${result.ruleId}-${issue.recommendation}`;
+          if (!uniqueRecommendations.has(recommendationKey)) {
+            uniqueRecommendations.set(recommendationKey, {
+              content: issue.recommendation,
+              ruleId: result.ruleId,
+              ruleCategory: category
+            });
+          }
+        });
+      }
+      
+      // Also process recommendations array if present
+      if (result.recommendations) {
+        result.recommendations.forEach((rec: string) => {
+          const recommendationKey = `${result.ruleId}-${rec}`;
+          if (!uniqueRecommendations.has(recommendationKey)) {
+            uniqueRecommendations.set(recommendationKey, {
+              content: rec,
+              ruleId: result.ruleId,
+              ruleCategory: category
+            });
           }
         });
       }
     });
+    
+    // Convert Map values to array
+    const recommendations = Array.from(uniqueRecommendations.values());
     
     // Calculate category score
     const categoryWeight = this.getCategoryWeight(category);
@@ -233,19 +257,31 @@ export class AEOScoringService {
     return totalWeight > 0 ? Math.round(weightedSum / totalWeight) : 0;
   }
 
-  generateRecommendations(score: Score): string[] {
-    const allRecommendations: string[] = [];
+  generateRecommendations(score: Score): Recommendation[] {
+    const uniqueRecommendations = new Map<string, Recommendation>();
     
     // Collect recommendations from all categories
     Object.values(score.categoryScores).forEach(categoryScore => {
       categoryScore.recommendations.forEach(rec => {
-        if (!allRecommendations.includes(rec)) {
-          allRecommendations.push(rec);
+        const key = `${rec.ruleId}-${rec.content}`;
+        if (!uniqueRecommendations.has(key)) {
+          uniqueRecommendations.set(key, rec);
         }
       });
     });
     
-    // Sort by priority (critical issues first)
-    return allRecommendations;
+    // Convert to array and sort by category priority
+    const categoryPriority: Record<string, number> = {
+      'TECHNICAL': 1,
+      'CONTENT': 2,
+      'AUTHORITY': 3,
+      'MONITORING_KPI': 4
+    };
+    
+    return Array.from(uniqueRecommendations.values()).sort((a, b) => {
+      const aPriority = categoryPriority[a.ruleCategory] || 999;
+      const bPriority = categoryPriority[b.ruleCategory] || 999;
+      return aPriority - bPriority;
+    });
   }
 }
