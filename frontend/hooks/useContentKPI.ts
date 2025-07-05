@@ -120,10 +120,14 @@ export interface ContentScore {
     };
   };
   issues: Array<{
+    id?: string;
     dimension: string;
     severity: 'critical' | 'high' | 'medium' | 'low';
     description: string;
     recommendation: string;
+    affectedElements?: string[];
+    ruleId?: string;
+    ruleName?: string;
   }>;
   analyzedAt: string;
   pageCategory?: string;
