@@ -8,7 +8,7 @@ class ContentDepthRule extends BaseRule {
       'quality',
       {
         impactScore: 3, // High impact
-        pageTypes: [], // Applies to all page types
+        pageTypes: ['homepage', 'blog_post_article'], // Test: only apply to specific page types
         isDomainLevel: false
       }
     );

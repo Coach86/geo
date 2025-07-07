@@ -8,7 +8,7 @@ class StructuredDataRule extends BaseRule {
       'quality',
       {
         impactScore: 2, // Medium-high impact
-        pageTypes: [], // Applies to all page types
+        pageTypes: ['homepage', 'blog_post_article'], // Test: only apply to specific page types
         isDomainLevel: false
       }
     );
