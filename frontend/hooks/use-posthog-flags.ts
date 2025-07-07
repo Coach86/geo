@@ -6,6 +6,7 @@ import { useAuth } from "@/providers/auth-provider";
 
 interface FeatureFlags {
   'page-intelligence': boolean;
+  'page-magic': boolean;
 }
 
 export function usePostHogFlags() {
@@ -13,6 +14,7 @@ export function usePostHogFlags() {
   const { user, isAuthenticated } = useAuth();
   const [flags, setFlags] = useState<FeatureFlags>({
     'page-intelligence': false,
+    'page-magic': false,
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -21,6 +23,7 @@ export function usePostHogFlags() {
     if (process.env.NODE_ENV === 'development') {
       setFlags({
         'page-intelligence': true,
+        'page-magic': true,
       });
       setIsLoading(false);
       return;
@@ -40,6 +43,7 @@ export function usePostHogFlags() {
     posthog.onFeatureFlags(() => {
       setFlags({
         'page-intelligence': posthog.isFeatureEnabled('page-intelligence') || false,
+        'page-magic': posthog.isFeatureEnabled('page-magic') || false,
       });
       setIsLoading(false);
     });
@@ -48,6 +52,7 @@ export function usePostHogFlags() {
     const checkFlags = () => {
       setFlags({
         'page-intelligence': posthog.isFeatureEnabled('page-intelligence') || false,
+        'page-magic': posthog.isFeatureEnabled('page-magic') || false,
       });
       setIsLoading(false);
     };

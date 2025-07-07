@@ -111,7 +111,7 @@
     "uuid": "^11.1.0",
     "winston": "^3.17.0",
     "xml2js": "^0.6.2",
-    "zod": "^3.25.67"
+    "zod": "^3.25.75"
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.7",
@@ -129,6 +129,7 @@
     "@types/supertest": "^6.0.3",
     "@typescript-eslint/eslint-plugin": "^8.32.1",
     "@typescript-eslint/parser": "^8.32.1",
+    "better-sqlite3": "^11.10.0",
     "clean-webpack-plugin": "^4.0.0",
     "concurrently": "^9.2.0",
     "css-loader": "^7.1.2",

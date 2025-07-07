@@ -48,4 +48,4 @@ prisma/dev.db-journal
 /backend/public/
 backend/public/index.html
 
-/backend/scripts/data/visibility-results-*
+/backend/scripts/data/
