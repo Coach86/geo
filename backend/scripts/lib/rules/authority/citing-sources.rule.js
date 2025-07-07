@@ -18,9 +18,9 @@ class CitingSourcesRule extends BaseRule {
     const evidence = [];
     const issues = [];
     const recommendations = [];
-    let score = 50; // Base score for having content
+    let score = 20; // Base score to match TypeScript version
     const scoreBreakdown = [
-      { component: 'Base score', points: 50 }
+      { component: 'Base score', points: 20 }
     ];
     const $ = content.$;
 
@@ -106,7 +106,8 @@ class CitingSourcesRule extends BaseRule {
 
     } catch (error) {
       evidence.push(EvidenceHelper.error('Citations', `Error analyzing citations: ${error.message}`));
-      score = 0;
+      // Keep base score even on error, matching TypeScript behavior
+      score = 20;
     }
 
     evidence.push(...EvidenceHelper.scoreCalculation(scoreBreakdown, score, 100));

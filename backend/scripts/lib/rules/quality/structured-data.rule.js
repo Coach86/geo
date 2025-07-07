@@ -8,7 +8,7 @@ class StructuredDataRule extends BaseRule {
       'quality',
       {
         impactScore: 2, // Medium-high impact
-        pageTypes: ['homepage', 'blog_post_article'], // Test: only apply to specific page types
+        pageTypes: [], // Applies to all page types
         isDomainLevel: false
       }
     );
@@ -18,8 +18,10 @@ class StructuredDataRule extends BaseRule {
     const evidence = [];
     const issues = [];
     const recommendations = [];
-    let score = 0;
-    const scoreBreakdown = [];
+    let score = 20; // Base score to match TypeScript version
+    const scoreBreakdown = [
+      { component: 'Base score', points: 20 }
+    ];
     const $ = content.$;
 
     try {
@@ -52,10 +54,10 @@ class StructuredDataRule extends BaseRule {
         }
       });
 
-      // Score based on structured data presence
+      // Score based on structured data presence (matching TypeScript behavior)
       if (structuredDataTypes.length === 0 && structuredDataErrors.length === 0) {
-        score = 0;
-        scoreBreakdown.push({ component: 'No structured data', points: 0 });
+        // Keep base score of 20, don't set to 0
+        scoreBreakdown.push({ component: 'No structured data found', points: 0 });
         evidence.push(EvidenceHelper.error('Schema', 'No structured data found'));
         issues.push(this.createIssue(
           'high',
@@ -64,8 +66,8 @@ class StructuredDataRule extends BaseRule {
         ));
         recommendations.push('Implement Article, Product, or appropriate schema type');
       } else if (structuredDataErrors.length > 0) {
-        score = 20;
-        scoreBreakdown.push({ component: 'Invalid structured data', points: 20 });
+        // Keep base score but note errors
+        scoreBreakdown.push({ component: 'Invalid structured data', points: 0 });
         evidence.push(EvidenceHelper.error('Schema', `Found errors: ${structuredDataErrors.join(', ')}`));
         issues.push(this.createIssue(
           'high',
@@ -73,8 +75,9 @@ class StructuredDataRule extends BaseRule {
           'Fix JSON-LD syntax errors in structured data'
         ));
       } else {
-        score = 50;
-        scoreBreakdown.push({ component: 'Has structured data', points: 50 });
+        // Add bonus to base score for having structured data
+        score += 30;
+        scoreBreakdown.push({ component: 'Has structured data', points: 30 });
         evidence.push(EvidenceHelper.success('Schema', `Found types: ${[...new Set(structuredDataTypes)].join(', ')}`));
         
         // Bonus for rich schema types
@@ -110,7 +113,8 @@ class StructuredDataRule extends BaseRule {
 
     } catch (error) {
       evidence.push(EvidenceHelper.error('Schema', `Error analyzing structured data: ${error.message}`));
-      score = 0;
+      // Keep base score even on error, matching TypeScript behavior
+      score = 20;
     }
 
     evidence.push(...EvidenceHelper.scoreCalculation(scoreBreakdown, score, 100));

@@ -330,7 +330,7 @@ export class GoogleAdapter implements LlmAdapter {
       });
 
       // Create a parser based on the schema
-      const parser = StructuredOutputParser.fromZodSchema(schema);
+      const parser = StructuredOutputParser.fromZodSchema(schema as any);
 
       // Create a fixing parser for error recovery
       const fixingParser = OutputFixingParser.fromLLM(client, parser);
@@ -363,11 +363,11 @@ export class GoogleAdapter implements LlmAdapter {
 
       // Try to parse the response
       try {
-        return await parser.parse(text);
+        return await parser.parse(text) as T;
       } catch (error) {
         // If parsing fails, try to fix the output
         this.logger.warn(`Failed to parse structured output, attempting to fix: ${error.message}`);
-        return await fixingParser.parse(text);
+        return await fixingParser.parse(text) as T;
       }
     } catch (error) {
       this.logger.error(`Error getting structured output: ${error.message}`);

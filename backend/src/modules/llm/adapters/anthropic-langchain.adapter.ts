@@ -87,7 +87,7 @@ export class AnthropicLangChainAdapter implements LlmAdapter {
       const model = options?.model || 'claude-3-7-sonnet-20250219';
 
       // Create a LangChain structured output parser from the Zod schema
-      const outputParser = StructuredOutputParser.fromZodSchema(schema);
+      const outputParser = StructuredOutputParser.fromZodSchema(schema as any);
 
       // Get the format instructions
       const formatInstructions = outputParser.getFormatInstructions();
@@ -119,7 +119,7 @@ export class AnthropicLangChainAdapter implements LlmAdapter {
       // Get the response
 
       try {
-        const response = await chatModel.withStructuredOutput(schema).invoke(messages);
+        const response = await chatModel.withStructuredOutput(schema as any).invoke(messages);
         return response as T;
       } catch (error) {
         this.logger.error(error, `Failed to get structured output: ${error.message}`);

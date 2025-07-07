@@ -221,7 +221,7 @@ export class PerplexityAdapter implements LlmAdapter {
       });
 
       // Create a parser based on the schema
-      const parser = StructuredOutputParser.fromZodSchema(schema);
+      const parser = StructuredOutputParser.fromZodSchema(schema as any);
 
       // Get format instructions
       const formatInstructions = parser.getFormatInstructions();
@@ -251,7 +251,7 @@ export class PerplexityAdapter implements LlmAdapter {
       messages.push(new HumanMessage(userPrompt));
 
       try {
-        const result = await client.withStructuredOutput(schema).invoke(messages);
+        const result = await client.withStructuredOutput(schema as any).invoke(messages);
         return result as T;
       } catch (error) {
         // If parsing fails, try to fix the output

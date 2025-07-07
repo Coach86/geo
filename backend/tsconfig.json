@@ -12,6 +12,10 @@
     "baseUrl": "./",
     "incremental": true,
     "skipLibCheck": true,
+    "tsBuildInfoFile": "./dist/.tsbuildinfo",
+    "disableSourceOfProjectReferenceRedirect": true,
+    "disableSolutionSearching": true,
+    "disableReferencedProjectLoad": true,
     "strictNullChecks": true,
     "noImplicitAny": true,
     "strictBindCallApply": true,
@@ -23,7 +27,7 @@
     "lib": ["dom", "dom.iterable", "esnext"],
     "paths": {
       "@/*": ["src/*"]
-    }
+    },
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "test", "**/*.spec.ts", "**/*.test.ts", "src/scripts/**/*.ts"]

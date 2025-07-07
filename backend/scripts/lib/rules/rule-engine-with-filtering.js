@@ -44,7 +44,7 @@ async function analyzeWithRules(pageContent, options = {}) {
   const pageCategory = options.pageCategory;
   const analysisLevel = options.analysisLevel;
   
-  console.log(`  Analyzing page type: ${pageCategory || 'unknown'}`);
+  console.log(`  🎯 Analyzing page type: ${pageCategory || 'unknown'} (${analysisLevel || 'full'} analysis)`);
   
   // Track LLM usage
   let llmUsageCount = 0;
@@ -136,18 +136,22 @@ async function analyzeWithRules(pageContent, options = {}) {
   const allRecommendations = [];
   const allRuleResults = {};
   
-  // Process each dimension in parallel
-  const dimensionPromises = Object.entries(ruleGroups).map(async ([dimension, rules]) => {
+  // Process each dimension sequentially for proper logging order
+  for (const [dimension, rules] of Object.entries(ruleGroups)) {
     if (rules.length === 0) {
-      console.log(`  Skipping ${dimension} - no applicable rules`);
-      return;
+      console.log(`  ⏭️  Skipping ${dimension.toUpperCase()} - no applicable rules`);
+      continue;
     }
+    
+    console.log(`\n  📏 === ${dimension.toUpperCase()} DIMENSION ===`);
     
     const ruleResults = [];
     const ruleDetails = [];
     
-    // Run rules in parallel within each dimension
-    const rulePromises = rules.map(async (Rule) => {
+    // Run rules sequentially within each dimension for proper logging order
+    const ruleOutcomes = [];
+    
+    for (const Rule of rules) {
       try {
         // Initialize rule with LLM clients if it's an LLM-enabled rule
         // Check if it's one of the known LLM rules
@@ -160,31 +164,92 @@ async function analyzeWithRules(pageContent, options = {}) {
         
         const rule = isLLMRule ? new Rule(llmClients) : new Rule();
         
-        console.log(`  Running ${dimension} rule: ${rule.name}`);
+        console.log(`  [${dimension.toUpperCase()}] ${rule.name}`);
           
-        const result = await rule.evaluate(pageContent, options);
+        // LLM rules use different signature: evaluate(pageContent, options)
+        // Standard rules use: evaluate(url, content, options)
+        const result = isLLMRule 
+          ? await rule.evaluate(pageContent, options)
+          : await rule.evaluate(pageContent.url, pageContent, options);
         
         // Track LLM usage
         if (result.llmUsed) {
           llmUsageCount++;
-          console.log(`    → Used LLM for ${rule.name}`);
+          console.log(`    ├─ 🤖 LLM Used`);
         }
         
-        return {
+        // Log rule results with better formatting
+        console.log(`    ├─ 📊 Score: ${result.score}/100`);
+        
+        // Log issues if any
+        if (result.issues && result.issues.length > 0) {
+          console.log(`    ├─ ⚠️  Issues (${result.issues.length}):`);
+          result.issues.forEach((issue, idx) => {
+            const isLast = idx === result.issues.length - 1;
+            const prefix = isLast ? '    │  └─' : '    │  ├─';
+            const severity = issue.severity === 'critical' ? '🔴' : 
+                           issue.severity === 'high' ? '🟠' : 
+                           issue.severity === 'medium' ? '🟡' : '🟢';
+            console.log(`${prefix} ${severity} [${issue.severity}] ${issue.description}`);
+          });
+        }
+        
+        // Log recommendations if any
+        if (result.recommendations && result.recommendations.length > 0) {
+          console.log(`    ├─ 💡 Recommendations (${result.recommendations.length}):`);
+          result.recommendations.forEach((rec, idx) => {
+            const isLast = idx === result.recommendations.length - 1;
+            const prefix = isLast ? '    │  └─' : '    │  ├─';
+            console.log(`${prefix} ${rec}`);
+          });
+        }
+        
+        // Log key evidence items (first 3)
+        if (result.evidence && result.evidence.length > 0) {
+          console.log(`    ├─ 📋 Evidence (${result.evidence.length} items, showing ${Math.min(3, result.evidence.length)}):`);
+          result.evidence.slice(0, 3).forEach((ev, idx) => {
+            const isLast = idx === Math.min(2, result.evidence.length - 1);
+            const prefix = isLast ? '    │  └─' : '    │  ├─';
+            
+            if (typeof ev === 'string') {
+              console.log(`${prefix} ${ev}`);
+            } else if (ev && typeof ev === 'object') {
+              // Handle object-style evidence
+              if (ev.label && ev.value !== undefined) {
+                console.log(`${prefix} ${ev.label}: ${ev.value}`);
+              } else if (ev.type && ev.message) {
+                // Handle evidence with type and message
+                const icon = ev.type === 'success' ? '✓' : ev.type === 'error' ? '✗' : ev.type === 'warning' ? '⚠' : 'ℹ';
+                console.log(`${prefix} ${icon} ${ev.message}`);
+              } else if (ev.component && ev.points !== undefined) {
+                // Handle score breakdown evidence
+                const pointsStr = ev.points > 0 ? `+${ev.points}` : `${ev.points}`;
+                console.log(`${prefix} ${ev.component}: ${pointsStr} points`);
+              } else {
+                // Fallback for other object formats
+                console.log(`${prefix} ${JSON.stringify(ev)}`);
+              }
+            }
+          });
+          if (result.evidence.length > 3) {
+            console.log(`    │  ... and ${result.evidence.length - 3} more items`);
+          }
+        }
+        
+        console.log(`    └─ ✅ Complete`);
+        
+        ruleOutcomes.push({
           result,
           rule: {
             id: rule.id,
             name: rule.name
           }
-        };
+        });
+        
       } catch (error) {
         console.error(`Error running rule ${Rule.name}:`, error);
-        return null;
       }
-    });
-    
-    // Wait for all rules in dimension to complete
-    const ruleOutcomes = await Promise.all(rulePromises);
+    }
     
     // Process results
     for (const outcome of ruleOutcomes) {
@@ -218,11 +283,15 @@ async function analyzeWithRules(pageContent, options = {}) {
       const aggregatedScore = aggregator.aggregate(ruleResults, dimension, ruleDetails);
       dimensionResults[dimension] = aggregatedScore;
       allRuleResults[dimension] = ruleResults;
+      
+      // Log dimension summary
+      console.log(`\n  📊 ${dimension.toUpperCase()} DIMENSION SUMMARY:`);
+      console.log(`     Final Score: ${aggregatedScore.finalScore}/100`);
+      console.log(`     Rules Executed: ${ruleResults.length}`);
+      console.log(`     Issues Found: ${ruleResults.reduce((sum, r) => sum + (r.issues?.length || 0), 0)}`);
+      console.log(`     ─────────────────────────────`);
     }
-  });
-  
-  // Wait for all dimensions to complete
-  await Promise.all(dimensionPromises);
+  }
   
   // Extract dimension scores - use null for dimensions with no executed rules
   const scores = {
@@ -235,8 +304,24 @@ async function analyzeWithRules(pageContent, options = {}) {
   // Count total rules executed
   const totalRulesExecuted = Object.values(allRuleResults).reduce((sum, rules) => sum + rules.length, 0);
   
-  // Log analysis summary
-  console.log(`  Rules executed: ${totalRulesExecuted} (${llmUsageCount} with LLM)`);
+  // Calculate overall statistics
+  const totalIssues = allIssues.length;
+  const criticalIssues = allIssues.filter(i => i.severity === 'critical').length;
+  const highIssues = allIssues.filter(i => i.severity === 'high').length;
+  
+  // Log overall analysis summary
+  console.log(`\n  🎯 === OVERALL ANALYSIS SUMMARY ===`);
+  console.log(`     📊 Dimension Scores:`);
+  console.log(`        Technical: ${scores.technical !== null ? scores.technical + '/100' : 'N/A'}`);
+  console.log(`        Content:   ${scores.content !== null ? scores.content + '/100' : 'N/A'}`);
+  console.log(`        Authority: ${scores.authority !== null ? scores.authority + '/100' : 'N/A'}`);
+  console.log(`        Quality:   ${scores.quality !== null ? scores.quality + '/100' : 'N/A'}`);
+  console.log(`     ─────────────────────────────`);
+  console.log(`     ✅ Total Rules Executed: ${totalRulesExecuted}`);
+  console.log(`     🤖 LLM-Enhanced Rules: ${llmUsageCount}`);
+  console.log(`     ⚠️  Total Issues: ${totalIssues} (🔴 ${criticalIssues} critical, 🟠 ${highIssues} high)`);
+  console.log(`     💡 Total Recommendations: ${allRecommendations.length}`);
+  console.log(`  =====================================\n`);
   
   return {
     scores,

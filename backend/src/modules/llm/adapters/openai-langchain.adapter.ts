@@ -92,7 +92,7 @@ export class OpenAILangChainAdapter implements LlmAdapter {
       const model = options?.model || 'gpt-4o';
 
       // Create a LangChain structured output parser from the Zod schema
-      const outputParser = StructuredOutputParser.fromZodSchema(schema);
+      const outputParser = StructuredOutputParser.fromZodSchema(schema as any);
 
       // Get the format instructions
       const formatInstructions = outputParser.getFormatInstructions();
@@ -123,7 +123,7 @@ export class OpenAILangChainAdapter implements LlmAdapter {
 
       try {
         // Use the output parser to parse and validate the response
-        const result = await chatModel.withStructuredOutput(schema).invoke(messages);
+        const result = await chatModel.withStructuredOutput(schema as any).invoke(messages);
         return result as T;
       } catch (error) {
         this.logger.error(error, `Failed to get structured output: ${error.message}`);

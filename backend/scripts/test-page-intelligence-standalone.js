@@ -206,6 +206,14 @@ async function analyzeCompany(company, runNumber, config) {
       limiter(async () => {
         try {
           const score = await analyzePageWithRules(page);
+          // Extract rules applied by dimension
+          const rulesApplied = {
+            technical: score.ruleResults?.technical?.map(r => r.ruleName || r.ruleId || 'Unknown').join(', ') || '',
+            content: score.ruleResults?.content?.map(r => r.ruleName || r.ruleId || 'Unknown').join(', ') || '',
+            authority: score.ruleResults?.authority?.map(r => r.ruleName || r.ruleId || 'Unknown').join(', ') || '',
+            quality: score.ruleResults?.quality?.map(r => r.ruleName || r.ruleId || 'Unknown').join(', ') || ''
+          };
+
           const pageResult = {
             company: company.name,
             companyUrl: company.url,
@@ -219,6 +227,10 @@ async function analyzeCompany(company, runNumber, config) {
             qualityScore: score.scores.quality ?? '',
             globalScore: score.globalScore,
             llmUsageCount: score.llmUsageCount || 0,
+            technicalRules: rulesApplied.technical,
+            contentRules: rulesApplied.content,
+            authorityRules: rulesApplied.authority,
+            qualityRules: rulesApplied.quality,
             issues: JSON.stringify(score.issues || []),
             recommendations: JSON.stringify(score.recommendations || []),
             timestamp: new Date().toISOString()
@@ -257,6 +269,10 @@ async function analyzeCompany(company, runNumber, config) {
             qualityScore: '',
             globalScore: 0,
             llmUsageCount: 0,
+            technicalRules: '',
+            contentRules: '',
+            authorityRules: '',
+            qualityRules: '',
             issues: JSON.stringify([{dimension: 'technical', severity: 'critical', description: error.message}]),
             recommendations: JSON.stringify([]),
             timestamp: new Date().toISOString()
@@ -271,7 +287,22 @@ async function analyzeCompany(company, runNumber, config) {
     const validPages = pageResults.filter(p => p.globalScore > 0);
     if (validPages.length > 0) {
       const avgGlobalScore = validPages.reduce((sum, p) => sum + p.globalScore, 0) / validPages.length;
-      console.log(`  Completed: ${validPages.length} pages analyzed, Avg Global Score = ${avgGlobalScore.toFixed(1)}/100`);
+      const avgTechnical = validPages.filter(p => p.technicalScore !== '').reduce((sum, p) => sum + p.technicalScore, 0) / validPages.filter(p => p.technicalScore !== '').length || 0;
+      const avgContent = validPages.filter(p => p.contentScore !== '').reduce((sum, p) => sum + p.contentScore, 0) / validPages.filter(p => p.contentScore !== '').length || 0;
+      const avgAuthority = validPages.filter(p => p.authorityScore !== '').reduce((sum, p) => sum + p.authorityScore, 0) / validPages.filter(p => p.authorityScore !== '').length || 0;
+      const avgQuality = validPages.filter(p => p.qualityScore !== '').reduce((sum, p) => sum + p.qualityScore, 0) / validPages.filter(p => p.qualityScore !== '').length || 0;
+      
+      console.log(`\n  🏢 === COMPANY ANALYSIS COMPLETE: ${company.name} ===`);
+      console.log(`     📄 Pages Analyzed: ${validPages.length}/${crawledPages.length}`);
+      console.log(`     🌐 Global Score Average: ${avgGlobalScore.toFixed(1)}/100`);
+      console.log(`     📊 Dimension Averages:`);
+      console.log(`        Technical: ${avgTechnical.toFixed(1)}/100`);
+      console.log(`        Content:   ${avgContent.toFixed(1)}/100`);
+      console.log(`        Authority: ${avgAuthority.toFixed(1)}/100`);
+      console.log(`        Quality:   ${avgQuality.toFixed(1)}/100`);
+      console.log(`  =====================================\n`);
+    } else {
+      console.log(`\n  ❌ No valid pages analyzed for ${company.name}\n`);
     }
     
     return pageResults;
@@ -291,6 +322,10 @@ async function analyzeCompany(company, runNumber, config) {
       qualityScore: '',
       globalScore: 0,
       llmUsageCount: 0,
+      technicalRules: '',
+      contentRules: '',
+      authorityRules: '',
+      qualityRules: '',
       issues: JSON.stringify([{dimension: 'technical', severity: 'critical', description: error.message}]),
       recommendations: JSON.stringify([]),
       timestamp: new Date().toISOString()
@@ -489,6 +524,10 @@ async function main() {
         { id: 'qualityScore', title: 'Quality Score' },
         { id: 'globalScore', title: 'Global Score' },
         { id: 'llmUsageCount', title: 'LLM Usage Count' },
+        { id: 'technicalRules', title: 'Technical Rules Applied' },
+        { id: 'contentRules', title: 'Content Rules Applied' },
+        { id: 'authorityRules', title: 'Authority Rules Applied' },
+        { id: 'qualityRules', title: 'Quality Rules Applied' },
         { id: 'issues', title: 'Issues (JSON)' },
         { id: 'recommendations', title: 'Recommendations (JSON)' },
         { id: 'timestamp', title: 'Timestamp' }

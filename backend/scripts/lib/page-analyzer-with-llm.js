@@ -97,7 +97,10 @@ async function analyzePageWithRules(pageData, options = {}) {
     const categorizer = new PageCategorizerService(llmClients);
     
     // Categorize the page
-    console.log(`  Categorizing page: ${pageData.url}`);
+    console.log(`\n🔍 ============================================`);
+    console.log(`🌐 ANALYZING PAGE: ${pageData.url}`);
+    console.log(`============================================`);
+    console.log(`  📋 Categorizing page...`);
     const pageCategory = await categorizer.categorize(
       pageData.url,
       pageData.html,
@@ -107,11 +110,11 @@ async function analyzePageWithRules(pageData, options = {}) {
       }
     );
     
-    console.log(`  Page categorized as: ${pageCategory.type} (confidence: ${pageCategory.confidence})`);
+    console.log(`  ✅ Page categorized as: ${pageCategory.type} (confidence: ${pageCategory.confidence})`);
     
     // Skip analysis for excluded pages
     if (pageCategory.analysisLevel === 'excluded') {
-      console.log(`  Skipping analysis for excluded page type: ${pageCategory.type}`);
+      console.log(`  ⏭️  Skipping analysis for excluded page type: ${pageCategory.type}`);
       return {
         scores: {
           technical: 0,

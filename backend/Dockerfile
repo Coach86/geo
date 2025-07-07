@@ -1,5 +1,8 @@
 # Base stage with common OS layer
-FROM node:20-alpine AS base
+FROM node:22-alpine AS base
+RUN npm install -g npm
+RUN npm install -g typescript
+RUN npm i -g @nestjs/cli
 
 # Stage 1: Install dependencies
 FROM base AS dependencies
@@ -15,7 +18,6 @@ COPY package*.json ./
 COPY .npmrc ./
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
-ENV NODE_OPTIONS="--max-old-space-size=8192"
 RUN npm run build
 
 # Stage 3: Production dependencies only
