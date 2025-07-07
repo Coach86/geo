@@ -6,7 +6,7 @@
   "scripts": {
     "prebuild": "rimraf dist",
     "build": "npm run build:backend && npm run build:frontend",
-    "build:backend": "node --max-old-space-size=4096 ./node_modules/@nestjs/cli/bin/nest.js build",
+    "build:backend": "node --max-old-space-size=8192 ./node_modules/@nestjs/cli/bin/nest.js build",
     "build:frontend": "webpack --config webpack.config.js",
     "build:clean": "rimraf dist public/static/js public/index.html && npm run build",
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",

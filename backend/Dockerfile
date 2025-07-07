@@ -15,7 +15,7 @@ COPY package*.json ./
 COPY .npmrc ./
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
-ENV NODE_OPTIONS="--max-old-space-size=4096"
+ENV NODE_OPTIONS="--max-old-space-size=8192"
 RUN npm run build
 
 # Stage 3: Production dependencies only
