@@ -1,8 +1,8 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const fs = require('fs');
 const csv = require('csv-parser');
 const { createObjectCsvWriter } = require('csv-writer');
-const path = require('path');
 const { default: pLimit } = require('p-limit');
 const axios = require('axios');
 const cheerio = require('cheerio');
@@ -23,6 +23,7 @@ const { URL } = require('url');
  *   --parallel <number>  Number of parallel operations (default: 5)
  *   --companies <number> Maximum companies to process, 0 for all (default: 0)
  *   --url <url>          Analyze a single URL instead of CSV
+ *   --filter-urls <urls> Only analyze specific URLs from CSV (comma-separated)
  *   --max-pages <number> Maximum pages to crawl per domain (default: 100)
  *   --help, -h           Show help message
  * 
@@ -30,6 +31,7 @@ const { URL } = require('url');
  *   node scripts/test-page-intelligence-standalone.js                        # Analyze all companies
  *   node scripts/test-page-intelligence-standalone.js --companies 5          # First 5 companies
  *   node scripts/test-page-intelligence-standalone.js --url https://example.com  # Single URL
+ *   node scripts/test-page-intelligence-standalone.js --filter-urls "https://site1.com,https://site2.com"  # Specific URLs
  * 
  * Output:
  *   Creates a CSV file in scripts/data/ with page intelligence scores
@@ -44,6 +46,7 @@ function parseArgs() {
     parallel: 5,
     companies: 0,
     url: null,
+    filterUrls: null,
     maxPages: 100,
     help: false
   };
@@ -83,6 +86,12 @@ function parseArgs() {
           i++;
         }
         break;
+      case '--filter-urls':
+        if (nextArg) {
+          config.filterUrls = nextArg.split(',').map(u => u.trim());
+          i++;
+        }
+        break;
       case '--help':
       case '-h':
         config.help = true;
@@ -108,6 +117,7 @@ Options:
   --parallel <number>  Number of parallel operations (default: 5)  
   --companies <number> Maximum companies to process, 0 for all (default: 0)
   --url <url>          Analyze a single URL instead of CSV
+  --filter-urls <urls> Only analyze specific URLs from CSV (comma-separated)
   --max-pages <number> Maximum pages to crawl per domain (default: 100)
   --help, -h           Show help message
 
@@ -115,6 +125,7 @@ Examples:
   node scripts/test-page-intelligence-standalone.js                        # Analyze all companies
   node scripts/test-page-intelligence-standalone.js --companies 5          # First 5 companies  
   node scripts/test-page-intelligence-standalone.js --url https://example.com  # Single URL
+  node scripts/test-page-intelligence-standalone.js --filter-urls "https://site1.com,https://site2.com"  # Specific URLs only
 
 Output:
   Creates a CSV file in scripts/data/ with page intelligence scores
@@ -162,6 +173,7 @@ const { crawlPages } = require('./lib/crawler');
 // Initialize rules and aggregator (imported from separate files)
 // Use LLM-enabled version if LLM keys are available
 const hasLLMKeys = process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY || process.env.GOOGLE_API_KEY;
+
 const { analyzePageWithRules } = hasLLMKeys 
   ? require('./lib/page-analyzer-with-llm')
   : require('./lib/page-analyzer');
@@ -183,20 +195,46 @@ async function analyzeCompany(company, runNumber, config) {
     
     if (crawledPages.length === 0) {
       console.log(`  WARNING: No pages could be crawled from ${company.url}`);
-      return null;
+      return [];
     }
     
     // Step 2: Analyze each page with rules
-    const pageScores = [];
+    const pageResults = [];
     const limiter = pLimit(config.parallel);
     
     const analysisPromises = crawledPages.map((page, index) => 
       limiter(async () => {
         try {
           const score = await analyzePageWithRules(page);
-          pageScores.push({
+          const pageResult = {
+            company: company.name,
+            companyUrl: company.url,
+            pageUrl: page.url,
+            run: runNumber,
+            pageCategory: score.pageCategory || 'unknown',
+            analysisLevel: score.analysisLevel || 'full',
+            technicalScore: score.scores.technical ?? '',
+            contentScore: score.scores.content ?? '',
+            authorityScore: score.scores.authority ?? '',
+            qualityScore: score.scores.quality ?? '',
+            globalScore: score.globalScore,
+            llmUsageCount: score.llmUsageCount || 0,
+            issues: JSON.stringify(score.issues || []),
+            recommendations: JSON.stringify(score.recommendations || []),
+            timestamp: new Date().toISOString()
+          };
+          
+          pageResults.push(pageResult);
+          
+          // Save to database
+          await savePageScore({
             url: page.url,
-            ...score
+            companyName: company.name,
+            runNumber: runNumber,
+            ...score.scores,
+            globalScore: score.globalScore,
+            issues: JSON.stringify(score.issues || []),
+            analyzedAt: new Date()
           });
           
           // Show progress
@@ -205,49 +243,58 @@ async function analyzeCompany(company, runNumber, config) {
           }
         } catch (error) {
           console.error(`  Error analyzing ${page.url}: ${error.message}`);
+          // Add error record
+          pageResults.push({
+            company: company.name,
+            companyUrl: company.url,
+            pageUrl: page.url,
+            run: runNumber,
+            pageCategory: 'error',
+            analysisLevel: 'excluded',
+            technicalScore: '',
+            contentScore: '',
+            authorityScore: '',
+            qualityScore: '',
+            globalScore: 0,
+            llmUsageCount: 0,
+            issues: JSON.stringify([{dimension: 'technical', severity: 'critical', description: error.message}]),
+            recommendations: JSON.stringify([]),
+            timestamp: new Date().toISOString()
+          });
         }
       })
     );
     
     await Promise.all(analysisPromises);
     
-    // Step 3: Calculate aggregate scores
-    const aggregateScores = calculateAggregateScores(pageScores);
-    
-    // Step 4: Save to database
-    for (const pageScore of pageScores) {
-      await savePageScore({
-        url: pageScore.url,
-        companyName: company.name,
-        runNumber: runNumber,
-        ...pageScore.scores,
-        globalScore: pageScore.globalScore,
-        issues: JSON.stringify(pageScore.issues || []),
-        analyzedAt: new Date()
-      });
+    // Calculate and show aggregate scores for logging
+    const validPages = pageResults.filter(p => p.globalScore > 0);
+    if (validPages.length > 0) {
+      const avgGlobalScore = validPages.reduce((sum, p) => sum + p.globalScore, 0) / validPages.length;
+      console.log(`  Completed: ${validPages.length} pages analyzed, Avg Global Score = ${avgGlobalScore.toFixed(1)}/100`);
     }
     
-    const result = {
-      company: company.name,
-      url: company.url,
-      run: runNumber,
-      pagesAnalyzed: pageScores.length,
-      ...aggregateScores,
-      timestamp: new Date().toISOString()
-    };
-    
-    console.log(`  Completed: Global Score = ${result.avgGlobalScore.toFixed(1)}/100`);
-    return result;
+    return pageResults;
     
   } catch (error) {
     console.error(`Error analyzing ${company.name}: ${error.message}`);
-    return {
+    return [{
       company: company.name,
-      url: company.url,
+      companyUrl: company.url,
+      pageUrl: company.url,
       run: runNumber,
-      error: error.message,
+      pageCategory: 'error',
+      analysisLevel: 'excluded',
+      technicalScore: '',
+      contentScore: '',
+      authorityScore: '',
+      qualityScore: '',
+      globalScore: 0,
+      llmUsageCount: 0,
+      issues: JSON.stringify([{dimension: 'technical', severity: 'critical', description: error.message}]),
+      recommendations: JSON.stringify([]),
       timestamp: new Date().toISOString()
-    };
+    }];
   }
 }
 
@@ -348,22 +395,62 @@ async function main() {
       // CSV mode
       companies = await loadCompaniesFromCSV();
       
-      if (config.companies > 0) {
+      // Filter by specific URLs if provided
+      if (config.filterUrls && config.filterUrls.length > 0) {
+        // Normalize URLs for comparison (handle trailing slashes, www, etc.)
+        const normalizeUrl = (url) => {
+          try {
+            const u = new URL(url.toLowerCase());
+            // Remove trailing slash and www
+            return u.hostname.replace(/^www\./, '') + u.pathname.replace(/\/$/, '');
+          } catch {
+            return url.toLowerCase().replace(/\/$/, '');
+          }
+        };
+        
+        const filterSet = new Set(config.filterUrls.map(normalizeUrl));
+        const originalCount = companies.length;
+        
+        companies = companies.filter(company => {
+          const normalized = normalizeUrl(company.url);
+          // Check exact match or if any filter URL is contained in the company URL
+          return filterSet.has(normalized) || 
+                 Array.from(filterSet).some(f => normalized.includes(f) || f.includes(normalized));
+        });
+        
+        console.log(`Filtered from ${originalCount} to ${companies.length} companies matching specified URLs`);
+        
+        // Report what was matched
+        if (companies.length > 0) {
+          console.log('Matched companies:');
+          companies.forEach(c => console.log(`  - ${c.name}: ${c.url}`));
+        }
+        
+        // Report any URLs that weren't found
+        const foundUrls = new Set(companies.map(c => normalizeUrl(c.url)));
+        const notFound = config.filterUrls.filter(u => {
+          const normalized = normalizeUrl(u);
+          return !Array.from(foundUrls).some(f => f.includes(normalized) || normalized.includes(f));
+        });
+        if (notFound.length > 0) {
+          console.log(`\nWarning: Following URLs not found in CSV: ${notFound.join(', ')}`);
+        }
+      } else if (config.companies > 0) {
         companies = companies.slice(0, config.companies);
         console.log(`Processing first ${config.companies} companies`);
       }
     }
     
-    // Create results array
-    const results = [];
+    // Create results array for all pages
+    const allPageResults = [];
     let processedCount = 0;
     
     // Process each company
     for (const company of companies) {
       for (let run = 1; run <= config.runs; run++) {
-        const result = await analyzeCompany(company, run, config);
-        if (result) {
-          results.push(result);
+        const pageResults = await analyzeCompany(company, run, config);
+        if (pageResults && pageResults.length > 0) {
+          allPageResults.push(...pageResults);
         }
         processedCount++;
         
@@ -374,49 +461,69 @@ async function main() {
       }
     }
     
-    // Write results to CSV
-    const timestamp = new Date().toISOString().split('T')[0];
-    const outputPath = path.join(__dirname, 'data', `page-intelligence-results-${timestamp}.csv`);
+    // Write page-level results to CSV with date/time suffix
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];
+    const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+    const outputDir = path.join(__dirname, 'data', 'page-intelligence');
+    
+    // Ensure output directory exists
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
+    
+    const outputPath = path.join(outputDir, `page-intelligence-results-${dateStr}-${timeStr}.csv`);
     
     const csvWriter = createObjectCsvWriter({
       path: outputPath,
       header: [
         { id: 'company', title: 'Company' },
-        { id: 'url', title: 'URL' },
+        { id: 'companyUrl', title: 'Company URL' },
+        { id: 'pageUrl', title: 'Page URL' },
         { id: 'run', title: 'Run' },
-        { id: 'pagesAnalyzed', title: 'Pages Analyzed' },
-        { id: 'avgTechnicalScore', title: 'Avg Technical Score' },
-        { id: 'avgContentScore', title: 'Avg Content Score' },
-        { id: 'avgAuthorityScore', title: 'Avg Authority Score' },
-        { id: 'avgQualityScore', title: 'Avg Quality Score' },
-        { id: 'avgGlobalScore', title: 'Avg Global Score' },
-        { id: 'topIssues', title: 'Top Issues' },
-        { id: 'error', title: 'Error' },
+        { id: 'pageCategory', title: 'Page Category' },
+        { id: 'analysisLevel', title: 'Analysis Level' },
+        { id: 'technicalScore', title: 'Technical Score' },
+        { id: 'contentScore', title: 'Content Score' },
+        { id: 'authorityScore', title: 'Authority Score' },
+        { id: 'qualityScore', title: 'Quality Score' },
+        { id: 'globalScore', title: 'Global Score' },
+        { id: 'llmUsageCount', title: 'LLM Usage Count' },
+        { id: 'issues', title: 'Issues (JSON)' },
+        { id: 'recommendations', title: 'Recommendations (JSON)' },
         { id: 'timestamp', title: 'Timestamp' }
       ]
     });
     
-    // Transform topIssues to string for CSV
-    const csvResults = results.map(r => ({
-      ...r,
-      topIssues: r.topIssues ? JSON.stringify(r.topIssues) : ''
-    }));
-    
-    await csvWriter.writeRecords(csvResults);
-    console.log(`\nResults written to: ${outputPath}`);
+    await csvWriter.writeRecords(allPageResults);
+    console.log(`\nPage-level results written to: ${outputPath}`);
     
     // Summary
     console.log('\n=== Analysis Summary ===');
     console.log(`Total companies analyzed: ${companies.length}`);
-    console.log(`Total runs: ${results.length}`);
-    console.log(`Successful analyses: ${results.filter(r => !r.error).length}`);
-    console.log(`Failed analyses: ${results.filter(r => r.error).length}`);
+    console.log(`Total pages analyzed: ${allPageResults.length}`);
+    console.log(`Successful page analyses: ${allPageResults.filter(p => p.globalScore > 0).length}`);
+    console.log(`Failed page analyses: ${allPageResults.filter(p => p.globalScore === 0).length}`);
+    console.log(`LLM-enabled pages: ${allPageResults.filter(p => p.llmUsageCount > 0).length}`);
     
-    if (results.length > 0) {
-      const avgGlobalScore = results
-        .filter(r => r.avgGlobalScore)
-        .reduce((sum, r) => sum + r.avgGlobalScore, 0) / results.filter(r => r.avgGlobalScore).length;
-      console.log(`Average global score across all: ${avgGlobalScore.toFixed(1)}/100`);
+    if (allPageResults.length > 0) {
+      const validPages = allPageResults.filter(p => p.globalScore > 0);
+      if (validPages.length > 0) {
+        const avgGlobalScore = validPages.reduce((sum, p) => sum + p.globalScore, 0) / validPages.length;
+        console.log(`Average global score across all pages: ${avgGlobalScore.toFixed(1)}/100`);
+        
+        // Page category breakdown
+        const categoryBreakdown = {};
+        validPages.forEach(p => {
+          categoryBreakdown[p.pageCategory] = (categoryBreakdown[p.pageCategory] || 0) + 1;
+        });
+        console.log('\nPage categories analyzed:');
+        Object.entries(categoryBreakdown)
+          .sort((a, b) => b[1] - a[1])
+          .forEach(([category, count]) => {
+            console.log(`  ${category}: ${count} pages`);
+          });
+      }
     }
     
   } catch (error) {

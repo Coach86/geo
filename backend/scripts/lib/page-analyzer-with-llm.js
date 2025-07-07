@@ -1,5 +1,5 @@
 const cheerio = require('cheerio');
-const { analyzeWithRules } = require('./rules/rule-engine-with-llm');
+const { analyzeWithRules } = require('./rules/rule-engine-with-filtering');
 const { PageCategorizerService } = require('./page-categorizer');
 
 // LLM imports
@@ -76,10 +76,10 @@ async function analyzePageWithRules(pageData, options = {}) {
   if (!pageData || !pageData.html) {
     return {
       scores: {
-        technical: 0,
-        content: 0,
-        authority: 0,
-        quality: 0
+        technical: null,
+        content: null,
+        authority: null,
+        quality: null
       },
       globalScore: 0,
       issues: [{
@@ -151,17 +151,17 @@ async function analyzePageWithRules(pageData, options = {}) {
       analysisLevel: pageCategory.analysisLevel
     });
     
-    // Calculate global score (average of dimensions)
+    // Calculate global score (average of dimensions) - exclude null scores
     const dimensionScores = [
       analysisResult.scores.technical,
       analysisResult.scores.content,
       analysisResult.scores.authority,
       analysisResult.scores.quality
-    ];
+    ].filter(score => score !== null);
     
-    const globalScore = Math.round(
-      dimensionScores.reduce((sum, score) => sum + score, 0) / dimensionScores.length
-    );
+    const globalScore = dimensionScores.length > 0 
+      ? Math.round(dimensionScores.reduce((sum, score) => sum + score, 0) / dimensionScores.length)
+      : 0;
     
     return {
       scores: analysisResult.scores,
@@ -180,10 +180,10 @@ async function analyzePageWithRules(pageData, options = {}) {
     
     return {
       scores: {
-        technical: 0,
-        content: 0,
-        authority: 0,
-        quality: 0
+        technical: null,
+        content: null,
+        authority: null,
+        quality: null
       },
       globalScore: 0,
       issues: [{

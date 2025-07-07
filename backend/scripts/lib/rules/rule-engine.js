@@ -31,11 +31,13 @@ async function analyzeWithRules(pageContent) {
   for (const [dimension, rules] of Object.entries(ruleGroups)) {
     const ruleResults = [];
     const ruleDetails = [];
+    console.log(`  Running ${dimension} rules: ${rules.length} rules`);
     
     // Run each rule in the dimension
     for (const Rule of rules) {
       try {
         const rule = new Rule();
+        console.log(`  Running ${dimension} rule: ${rule.name}`);
         const result = await rule.evaluate(pageContent.url, pageContent);
         
         ruleResults.push(result);

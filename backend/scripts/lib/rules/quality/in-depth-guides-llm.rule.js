@@ -1,5 +1,6 @@
 const { BaseRule } = require('../base-rule');
 const { z } = require('zod');
+const { PageCategoryType } = require('../../page-category-types');
 
 // Zod schema for structured output (focused on semantic analysis)
 const GuideTopicSchema = z.object({
@@ -25,7 +26,16 @@ const InDepthGuideAnalysisSchema = z.object({
 
 class InDepthGuidesLLMRule extends BaseRule {
   constructor(llmClients = {}) {
-    super('in-depth-guides-llm', 'In-Depth Guides (LLM)', 'quality');
+    super('in-depth-guides-llm', 'In-Depth Guides (LLM)', 'quality', {
+      impactScore: 3,
+      pageTypes: [
+        PageCategoryType.IN_DEPTH_GUIDE_WHITE_PAPER,
+        PageCategoryType.HOW_TO_GUIDE_TUTORIAL,
+        PageCategoryType.BLOG_POST_ARTICLE,
+        PageCategoryType.PILLAR_PAGE_TOPIC_HUB
+      ],
+      isDomainLevel: false
+    });
     this.llmClients = llmClients;
     
     // Scoring thresholds (based on real implementation)

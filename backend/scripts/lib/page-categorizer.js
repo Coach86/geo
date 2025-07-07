@@ -4,28 +4,8 @@ const Anthropic = require('@anthropic-ai/sdk');
 // Google AI is available through langchain
 const { ChatGoogleGenerativeAI } = require('@langchain/google-genai');
 
-// Page category types (from the real system)
-const PageCategoryType = {
-  HOMEPAGE: 'HOMEPAGE',
-  PRODUCT_PAGES: 'PRODUCT_PAGES',
-  SERVICE_PAGES: 'SERVICE_PAGES',
-  PILLAR_PAGES: 'PILLAR_PAGES',
-  BLOG_POSTS: 'BLOG_POSTS',
-  CASE_STUDIES: 'CASE_STUDIES',
-  GUIDES_TUTORIALS: 'GUIDES_TUTORIALS',
-  FAQ_PAGES: 'FAQ_PAGES',
-  TOOLS_CALCULATORS: 'TOOLS_CALCULATORS',
-  ABOUT_US: 'ABOUT_US',
-  PRIVATE_USER_ACCOUNT_PAGES: 'PRIVATE_USER_ACCOUNT_PAGES',
-  SEARCH_RESULTS_ERROR_PAGES: 'SEARCH_RESULTS_ERROR_PAGES',
-  UNKNOWN: 'UNKNOWN'
-};
-
-const AnalysisLevel = {
-  FULL: 'full',
-  PARTIAL: 'partial',
-  EXCLUDED: 'excluded'
-};
+// Import page category types from the single source of truth
+const { PageCategoryType, AnalysisLevel } = require('./page-category-types');
 
 class PageCategorizerService {
   constructor(llmClients = {}) {
@@ -73,12 +53,13 @@ class PageCategorizerService {
 
   /**
    * Quick categorization based on URL patterns only
+   * MATCHES REAL SYSTEM - only categorizes very obvious patterns
    */
   quickCategorizeByUrl(url) {
     const urlObj = new URL(url);
     const urlPath = urlObj.pathname.toLowerCase();
     
-    // Very obvious patterns
+    // Very obvious patterns only
     if (urlPath === '/' || urlPath === '') {
       return {
         type: PageCategoryType.HOMEPAGE,
@@ -106,61 +87,7 @@ class PageCategorizerService {
       };
     }
 
-    // Product/service indicators
-    if (urlPath.includes('/product') || urlPath.includes('/products')) {
-      return {
-        type: PageCategoryType.PRODUCT_PAGES,
-        confidence: 0.85,
-        analysisLevel: AnalysisLevel.FULL,
-        reason: 'Product URL pattern'
-      };
-    }
-
-    if (urlPath.includes('/service') || urlPath.includes('/services')) {
-      return {
-        type: PageCategoryType.SERVICE_PAGES,
-        confidence: 0.85,
-        analysisLevel: AnalysisLevel.FULL,
-        reason: 'Service URL pattern'
-      };
-    }
-
-    if (urlPath.includes('/blog/') || urlPath.includes('/news/')) {
-      return {
-        type: PageCategoryType.BLOG_POSTS,
-        confidence: 0.85,
-        analysisLevel: AnalysisLevel.FULL,
-        reason: 'Blog URL pattern'
-      };
-    }
-
-    if (urlPath.includes('/guide') || urlPath.includes('/tutorial') || urlPath.includes('/how-to')) {
-      return {
-        type: PageCategoryType.GUIDES_TUTORIALS,
-        confidence: 0.85,
-        analysisLevel: AnalysisLevel.FULL,
-        reason: 'Guide URL pattern'
-      };
-    }
-
-    if (urlPath.includes('/about')) {
-      return {
-        type: PageCategoryType.ABOUT_US,
-        confidence: 0.85,
-        analysisLevel: AnalysisLevel.FULL,
-        reason: 'About URL pattern'
-      };
-    }
-
-    if (urlPath.includes('/faq') || urlPath.includes('/questions')) {
-      return {
-        type: PageCategoryType.FAQ_PAGES,
-        confidence: 0.85,
-        analysisLevel: AnalysisLevel.FULL,
-        reason: 'FAQ URL pattern'
-      };
-    }
-
+    // Return null for everything else - let LLM decide
     return null;
   }
 
@@ -202,7 +129,7 @@ class PageCategorizerService {
               { role: 'system', content: 'You are a web page categorization expert.' },
               { role: 'user', content: prompt }
             ],
-            temperature: 0.2,
+            temperature: 0.1,
             response_format: { type: "json_object" }
           });
           return openaiResponse.choices[0].message.content;
@@ -213,7 +140,7 @@ class PageCategorizerService {
             model: 'claude-3-haiku-20240307',
             messages: [{ role: 'user', content: prompt }],
             max_tokens: 500,
-            temperature: 0.2,
+            temperature: 0.1,
             system: 'You are a web page categorization expert. Always respond with valid JSON.'
           });
           return anthropicResponse.content[0].text;
@@ -239,41 +166,50 @@ class PageCategorizerService {
     const title = metadata.title || '';
     const description = metadata.metaDescription || '';
     
-    return `Analyze this webpage and categorize it into one of these types:
+    // Use the EXACT prompt from the real system
+    return `Categorize this webpage into one of the following categories:
 
-Page Categories:
-- HOMEPAGE: Main landing page of a website
-- PRODUCT_PAGES: Individual product listings or details
-- SERVICE_PAGES: Service descriptions and offerings
-- PILLAR_PAGES: Comprehensive topic overview pages
-- BLOG_POSTS: Blog articles and news posts
-- CASE_STUDIES: Customer success stories and case studies
-- GUIDES_TUTORIALS: How-to guides and tutorials
-- FAQ_PAGES: Frequently asked questions
-- TOOLS_CALCULATORS: Interactive tools or calculators
-- ABOUT_US: About/team/company pages
-- PRIVATE_USER_ACCOUNT_PAGES: Login/account pages (should be excluded)
-- SEARCH_RESULTS_ERROR_PAGES: Search/404/error pages (should be excluded)
-- UNKNOWN: Cannot determine category
+TIER 1 - CORE BUSINESS & HIGH-IMPACT PAGES:
+- homepage: The primary entry point and brand showcase of the entire website
+- product_category_page: (PLP) Lists multiple products within a category
+- product_detail_page: (PDP) Dedicated page for a single product
+- services_features_page: Describes service offerings or product features
+- pricing_page: Clearly outlines costs and plans
+- comparison_page: Compares company's own products/services side-by-side
+- blog_post_article: Single, focused article to attract and engage readers
+- blog_category_tag_page: Archive page listing blog posts for a topic
+
+TIER 2 - STRATEGIC CONTENT & RESOURCES:
+- pillar_page_topic_hub: Comprehensive page covering a broad topic with links to cluster content
+- product_roundup_review_article: Expert comparison of products/services from different companies
+- how_to_guide_tutorial: Step-by-step instructional content
+- case_study_success_story: Real-world customer example demonstrating value
+- what_is_x_definitional_page: Defines a key term or concept
+- in_depth_guide_white_paper: Comprehensive content on complex subjects
+- faq_glossary_pages: Structured Q&A content and term definitions
+- public_forum_ugc_pages: User-generated content forums
+
+TIER 3 - SUPPORTING PAGES:
+- corporate_contact_pages: About Us, Team Page, Contact Us, Careers, Press/Media Room, Store Locator
+- private_user_account_pages: Login/Sign-up, User Profile/Dashboard, Order History, Wishlist
+- search_results_error_pages: Search Results Page, 404 Error Page
+- legal_pages: Privacy Policy, Terms of Service, Cookie Policy, Accessibility Statement
+
+- unknown: Cannot determine category
 
 URL: ${url}
-Title: ${title}
-Meta Description: ${description}
-Content Preview: ${contentPreview}
+TITLE: ${title}
+META DESCRIPTION: ${description}
 
-Respond with JSON containing:
+CONTENT (first 2000 chars):
+${contentPreview}
+
+Return ONLY a JSON object with:
 {
-  "category": "One of the categories above",
+  "category": "category_name",
   "confidence": 0.0-1.0,
-  "analysisLevel": "full|partial|excluded",
-  "reason": "Brief explanation"
-}
-
-Focus on:
-1. URL patterns and structure
-2. Page title and headings
-3. Content type and purpose
-4. Navigation and structural elements`;
+  "reason": "brief explanation"
+}`;
   }
 
   extractCleanContent($) {
@@ -294,7 +230,7 @@ Focus on:
       // Validate and normalize the result
       const category = parsed.category || PageCategoryType.UNKNOWN;
       const confidence = Math.max(0, Math.min(1, parsed.confidence || 0.5));
-      const analysisLevel = parsed.analysisLevel || AnalysisLevel.PARTIAL;
+      const analysisLevel = this.getAnalysisLevelForCategory(category);
       const reason = parsed.reason || 'LLM categorization';
       
       return {
@@ -306,6 +242,38 @@ Focus on:
     } catch (error) {
       console.error('Error parsing categorization result:', error);
       return null;
+    }
+  }
+
+  /**
+   * Get analysis level for a specific category
+   */
+  getAnalysisLevelForCategory(category) {
+    // Map categories to analysis levels based on their importance
+    const excludedCategories = [
+      PageCategoryType.SEARCH_RESULTS_ERROR_PAGES,
+      PageCategoryType.PRIVATE_USER_ACCOUNT_PAGES,
+      PageCategoryType.LEGAL_PAGES
+    ];
+
+    const partialCategories = [
+      PageCategoryType.PRICING_PAGE,
+      PageCategoryType.CORPORATE_CONTACT_PAGES
+    ];
+
+    const limitedCategories = [
+      PageCategoryType.PRODUCT_CATEGORY_PAGE,
+      PageCategoryType.BLOG_CATEGORY_TAG_PAGE
+    ];
+
+    if (excludedCategories.includes(category)) {
+      return AnalysisLevel.EXCLUDED;
+    } else if (partialCategories.includes(category)) {
+      return AnalysisLevel.PARTIAL;
+    } else if (limitedCategories.includes(category)) {
+      return AnalysisLevel.LIMITED;
+    } else {
+      return AnalysisLevel.FULL;
     }
   }
 }

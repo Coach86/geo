@@ -40,8 +40,8 @@ const insightsMenuItems: SidebarItem[] = [
 
 const optimizationMenuItems: SidebarItem[] = [
   { label: "Recommendations", icon: Lightbulb, href: "/recommendations" },
-  { label: "Page Intelligence", icon: FileText, href: "/content-kpi" },
-  { label: "Page Magic", icon: Sparkles, href: "/page-magic" },
+  { label: "Page Intelligence", icon: FileText, href: "/content-kpi", badge: "beta" },
+  { label: "Page Magic", icon: Sparkles, href: "/page-magic", badge: "beta" },
 ];
 
 interface SidebarProps {
@@ -133,7 +133,7 @@ export default function Sidebar({
                     />
                     <span className="flex-1">{item.label}</span>
                     {item.badge && (
-                      <span className="ml-auto inline-block rounded bg-accent-100 px-2 py-0.5 text-xs font-semibold text-accent-700">
+                      <span className="ml-auto inline-block rounded bg-accent-100 px-1.5 py-0.5 text-[10px] font-medium text-accent-700">
                         {item.badge}
                       </span>
                     )}
@@ -183,7 +183,7 @@ export default function Sidebar({
                     />
                     <span className="flex-1">{item.label}</span>
                     {item.badge && (
-                      <span className="ml-auto inline-block rounded bg-accent-100 px-2 py-0.5 text-xs font-semibold text-accent-700">
+                      <span className="ml-auto inline-block rounded bg-accent-100 px-1.5 py-0.5 text-[10px] font-medium text-accent-700">
                         {item.badge}
                       </span>
                     )}
