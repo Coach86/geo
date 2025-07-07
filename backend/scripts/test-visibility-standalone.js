@@ -66,7 +66,10 @@ function parseArgs() {
   const config = {
     runs: 5,
     parallel: 10,
-    companies: 0
+    companies: 0,
+    urls: [],
+    model: null,
+    competitorsForUrls: {} // Map of URL -> competitors array
   };
   
   for (let i = 0; i < args.length; i++) {
@@ -92,6 +95,36 @@ function parseArgs() {
           i++; // Skip next argument as it's the value
         }
         break;
+      case '--urls':
+        // Collect all URLs until the next flag or end of args
+        i++;
+        while (i < args.length && !args[i].startsWith('--')) {
+          config.urls.push(args[i]);
+          i++;
+        }
+        i--; // Back up one since the loop will increment
+        break;
+      case '--model':
+        if (nextArg && !nextArg.startsWith('--')) {
+          config.model = nextArg;
+          i++; // Skip next argument as it's the value
+        }
+        break;
+      case '--competitorsForUrls':
+        // Format: --competitorsForUrls url1 "competitor1,competitor2" url2 "competitor3,competitor4" ...
+        i++; // Move to first URL
+        while (i < args.length && !args[i].startsWith('--')) {
+          const url = args[i];
+          if (i + 1 < args.length && !args[i + 1].startsWith('--')) {
+            const competitorsStr = args[i + 1];
+            config.competitorsForUrls[url] = competitorsStr.split(',').map(c => c.trim());
+            i += 2; // Skip to next URL
+          } else {
+            i++; // Skip if no competitors provided
+          }
+        }
+        i--; // Back up one since the loop will increment
+        break;
       case '--help':
       case '-h':
         console.log(`
@@ -101,12 +134,22 @@ Options:
   --runs <number>      Number of runs per company (default: 5)
   --parallel <number>  Number of parallel API calls (default: 10)
   --companies <number> Maximum companies to process, 0 for all (default: 0)
+  --urls <url1> <url2> ... Process only companies with these URLs
+  --model <name>       Run only specific model (e.g., gpt-4o, gemini-2.0-flash)
+  --competitorsForUrls <url1> <competitors1> <url2> <competitors2> ... 
+                       Specify competitors for specific URLs (comma-separated competitors)
   --help, -h           Show this help message
 
 Examples:
   node scripts/test-visibility-standalone.js --runs 3 --parallel 5 --companies 2
   node scripts/test-visibility-standalone.js --runs 10 --parallel 20
   node scripts/test-visibility-standalone.js --companies 5
+  node scripts/test-visibility-standalone.js --urls https://example.com https://another.com
+  node scripts/test-visibility-standalone.js --runs 1 --urls https://specific-company.com
+  node scripts/test-visibility-standalone.js --model gpt-4o --runs 1
+  node scripts/test-visibility-standalone.js --model gemini-2.0-flash --companies 2
+  node scripts/test-visibility-standalone.js --competitorsForUrls https://example.com "CompanyA,CompanyB,CompanyC"
+  node scripts/test-visibility-standalone.js --competitorsForUrls https://site1.com "A,B,C" https://site2.com "X,Y,Z"
 `);
         process.exit(0);
         break;
@@ -128,16 +171,19 @@ const config = parseArgs();
 const NUM_RUNS = config.runs;
 const PARALLEL_LIMIT = config.parallel; // Number of parallel API calls
 const MAX_COMPANIES = config.companies; // 0 means process all
+const FILTER_URLS = config.urls; // Array of URLs to filter companies
+const FILTER_MODEL = config.model; // Specific model to run (optional)
+const COMPETITORS_FOR_URLS = config.competitorsForUrls; // Map of URL -> competitors array
 const INPUT_CSV = path.join(__dirname, 'data', 'Database Citations - Next 40 v2.csv');
 const OUTPUT_CSV = path.join(__dirname, 'data', `visibility-results-${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}-${NUM_RUNS}runs.csv`);
 
 // Initialize LLM clients and model configurations
 const llmClients = {};
-const modelConfigs = [];
+let allModelConfigs = [];
 
 if (process.env.OPENAI_API_KEY) {
   llmClients.openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  modelConfigs.push({ provider: 'openai', model: 'gpt-4o', name: 'GPT-4o' });
+  allModelConfigs.push({ provider: 'openai', model: 'gpt-4o', name: 'GPT-4o' });
 }
 
 // Claude models removed from execution
@@ -150,24 +196,24 @@ if (process.env.OPENAI_API_KEY) {
 
 if (process.env.GOOGLE_API_KEY) {
   llmClients.google = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
-  modelConfigs.push({ provider: 'google', model: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash' });
+  allModelConfigs.push({ provider: 'google', model: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash' });
 }
 
 if (process.env.MISTRAL_API_KEY) {
   llmClients.mistral = new Mistral({ apiKey: process.env.MISTRAL_API_KEY });
-  modelConfigs.push({ provider: 'mistral', model: 'mistral-medium-2505', name: 'Mistral Medium 2025' });
+  allModelConfigs.push({ provider: 'mistral', model: 'mistral-medium-2505', name: 'Mistral Medium 2025' });
 }
 
 if (process.env.PERPLEXITY_API_KEY) {
   // Perplexity uses LangChain directly, no client initialization needed
-  modelConfigs.push({ provider: 'perplexity', model: 'sonar-pro', name: 'Perplexity Sonar Pro' });
+  allModelConfigs.push({ provider: 'perplexity', model: 'sonar-pro', name: 'Perplexity Sonar Pro' });
 }
 
 if (process.env.XAI_API_KEY) {
   llmClients.grok = createXai({
     apiKey: process.env.XAI_API_KEY,
   });
-  modelConfigs.push({ provider: 'grok', model: 'grok-3-beta', name: 'Grok 3 Latest' });
+  allModelConfigs.push({ provider: 'grok', model: 'grok-3-beta', name: 'Grok 3 Latest' });
 }
 
 // DeepSeek temporarily disabled due to JSON parsing issues
@@ -176,8 +222,11 @@ if (process.env.XAI_API_KEY) {
 //     apiKey: process.env.DEEPSEEK_API_KEY,
 //     baseURL: 'https://api.deepseek.com'
 //   });
-//   modelConfigs.push({ provider: 'deepseek', model: 'deepseek-chat', name: 'DeepSeek Chat' });
+//   allModelConfigs.push({ provider: 'deepseek', model: 'deepseek-chat', name: 'DeepSeek Chat' });
 // }
+
+// Start with all model configs
+let modelConfigs = allModelConfigs;
 
 // Helper function to parse CSV
 async function parseCSV(filePath) {
@@ -434,20 +483,71 @@ async function callLLM(provider, model, prompt, temperature = 0.7) {
       case 'mistral':
         if (!llmClients.mistral) throw new Error('Mistral client not initialized');
         
-        // Mistral doesn't support web search tools (real adapter behavior)
+        // Mistral's web search is only available through Agents API, not chat completion
+        // For standard chat, we'll extract URLs from the response
+        const webAccessEnabled = true; // We want to extract URLs for visibility tests
+        
+        const mistralMessages = [
+          { 
+            role: 'system', 
+            content: 'You are a knowledgeable assistant. When discussing companies, products, or services, please include relevant websites and sources in your response.' 
+          },
+          { role: 'user', content: prompt }
+        ];
+        
         const mistralResponse = await llmClients.mistral.chat.complete({
           model: model,
-          messages: [
-            { 
-              role: 'system', 
-              content: 'You are a knowledgeable assistant. Use your most current training data and knowledge to provide accurate, up-to-date information.' 
-            },
-            { role: 'user', content: prompt }
-          ],
+          messages: mistralMessages,
           temperature,
+          // Note: web_search tool is only available through Agents API, not standard chat
         });
-        response = mistralResponse.choices[0].message.content;
-        // No web search capability
+        
+        // Handle the response
+        const choice = mistralResponse.choices[0];
+        
+        // Extract text content
+        if (choice.message?.content) {
+          if (typeof choice.message.content === 'string') {
+            response = choice.message.content;
+          } else if (Array.isArray(choice.message.content)) {
+            // Handle array content
+            response = choice.message.content
+              .map((chunk) => {
+                if (typeof chunk === 'string') return chunk;
+                if (chunk.type === 'text' && chunk.text) return chunk.text;
+                return '';
+              })
+              .join('');
+          }
+        }
+        
+        // Extract URLs from text (matching the real adapter behavior)
+        if (webAccessEnabled && response) {
+          const urlRegex = /https?:\/\/[^\s\)\]]+/g;
+          const urls = response.match(urlRegex) || [];
+          
+          const markdownLinkRegex = /\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g;
+          let match;
+          const foundUrls = new Set();
+          
+          while ((match = markdownLinkRegex.exec(response)) !== null) {
+            if (!foundUrls.has(match[2])) {
+              foundUrls.add(match[2]);
+            }
+          }
+          
+          for (const url of urls) {
+            if (!foundUrls.has(url)) {
+              foundUrls.add(url);
+            }
+          }
+          
+          websitesConsulted = Array.from(foundUrls);
+          
+          if (websitesConsulted.length > 0) {
+            console.log(`  Extracted ${websitesConsulted.length} URLs from Mistral response text`);
+          }
+        }
         break;
 
       case 'perplexity':
@@ -824,12 +924,15 @@ async function runSentimentTestForCompany(company) {
   // Create a limiter for parallel execution
   const limit = pLimit(PARALLEL_LIMIT);
   
+  // Get models to use (either filtered or all)
+  const modelsToUse = modelConfigs;
+  
   const tasks = [];
   for (let promptIdx = 0; promptIdx < contextualizedPrompts.length; promptIdx++) {
     const prompt = contextualizedPrompts[promptIdx];
     const originalPrompt = sentimentPrompts[promptIdx];
     
-    for (const modelConfig of modelConfigs) {
+    for (const modelConfig of modelsToUse) {
       const task = limit(async () => {
         try {
           console.log(`  Sentiment Model: ${modelConfig.name}, Prompt ${promptIdx + 1}/${contextualizedPrompts.length}`);
@@ -1323,8 +1426,38 @@ async function main() {
   console.log(`- Runs per company: ${NUM_RUNS}`);
   console.log(`- Parallel API calls: ${PARALLEL_LIMIT}`);
   console.log(`- Max companies: ${MAX_COMPANIES || 'all'}`);
+  if (FILTER_URLS.length > 0) {
+    console.log(`- Filter URLs: ${FILTER_URLS.join(', ')}`);
+  }
+  if (Object.keys(COMPETITORS_FOR_URLS).length > 0) {
+    console.log(`- Using provided competitors for specific URLs:`);
+    Object.entries(COMPETITORS_FOR_URLS).forEach(([url, competitors]) => {
+      console.log(`  - ${url}: ${competitors.join(', ')}`);
+    });
+  }
   console.log(`- Input: ${INPUT_CSV}`);
   console.log(`- Output: ${OUTPUT_CSV}`);
+  
+  // Filter models if specific model requested
+  if (FILTER_MODEL) {
+    const originalCount = allModelConfigs.length;
+    const filteredConfigs = allModelConfigs.filter(m => 
+      m.model === FILTER_MODEL || 
+      m.name.toLowerCase().includes(FILTER_MODEL.toLowerCase())
+    );
+    
+    if (filteredConfigs.length === 0) {
+      console.error(`\nModel '${FILTER_MODEL}' not found.`);
+      console.error('Available models:');
+      allModelConfigs.forEach(m => {
+        console.error(`  - ${m.model} (${m.name})`);
+      });
+      process.exit(1);
+    }
+    
+    modelConfigs = filteredConfigs;
+    console.log(`\nFiltered from ${originalCount} to ${modelConfigs.length} model(s) matching '${FILTER_MODEL}'`);
+  }
   
   // Check available models
   if (modelConfigs.length === 0) {
@@ -1346,7 +1479,7 @@ async function main() {
     process.exit(1);
   }
   
-  console.log(`\nAvailable models (${modelConfigs.length}):`);
+  console.log(`\nUsing models (${modelConfigs.length}):`);
   modelConfigs.forEach(config => {
     console.log(`- ${config.name} (${config.provider}/${config.model})`);
   });
@@ -1355,9 +1488,28 @@ async function main() {
   const allCompanies = await parseCSV(INPUT_CSV);
   console.log(`\nLoaded ${allCompanies.length} companies from CSV`);
   
+  // Apply URL filtering if specified
+  let companies = allCompanies;
+  if (FILTER_URLS.length > 0) {
+    companies = allCompanies.filter(company => {
+      const companyUrl = company['URL'];
+      return FILTER_URLS.some(filterUrl => {
+        // Normalize URLs for comparison (remove trailing slashes, protocol differences)
+        const normalizedCompanyUrl = companyUrl?.toLowerCase().replace(/\/$/, '').replace(/^https?:\/\//, '');
+        const normalizedFilterUrl = filterUrl.toLowerCase().replace(/\/$/, '').replace(/^https?:\/\//, '');
+        return normalizedCompanyUrl === normalizedFilterUrl;
+      });
+    });
+    console.log(`Filtered to ${companies.length} companies matching specified URLs`);
+    if (companies.length === 0) {
+      console.error('No companies found matching the specified URLs');
+      process.exit(1);
+    }
+  }
+  
   // Apply max companies limit if specified
-  const companies = MAX_COMPANIES > 0 ? allCompanies.slice(0, MAX_COMPANIES) : allCompanies;
   if (MAX_COMPANIES > 0) {
+    companies = companies.slice(0, MAX_COMPANIES);
     console.log(`Processing only the first ${MAX_COMPANIES} companies`);
   }
   console.log('');
@@ -1383,11 +1535,21 @@ async function main() {
     console.log(`[${i + 1}/${companies.length}] Processing ${company['Start-up']}`);
     console.log(`${'='.repeat(80)}`);
 
-    // Discover competitors using LLM (only once)
-    const language = company['Language']?.includes('FR') ? 'French' : 'English';
-    console.log(`\n📊 Discovering competitors for ${company['Start-up']}...`);
-    const competitors = await discoverCompetitors(company, language);
-    console.log(`✅ Discovered ${competitors.length} competitors: ${competitors.join(', ')}`);
+    // Get competitors - check if provided for this URL, otherwise discover using LLM
+    let competitors;
+    const companyUrl = company['URL'];
+    
+    // Check if competitors are provided for this specific URL
+    if (COMPETITORS_FOR_URLS[companyUrl]) {
+      competitors = COMPETITORS_FOR_URLS[companyUrl];
+      console.log(`\n📊 Using provided competitors for ${company['Start-up']} (${companyUrl}):`);
+      console.log(`✅ ${competitors.length} competitors: ${competitors.join(', ')}`);
+    } else {
+      const language = company['Language']?.includes('FR') ? 'French' : 'English';
+      console.log(`\n📊 Discovering competitors for ${company['Start-up']}...`);
+      competitors = await discoverCompetitors(company, language);
+      console.log(`✅ Discovered ${competitors.length} competitors: ${competitors.join(', ')}`);
+    }
 
     // Run visibility tests
     console.log(`\n🚀 Running visibility tests...`);

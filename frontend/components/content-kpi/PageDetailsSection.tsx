@@ -7,45 +7,65 @@ import { LLMAnalysisModal } from './LLMAnalysisModal';
 import { LLMAnalysisDetails } from './LLMAnalysisDetails';
 import { ScoreCalculationTable } from './ScoreCalculationTable';
 import { IssuesByDimension } from './IssuesByDimension';
-import { Sparkles, Info, CheckCircle } from 'lucide-react';
+import { Sparkles, Info, CheckCircle, Lightbulb } from 'lucide-react';
+
+interface EvidenceItem {
+  type: 'info' | 'success' | 'warning' | 'error' | 'score' | 'heading';
+  content: string;
+  target?: string;
+  code?: string;
+  score?: number;
+  maxScore?: number;
+  metadata?: Record<string, any>;
+}
+
+interface AIUsage {
+  modelName: string;
+  prompt: string;
+  response: string;
+}
+
+interface RuleResult {
+  ruleId: string;
+  ruleName: string;
+  category: 'technical' | 'structure' | 'authority' | 'quality';
+  score: number;
+  maxScore: number;
+  weight: number;
+  contribution: number;
+  passed: boolean;
+  evidence: EvidenceItem[];
+  recommendations?: string[];
+  issues?: Array<{
+    dimension: string;
+    severity: 'critical' | 'high' | 'medium' | 'low';
+    description: string;
+    recommendation: string;
+    affectedElements?: string[];
+  }>;
+  details?: Record<string, any>;
+  aiUsage?: AIUsage;
+}
+
+interface Recommendation {
+  content: string;
+  ruleId: string;
+  ruleCategory: string;
+}
 
 interface PageDetailsSectionProps {
   page: {
     url: string;
     details?: any;
-    calculationDetails?: {
-      authority?: any;
-      freshness?: any;
-      structure?: any;
-      brandAlignment?: any;
+    scores?: {
+      technical: number;
+      structure: number;
+      authority: number;
+      quality: number;
     };
-    ruleBasedAnalysis?: {
-      authority?: {
-        score: number;
-        details: any;
-        issues: any[];
-        calculationDetails: any;
-      };
-      freshness?: {
-        score: number;
-        details: any;
-        issues: any[];
-        calculationDetails: any;
-      };
-      structure?: {
-        score: number;
-        details: any;
-        issues: any[];
-        calculationDetails: any;
-      };
-      brand?: {
-        score: number;
-        details: any;
-        issues: any[];
-        calculationDetails: any;
-      };
-    };
-    strengths: string[];
+    globalScore?: number;
+    ruleResults?: RuleResult[];
+    recommendations?: string[] | Recommendation[];
     issues: any[];
     skipped?: boolean;
     skipReason?: string;
@@ -55,10 +75,10 @@ interface PageDetailsSectionProps {
 }
 
 const DIMENSION_COLORS = {
-  authority: '#8b5cf6',
-  freshness: '#3b82f6',
+  technical: '#8b5cf6',
   structure: '#10b981',
-  brand: '#ef4444',
+  authority: '#3b82f6',
+  quality: '#ef4444',
 };
 
 export function PageDetailsSection({ page, projectId, onIssueClick }: PageDetailsSectionProps) {
@@ -81,44 +101,62 @@ export function PageDetailsSection({ page, projectId, onIssueClick }: PageDetail
 
   return (
     <div className="p-4 space-y-4">
-      {/* AI Analysis Button */}
-      <div className="flex justify-end">
-        <LLMAnalysisModal 
-          projectId={projectId} 
-          pageUrl={page.url}
-          trigger={
-            <Button variant="outline" size="sm">
-              <Sparkles className="h-4 w-4 mr-2" />
-              View AI Analysis Details
-            </Button>
-          }
-        />
-      </div>
-
       {/* LLM Analysis Details */}
       {page.details && <LLMAnalysisDetails details={page.details} />}
 
       {/* Score Calculation Details */}
-      {(page.calculationDetails || page.ruleBasedAnalysis) && (
+      {page.ruleResults && page.ruleResults.length > 0 && (
         <ScoreCalculationTable 
-          calculationDetails={page.calculationDetails}
-          ruleBasedAnalysis={page.ruleBasedAnalysis}
+          scores={page.scores}
+          ruleResults={page.ruleResults}
+          pageUrl={page.url}
         />
       )}
 
-      {/* Strengths */}
-      {page.strengths.length > 0 && (
+      {/* Recommendations */}
+      {page.recommendations && page.recommendations.length > 0 && (
         <div>
           <h4 className="font-medium mb-2 flex items-center gap-2">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            Strengths
+            <Lightbulb className="h-4 w-4 text-yellow-600" />
+            Recommendations
           </h4>
-          <div className="flex flex-wrap gap-2">
-            {page.strengths.map((strength, i) => (
-              <Badge key={i} variant="success">
-                {strength}
-              </Badge>
-            ))}
+          <div className="space-y-3">
+            {page.recommendations.map((recommendation, i) => {
+              const isObject = typeof recommendation === 'object' && recommendation !== null;
+              const content = isObject ? (recommendation as Recommendation).content : recommendation;
+              const category = isObject ? (recommendation as Recommendation).ruleCategory : null;
+              const ruleId = isObject ? (recommendation as Recommendation).ruleId : null;
+              
+              return (
+                <div key={i} className="flex items-start gap-2 text-sm">
+                  <span className="text-muted-foreground">•</span>
+                  <div className="flex-1">
+                    <span className="text-muted-foreground">{content}</span>
+                    {isObject && (
+                      <div className="flex gap-2 mt-1">
+                        {category && (
+                          <Badge 
+                            variant="outline" 
+                            className="text-xs" 
+                            style={{ 
+                              borderColor: DIMENSION_COLORS[category.toLowerCase() as keyof typeof DIMENSION_COLORS],
+                              color: DIMENSION_COLORS[category.toLowerCase() as keyof typeof DIMENSION_COLORS]
+                            }}
+                          >
+                            {category}
+                          </Badge>
+                        )}
+                        {ruleId && (
+                          <span className="text-xs text-muted-foreground/60">
+                            {ruleId.replace(/_/g, ' ')}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

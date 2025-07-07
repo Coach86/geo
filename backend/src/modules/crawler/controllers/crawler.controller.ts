@@ -16,15 +16,10 @@ import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { WebCrawlerService } from '../services/web-crawler.service';
 import { ContentAnalyzerService } from '../services/content-analyzer.service';
 import { CrawlerPipelineService } from '../services/crawler-pipeline.service';
-import { ScoringRulesService } from '../services/scoring-rules.service';
+// ScoringRulesService removed - using AEO system now
 import { ProjectService } from '../../project/services/project.service';
+import { TriggerCrawlDto } from '../dto/trigger-crawl.dto';
 
-class TriggerCrawlDto {
-  maxPages?: number;
-  crawlDelay?: number;
-  includePatterns?: string[];
-  excludePatterns?: string[];
-}
 
 class UpdateScoringRulesDto {
   dimensions?: any;
@@ -40,7 +35,6 @@ export class CrawlerController {
     private readonly webCrawlerService: WebCrawlerService,
     private readonly contentAnalyzerService: ContentAnalyzerService,
     private readonly crawlerPipelineService: CrawlerPipelineService,
-    private readonly scoringRulesService: ScoringRulesService,
     private readonly projectService: ProjectService,
   ) {}
 
@@ -155,52 +149,11 @@ export class CrawlerController {
     return urlScore;
   }
 
-  @Post('content-scores/:url/reanalyze')
-  @ApiOperation({ summary: 'Reanalyze a specific URL' })
-  async reanalyzeUrl(
-    @Param('projectId') projectId: string,
-    @Param('url') encodedUrl: string,
-  ) {
-    const url = decodeURIComponent(encodedUrl);
-    const score = await this.contentAnalyzerService.reanalyzeUrl(projectId, url);
-    
-    return {
-      success: true,
-      score,
-    };
-  }
+  // Reanalyze method removed - use AEO scoring system
 
-  @Get('scoring-rules')
-  @ApiOperation({ summary: 'Get current scoring rules configuration' })
-  async getScoringRules() {
-    const rules = this.scoringRulesService.getScoringRules();
-    return rules;
-  }
+  // Scoring rules methods removed - use AEO system
 
-  @Post('scoring-rules')
-  @ApiOperation({ summary: 'Update scoring rules (admin only)' })
-  async updateScoringRules(
-    @Body() updates: UpdateScoringRulesDto,
-    @CurrentUser() user: any,
-  ) {
-    // Check if user is admin
-    if (!user.isAdmin) {
-      throw new HttpException('Admin access required', HttpStatus.FORBIDDEN);
-    }
-
-    const currentRules = this.scoringRulesService.getScoringRules();
-    const updatedRules = {
-      ...currentRules,
-      ...updates,
-    };
-
-    await this.scoringRulesService.saveScoringRules(updatedRules);
-    
-    return {
-      success: true,
-      rules: updatedRules,
-    };
-  }
+  // Update scoring rules method removed - use AEO system
 
   private identifyStrengths(scores: any): string[] {
     const strengths: string[] = [];

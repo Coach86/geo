@@ -4,13 +4,33 @@ import { useAuth } from '@/providers/auth-provider';
 
 export interface ContentScore {
   url: string;
+  title?: string;
   globalScore: number;
   scores: {
-    authority: number;
-    freshness: number;
+    technical: number;
     structure: number;
-    brandAlignment: number;
+    authority: number;
+    quality: number;
   };
+  ruleResults?: Array<{
+    ruleId: string;
+    ruleName: string;
+    category: 'technical' | 'structure' | 'authority' | 'quality';
+    score: number;
+    maxScore: number;
+    weight: number;
+    contribution: number;
+    passed: boolean;
+    evidence: string[];
+    issues?: Array<{
+      dimension: string;
+      severity: 'critical' | 'high' | 'medium' | 'low';
+      description: string;
+      recommendation: string;
+      affectedElements?: string[];
+    }>;
+    details?: Record<string, any>;
+  }>;
   details?: {
     authority: {
       hasAuthor: boolean;
@@ -100,25 +120,30 @@ export interface ContentScore {
     };
   };
   issues: Array<{
+    id?: string;
     dimension: string;
     severity: 'critical' | 'high' | 'medium' | 'low';
     description: string;
     recommendation: string;
+    affectedElements?: string[];
+    ruleId?: string;
+    ruleName?: string;
   }>;
   analyzedAt: string;
   pageCategory?: string;
   analysisLevel?: string;
   categoryConfidence?: number;
+  skipped?: boolean;
+  skipReason?: string;
 }
 
 export interface ContentKPIStats {
   totalPages: number;
   avgGlobalScore: number;
-  avgAuthorityScore: number;
-  avgFreshnessScore: number;
+  avgTechnicalScore: number;
   avgStructureScore: number;
-  avgSnippetScore: number;
-  avgBrandScore: number;
+  avgAuthorityScore: number;
+  avgQualityScore: number;
   scoreDistribution: Array<{
     _id: string;
     count: number;
@@ -133,21 +158,28 @@ export interface ContentKPIStats {
   }>;
 }
 
+export interface Recommendation {
+  content: string;
+  ruleId: string;
+  ruleCategory: string;
+}
+
 export interface ContentKPIReport {
   summary: {
     totalPages: number;
     avgGlobalScore: number;
     scoreBreakdown: {
-      authority: number;
-      freshness: number;
+      technical: number;
       structure: number;
-        brandAlignment: number;
+      authority: number;
+      quality: number;
     };
     lastAnalyzedAt: string | null;
   };
   scoreDistribution: any[];
   topPerformingPages: Array<{
     url: string;
+    title?: string;
     globalScore: number;
     strengths: string[];
   }>;
@@ -158,7 +190,7 @@ export interface ContentKPIReport {
   }>;
   issuesSummary: any[];
   criticalIssuesCount: number;
-  recommendations: string[];
+  recommendations: string[] | Recommendation[];
 }
 
 export function useContentKPI(projectId: string) {
@@ -190,11 +222,10 @@ export function useContentKPI(projectId: string) {
           stats: {
             totalPages: 0,
             avgGlobalScore: 0,
-            avgAuthorityScore: 0,
-            avgFreshnessScore: 0,
+            avgTechnicalScore: 0,
             avgStructureScore: 0,
-            avgSnippetScore: 0,
-            avgBrandScore: 0,
+            avgAuthorityScore: 0,
+            avgQualityScore: 0,
             scoreDistribution: [],
             issuesSummary: [],
           },
@@ -223,10 +254,10 @@ export function useContentKPI(projectId: string) {
             totalPages: 0,
             avgGlobalScore: 0,
             scoreBreakdown: {
-              authority: 0,
-              freshness: 0,
+              technical: 0,
               structure: 0,
-              brandAlignment: 0,
+              authority: 0,
+              quality: 0,
             },
             lastAnalyzedAt: null,
           },
@@ -241,7 +272,15 @@ export function useContentKPI(projectId: string) {
     }
   };
 
-  const triggerCrawl = async (options?: { maxPages?: number; crawlDelay?: number }) => {
+  const triggerCrawl = async (options?: { 
+    maxPages?: number; 
+    crawlDelay?: number;
+    userAgent?: string;
+    includePatterns?: string[];
+    excludePatterns?: string[];
+    mode?: 'auto' | 'manual';
+    manualUrls?: string[];
+  }) => {
     if (!token) throw new Error('Not authenticated');
     try {
       const response = await apiFetch(`/user/projects/${projectId}/crawler/crawl`, {

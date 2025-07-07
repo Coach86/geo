@@ -53,6 +53,10 @@ export class CrawledPageRepository {
       .exec();
   }
 
+  async markAsProcessed(id: string): Promise<CrawledPage | null> {
+    return this.updateProcessedStatus(id, true);
+  }
+
   async countByProjectId(projectId: string): Promise<number> {
     return this.crawledPageModel.countDocuments({ projectId }).exec();
   }

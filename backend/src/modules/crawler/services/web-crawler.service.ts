@@ -20,6 +20,8 @@ export interface CrawlOptions {
   userAgent?: string;
   timeout?: number;
   maxDepth?: number;
+  mode?: 'auto' | 'manual';
+  manualUrls?: string[];
 }
 
 export interface CrawlProgress {
@@ -69,17 +71,27 @@ export class WebCrawlerService {
     this.logger.log(`[CRAWLER] URL: ${startUrl}`);
     this.logger.log(`[CRAWLER] Max pages: ${options.maxPages}`);
     this.logger.log(`[CRAWLER] Crawl delay: ${options.crawlDelay}ms`);
+    if (options.userAgent) {
+      this.logger.log(`[CRAWLER] Custom user-agent: ${options.userAgent}`);
+    }
     
     // Normalize the start URL
     const normalizedStartUrl = this.normalizeUrl(startUrl);
     this.logger.log(`[CRAWLER] Normalized start URL: ${normalizedStartUrl}`);
     
     // Initialize crawl state
-    this.crawlQueue.set(projectId, new Set([normalizedStartUrl]));
+    if (options.mode === 'manual' && options.manualUrls) {
+      // For manual mode, add all manual URLs to the queue
+      const normalizedUrls = options.manualUrls.map(url => this.normalizeUrl(url));
+      this.crawlQueue.set(projectId, new Set(normalizedUrls));
+      this.logger.log(`[CRAWLER] Manual mode: Added ${normalizedUrls.length} URLs to queue`);
+    } else {
+      // For auto mode, start with the normalized URL and discover more
+      this.crawlQueue.set(projectId, new Set([normalizedStartUrl]));
+      // Try to discover URLs from sitemap first
+      await this.discoverUrlsFromSitemap(projectId, startUrl, options);
+    }
     this.crawledUrls.set(projectId, new Set());
-
-    // Try to discover URLs from sitemap first
-    await this.discoverUrlsFromSitemap(projectId, startUrl, options);
 
     const progress: CrawlProgress = {
       crawled: 0,
@@ -108,6 +120,9 @@ export class WebCrawlerService {
         await this.loadRobotsTxt(normalizedStartUrl);
       }
 
+      // Randomize the crawl queue to avoid crawling all pages from same section
+      this.randomizeCrawlQueue(projectId);
+      
       // Start crawling
       this.logger.log(`[CRAWLER] Starting crawl loop for project ${projectId}`);
       while (
@@ -209,7 +224,11 @@ export class WebCrawlerService {
           this.activeRequests++;
           try {
             this.logger.debug(`[CRAWLER] Active requests: ${this.activeRequests}/${this.maxConcurrentRequests}`);
-            return await this.axiosInstance.get(url);
+            // Use custom user-agent if provided
+            const headers = options.userAgent 
+              ? { 'User-Agent': options.userAgent }
+              : {};
+            return await this.axiosInstance.get(url, { headers });
           } finally {
             this.activeRequests--;
           }
@@ -251,8 +270,8 @@ export class WebCrawlerService {
       });
       this.logger.log(`[CRAWLER] Page saved successfully to database`);
 
-      // Extract and queue new URLs if successful
-      if (response.status === 200) {
+      // Extract and queue new URLs if successful (only in auto mode)
+      if (response.status === 200 && options.mode !== 'manual') {
         this.logger.debug(`[CRAWLER] Extracting URLs from ${url}`);
         const newUrls = this.extractUrls($, url, baseUrl);
         this.logger.log(`[CRAWLER] Found ${newUrls.length} URLs on page`);
@@ -759,5 +778,31 @@ export class WebCrawlerService {
     } catch (error) {
       return false;
     }
+  }
+
+  /**
+   * Randomize the crawl queue to avoid crawling all pages from the same section
+   */
+  private randomizeCrawlQueue(projectId: string): void {
+    const queue = this.crawlQueue.get(projectId);
+    if (!queue || queue.size <= 1) {
+      return;
+    }
+
+    // Convert Set to Array, shuffle, then convert back to Set
+    const urls = Array.from(queue);
+    this.logger.log(`[CRAWLER] Randomizing crawl queue with ${urls.length} URLs`);
+    
+    // Fisher-Yates shuffle algorithm
+    for (let i = urls.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [urls[i], urls[j]] = [urls[j], urls[i]];
+    }
+
+    // Clear and rebuild the queue with shuffled URLs
+    queue.clear();
+    urls.forEach(url => queue.add(url));
+    
+    this.logger.log(`[CRAWLER] Queue randomized successfully`);
   }
 }

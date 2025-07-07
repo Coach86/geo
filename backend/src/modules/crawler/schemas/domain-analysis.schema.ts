@@ -20,6 +20,31 @@ export class DomainAnalysis {
 
   @Prop({ type: Object, required: true })
   analysisResults: {
+    // AEO categories for domain-level analysis
+    technical: {
+      score: number;
+      maxScore: number;
+      evidence: string[];
+      details: Record<string, any>;
+      issues: Array<{
+        severity: 'critical' | 'high' | 'medium' | 'low';
+        description: string;
+        recommendation: string;
+        dimension?: 'technical' | 'structure' | 'authority' | 'quality';
+      }>;
+    };
+    structure: {
+      score: number;
+      maxScore: number;
+      evidence: string[];
+      details: Record<string, any>;
+      issues: Array<{
+        severity: 'critical' | 'high' | 'medium' | 'low';
+        description: string;
+        recommendation: string;
+        dimension?: 'technical' | 'structure' | 'authority' | 'quality';
+      }>;
+    };
     authority: {
       score: number;
       maxScore: number;
@@ -29,19 +54,28 @@ export class DomainAnalysis {
         severity: 'critical' | 'high' | 'medium' | 'low';
         description: string;
         recommendation: string;
+        dimension?: 'technical' | 'structure' | 'authority' | 'quality';
       }>;
     };
-    // Future domain-level dimensions can be added here
-    // freshness?: { ... };
-    // structure?: { ... };
-    // brandAlignment?: { ... };
+    quality: {
+      score: number;
+      maxScore: number;
+      evidence: string[];
+      details: Record<string, any>;
+      issues: Array<{
+        severity: 'critical' | 'high' | 'medium' | 'low';
+        description: string;
+        recommendation: string;
+        dimension?: 'technical' | 'structure' | 'authority' | 'quality';
+      }>;
+    };
   };
 
   @Prop({ type: [Object], required: true })
   ruleResults: Array<{
     ruleId: string;
     ruleName: string;
-    dimension: string;
+    dimension: 'technical' | 'structure' | 'authority' | 'quality';
     score: number;
     maxScore: number;
     weight: number;
@@ -64,7 +98,7 @@ export class DomainAnalysis {
     totalWeight: number;
     weightedScore: number;
     finalScore: number;
-    dimensionBreakdown: Record<string, {
+    dimensionBreakdown: Record<'technical' | 'structure' | 'authority' | 'quality', {
       score: number;
       weight: number;
       contribution: number;
@@ -74,8 +108,12 @@ export class DomainAnalysis {
   @Prop({ type: [String] })
   issues: string[];
 
-  @Prop({ type: [String] })
-  recommendations: string[];
+  @Prop({ type: [Object] })
+  recommendations: Array<{
+    content: string;
+    ruleId: string;
+    ruleCategory: string;
+  }>;
 
   @Prop({ type: Object })
   metadata: {
