@@ -40,8 +40,8 @@ const insightsMenuItems: SidebarItem[] = [
 
 const optimizationMenuItems: SidebarItem[] = [
   { label: "Recommendations", icon: Lightbulb, href: "/recommendations" },
-  { label: "Page Intelligence", icon: FileText, href: "/content-kpi", badge: "beta" },
-  { label: "Page Magic", icon: Sparkles, href: "/page-magic", badge: "beta" },
+  { label: "Page Intelligence", icon: FileText, href: "/content-kpi", badge: "alpha" },
+  { label: "Page Magic", icon: Sparkles, href: "/page-magic", badge: "poc" },
 ];
 
 interface SidebarProps {
