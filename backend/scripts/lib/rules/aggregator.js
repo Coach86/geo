@@ -78,7 +78,7 @@ class RuleAggregator {
   createEmptyScore(dimension) {
     return {
       dimension,
-      finalScore: 0,
+      finalScore: undefined, // Use undefined to distinguish from calculated score of 0
       maxPossibleScore: 100,
       ruleResults: [],
       evidence: ['No applicable rules for this dimension'],
@@ -87,7 +87,7 @@ class RuleAggregator {
         formula: 'No applicable rules',
         subScores: [],
         explanation: `No ${dimension} rules applied to this page`,
-        finalScore: 0
+        finalScore: undefined
       }
     };
   }
