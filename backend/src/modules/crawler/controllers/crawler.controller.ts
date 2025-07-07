@@ -18,13 +18,8 @@ import { ContentAnalyzerService } from '../services/content-analyzer.service';
 import { CrawlerPipelineService } from '../services/crawler-pipeline.service';
 // ScoringRulesService removed - using AEO system now
 import { ProjectService } from '../../project/services/project.service';
+import { TriggerCrawlDto } from '../dto/trigger-crawl.dto';
 
-class TriggerCrawlDto {
-  maxPages?: number;
-  crawlDelay?: number;
-  includePatterns?: string[];
-  excludePatterns?: string[];
-}
 
 class UpdateScoringRulesDto {
   dimensions?: any;

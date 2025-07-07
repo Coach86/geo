@@ -20,6 +20,8 @@ export interface CrawlOptions {
   userAgent?: string;
   timeout?: number;
   maxDepth?: number;
+  mode?: 'auto' | 'manual';
+  manualUrls?: string[];
 }
 
 export interface CrawlProgress {
@@ -69,17 +71,27 @@ export class WebCrawlerService {
     this.logger.log(`[CRAWLER] URL: ${startUrl}`);
     this.logger.log(`[CRAWLER] Max pages: ${options.maxPages}`);
     this.logger.log(`[CRAWLER] Crawl delay: ${options.crawlDelay}ms`);
+    if (options.userAgent) {
+      this.logger.log(`[CRAWLER] Custom user-agent: ${options.userAgent}`);
+    }
     
     // Normalize the start URL
     const normalizedStartUrl = this.normalizeUrl(startUrl);
     this.logger.log(`[CRAWLER] Normalized start URL: ${normalizedStartUrl}`);
     
     // Initialize crawl state
-    this.crawlQueue.set(projectId, new Set([normalizedStartUrl]));
+    if (options.mode === 'manual' && options.manualUrls) {
+      // For manual mode, add all manual URLs to the queue
+      const normalizedUrls = options.manualUrls.map(url => this.normalizeUrl(url));
+      this.crawlQueue.set(projectId, new Set(normalizedUrls));
+      this.logger.log(`[CRAWLER] Manual mode: Added ${normalizedUrls.length} URLs to queue`);
+    } else {
+      // For auto mode, start with the normalized URL and discover more
+      this.crawlQueue.set(projectId, new Set([normalizedStartUrl]));
+      // Try to discover URLs from sitemap first
+      await this.discoverUrlsFromSitemap(projectId, startUrl, options);
+    }
     this.crawledUrls.set(projectId, new Set());
-
-    // Try to discover URLs from sitemap first
-    await this.discoverUrlsFromSitemap(projectId, startUrl, options);
 
     const progress: CrawlProgress = {
       crawled: 0,
@@ -212,7 +224,11 @@ export class WebCrawlerService {
           this.activeRequests++;
           try {
             this.logger.debug(`[CRAWLER] Active requests: ${this.activeRequests}/${this.maxConcurrentRequests}`);
-            return await this.axiosInstance.get(url);
+            // Use custom user-agent if provided
+            const headers = options.userAgent 
+              ? { 'User-Agent': options.userAgent }
+              : {};
+            return await this.axiosInstance.get(url, { headers });
           } finally {
             this.activeRequests--;
           }
@@ -254,8 +270,8 @@ export class WebCrawlerService {
       });
       this.logger.log(`[CRAWLER] Page saved successfully to database`);
 
-      // Extract and queue new URLs if successful
-      if (response.status === 200) {
+      // Extract and queue new URLs if successful (only in auto mode)
+      if (response.status === 200 && options.mode !== 'manual') {
         this.logger.debug(`[CRAWLER] Extracting URLs from ${url}`);
         const newUrls = this.extractUrls($, url, baseUrl);
         this.logger.log(`[CRAWLER] Found ${newUrls.length} URLs on page`);

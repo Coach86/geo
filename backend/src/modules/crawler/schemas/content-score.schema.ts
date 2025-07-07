@@ -4,11 +4,14 @@ import { DimensionCalculationDetails } from '../interfaces/score-calculation.int
 import { RuleResult } from '../interfaces/rule.interface';
 
 export interface ScoreIssue {
+  id?: string;
   dimension: string;
   severity: 'critical' | 'high' | 'medium' | 'low';
   description: string;
   recommendation: string;
   affectedElements?: string[];
+  ruleId?: string;
+  ruleName?: string;
 }
 
 // Legacy interfaces - kept for migration purposes

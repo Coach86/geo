@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import type { Socket } from 'socket.io-client';
 
 export interface CrawlerEvent {
@@ -27,11 +27,34 @@ export function useCrawlerEvents({ projectId, token, onCrawlerEvent }: UseCrawle
   const [isConnected, setIsConnected] = useState(false);
   const [crawlerStatus, setCrawlerStatus] = useState<CrawlerEvent | null>(null);
   const onCrawlerEventRef = useRef(onCrawlerEvent);
+  const projectIdRef = useRef(projectId);
 
-  // Update the ref when onCrawlerEvent changes
+  // Update refs when props change
   useEffect(() => {
     onCrawlerEventRef.current = onCrawlerEvent;
   }, [onCrawlerEvent]);
+
+  useEffect(() => {
+    projectIdRef.current = projectId;
+  }, [projectId]);
+
+  // Handle incoming crawler event - stable callback
+  const handleCrawlerEvent = useCallback((event: CrawlerEvent) => {
+    console.log('[useCrawlerEvents] Processing crawler event:', event);
+
+    // Only process events for our project
+    if (event.projectId !== projectIdRef.current) {
+      return;
+    }
+
+    // Update crawler status
+    setCrawlerStatus(event);
+
+    // Call custom handler if provided
+    if (onCrawlerEventRef.current) {
+      onCrawlerEventRef.current(event);
+    }
+  }, []);
 
   // Connect to WebSocket for crawler events
   useEffect(() => {
@@ -46,23 +69,6 @@ export function useCrawlerEvents({ projectId, token, onCrawlerEvent }: UseCrawle
 
     // Dynamic import to avoid SSR issues
     import('socket.io-client').then(({ io }) => {
-      // Handle incoming crawler event
-      const handleCrawlerEvent = (event: CrawlerEvent) => {
-        console.log('[useCrawlerEvents] Processing crawler event:', event);
-
-        // Only process events for our project
-        if (event.projectId !== projectId) {
-          return;
-        }
-
-        // Update crawler status
-        setCrawlerStatus(event);
-
-        // Call custom handler if provided
-        if (onCrawlerEventRef.current) {
-          onCrawlerEventRef.current(event);
-        }
-      };
 
       // Socket.IO Configuration
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
@@ -159,24 +165,24 @@ export function useCrawlerEvents({ projectId, token, onCrawlerEvent }: UseCrawle
         socketRef.current = null;
       }
     };
-  }, [token, projectId]);
+  }, [token, projectId, handleCrawlerEvent]);
 
-  // Check if crawler is active
-  const isActive = useCallback((): boolean => {
+  // Check if crawler is active - use useMemo instead of useCallback
+  const isActive = useMemo(() => {
     return crawlerStatus?.eventType === 'crawler.started' || 
            crawlerStatus?.eventType === 'crawler.progress' ||
            crawlerStatus?.eventType === 'crawler.page_crawled';
   }, [crawlerStatus]);
 
-  // Get current progress
-  const getProgress = useCallback((): number => {
+  // Get current progress - use useMemo instead of useCallback
+  const progress = useMemo(() => {
     return crawlerStatus?.progress || 0;
   }, [crawlerStatus]);
 
   return {
     isConnected,
     crawlerStatus,
-    isActive: isActive(),
-    progress: getProgress(),
+    isActive,
+    progress,
   };
 }

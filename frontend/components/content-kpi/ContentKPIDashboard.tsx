@@ -1075,6 +1075,7 @@ export function ContentKPIDashboard({
                         sourceType: 'page' | 'domain';
                         issue: any;
                         dimension: string;
+                        pageTitle?: string;
                       }> = [];
 
                       // Get issues from page analysis
@@ -1085,7 +1086,8 @@ export function ContentKPIDashboard({
                               source: page.url,
                               sourceType: 'page',
                               issue,
-                              dimension: issue.dimension || 'General'
+                              dimension: issue.dimension || 'General',
+                              pageTitle: page.title
                             });
                           });
                         }
@@ -1109,15 +1111,36 @@ export function ContentKPIDashboard({
                         }
                       });
 
-                      // Sort issues by severity (critical > high > medium > low)
-                      const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
-                      allIssues.sort((a, b) => {
-                        const severityA = severityOrder[a.issue.severity as keyof typeof severityOrder] ?? 4;
-                        const severityB = severityOrder[b.issue.severity as keyof typeof severityOrder] ?? 4;
+                      // Group issues by ID (ruleId or id)
+                      const groupedIssues = allIssues.reduce((acc, item) => {
+                        const issueKey = item.issue.ruleId || item.issue.id || `${item.issue.description}_${item.issue.severity}`;
+                        
+                        if (!acc[issueKey]) {
+                          acc[issueKey] = {
+                            issue: item.issue,
+                            dimension: item.dimension,
+                            pages: []
+                          };
+                        }
+                        
+                        acc[issueKey].pages.push({
+                          source: item.source,
+                          sourceType: item.sourceType,
+                          title: item.pageTitle
+                        });
+                        
+                        return acc;
+                      }, {} as Record<string, { issue: any; dimension: string; pages: Array<{ source: string; sourceType: string; title?: string }> }>);
+
+                      // Convert to array and sort by severity
+                      const sortedGroupedIssues = Object.entries(groupedIssues).sort((a, b) => {
+                        const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+                        const severityA = severityOrder[a[1].issue.severity as keyof typeof severityOrder] ?? 4;
+                        const severityB = severityOrder[b[1].issue.severity as keyof typeof severityOrder] ?? 4;
                         return severityA - severityB;
                       });
 
-                      if (allIssues.length === 0) {
+                      if (sortedGroupedIssues.length === 0) {
                         return (
                           <tr>
                             <td colSpan={5} className="text-center py-8">
@@ -1129,15 +1152,15 @@ export function ContentKPIDashboard({
                         );
                       }
 
-                      return allIssues.map((item, index) => {
-                        const Icon = SEVERITY_ICONS[item.issue.severity as keyof typeof SEVERITY_ICONS] || Info;
-                        const severityColor = SEVERITY_COLORS[item.issue.severity as keyof typeof SEVERITY_COLORS] || '#6b7280';
+                      return sortedGroupedIssues.map(([issueKey, groupedIssue], index) => {
+                        const Icon = SEVERITY_ICONS[groupedIssue.issue.severity as keyof typeof SEVERITY_ICONS] || Info;
+                        const severityColor = SEVERITY_COLORS[groupedIssue.issue.severity as keyof typeof SEVERITY_COLORS] || '#6b7280';
                         
                         return (
                           <tr 
-                            key={index} 
+                            key={issueKey} 
                             className="border-b hover:bg-gray-50 transition-colors cursor-pointer"
-                            onClick={() => handleOpenGuide(item.issue.description, item.dimension.toLowerCase(), item.issue.severity)}
+                            onClick={() => handleOpenGuide(groupedIssue.issue.description, groupedIssue.dimension.toLowerCase(), groupedIssue.issue.severity)}
                           >
                             <td className="py-3 px-4">
                               <div className="flex items-center gap-2">
@@ -1151,43 +1174,67 @@ export function ContentKPIDashboard({
                                     backgroundColor: `${severityColor}10`
                                   }}
                                 >
-                                  {item.issue.severity}
+                                  {groupedIssue.issue.severity}
                                 </Badge>
                               </div>
                             </td>
                             <td className="py-3 px-4">
                               <div className="space-y-1">
-                                <p className="text-sm text-gray-900">{item.issue.description}</p>
-                                {item.issue.recommendation && (
+                                <p className="text-sm text-gray-900 font-medium">
+                                  {groupedIssue.issue.ruleName || groupedIssue.issue.description}
+                                </p>
+                                {groupedIssue.issue.ruleName && (
+                                  <p className="text-xs text-gray-600">{groupedIssue.issue.description}</p>
+                                )}
+                                {groupedIssue.issue.recommendation && (
                                   <p className="text-xs text-gray-600">
-                                    <span className="font-medium">Recommendation:</span> {item.issue.recommendation}
+                                    <span className="font-medium">Recommendation:</span> {groupedIssue.issue.recommendation}
                                   </p>
                                 )}
                               </div>
                             </td>
                             <td className="py-3 px-4">
                               <Badge variant="outline" className="text-xs">
-                                {item.dimension}
+                                {groupedIssue.dimension}
                               </Badge>
                             </td>
                             <td className="py-3 px-4">
-                              {item.sourceType === 'page' ? (
-                                <a
-                                  href={item.source}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-sm text-blue-600 hover:underline flex items-center gap-1"
-                                >
-                                  {item.source.length > 50 ? item.source.substring(0, 50) + '...' : item.source}
-                                  <ExternalLink className="h-3 w-3" />
-                                </a>
-                              ) : (
-                                <span className="text-sm text-gray-700">{item.source}</span>
-                              )}
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <Badge variant="secondary" className="text-xs">
+                                    {groupedIssue.pages.length} {groupedIssue.pages.length === 1 ? 'page' : 'pages'}
+                                  </Badge>
+                                </div>
+                                <div className="space-y-0.5 max-h-20 overflow-y-auto">
+                                  {groupedIssue.pages.slice(0, 3).map((page, idx) => (
+                                    <div key={idx}>
+                                      {page.sourceType === 'page' ? (
+                                        <a
+                                          href={page.source}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          {page.title || formatUrlForDisplay(page.source, 40)}
+                                          <ExternalLink className="h-2.5 w-2.5" />
+                                        </a>
+                                      ) : (
+                                        <span className="text-xs text-gray-700">{page.source}</span>
+                                      )}
+                                    </div>
+                                  ))}
+                                  {groupedIssue.pages.length > 3 && (
+                                    <p className="text-xs text-gray-500 font-medium">
+                                      +{groupedIssue.pages.length - 3} more
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
                             </td>
                             <td className="py-3 px-4">
                               <Badge variant="secondary" className="text-xs">
-                                {item.sourceType === 'page' ? 'Page' : 'Domain'}
+                                {groupedIssue.pages.some(p => p.sourceType === 'domain') ? 'Mixed' : 'Pages'}
                               </Badge>
                             </td>
                           </tr>

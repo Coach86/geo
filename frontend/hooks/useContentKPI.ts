@@ -272,7 +272,15 @@ export function useContentKPI(projectId: string) {
     }
   };
 
-  const triggerCrawl = async (options?: { maxPages?: number; crawlDelay?: number }) => {
+  const triggerCrawl = async (options?: { 
+    maxPages?: number; 
+    crawlDelay?: number;
+    userAgent?: string;
+    includePatterns?: string[];
+    excludePatterns?: string[];
+    mode?: 'auto' | 'manual';
+    manualUrls?: string[];
+  }) => {
     if (!token) throw new Error('Not authenticated');
     try {
       const response = await apiFetch(`/user/projects/${projectId}/crawler/crawl`, {

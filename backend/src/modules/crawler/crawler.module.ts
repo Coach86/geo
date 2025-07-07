@@ -85,6 +85,7 @@ import { LlmModule } from '../llm/llm.module';
     RuleAggregatorService,
     AEORuleRegistryService,
     AEOScoringService,
+    AEOContentAnalyzerService,
   ],
 })
 export class CrawlerModule {}

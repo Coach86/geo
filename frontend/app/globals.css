@@ -97,6 +97,21 @@
   .btn-secondary {
     @apply bg-mono-50 hover:bg-mono-100 text-mono-800 font-medium rounded-lg px-6 py-3 border border-mono-200 shadow-sm transition-all duration-200;
   }
+}
+
+@layer utilities {
+  @keyframes pulse-subtle {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
+  
+  .animate-pulse-subtle {
+    animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
 
   .btn-outline {
     @apply bg-transparent hover:bg-accent-50 text-mono-800 font-medium rounded-lg px-6 py-3 border border-mono-200 shadow-sm transition-all duration-200;
@@ -379,4 +394,65 @@
   .animation-delay-400 {
     animation-delay: 400ms;
   }
+}
+
+/* Page Magic Content Styles - Override global and prose styles */
+.page-magic-content h1,
+.page-magic-content h2,
+.page-magic-content h3,
+.page-magic-content h4,
+.page-magic-content h5,
+.page-magic-content h6 {
+  @apply !font-display !font-semibold !tracking-tight !text-mono-900;
+}
+
+.page-magic-content h1 {
+  @apply !text-xl !mt-8 !mb-4;
+}
+
+.page-magic-content h2 {
+  @apply !text-lg !mt-8 !mb-4;
+}
+
+.page-magic-content h3 {
+  @apply !text-base !mt-6 !mb-3;
+}
+
+.page-magic-content h4 {
+  @apply !text-base !mt-6 !mb-3;
+}
+
+.page-magic-content h5 {
+  @apply !text-sm !mt-4 !mb-2;
+}
+
+.page-magic-content h6 {
+  @apply !text-sm !mt-4 !mb-2;
+}
+
+/* First heading should not have top margin */
+.page-magic-content h1:first-child,
+.page-magic-content h2:first-child,
+.page-magic-content h3:first-child,
+.page-magic-content h4:first-child,
+.page-magic-content h5:first-child,
+.page-magic-content h6:first-child {
+  @apply !mt-0;
+}
+
+/* Override prose styles */
+.prose.page-magic-content h1,
+.prose.page-magic-content h2,
+.prose.page-magic-content h3,
+.prose.page-magic-content h4,
+.prose.page-magic-content h5,
+.prose.page-magic-content h6,
+.prose-sm.page-magic-content h1,
+.prose-sm.page-magic-content h2,
+.prose-sm.page-magic-content h3,
+.prose-sm.page-magic-content h4,
+.prose-sm.page-magic-content h5,
+.prose-sm.page-magic-content h6 {
+  @apply !leading-tight;
+  line-height: 1.25 !important;
 }

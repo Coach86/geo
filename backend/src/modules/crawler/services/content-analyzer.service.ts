@@ -37,11 +37,15 @@ export class ContentAnalyzerService {
     protected readonly domainAnalysisService: DomainAnalysisService,
   ) {}
 
-  async analyzeProjectContent(projectId: string, limit?: number): Promise<void> {
-    this.logger.log(`[ANALYZER] Starting content analysis for project ${projectId}`);
+  async analyzeProjectContent(projectId: string, limit?: number, mode?: 'auto' | 'manual'): Promise<void> {
+    this.logger.log(`[ANALYZER] Starting content analysis for project ${projectId} in ${mode || 'auto'} mode`);
 
-    // Clear existing analysis data to ensure fresh results
-    await this.contentScoreRepository.deleteByProjectId(projectId);
+    // Clear existing analysis data only in auto mode to ensure fresh results
+    if (mode !== 'manual') {
+      await this.contentScoreRepository.deleteByProjectId(projectId);
+    } else {
+      this.logger.log('[ANALYZER] Manual mode: preserving existing content scores');
+    }
     
     // Get project details
     const project = await this.projectService.findById(projectId);
