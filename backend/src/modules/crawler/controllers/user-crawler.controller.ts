@@ -11,8 +11,7 @@ import {
   NotFoundException,
   Logger,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsNumber, IsArray, IsString } from 'class-validator';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { TokenRoute } from '../../auth/decorators/token-route.decorator';
 import { WebCrawlerService } from '../services/web-crawler.service';
 import { ContentAnalyzerService } from '../services/content-analyzer.service';
@@ -22,30 +21,8 @@ import { UserService } from '../../user/services/user.service';
 import { RuleRegistryService } from '../rules/registry/rule-registry.service';
 import { DomainAnalysisService } from '../services/domain-analysis.service';
 import { AEORuleRegistryService } from '../services/aeo-rule-registry.service';
+import { TriggerCrawlDto } from '../dto/trigger-crawl.dto';
 
-class TriggerCrawlDto {
-  @ApiProperty({ description: 'Maximum number of pages to crawl', required: false, default: 100 })
-  @IsOptional()
-  @IsNumber()
-  maxPages?: number;
-
-  @ApiProperty({ description: 'Delay between crawl requests in milliseconds', required: false, default: 1000 })
-  @IsOptional()
-  @IsNumber()
-  crawlDelay?: number;
-
-  @ApiProperty({ description: 'URL patterns to include in crawl', required: false, type: [String] })
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  includePatterns?: string[];
-
-  @ApiProperty({ description: 'URL patterns to exclude from crawl', required: false, type: [String] })
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  excludePatterns?: string[];
-}
 
 @ApiTags('User - Content KPI')
 @Controller('user/projects/:projectId/crawler')
@@ -98,6 +75,32 @@ export class UserCrawlerController {
     if (options.maxPages !== undefined) {
       if (options.maxPages < 1 || options.maxPages > 100) {
         throw new HttpException('maxPages must be between 1 and 100', HttpStatus.BAD_REQUEST);
+      }
+    }
+
+    // Validate manual URLs if in manual mode
+    if (options.mode === 'manual' && options.manualUrls) {
+      const projectDomain = new URL(project.website).hostname.replace(/^www\./, '');
+      
+      for (const url of options.manualUrls) {
+        try {
+          const urlObj = new URL(url);
+          const urlDomain = urlObj.hostname.replace(/^www\./, '');
+          
+          // Check if the URL domain matches the project domain (ignoring subdomains)
+          const urlBaseDomain = urlDomain.split('.').slice(-2).join('.');
+          const projectBaseDomain = projectDomain.split('.').slice(-2).join('.');
+          
+          if (urlBaseDomain !== projectBaseDomain) {
+            throw new HttpException(
+              `URL ${url} does not match project domain ${projectDomain}`,
+              HttpStatus.BAD_REQUEST
+            );
+          }
+        } catch (error) {
+          if (error instanceof HttpException) throw error;
+          throw new HttpException(`Invalid URL: ${url}`, HttpStatus.BAD_REQUEST);
+        }
       }
     }
 

@@ -76,6 +76,7 @@ export class CrawlerPipelineService {
         crawlDelay: options?.crawlDelay || project.crawlSettings?.crawlDelay || this.defaultCrawlOptions.crawlDelay!,
         includePatterns: options?.includePatterns || project.crawlSettings?.includePatterns,
         excludePatterns: options?.excludePatterns || project.crawlSettings?.excludePatterns,
+        userAgent: options?.userAgent,
       } as CrawlOptions;
       
       this.logger.log(`[PIPELINE] Crawl options configured: maxPages=${crawlOptions.maxPages}, crawlDelay=${crawlOptions.crawlDelay}ms`);
@@ -90,7 +91,8 @@ export class CrawlerPipelineService {
       // Step 2: Analyze crawled content with AEO rules (respecting the same limit as crawling)
       this.logger.log(`[PIPELINE] Step 2: Starting AEO content analysis for KPIs (max ${crawlOptions.maxPages} pages)`);
       const analysisStartTime = Date.now();
-      await this.aeoContentAnalyzerService.analyzeProjectContent(projectId, crawlOptions.maxPages);
+      // Pass the mode to the analyzer so it knows whether to preserve existing scores
+      await this.aeoContentAnalyzerService.analyzeProjectContent(projectId, crawlOptions.maxPages, crawlOptions.mode);
       const analysisDuration = Date.now() - analysisStartTime;
       this.logger.log(`[PIPELINE] AEO Analysis completed in ${analysisDuration}ms`);
 
