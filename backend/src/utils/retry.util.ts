@@ -25,6 +25,8 @@ export class RetryUtil {
    * Determines if an error is a permanent quota/billing error that should NOT be retried
    */
   static isQuotaError(error: any): boolean {
+    if (!error) return false;
+    
     const errorMessage = error?.message?.toLowerCase() || '';
     
     // Quota/billing error indicators that suggest permanent failure
@@ -46,12 +48,14 @@ export class RetryUtil {
    * Determines if an error is a rate limiting error that should be retried
    */
   static isRateLimitError(error: any): boolean {
+    if (!error) return false;
+    
     const errorMessage = error?.message?.toLowerCase() || '';
     const errorCode = error?.code?.toString() || '';
     const statusCode = error?.status || error?.statusCode || 0;
 
     // First check if it's a quota error - these should NOT be retried
-    if (this.isQuotaError(error)) {
+    if (RetryUtil.isQuotaError(error)) {
       return false;
     }
 
@@ -76,7 +80,7 @@ export class RetryUtil {
     // Check status code
     if (statusCode === 429) {
       // Even with 429, check if it's a quota error
-      return !this.isQuotaError(error);
+      return !RetryUtil.isQuotaError(error);
     }
 
     // Check error message and code
@@ -172,7 +176,7 @@ export class RetryUtil {
       baseDelayMs = 1000,
       maxDelayMs = 30000,
       backoffFactor = 2,
-      retryCondition = this.isRateLimitError
+      retryCondition = RetryUtil.isRateLimitError
     } = options;
 
     let lastError: any;
@@ -201,7 +205,7 @@ export class RetryUtil {
         // Check if this error should be retried
         if (!retryCondition(error)) {
           // Check if it's specifically a quota error for better logging
-          if (this.isQuotaError(error)) {
+          if (RetryUtil.isQuotaError(error)) {
             this.logger.warn(
               `${operationName || 'Operation'} failed with quota/billing error (not retrying): ${error.message}`
             );

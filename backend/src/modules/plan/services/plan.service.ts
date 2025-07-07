@@ -12,6 +12,12 @@ import { OrganizationService } from '../../organization/services/organization.se
 import { PromoCodeService } from '../../promo/services/promo-code.service';
 import { DiscountType } from '../../promo/schemas/promo-code.schema';
 import { SendSubscriptionCancelledEmailEvent } from '../../email/events/email.events';
+import { PostHogService } from '../../analytics/services/posthog.service';
+
+// Extended Stripe Subscription type to include current_period_end
+interface StripeSubscriptionWithPeriodEnd extends Stripe.Subscription {
+  current_period_end?: number;
+}
 
 @Injectable()
 export class PlanService {
@@ -24,6 +30,7 @@ export class PlanService {
     @Inject(forwardRef(() => UserService)) private readonly userService: UserService,
     @Inject(forwardRef(() => OrganizationService)) private readonly organizationService: OrganizationService,
     @Inject(forwardRef(() => PromoCodeService)) private readonly promoCodeService: PromoCodeService,
+    private readonly postHogService: PostHogService,
   ) {
     const stripeApiKey = this.configService.get<string>('STRIPE_API_KEY');
     if (stripeApiKey) {
@@ -291,7 +298,7 @@ export class PlanService {
       // Cancel the subscription at the end of the billing period
       const updatedSubscription = await this.stripe.subscriptions.update(organization.stripeSubscriptionId, {
         cancel_at_period_end: true,
-      }) as Stripe.Subscription;
+      }) as StripeSubscriptionWithPeriodEnd;
 
       // Update organization subscription status and cancel date
       await this.organizationService.update(user.organizationId, {
@@ -302,6 +309,16 @@ export class PlanService {
       });
 
       console.log(`Subscription ${organization.stripeSubscriptionId} marked for cancellation for user ${userId}`);
+
+      // Track subscription cancellation in PostHog
+      await this.postHogService.track(userId, 'subscription_cancelled', {
+        organizationId: organization.id,
+        organizationName: organization.name,
+        subscriptionId: organization.stripeSubscriptionId,
+        planId: organization.stripePlanId,
+        cancelAt: updatedSubscription.cancel_at ? new Date(updatedSubscription.cancel_at * 1000).toISOString() : undefined,
+        currentPeriodEnd: updatedSubscription.current_period_end ? new Date(updatedSubscription.current_period_end * 1000).toISOString() : undefined,
+      });
 
       // Send cancellation confirmation email
       if (updatedSubscription.cancel_at_period_end) {
@@ -324,8 +341,7 @@ export class PlanService {
         }
         
         // Get the end date (when the subscription will actually end)
-        // Access current_period_end using bracket notation to avoid TS error
-        const currentPeriodEnd = (updatedSubscription as any).current_period_end;
+        const currentPeriodEnd = updatedSubscription.current_period_end;
         const endDate = currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : new Date();
         
         console.log('Subscription cancel details:', {

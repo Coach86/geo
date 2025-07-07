@@ -11,6 +11,7 @@ import { OrganizationModule } from '../organization/organization.module';
 import { UserModule } from '../user/user.module';
 import { AuthModule } from '../auth/auth.module';
 import { PromoModule } from '../promo/promo.module';
+import { AnalyticsModule } from '../analytics/analytics.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { PromoModule } from '../promo/promo.module';
     forwardRef(() => UserModule),
     forwardRef(() => AuthModule),
     forwardRef(() => PromoModule),
+    AnalyticsModule,
   ],
   controllers: [PlanController, PublicPlanController, StripeWebhookController],
   providers: [PlanService, PlanRepository, StripeWebhookService],

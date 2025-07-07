@@ -3,12 +3,15 @@ import { RuleRegistryService } from '../rules/registry/rule-registry.service';
 import { ConditionalAggregatorService } from '../rules/registry/conditional-aggregator.service';
 import { DomainAnalysisRepository } from '../repositories/domain-analysis.repository';
 import { TrackedLLMService } from './tracked-llm.service';
-import { PageSignalExtractorService } from './page-signal-extractor.service';
 import { PageCategorizerService } from './page-categorizer.service';
+import { AEORuleRegistryService as AiEngineRuleRegistryService } from './aeo-rule-registry.service';
 import { RuleContext, RuleDimension } from '../rules/interfaces/rule.interface';
 import { PageSignals } from '../interfaces/page-signals.interface';
 import { PageCategory } from '../interfaces/page-category.interface';
-import { DomainAuthorityRule } from '../rules/authority/domain-authority.rule';
+import { EvidenceHelper } from '../utils/evidence.helper';
+import { PageContent, Category, CategoryScore, RuleResult, Recommendation } from '../interfaces/rule.interface';
+import { BaseAEORule as BaseRule } from '../rules/aeo/base-aeo.rule';
+// Old rule import removed - using AEO rules now
 
 export interface DomainAnalysisInput {
   domain: string;
@@ -46,6 +49,10 @@ export interface DomainAnalysisResult {
   };
 }
 
+/**
+ * Service for domain-level analysis
+ * This service is currently being migrated to use AEO rules
+ */
 @Injectable()
 export class DomainAnalysisService {
   private readonly logger = new Logger(DomainAnalysisService.name);
@@ -55,366 +62,367 @@ export class DomainAnalysisService {
     private readonly conditionalAggregator: ConditionalAggregatorService,
     private readonly domainAnalysisRepository: DomainAnalysisRepository,
     private readonly trackedLLMService: TrackedLLMService,
-    private readonly pageSignalExtractor: PageSignalExtractorService,
     private readonly pageCategorizerService: PageCategorizerService,
-    private readonly domainAuthorityRule: DomainAuthorityRule,
-  ) {
-    this.registerDomainRules();
-  }
+    private readonly aiEngineRuleRegistry: AiEngineRuleRegistryService,
+  ) {}
 
   /**
-   * Register domain-scoped rules
+   * Analyze a domain using AEO domain-scoped rules
    */
-  private registerDomainRules(): void {
-    // Register domain authority rule with appropriate weight
-    this.domainAuthorityRule.weight = 1.0; // Full weight for domain analysis
-    this.ruleRegistry.register(this.domainAuthorityRule);
+  async analyzeDomain(projectId: string, domain: string, project: any, homePage?: any): Promise<void> {
+    this.logger.log(`[DOMAIN] Starting domain analysis for ${domain}`);
     
-    this.logger.log('Domain-scoped rules registered successfully');
-  }
-
-  /**
-   * Analyze a domain using domain-scoped rules
-   */
-  async analyzeDomain(input: DomainAnalysisInput): Promise<DomainAnalysisResult> {
-    const startTime = new Date();
-    this.logger.log(`Starting domain analysis for ${input.domain} with ${input.pages.length} pages`);
-
     try {
-      // Check if we have valid cached analysis
-      const cachedAnalysis = await this.domainAnalysisRepository.getValidAnalysis(
-        input.domain, 
-        input.projectId
+      const analysisStartedAt = new Date();
+      
+      // Get domain-level rules
+      const domainRules = this.aiEngineRuleRegistry.getDomainRules();
+      this.logger.log(`[DOMAIN] Found ${domainRules.length} domain-level rules to execute`);
+      
+      // Create page content for domain-level analysis
+      const domainPageContent: PageContent = {
+        url: homePage?.url || `https://${domain}`,
+        html: homePage?.html || '', // Use actual homepage HTML if available
+        cleanContent: homePage?.cleanContent || '',
+        pageSignals: this.createEmptyPageSignals(),
+        pageCategory: { type: 'homepage', confidence: 1, analysisLevel: 'FULL' } as any,
+        metadata: { 
+          projectId, 
+          domain,
+          ...(homePage?.metadata || {})
+        },
+        securityInfo: { isHttps: true, hasMixedContent: false, certificateValid: true },
+        performanceMetrics: homePage?.performanceMetrics || {},
+        structuralElements: this.extractStructuralElements(homePage?.html || '')
+      };
+
+      // Group rules by category
+      const rulesByCategory = this.groupRulesByCategory(domainRules);
+      
+      // Execute rules by category
+      const categoryScores: Record<string, CategoryScore> = {};
+      const allRuleResults: RuleResult[] = [];
+      
+      for (const [category, rules] of Object.entries(rulesByCategory)) {
+        const categoryScore = await this.executeCategoryRules(
+          category as Category, 
+          rules, 
+          `https://${domain}`, 
+          domainPageContent
+        );
+        const categoryKey = category.toLowerCase().replace(/_/g, '');
+        categoryScores[categoryKey] = categoryScore;
+        
+        // Flatten rule results
+        categoryScore.ruleResults.forEach(result => {
+          allRuleResults.push({
+            ruleId: result.ruleId,
+            ruleName: result.ruleName,
+            category: categoryScore.category.toLowerCase().replace(/_/g, '').replace('monitoringkpi', 'quality') as 'technical' | 'structure' | 'authority' | 'quality',
+            score: result.score,
+            maxScore: result.maxScore,
+            weight: result.weight,
+            contribution: result.contribution,
+            passed: result.passed,
+            evidence: result.evidence,
+            issues: result.issues?.map(issue => ({
+              ...issue,
+              dimension: categoryScore.category.toLowerCase().replace(/_/g, '').replace('monitoringkpi', 'quality') as 'technical' | 'structure' | 'authority' | 'quality'
+            })),
+            details: result.details
+          });
+        });
+      }
+
+      // Ensure all categories have scores
+      const allCategories: Category[] = ['TECHNICAL', 'STRUCTURE', 'AUTHORITY', 'QUALITY'];
+      for (const category of allCategories) {
+        const key = category.toLowerCase().replace(/_/g, '');
+        if (!categoryScores[key]) {
+          categoryScores[key] = this.createEmptyCategoryScore(category);
+        }
+      }
+
+      // Calculate overall score
+      const categoryScoreValues = Object.values(categoryScores).map(cat => cat.score);
+      const overallScore = Math.round(
+        categoryScoreValues.reduce((sum, score) => sum + score, 0) / categoryScoreValues.length
       );
 
-      if (cachedAnalysis) {
-        this.logger.log(`Using cached domain analysis for ${input.domain}`);
-        return this.convertToAnalysisResult(cachedAnalysis, startTime);
-      }
-
-      // Prepare domain context
-      const domainContext = await this.prepareDomainContext(input.pages, input.projectContext);
-
-      // Get domain-scoped rules
-      const domainRules = this.ruleRegistry.getAllRules();
-      const applicableDomainRules: any[] = [];
-
-      domainRules.forEach((rules, dimension) => {
-        const dimensionDomainRules = rules.filter(rule => rule.executionScope === 'domain');
-        applicableDomainRules.push(...dimensionDomainRules);
-      });
-
-      this.logger.log(`Found ${applicableDomainRules.length} domain-scoped rules to execute`);
-
-      if (applicableDomainRules.length === 0) {
-        this.logger.warn(`No domain-scoped rules found for ${input.domain}`);
-        return this.createEmptyResult(input, startTime);
-      }
-
-      // Create rule context for domain analysis
-      const ruleContext: RuleContext = {
-        // Use first page as representative context (for compatibility)
-        pageSignals: domainContext.representativeSignals,
-        pageCategory: domainContext.representativeCategory,
-        domain: input.domain,
-        url: `https://${input.domain}`, // Representative URL
-        html: '', // Not needed for domain analysis
-        cleanContent: '', // Not needed for domain analysis
-        metadata: {},
-        projectContext: input.projectContext,
-        trackedLLMService: this.trackedLLMService,
-        domainContext: {
-          allPages: domainContext.allPages,
-          domainInfo: {
-            totalPages: input.pages.length,
-            domains: [input.domain],
-            pageTypes: domainContext.pageTypes
-          }
+      // Create analysis results
+      const analysisResults = {
+        technical: {
+          score: categoryScores.technical.score,
+          maxScore: 100,
+          evidence: categoryScores.technical.ruleResults.flatMap(r => r.evidence),
+          details: {},
+          issues: categoryScores.technical.issues
+        },
+        structure: {
+          score: categoryScores.structure.score,
+          maxScore: 100,
+          evidence: categoryScores.structure.ruleResults.flatMap(r => r.evidence),
+          details: {},
+          issues: categoryScores.structure.issues
+        },
+        authority: {
+          score: categoryScores.authority.score,
+          maxScore: 100,
+          evidence: categoryScores.authority.ruleResults.flatMap(r => r.evidence),
+          details: {},
+          issues: categoryScores.authority.issues
+        },
+        quality: {
+          score: categoryScores.monitoringkpi.score,
+          maxScore: 100,
+          evidence: categoryScores.monitoringkpi.ruleResults.flatMap(r => r.evidence),
+          details: {},
+          issues: categoryScores.monitoringkpi.issues
         }
       };
 
-      // Execute domain-scoped rules
-      const ruleResults = await Promise.all(
-        applicableDomainRules.map(async (rule) => {
-          try {
-            this.logger.log(`Executing domain rule: ${rule.name} for ${input.domain}`);
-            const result = await rule.evaluate(ruleContext);
-            return {
-              ruleId: rule.id,
-              ruleName: rule.name,
-              dimension: rule.dimension,
-              ...result
-            };
-          } catch (error) {
-            this.logger.error(`Error executing domain rule ${rule.name}:`, error);
-            return {
-              ruleId: rule.id,
-              ruleName: rule.name,
-              dimension: rule.dimension,
-              score: 0,
-              maxScore: 100,
-              weight: rule.weight,
-              contribution: 0,
-              passed: false,
-              evidence: [`Error executing rule: ${error.message}`],
-              details: { error: error.message },
-              issues: [{
-                severity: 'high' as const,
-                description: `Rule execution failed: ${error.message}`,
-                recommendation: 'Check rule implementation and retry analysis'
-              }]
-            };
-          }
-        })
-      );
-
-      // Aggregate results by dimension
-      const dimensionResults = this.aggregateByDimension(ruleResults);
-
-      // Calculate overall domain score
-      const overallScore = this.calculateOverallScore(dimensionResults);
-
-      // Gather issues and recommendations
-      const issues = ruleResults.flatMap(r => r.issues?.map((i: any) => i.description) || []);
-      const recommendations = ruleResults.flatMap(r => r.issues?.map((i: any) => i.recommendation) || []);
-
-      const endTime = new Date();
-      const result: DomainAnalysisResult = {
-        domain: input.domain,
+      // Save to database
+      await this.domainAnalysisRepository.upsert({
+        domain,
+        projectId,
+        analysisResults,
+        ruleResults: allRuleResults,
         overallScore,
-        dimensionScores: dimensionResults,
-        ruleResults,
-        issues: [...new Set(issues)], // Remove duplicates
-        recommendations: [...new Set(recommendations)], // Remove duplicates
         calculationDetails: {
-          totalWeight: applicableDomainRules.reduce((sum, rule) => sum + rule.weight, 0),
+          totalWeight: 4,
           weightedScore: overallScore,
           finalScore: overallScore,
-          dimensionBreakdown: dimensionResults
+          dimensionBreakdown: {
+            technical: { score: analysisResults.technical.score, weight: 1, contribution: 25 },
+            structure: { score: analysisResults.structure.score, weight: 1, contribution: 25 },
+            authority: { score: analysisResults.authority.score, weight: 1, contribution: 25 },
+            quality: { score: analysisResults.quality.score, weight: 1, contribution: 25 },
+          }
         },
+        issues: Object.values(categoryScores).flatMap(cat => cat.issues),
+        recommendations: Object.values(categoryScores).flatMap(cat => cat.recommendations),
         metadata: {
-          totalPages: input.pages.length,
-          pagesAnalyzed: input.pages.map(p => p.url),
-          analysisStartedAt: startTime,
-          analysisCompletedAt: endTime,
-          llmCallsMade: 0 // TODO: Implement LLM call counting
+          totalPages: 1,
+          pagesAnalyzed: [domain],
+          analysisStartedAt,
+          analysisCompletedAt: new Date(),
+          llmCallsMade: 0
         }
-      };
+      });
 
-      // Store result in database
-      await this.storeDomainAnalysis(input.projectId, result);
-
-      this.logger.log(`Domain analysis completed for ${input.domain}. Score: ${overallScore}`);
-      return result;
-
+      this.logger.log(`[DOMAIN] Domain analysis completed for ${domain} - Score: ${overallScore}, Rules executed: ${allRuleResults.length}`);
     } catch (error) {
-      this.logger.error(`Error analyzing domain ${input.domain}:`, error);
+      this.logger.error(`[DOMAIN] Error analyzing domain ${domain}:`, error);
       throw error;
     }
   }
 
   /**
-   * Get cached domain analysis if available and valid
+   * Get domain analyses for a project
    */
-  async getCachedAnalysis(domain: string, projectId: string): Promise<DomainAnalysisResult | null> {
-    const cached = await this.domainAnalysisRepository.getValidAnalysis(domain, projectId);
-    if (!cached) return null;
-
-    return this.convertToAnalysisResult(cached, cached.createdAt);
+  async getProjectDomainAnalyses(projectId: string): Promise<any[]> {
+    return this.domainAnalysisRepository.findByProject(projectId);
   }
 
-  /**
-   * Get all domain analyses for a project
-   */
-  async getProjectDomainAnalyses(projectId: string): Promise<DomainAnalysisResult[]> {
-    const analyses = await this.domainAnalysisRepository.findByProject(projectId);
-    return analyses.map(analysis => this.convertToAnalysisResult(analysis, analysis.createdAt));
-  }
-
-  /**
-   * Force refresh domain analysis
-   */
-  async refreshDomainAnalysis(input: DomainAnalysisInput): Promise<DomainAnalysisResult> {
-    // Delete existing analysis to force refresh
-    await this.domainAnalysisRepository.delete(input.domain, input.projectId);
-    return this.analyzeDomain(input);
-  }
-
-  /**
-   * Prepare domain context from all pages
-   */
-  private async prepareDomainContext(pages: Array<{url: string, html: string, metadata: any}>, projectContext: any) {
-    const allPages = [];
-    const pageTypes = new Set<string>();
-    let representativeSignals: PageSignals | null = null;
-    let representativeCategory: PageCategory | null = null;
-
-    for (const page of pages) {
-      try {
-        // Extract page signals
-        const pageSignals = this.pageSignalExtractor.extract(page.html, page.metadata, projectContext);
-        
-        // Categorize page
-        const pageCategory = await this.pageCategorizerService.categorize(
-          page.url, 
-          page.html, 
-          page.metadata
-        );
-
-        // Use first page as representative
-        if (!representativeSignals) {
-          representativeSignals = pageSignals;
-          representativeCategory = pageCategory;
-        }
-
-        pageTypes.add(pageCategory.type);
-
-        allPages.push({
-          url: page.url,
-          html: page.html,
-          cleanContent: this.pageSignalExtractor.getCleanContent(page.html),
-          metadata: page.metadata,
-          pageSignals,
-          pageCategory
-        });
-      } catch (error) {
-        this.logger.warn(`Error processing page ${page.url} for domain context:`, error);
-      }
-    }
-
+  private createEmptyPageSignals(): PageSignals {
     return {
-      allPages,
-      pageTypes: Array.from(pageTypes),
-      representativeSignals: representativeSignals!,
-      representativeCategory: representativeCategory!
+      content: {
+        h1Text: '',
+        metaDescription: '',
+        wordCount: 0,
+        hasAuthor: false,
+        hasByline: false,
+        hasAuthorBio: false,
+        citationCount: 0,
+        internalLinkCount: 0,
+        externalLinkCount: 0,
+        hasSources: false,
+        hasReferences: false,
+        academicSourceCount: 0,
+        newsSourceCount: 0,
+        industrySourceCount: 0
+      },
+      structure: {
+        h1Count: 0,
+        headingHierarchy: [],
+        listCount: 0,
+        schemaTypes: [],
+        hasSchema: false,
+        wordCount: 0,
+        avgSentenceWords: 0,
+        headingHierarchyScore: 0
+      },
+      freshness: {
+        hasDateInUrl: false,
+        hasDateInTitle: false,
+        yearMentionCount: 0,
+        updateIndicators: []
+      },
+      brand: {
+        brandMentionCount: 0,
+        competitorMentionCount: 0,
+        brandInTitle: false,
+        brandInH1: false,
+        brandInUrl: false,
+        brandProminence: 0,
+        contextQuality: []
+      },
+      snippet: {
+        qaBlockCount: 0,
+        listItemCount: 0,
+        avgSentenceLength: 0,
+        definitionCount: 0,
+        hasStructuredData: false,
+        stepCount: 0,
+        bulletPoints: 0
+      }
     };
   }
 
-  /**
-   * Aggregate rule results by dimension
-   */
-  private aggregateByDimension(ruleResults: any[]): Record<RuleDimension, any> {
-    const dimensions: Record<string, any> = {};
+  private groupRulesByCategory(rules: BaseRule[]): Record<string, BaseRule[]> {
+    const grouped: Record<string, BaseRule[]> = {};
+    
+    rules.forEach(rule => {
+      const category = rule.category;
+      if (!grouped[category]) {
+        grouped[category] = [];
+      }
+      grouped[category].push(rule);
+    });
+    
+    return grouped;
+  }
+
+  private async executeCategoryRules(
+    category: Category,
+    rules: BaseRule[],
+    url: string,
+    content: PageContent
+  ): Promise<CategoryScore> {
+    const ruleResults: RuleResult[] = [];
+    let totalScore = 0;
+    let totalWeight = 0;
+    let passedRules = 0;
+
+    for (const rule of rules) {
+      try {
+        const result = await rule.evaluate(url, content);
+        ruleResults.push(result);
+        
+        totalScore += result.score * result.weight;
+        totalWeight += result.weight;
+        
+        if (result.passed) {
+          passedRules++;
+        }
+      } catch (error) {
+        this.logger.error(`[DOMAIN] Error executing rule ${rule.id}:`, error);
+        // Add a failed result
+        ruleResults.push({
+          ruleId: rule.id,
+          ruleName: rule.name,
+          score: 0,
+          maxScore: 100,
+          weight: rule.getWeight(),
+          contribution: 0,
+          passed: false,
+          evidence: [EvidenceHelper.error('Error', `Error executing rule: ${error.message}`)],
+          issues: [{
+            severity: 'critical' as const,
+            description: `Rule execution failed: ${error.message}`,
+            recommendation: 'Check rule configuration and try again'
+          }],
+          details: { error: error.message }
+        });
+      }
+    }
+
+    const finalScore = totalWeight > 0 ? Math.round(totalScore / totalWeight) : 0;
+
+    return {
+      category,
+      score: finalScore,
+      weight: 1,
+      appliedRules: rules.length,
+      passedRules,
+      ruleResults,
+      issues: ruleResults.flatMap(r => r.issues?.map(i => i.description) || []),
+      recommendations: this.extractRecommendations(ruleResults, category)
+    };
+  }
+
+  private createEmptyCategoryScore(category: Category): CategoryScore {
+    return {
+      category,
+      score: 0,
+      weight: 1,
+      appliedRules: 0,
+      passedRules: 0,
+      ruleResults: [],
+      issues: [],
+      recommendations: []
+    };
+  }
+
+  private extractRecommendations(ruleResults: RuleResult[], category: Category): Recommendation[] {
+    const recommendations: Recommendation[] = [];
+    const uniqueRecommendations = new Map<string, Recommendation>();
 
     ruleResults.forEach(result => {
-      const dimension = result.dimension;
-      if (!dimensions[dimension]) {
-        dimensions[dimension] = {
-          score: 0,
-          weight: 0,
-          contribution: 0,
-          ruleCount: 0
-        };
-      }
-
-      dimensions[dimension].score += result.score * result.weight;
-      dimensions[dimension].weight += result.weight;
-      dimensions[dimension].contribution += result.contribution;
-      dimensions[dimension].ruleCount += 1;
-    });
-
-    // Calculate weighted averages
-    Object.keys(dimensions).forEach(dimension => {
-      const dim = dimensions[dimension];
-      if (dim.weight > 0) {
-        dim.score = Math.round(dim.score / dim.weight);
-      }
-    });
-
-    return dimensions as Record<RuleDimension, any>;
-  }
-
-  /**
-   * Calculate overall domain score from dimension scores
-   */
-  private calculateOverallScore(dimensionResults: Record<string, any>): number {
-    const dimensionScores = Object.values(dimensionResults);
-    if (dimensionScores.length === 0) return 0;
-
-    const totalWeight = dimensionScores.reduce((sum, dim) => sum + dim.weight, 0);
-    if (totalWeight === 0) return 0;
-
-    const weightedSum = dimensionScores.reduce((sum, dim) => sum + (dim.score * dim.weight), 0);
-    return Math.round(weightedSum / totalWeight);
-  }
-
-  /**
-   * Store domain analysis result in database
-   */
-  private async storeDomainAnalysis(projectId: string, result: DomainAnalysisResult): Promise<void> {
-    try {
-      await this.domainAnalysisRepository.upsert({
-        domain: result.domain,
-        projectId,
-        analysisResults: {
-          authority: result.dimensionScores.authority || {
-            score: 0,
-            maxScore: 100,
-            evidence: [],
-            details: {},
-            issues: []
+      // Extract from issues
+      if (result.issues) {
+        result.issues.forEach(issue => {
+          const recommendationKey = `${result.ruleId}-${issue.recommendation}`;
+          if (!uniqueRecommendations.has(recommendationKey)) {
+            uniqueRecommendations.set(recommendationKey, {
+              content: issue.recommendation,
+              ruleId: result.ruleId,
+              ruleCategory: category
+            });
           }
-        },
-        ruleResults: result.ruleResults,
-        overallScore: result.overallScore,
-        calculationDetails: result.calculationDetails,
-        issues: result.issues,
-        recommendations: result.recommendations,
-        metadata: result.metadata
-      });
-    } catch (error) {
-      this.logger.error(`Error storing domain analysis for ${result.domain}:`, error);
-      // Don't throw - analysis was successful, storage is supplementary
+        });
+      }
+      
+      // Extract from recommendations array
+      if (result.recommendations) {
+        result.recommendations.forEach((rec: string) => {
+          const recommendationKey = `${result.ruleId}-${rec}`;
+          if (!uniqueRecommendations.has(recommendationKey)) {
+            uniqueRecommendations.set(recommendationKey, {
+              content: rec,
+              ruleId: result.ruleId,
+              ruleCategory: category
+            });
+          }
+        });
+      }
+    });
+
+    return Array.from(uniqueRecommendations.values());
+  }
+
+  private extractStructuralElements(html: string): any {
+    if (!html) {
+      return { h1Count: 0, h1Text: [], semanticTags: [], schemaTypes: [] };
     }
-  }
-
-  /**
-   * Convert database document to analysis result
-   */
-  private convertToAnalysisResult(doc: any, startTime: Date): DomainAnalysisResult {
+    
+    const h1Matches = html.match(/<h1[^>]*>([^<]+)<\/h1>/gi) || [];
+    const semanticTags = ['article', 'section', 'nav', 'header', 'footer', 'main', 'aside'];
+    const foundSemanticTags = semanticTags.filter(tag => 
+      new RegExp(`<${tag}[^>]*>`, 'i').test(html)
+    );
+    
+    // Extract schema types
+    const schemaMatches = html.match(/"@type":\s*"([^"]+)"/g) || [];
+    const schemaTypes = schemaMatches.map(match => 
+      match.match(/"@type":\s*"([^"]+)"/)?.[1] || ''
+    ).filter(Boolean);
+    
     return {
-      domain: doc.domain,
-      overallScore: doc.overallScore,
-      dimensionScores: doc.calculationDetails?.dimensionBreakdown || {},
-      ruleResults: doc.ruleResults || [],
-      issues: doc.issues || [],
-      recommendations: doc.recommendations || [],
-      calculationDetails: doc.calculationDetails,
-      metadata: doc.metadata || {
-        totalPages: 0,
-        pagesAnalyzed: [],
-        analysisStartedAt: startTime,
-        analysisCompletedAt: doc.updatedAt || doc.createdAt,
-        llmCallsMade: 0
-      }
-    };
-  }
-
-  /**
-   * Create empty result when no domain rules exist
-   */
-  private createEmptyResult(input: DomainAnalysisInput, startTime: Date): DomainAnalysisResult {
-    const endTime = new Date();
-    return {
-      domain: input.domain,
-      overallScore: 50, // Neutral score when no rules
-      dimensionScores: {},
-      ruleResults: [],
-      issues: ['No domain-scoped rules configured'],
-      recommendations: ['Configure domain-level analysis rules'],
-      calculationDetails: {
-        totalWeight: 0,
-        weightedScore: 50,
-        finalScore: 50,
-        dimensionBreakdown: {}
-      },
-      metadata: {
-        totalPages: input.pages.length,
-        pagesAnalyzed: input.pages.map(p => p.url),
-        analysisStartedAt: startTime,
-        analysisCompletedAt: endTime,
-        llmCallsMade: 0
-      }
+      h1Count: h1Matches.length,
+      h1Text: h1Matches.map(h1 => h1.replace(/<[^>]+>/g, '').trim()),
+      semanticTags: foundSemanticTags,
+      schemaTypes: [...new Set(schemaTypes)] // Deduplicate
     };
   }
 }

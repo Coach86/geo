@@ -12,6 +12,7 @@ import {
   SlidersHorizontal,
   Settings,
   FileText,
+  Sparkles,
 } from "lucide-react";
 import {
   ProjectResponse,
@@ -40,6 +41,7 @@ const insightsMenuItems: SidebarItem[] = [
 const optimizationMenuItems: SidebarItem[] = [
   { label: "Recommendations", icon: Lightbulb, href: "/recommendations" },
   { label: "Page Intelligence", icon: FileText, href: "/content-kpi" },
+  { label: "Page Magic", icon: Sparkles, href: "/page-magic" },
 ];
 
 interface SidebarProps {
@@ -153,6 +155,11 @@ export default function Sidebar({
               
               // Check if this is the Content KPI item and if user has access
               if (item.href === "/content-kpi" && !isFeatureEnabled('page-intelligence')) {
+                return null; // Don't render the item if feature flag is disabled
+              }
+              
+              // Check if this is the Page Magic item and if user has access
+              if (item.href === "/page-magic" && !isFeatureEnabled('page-magic')) {
                 return null; // Don't render the item if feature flag is disabled
               }
               

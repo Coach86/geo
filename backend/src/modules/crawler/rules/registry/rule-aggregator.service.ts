@@ -115,10 +115,10 @@ export class RuleAggregatorService {
       .map(r => `${r.score}% on ${r.evidence[0]?.substring(0, 50)}...`);
     
     const explanations: Record<RuleDimension, string> = {
+      technical: `Technical optimization is ${scoreBand}. ${topContributors.join(', ')}`,
+      content: `Content quality for AI is ${scoreBand}. ${topContributors.join(', ')}`,
       authority: `The page has ${scoreBand} authority signals. ${topContributors.join(', ')}`,
-      freshness: `Content freshness is ${scoreBand}. ${topContributors.join(', ')}`,
-      structure: `Page structure quality is ${scoreBand}. ${topContributors.join(', ')}`,
-      brandAlignment: `Brand alignment is ${scoreBand}. ${topContributors.join(', ')}`
+      quality: `AI visibility metrics are ${scoreBand}. ${topContributors.join(', ')}`
     };
     
     return explanations[dimension] || `Overall ${dimension} score is ${scoreBand}`;

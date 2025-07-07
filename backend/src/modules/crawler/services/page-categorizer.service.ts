@@ -3,11 +3,8 @@ import * as cheerio from 'cheerio';
 import { 
   PageCategory, 
   PageCategoryType, 
-  AnalysisLevel,
-  CategoryDetectionRule,
-  DimensionWeights
+  AnalysisLevel
 } from '../interfaces/page-category.interface';
-import { CATEGORY_DETECTION_RULES, getCategoryWeightModifiers, getAnalysisLevel } from '../config/category-rules';
 import { PageMetadata } from '../schemas/crawled-page.schema';
 import { LlmService } from '../../llm/services/llm.service';
 import { LlmProvider } from '../../llm/interfaces/llm-provider.enum';
@@ -35,12 +32,22 @@ export class PageCategorizerService {
         return llmCategory;
       }
 
-      // Fallback to rule-based categorization
-      return this.categorizeWithRules(url, html, metadata);
+      // Default to unknown if LLM fails
+      return {
+        type: PageCategoryType.UNKNOWN,
+        confidence: 0.5,
+        analysisLevel: AnalysisLevel.PARTIAL,
+        reason: 'LLM categorization failed'
+      };
     } catch (error) {
       this.logger.error(`Error categorizing ${url}:`, error);
-      // Fallback to rule-based on error
-      return this.categorizeWithRules(url, html, metadata);
+      // Default to unknown on error
+      return {
+        type: PageCategoryType.UNKNOWN,
+        confidence: 0.5,
+        analysisLevel: AnalysisLevel.PARTIAL,
+        reason: 'Categorization error'
+      };
     }
   }
 
@@ -56,14 +63,13 @@ export class PageCategorizerService {
         type: PageCategoryType.HOMEPAGE,
         confidence: 1.0,
         analysisLevel: AnalysisLevel.FULL,
-        weightModifiers: getCategoryWeightModifiers(PageCategoryType.HOMEPAGE),
         reason: 'Root URL'
       };
     }
 
     if (urlPath.includes('/404') || urlPath.includes('/error')) {
       return {
-        type: PageCategoryType.ERROR_404,
+        type: PageCategoryType.SEARCH_RESULTS_ERROR_PAGES,
         confidence: 0.95,
         analysisLevel: AnalysisLevel.EXCLUDED,
         reason: 'Error page URL pattern'
@@ -72,7 +78,7 @@ export class PageCategorizerService {
 
     if (urlPath.includes('/login') || urlPath.includes('/signin') || urlPath.includes('/signup')) {
       return {
-        type: PageCategoryType.LOGIN_ACCOUNT,
+        type: PageCategoryType.PRIVATE_USER_ACCOUNT_PAGES,
         confidence: 0.95,
         analysisLevel: AnalysisLevel.EXCLUDED,
         reason: 'Authentication page URL pattern'
@@ -122,22 +128,32 @@ export class PageCategorizerService {
     
     return `Categorize this webpage into one of the following categories:
 
-CATEGORIES:
-- homepage: Main landing page, company overview
-- product_service: Product or service details
-- blog_article: Blog posts, articles, news
-- documentation_help: Technical docs, help, guides, tutorials
-- about_company: About us, team, mission pages
-- contact: Contact forms, contact info
-- legal_policy: Terms, privacy, legal pages
-- navigation_category: Category listings, navigation pages
-- landing_campaign: Marketing landing pages, campaigns
-- faq: FAQ pages, Q&A sections
-- case_study: Customer stories, case studies
-- pricing: Pricing information, plans
-- error_404: Error pages, not found
-- login_account: Login, account, dashboard pages
-- search_results: Search result pages
+TIER 1 - CORE BUSINESS & HIGH-IMPACT PAGES:
+- homepage: The primary entry point and brand showcase of the entire website
+- product_category_page: (PLP) Lists multiple products within a category
+- product_detail_page: (PDP) Dedicated page for a single product
+- services_features_page: Describes service offerings or product features
+- pricing_page: Clearly outlines costs and plans
+- comparison_page: Compares company's own products/services side-by-side
+- blog_post_article: Single, focused article to attract and engage readers
+- blog_category_tag_page: Archive page listing blog posts for a topic
+
+TIER 2 - STRATEGIC CONTENT & RESOURCES:
+- pillar_page_topic_hub: Comprehensive page covering a broad topic with links to cluster content
+- product_roundup_review_article: Expert comparison of products/services from different companies
+- how_to_guide_tutorial: Step-by-step instructional content
+- case_study_success_story: Real-world customer example demonstrating value
+- what_is_x_definitional_page: Defines a key term or concept
+- in_depth_guide_white_paper: Comprehensive content on complex subjects
+- faq_glossary_pages: Structured Q&A content and term definitions
+- public_forum_ugc_pages: User-generated content forums
+
+TIER 3 - SUPPORTING PAGES:
+- corporate_contact_pages: About Us, Team Page, Contact Us, Careers, Press/Media Room, Store Locator
+- private_user_account_pages: Login/Sign-up, User Profile/Dashboard, Order History, Wishlist
+- search_results_error_pages: Search Results Page, 404 Error Page
+- legal_pages: Privacy Policy, Terms of Service, Cookie Policy, Accessibility Statement
+
 - unknown: Cannot determine category
 
 URL: ${url}
@@ -177,8 +193,7 @@ Return ONLY a JSON object with:
       return {
         type: category,
         confidence,
-        analysisLevel: getAnalysisLevel(category),
-        weightModifiers: getCategoryWeightModifiers(category),
+        analysisLevel: this.getAnalysisLevelForCategory(category),
         reason: parsed.reason || 'LLM categorization'
       };
     } catch (error) {
@@ -237,37 +252,37 @@ Return ONLY a JSON object with:
     return parts.join('\n\n');
   }
 
+
   /**
-   * Original rule-based categorization as fallback
+   * Get analysis level for a specific category
    */
-  private categorizeWithRules(url: string, html: string, metadata?: PageMetadata): PageCategory {
-    const $ = cheerio.load(html);
-    let bestMatch: PageCategory | null = null;
-    let bestScore = 0;
+  private getAnalysisLevelForCategory(category: PageCategoryType): AnalysisLevel {
+    // Map categories to analysis levels based on their importance
+    const excludedCategories = [
+      PageCategoryType.SEARCH_RESULTS_ERROR_PAGES,
+      PageCategoryType.PRIVATE_USER_ACCOUNT_PAGES,
+      PageCategoryType.LEGAL_PAGES
+    ];
 
-    // Evaluate each rule
-    for (const rule of CATEGORY_DETECTION_RULES) {
-      const score = this.evaluateRule(rule, url, $, metadata);
-      
-      if (score > bestScore) {
-        bestScore = score;
-        bestMatch = {
-          type: rule.category,
-          confidence: Math.min(score * 1.2, 0.9), // Cap at 0.9 for rule-based
-          analysisLevel: rule.analysisLevel,
-          weightModifiers: rule.weightModifiers,
-          reason: this.getCategorizationReason(rule, url)
-        };
-      }
+    const partialCategories = [
+      PageCategoryType.PRICING_PAGE,
+      PageCategoryType.CORPORATE_CONTACT_PAGES
+    ];
+
+    const limitedCategories = [
+      PageCategoryType.PRODUCT_CATEGORY_PAGE,
+      PageCategoryType.BLOG_CATEGORY_TAG_PAGE
+    ];
+
+    if (excludedCategories.includes(category)) {
+      return AnalysisLevel.EXCLUDED;
+    } else if (partialCategories.includes(category)) {
+      return AnalysisLevel.PARTIAL;
+    } else if (limitedCategories.includes(category)) {
+      return AnalysisLevel.LIMITED;
+    } else {
+      return AnalysisLevel.FULL;
     }
-
-    // Return best match or unknown
-    return bestMatch || {
-      type: PageCategoryType.UNKNOWN,
-      confidence: 0.5,
-      analysisLevel: AnalysisLevel.PARTIAL,
-      reason: 'No matching category patterns found'
-    };
   }
 
   /**
@@ -276,183 +291,34 @@ Return ONLY a JSON object with:
   getAnalysisRules(category: PageCategoryType): {
     shouldAnalyze: boolean;
     dimensions?: string[];
-    weightModifiers?: DimensionWeights;
   } {
-    const rule = CATEGORY_DETECTION_RULES.find(r => r.category === category);
-    if (!rule) {
-      return { shouldAnalyze: true };
-    }
+    const analysisLevel = this.getAnalysisLevelForCategory(category);
 
-    switch (rule.analysisLevel) {
+    switch (analysisLevel) {
       case AnalysisLevel.EXCLUDED:
         return { shouldAnalyze: false };
       
       case AnalysisLevel.LIMITED:
         return {
           shouldAnalyze: true,
-          dimensions: ['structure', 'brandAlignment'],
-          weightModifiers: rule.weightModifiers
+          dimensions: ['structure', 'brandAlignment']
         };
       
       case AnalysisLevel.PARTIAL:
         return {
           shouldAnalyze: true,
-          dimensions: ['freshness', 'structure', 'authority', 'brandAlignment'],
-          weightModifiers: rule.weightModifiers
+          dimensions: ['freshness', 'structure', 'authority', 'brandAlignment']
         };
       
       case AnalysisLevel.FULL:
       default:
         return {
           shouldAnalyze: true,
-          dimensions: ['freshness', 'structure', 'authority', 'brandAlignment'],
-          weightModifiers: rule.weightModifiers
+          dimensions: ['freshness', 'structure', 'authority', 'brandAlignment']
         };
     }
   }
 
-  /**
-   * Evaluate how well a page matches a category rule
-   */
-  private evaluateRule(
-    rule: CategoryDetectionRule, 
-    url: string, 
-    $: cheerio.CheerioAPI,
-    metadata?: PageMetadata
-  ): number {
-    let score = 0;
-    let matches = 0;
-    let totalChecks = 0;
-
-    // Check URL patterns
-    if (rule.patterns.urlPatterns) {
-      totalChecks++;
-      const urlPath = new URL(url).pathname.toLowerCase();
-      if (rule.patterns.urlPatterns.some(pattern => pattern.test(urlPath))) {
-        matches++;
-        score += 0.4; // URL patterns are strong indicators
-      }
-    }
-
-    // Check schema types
-    if (rule.patterns.schemaTypes && rule.patterns.schemaTypes.length > 0) {
-      totalChecks++;
-      const schemaTypes = this.extractSchemaTypes($);
-      if (rule.patterns.schemaTypes.some(type => schemaTypes.includes(type))) {
-        matches++;
-        score += 0.3;
-      }
-    }
-
-    // Check meta patterns
-    if (rule.patterns.metaPatterns) {
-      totalChecks++;
-      const metaContent = this.extractMetaContent($);
-      if (rule.patterns.metaPatterns.some(pattern => pattern.test(metaContent))) {
-        matches++;
-        score += 0.15;
-      }
-    }
-
-    // Check content patterns
-    if (rule.patterns.contentPatterns) {
-      totalChecks++;
-      const bodyText = $('body').text().toLowerCase();
-      if (rule.patterns.contentPatterns.some(pattern => pattern.test(bodyText))) {
-        matches++;
-        score += 0.1;
-      }
-    }
-
-    // Check DOM selectors
-    if (rule.patterns.domSelectors) {
-      totalChecks++;
-      if (rule.patterns.domSelectors.some(selector => $(selector).length > 0)) {
-        matches++;
-        score += 0.05;
-      }
-    }
-
-    // Normalize score based on how many checks matched
-    if (totalChecks > 0) {
-      const matchRatio = matches / totalChecks;
-      score = score * (0.5 + matchRatio * 0.5); // Weight by match ratio
-    }
-
-    return score;
-  }
-
-  /**
-   * Extract schema.org types from the page
-   */
-  private extractSchemaTypes($: cheerio.CheerioAPI): string[] {
-    const types: string[] = [];
-
-    // Check JSON-LD
-    $('script[type="application/ld+json"]').each((_, element) => {
-      try {
-        const json = JSON.parse($(element).html() || '{}');
-        if (json['@type']) {
-          if (Array.isArray(json['@type'])) {
-            types.push(...json['@type']);
-          } else {
-            types.push(json['@type']);
-          }
-        }
-      } catch (error) {
-        // Ignore parse errors
-      }
-    });
-
-    // Check microdata
-    $('[itemtype]').each((_, element) => {
-      const itemtype = $(element).attr('itemtype');
-      if (itemtype) {
-        const type = itemtype.split('/').pop();
-        if (type) types.push(type);
-      }
-    });
-
-    return types;
-  }
-
-  /**
-   * Extract meta content for pattern matching
-   */
-  private extractMetaContent($: cheerio.CheerioAPI): string {
-    const parts: string[] = [];
-    
-    // Title
-    parts.push($('title').text());
-    
-    // Meta description
-    parts.push($('meta[name="description"]').attr('content') || '');
-    
-    // OG tags
-    parts.push($('meta[property^="og:"]').map((_, el) => $(el).attr('content')).get().join(' '));
-    
-    return parts.join(' ').toLowerCase();
-  }
-
-  /**
-   * Generate a human-readable reason for the categorization
-   */
-  private getCategorizationReason(rule: CategoryDetectionRule, url: string): string {
-    const reasons: string[] = [];
-    
-    if (rule.patterns.urlPatterns) {
-      const urlPath = new URL(url).pathname;
-      if (rule.patterns.urlPatterns.some(pattern => pattern.test(urlPath))) {
-        reasons.push(`URL pattern match: ${urlPath}`);
-      }
-    }
-
-    if (reasons.length === 0) {
-      reasons.push('Content and structure analysis');
-    }
-
-    return reasons.join('; ');
-  }
 
   /**
    * Check if a page should be analyzed based on its category
@@ -467,21 +333,32 @@ Return ONLY a JSON object with:
    */
   getCategoryDisplayName(category: PageCategoryType): string {
     const names: Record<PageCategoryType, string> = {
+      // Tier 1
       [PageCategoryType.HOMEPAGE]: 'Homepage',
-      [PageCategoryType.PRODUCT_SERVICE]: 'Product/Service',
-      [PageCategoryType.BLOG_ARTICLE]: 'Blog/Article',
-      [PageCategoryType.DOCUMENTATION_HELP]: 'Documentation/Help',
-      [PageCategoryType.ABOUT_COMPANY]: 'About/Company',
-      [PageCategoryType.CONTACT]: 'Contact',
-      [PageCategoryType.LEGAL_POLICY]: 'Legal/Policy',
-      [PageCategoryType.NAVIGATION_CATEGORY]: 'Navigation/Category',
-      [PageCategoryType.LANDING_CAMPAIGN]: 'Landing/Campaign',
-      [PageCategoryType.FAQ]: 'FAQ',
-      [PageCategoryType.CASE_STUDY]: 'Case Study',
-      [PageCategoryType.PRICING]: 'Pricing',
-      [PageCategoryType.ERROR_404]: '404/Error',
-      [PageCategoryType.LOGIN_ACCOUNT]: 'Login/Account',
-      [PageCategoryType.SEARCH_RESULTS]: 'Search Results',
+      [PageCategoryType.PRODUCT_CATEGORY_PAGE]: 'Product Category (PLP)',
+      [PageCategoryType.PRODUCT_DETAIL_PAGE]: 'Product Detail (PDP)',
+      [PageCategoryType.SERVICES_FEATURES_PAGE]: 'Services/Features',
+      [PageCategoryType.PRICING_PAGE]: 'Pricing Page',
+      [PageCategoryType.COMPARISON_PAGE]: 'Comparison Page',
+      [PageCategoryType.BLOG_POST_ARTICLE]: 'Blog Post/Article',
+      [PageCategoryType.BLOG_CATEGORY_TAG_PAGE]: 'Blog Category/Tag Page',
+      
+      // Tier 2
+      [PageCategoryType.PILLAR_PAGE_TOPIC_HUB]: 'Pillar Page/Topic Hub',
+      [PageCategoryType.PRODUCT_ROUNDUP_REVIEW_ARTICLE]: 'Product Roundup/Review Article',
+      [PageCategoryType.HOW_TO_GUIDE_TUTORIAL]: 'How-To Guide/Tutorial',
+      [PageCategoryType.CASE_STUDY_SUCCESS_STORY]: 'Case Study/Success Story',
+      [PageCategoryType.WHAT_IS_X_DEFINITIONAL_PAGE]: 'What is X/Definitional Page',
+      [PageCategoryType.IN_DEPTH_GUIDE_WHITE_PAPER]: 'In-Depth Guide/White Paper',
+      [PageCategoryType.FAQ_GLOSSARY_PAGES]: 'FAQ & Glossary Pages',
+      [PageCategoryType.PUBLIC_FORUM_UGC_PAGES]: 'Public Forum & UGC Pages',
+      
+      // Tier 3
+      [PageCategoryType.CORPORATE_CONTACT_PAGES]: 'Corporate & Contact Pages',
+      [PageCategoryType.PRIVATE_USER_ACCOUNT_PAGES]: 'Private User Account Pages',
+      [PageCategoryType.SEARCH_RESULTS_ERROR_PAGES]: 'Search Results & Error Pages',
+      [PageCategoryType.LEGAL_PAGES]: 'Legal Pages',
+      
       [PageCategoryType.UNKNOWN]: 'Unknown'
     };
     

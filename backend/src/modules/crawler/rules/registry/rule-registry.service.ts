@@ -13,13 +13,12 @@ export class RuleRegistryService {
   private readonly ruleById = new Map<string, ScoringRule>();
   
   constructor() {
-    // Initialize dimensions
+    // Initialize dimensions for AEO system
     const dimensions: RuleDimension[] = [
-      'authority', 
-      'freshness', 
-      'structure', 
- 
-      'brandAlignment'
+      'technical',
+      'content',
+      'authority',
+      'quality'
     ];
     
     dimensions.forEach(dimension => {

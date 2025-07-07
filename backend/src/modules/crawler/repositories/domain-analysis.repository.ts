@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { DomainAnalysis, DomainAnalysisDocument } from '../schemas/domain-analysis.schema';
+import { Recommendation } from '../interfaces/rule.interface';
 
 export interface CreateDomainAnalysisDto {
   domain: string;
@@ -11,7 +12,7 @@ export interface CreateDomainAnalysisDto {
   overallScore: number;
   calculationDetails: any;
   issues: string[];
-  recommendations: string[];
+  recommendations: Recommendation[];
   metadata: {
     totalPages: number;
     pagesAnalyzed: string[];

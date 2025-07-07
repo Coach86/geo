@@ -11,8 +11,7 @@ import {
   NotFoundException,
   Logger,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsNumber, IsArray, IsString } from 'class-validator';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { TokenRoute } from '../../auth/decorators/token-route.decorator';
 import { WebCrawlerService } from '../services/web-crawler.service';
 import { ContentAnalyzerService } from '../services/content-analyzer.service';
@@ -21,30 +20,9 @@ import { ProjectService } from '../../project/services/project.service';
 import { UserService } from '../../user/services/user.service';
 import { RuleRegistryService } from '../rules/registry/rule-registry.service';
 import { DomainAnalysisService } from '../services/domain-analysis.service';
+import { AEORuleRegistryService } from '../services/aeo-rule-registry.service';
+import { TriggerCrawlDto } from '../dto/trigger-crawl.dto';
 
-class TriggerCrawlDto {
-  @ApiProperty({ description: 'Maximum number of pages to crawl', required: false, default: 100 })
-  @IsOptional()
-  @IsNumber()
-  maxPages?: number;
-
-  @ApiProperty({ description: 'Delay between crawl requests in milliseconds', required: false, default: 1000 })
-  @IsOptional()
-  @IsNumber()
-  crawlDelay?: number;
-
-  @ApiProperty({ description: 'URL patterns to include in crawl', required: false, type: [String] })
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  includePatterns?: string[];
-
-  @ApiProperty({ description: 'URL patterns to exclude from crawl', required: false, type: [String] })
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  excludePatterns?: string[];
-}
 
 @ApiTags('User - Content KPI')
 @Controller('user/projects/:projectId/crawler')
@@ -59,6 +37,7 @@ export class UserCrawlerController {
     private readonly userService: UserService,
     private readonly ruleRegistryService: RuleRegistryService,
     private readonly domainAnalysisService: DomainAnalysisService,
+    private readonly aeoRuleRegistry: AEORuleRegistryService,
   ) {}
 
   @Post('crawl')
@@ -96,6 +75,32 @@ export class UserCrawlerController {
     if (options.maxPages !== undefined) {
       if (options.maxPages < 1 || options.maxPages > 100) {
         throw new HttpException('maxPages must be between 1 and 100', HttpStatus.BAD_REQUEST);
+      }
+    }
+
+    // Validate manual URLs if in manual mode
+    if (options.mode === 'manual' && options.manualUrls) {
+      const projectDomain = new URL(project.website).hostname.replace(/^www\./, '');
+      
+      for (const url of options.manualUrls) {
+        try {
+          const urlObj = new URL(url);
+          const urlDomain = urlObj.hostname.replace(/^www\./, '');
+          
+          // Check if the URL domain matches the project domain (ignoring subdomains)
+          const urlBaseDomain = urlDomain.split('.').slice(-2).join('.');
+          const projectBaseDomain = projectDomain.split('.').slice(-2).join('.');
+          
+          if (urlBaseDomain !== projectBaseDomain) {
+            throw new HttpException(
+              `URL ${url} does not match project domain ${projectDomain}`,
+              HttpStatus.BAD_REQUEST
+            );
+          }
+        } catch (error) {
+          if (error instanceof HttpException) throw error;
+          throw new HttpException(`Invalid URL: ${url}`, HttpStatus.BAD_REQUEST);
+        }
       }
     }
 
@@ -231,10 +236,10 @@ export class UserCrawlerController {
         totalPages: stats.totalPages,
         avgGlobalScore: Math.round(stats.avgGlobalScore),
         scoreBreakdown: {
-          authority: Math.round(stats.avgAuthorityScore),
-          freshness: Math.round(stats.avgFreshnessScore),
-          structure: Math.round(stats.avgStructureScore),
-          brandAlignment: Math.round(stats.avgBrandScore),
+          technical: Math.round(stats.avgTechnicalScore || 0),
+          structure: Math.round(stats.avgStructureScore || 0),
+          authority: Math.round(stats.avgAuthorityScore || 0),
+          quality: Math.round(stats.avgMonitoringKpiScore || 0),
         },
         lastAnalyzedAt: stats.lastAnalyzedAt,
       },
@@ -259,10 +264,10 @@ export class UserCrawlerController {
     const strengths: string[] = [];
     const scores = page.scores || {};
     
+    if (scores.technical >= 80) strengths.push('Excellent technical optimization');
+    if (scores.content >= 80) strengths.push('High-quality AI-ready content');
     if (scores.authority >= 80) strengths.push('Strong authority signals');
-    if (scores.freshness >= 80) strengths.push('Fresh content');
-    if (scores.structure >= 80) strengths.push('Well-structured');
-    if (scores.brandAlignment >= 80) strengths.push('Brand consistent');
+    if (scores.quality >= 80) strengths.push('Great AI visibility metrics');
     
     return strengths;
   }
@@ -274,17 +279,17 @@ export class UserCrawlerController {
   private generateRecommendations(stats: any, criticalIssues: any[]): string[] {
     const recommendations: string[] = [];
     
-    if (stats.avgAuthorityScore < 60) {
-      recommendations.push('Add author information and citations to build authority');
-    }
-    if (stats.avgFreshnessScore < 60) {
-      recommendations.push('Update older content to improve freshness scores');
+    if (stats.avgTechnicalScore < 60) {
+      recommendations.push('Optimize technical infrastructure: add llms.txt, improve internal linking, implement structured data');
     }
     if (stats.avgStructureScore < 60) {
-      recommendations.push('Improve HTML structure with proper headings and schema markup');
+      recommendations.push('Create more AI-optimized content: how-to guides, FAQs, and definitional content');
     }
-    if (stats.avgBrandScore < 60) {
-      recommendations.push('Increase brand mentions and maintain consistent messaging');
+    if (stats.avgAuthorityScore < 60) {
+      recommendations.push('Build authority through high-quality citations and reputable source references');
+    }
+    if (stats.avgMonitoringKpiScore < 60) {
+      recommendations.push('Track and improve AI visibility metrics: brand citations and sentiment in AI responses');
     }
     
     return recommendations.slice(0, 5);
@@ -370,13 +375,127 @@ export class UserCrawlerController {
       throw new HttpException('User not authenticated', HttpStatus.UNAUTHORIZED);
     }
 
-    // Get all rules from the registry
-    const rules = await this.ruleRegistryService.getAllRulesWithDetails();
+    // Get all AEO rules from the registry
+    const aeoRules = this.aeoRuleRegistry.getAllRules();
+    
+    // Transform AEO rules to the expected format
+    const rules = aeoRules.map(rule => {
+      // Determine if rule uses LLM based on known rules
+      const usesLLM = this.checkRuleUsesLLM(rule.id);
+      
+      return {
+        id: rule.id,
+        name: rule.name,
+        dimension: rule.category.toLowerCase().replace(/_/g, '').replace('monitoringkpi', 'quality'),
+        description: this.getRuleDescription(rule),
+        priority: rule.impactScore,
+        weight: this.getRuleWeight(rule.impactScore),
+        applicability: {
+          scope: rule.isDomainLevel ? 'domain' : 
+                 rule.pageTypes.length === 0 || rule.pageTypes.length > 15 ? 'all' : 'category',
+          categories: rule.pageTypes,
+        },
+        executionScope: rule.isDomainLevel ? 'domain' : 'page',
+        usesLLM,
+        llmPurpose: usesLLM ? this.getLLMPurposeForRule(rule.id) : null,
+      };
+    });
     
     return {
       rules,
-      dimensions: ['authority', 'freshness', 'structure', 'brandAlignment'],
+      dimensions: ['technical', 'structure', 'authority', 'quality'],
     };
+  }
+
+  private checkRuleUsesLLM(ruleId: string): boolean {
+    const llmRules = [
+      'case-studies',
+      'definitional_content',
+      'citing_sources',
+      'comparison_content',
+      'in_depth_guides'
+    ];
+    return llmRules.includes(ruleId);
+  }
+
+  private getLLMPurposeForRule(ruleId: string): string {
+    const llmPurposes: Record<string, string> = {
+      'case-studies': 'Identifies and evaluates case studies with quantifiable metrics',
+      'definitional_content': 'Analyzes content for "What is" definitional patterns',
+      'citing_sources': 'Evaluates source quality and citation practices',
+      'comparison_content': 'Identifies and assesses comparison and versus content',
+      'in_depth_guides': 'Evaluates content depth and comprehensiveness',
+    };
+    return llmPurposes[ruleId] || 'Uses AI for advanced content analysis';
+  }
+
+  private getRuleDescription(rule: any): string {
+    // Map rule IDs to descriptions
+    const descriptions: Record<string, string> = {
+      // Technical
+      'clean_html_structure': 'Validates HTML structure is clean and semantic',
+      'https_security': 'Ensures site uses HTTPS for security',
+      'mobile_optimization': 'Checks mobile responsiveness and optimization',
+      'page_speed': 'Evaluates page loading performance',
+      'internal_linking': 'Analyzes internal link structure and navigation',
+      'llms_txt': 'Verifies presence of llms.txt file for AI crawlers',
+      'robots_txt': 'Validates robots.txt configuration',
+      'status_code': 'Checks for proper HTTP status codes',
+      'structured_data': 'Evaluates schema markup implementation',
+      'url_structure': 'Assesses URL structure and readability',
+      'xml_sitemap': 'Verifies XML sitemap presence and validity',
+      
+      // Structure
+      'how_to_content': 'Detects and evaluates how-to and instructional content',
+      'definitional_content': 'Identifies "What is" definitional content',
+      'case-studies': 'Finds and evaluates case studies with metrics',
+      'citing_sources': 'Checks for reputable source citations',
+      'comparison_content': 'Evaluates comparison and versus content',
+      'concise_answers': 'Measures concise upfront answer delivery',
+      'content_freshness': 'Assesses content recency and updates',
+      'faq_pages': 'Evaluates FAQ and Q&A content structure',
+      'glossaries': 'Checks for glossaries and terminology pages',
+      'in_depth_guides': 'Identifies comprehensive guide content',
+      'main_heading': 'Validates H1 tag usage and content',
+      'meta_description': 'Evaluates meta description quality',
+      'multimodal_content': 'Checks for multimedia content integration',
+      'image_alt': 'Validates image alt attribute usage',
+      
+      // Authority (Off-site rules)
+      'author_credentials': 'Evaluates author expertise signals',
+      'community_engagement': 'Measures community interaction signals',
+      'cross_platform_social': 'Checks cross-platform social presence',
+      'forum_engagement': 'Evaluates forum participation',
+      'expert_reviews': 'Identifies expert endorsements',
+      'external_user_reviews': 'Checks third-party review presence',
+      'industry_publications': 'Measures industry publication mentions',
+      'industry_recognition': 'Evaluates awards and recognition',
+      'influencer_community': 'Checks influencer relationships',
+      'linkedin_thought_leadership': 'Evaluates LinkedIn presence',
+      'podcasting': 'Checks podcast presence',
+      'press_release': 'Evaluates press release strategy',
+      'social_media_presence': 'Measures social media authority',
+      'user_reviews_integration': 'Checks review integration',
+      'wikipedia_presence': 'Verifies Wikipedia presence',
+      'youtube_authority': 'Evaluates YouTube channel authority',
+      
+      // Monitoring KPIs
+      'brand_citations': 'Tracks AI response citations',
+      'brand_mentions': 'Monitors brand mention frequency',
+      'brand_sentiment': 'Analyzes brand sentiment in AI'
+    };
+    
+    return descriptions[rule.id] || rule.name;
+  }
+
+  private getRuleWeight(impactScore: number): number {
+    // Map impact score (1-3) to weight
+    const weightMap: Record<number, number> = {
+      1: 0.5,  // Low impact
+      2: 1.0,  // Medium impact
+      3: 1.5   // High impact
+    };
+    return weightMap[impactScore] || 1.0;
   }
 
   @Get('domain-analysis')
@@ -469,18 +588,20 @@ export class UserCrawlerController {
         totalDomains: domainAnalyses.length,
       },
       pageScoreBreakdown: {
-        authority: Math.round(pageStats.avgAuthorityScore || 0),
-        freshness: Math.round(pageStats.avgFreshnessScore || 0),
+        technical: Math.round(pageStats.avgTechnicalScore || 0),
         structure: Math.round(pageStats.avgStructureScore || 0),
-        brandAlignment: Math.round(pageStats.avgBrandScore || 0),
+        authority: Math.round(pageStats.avgAuthorityScore || 0),
+        quality: Math.round(pageStats.avgMonitoringKpiScore || 0),
       },
       domainScoreBreakdown: domainAnalyses.reduce((breakdown, domain) => {
-        Object.entries(domain.dimensionScores).forEach(([dimension, data]: [string, any]) => {
-          if (!breakdown[dimension]) {
-            breakdown[dimension] = [];
-          }
-          breakdown[dimension].push(data.score);
-        });
+        if (domain.calculationDetails?.dimensionBreakdown) {
+          Object.entries(domain.calculationDetails.dimensionBreakdown).forEach(([dimension, data]: [string, any]) => {
+            if (!breakdown[dimension]) {
+              breakdown[dimension] = [];
+            }
+            breakdown[dimension].push(data.score);
+          });
+        }
         return breakdown;
       }, {} as Record<string, number[]>),
       pageScores: pageScores.slice(0, 10), // Top 10 pages

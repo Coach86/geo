@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -16,8 +17,10 @@ import {
   AlertTriangle, CheckCircle, Info, AlertCircle,
   ExternalLink, TrendingUp, TrendingDown, Play, Loader2,
   LayoutDashboard, BarChart3, AlertOctagon, Globe, FileText, Settings,
-  BookOpen
+  BookOpen, Search, Brain, Lightbulb
 } from 'lucide-react';
+import { DonutChart } from './DonutChart';
+import { DIMENSION_COLORS, getDimensionColor } from '@/lib/constants/colors';
 import { useAuth } from '@/providers/auth-provider';
 import { API_BASE_URL } from '@/lib/api/constants';
 import { PageAnalysisTable } from './PageAnalysisTable';
@@ -29,25 +32,19 @@ import { OptimizationDrawer } from './OptimizationDrawer';
 interface ContentKPIDashboardProps {
   projectId: string;
   isCrawling: boolean;
-  crawlProgress: { crawledPages: number; totalPages: number; currentUrl?: string } | null;
+  crawlProgress: { crawledPages: number; totalPages: number; currentUrl?: string; status?: string } | null;
   showCrawlDialog: boolean;
   setShowCrawlDialog: (show: boolean) => void;
   handleStartCrawl: (maxPages: number) => void;
 }
 
 const COLORS = {
-  authority: '#8B5CF6', // Vibrant purple
-  freshness: '#3B82F6', // Vibrant Blue
+  technical: '#3B82F6', // Vibrant Blue
   structure: '#10B981', // Vibrant Emerald
-  brand: '#EF4444', // Vibrant Red
+  authority: '#8B5CF6', // Vibrant purple
+  quality: '#F59E0B', // Vibrant Amber
 };
 
-const DIMENSION_COLORS = {
-  Authority: '#8B5CF6', // Vibrant purple
-  Freshness: '#3B82F6', // Vibrant Blue
-  Structure: '#10B981', // Vibrant Emerald
-  Brand: '#EF4444', // Vibrant Red
-};
 
 // Using visibility page color scheme for severity
 const SEVERITY_COLORS = {
@@ -103,6 +100,7 @@ export function ContentKPIDashboard({
 }: ContentKPIDashboardProps) {
   const { report, data, loading } = useContentKPI(projectId);
   const { token } = useAuth();
+  const router = useRouter();
   const [selectedTab, setSelectedTab] = useState('overview');
   const [combinedScore, setCombinedScore] = useState<number | null>(null);
   const [domainData, setDomainData] = useState<any>(null);
@@ -117,6 +115,40 @@ export function ContentKPIDashboard({
     setSelectedGuide({ guideName, dimension, severity });
     setDrawerOpen(true);
   };
+
+  // Handle tab changes with URL hash persistence
+  const handleTabChange = (value: string) => {
+    setSelectedTab(value);
+    // Update URL hash without page reload
+    const url = new URL(window.location.href);
+    url.hash = value;
+    router.replace(url.toString(), { scroll: false });
+  };
+
+  // Initialize tab from URL hash on mount
+  useEffect(() => {
+    const hash = window.location.hash.replace('#', '');
+    const validTabs = ['overview', 'scores', 'issues', 'domain', 'detailed', 'rules'];
+    if (hash && validTabs.includes(hash)) {
+      setSelectedTab(hash);
+    }
+  }, []);
+
+  // Listen for hash changes (browser back/forward)
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '');
+      const validTabs = ['overview', 'scores', 'issues', 'domain', 'detailed', 'rules'];
+      if (hash && validTabs.includes(hash)) {
+        setSelectedTab(hash);
+      } else if (!hash) {
+        setSelectedTab('overview');
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   // Fetch combined score
   useEffect(() => {
@@ -216,17 +248,30 @@ export function ContentKPIDashboard({
               <div className="space-y-3">
                 <div className="flex justify-between text-sm">
                   <div className="flex-1">
-                    <div>Analyzing website content...</div>
-                    {/* Debug info */}
-                    <div className="text-xs text-red-500 mt-1">
-                      Debug: currentUrl = "{crawlProgress.currentUrl || 'undefined'}"
+                    <div className="flex items-center gap-2">
+                      {crawlProgress.status === 'analyzing' ? (
+                        <>
+                          <Brain className="h-4 w-4 animate-pulse" />
+                          <span>Analyzing content with AI...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Search className="h-4 w-4 animate-pulse" />
+                          <span>Crawling website pages...</span>
+                        </>
+                      )}
                     </div>
-                    {crawlProgress.currentUrl && crawlProgress.currentUrl !== 'Starting...' && (
+                    {crawlProgress.currentUrl && crawlProgress.currentUrl !== 'Starting...' && crawlProgress.status !== 'analyzing' && (
                       <div className="flex items-center text-xs text-muted-foreground mt-1">
                         <Globe className="h-3 w-3 mr-1 flex-shrink-0" />
                         <span className="truncate" title={crawlProgress.currentUrl}>
                           {formatUrlForDisplay(crawlProgress.currentUrl, 60)}
                         </span>
+                      </div>
+                    )}
+                    {crawlProgress.status === 'analyzing' && (
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Processing crawled data and generating insights...
                       </div>
                     )}
                   </div>
@@ -238,10 +283,15 @@ export function ContentKPIDashboard({
                 />
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Pages analyzed: {crawlProgress.crawledPages} / {crawlProgress.totalPages}</span>
+                    <span>
+                      {crawlProgress.status === 'analyzing' 
+                        ? `Analyzing: ${crawlProgress.crawledPages} / ${crawlProgress.totalPages} pages`
+                        : `Pages crawled: ${crawlProgress.crawledPages} / ${crawlProgress.totalPages}`
+                      }
+                    </span>
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    This process analyzes your website's content independently from regular batch runs
+                    This process analyzes your website's structure independently from regular batch runs
                   </div>
                 </div>
               </div>
@@ -255,23 +305,23 @@ export function ContentKPIDashboard({
   // Prepare data for radar chart
   const radarData = [
     { 
-      dimension: 'Authority',
-      value: report.summary.scoreBreakdown.authority,
-      fullMark: 100
-    },
-    { 
-      dimension: 'Freshness',
-      value: report.summary.scoreBreakdown.freshness,
+      dimension: 'Technical',
+      value: report.summary.scoreBreakdown?.technical || 0,
       fullMark: 100
     },
     { 
       dimension: 'Structure',
-      value: report.summary.scoreBreakdown.structure,
+      value: report.summary.scoreBreakdown?.structure || 0,
       fullMark: 100
     },
     { 
-      dimension: 'Brand',
-      value: report.summary.scoreBreakdown.brandAlignment,
+      dimension: 'Authority',
+      value: report.summary.scoreBreakdown?.authority || 0,
+      fullMark: 100
+    },
+    { 
+      dimension: 'Quality',
+      value: report.summary.scoreBreakdown?.quality || 0,
       fullMark: 100
     },
   ];
@@ -300,13 +350,30 @@ export function ContentKPIDashboard({
             <div className="space-y-3">
               <div className="flex justify-between text-sm">
                 <div className="flex-1">
-                  <div>Analyzing website content...</div>
-                  {crawlProgress.currentUrl && crawlProgress.currentUrl !== 'Starting...' && (
+                  <div className="flex items-center gap-2">
+                    {crawlProgress.status === 'analyzing' ? (
+                      <>
+                        <Brain className="h-4 w-4 animate-pulse" />
+                        <span>Analyzing content with AI...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Search className="h-4 w-4 animate-pulse" />
+                        <span>Crawling website pages...</span>
+                      </>
+                    )}
+                  </div>
+                  {crawlProgress.currentUrl && crawlProgress.currentUrl !== 'Starting...' && crawlProgress.status !== 'analyzing' && (
                     <div className="flex items-center text-xs text-muted-foreground mt-1">
                       <Globe className="h-3 w-3 mr-1 flex-shrink-0" />
                       <span className="truncate" title={crawlProgress.currentUrl}>
                         {formatUrlForDisplay(crawlProgress.currentUrl, 60)}
                       </span>
+                    </div>
+                  )}
+                  {crawlProgress.status === 'analyzing' && (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Processing crawled data and generating insights...
                     </div>
                   )}
                 </div>
@@ -318,10 +385,15 @@ export function ContentKPIDashboard({
               />
               <div className="space-y-1">
                 <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Pages analyzed: {crawlProgress.crawledPages} / {crawlProgress.totalPages}</span>
+                  <span>
+                    {crawlProgress.status === 'analyzing' 
+                      ? `Analyzing: ${crawlProgress.crawledPages} / ${crawlProgress.totalPages} pages`
+                      : `Pages crawled: ${crawlProgress.crawledPages} / ${crawlProgress.totalPages}`
+                    }
+                  </span>
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  This process analyzes your website's content independently from regular batch runs
+                  This process analyzes your website's structure independently from regular batch runs
                 </div>
               </div>
             </div>
@@ -329,7 +401,7 @@ export function ContentKPIDashboard({
         </Card>
       )}
 
-      <Tabs value={selectedTab} onValueChange={setSelectedTab}>
+      <Tabs value={selectedTab} onValueChange={handleTabChange}>
         <div className="flex items-center justify-between mb-4">
           <TabsList>
             <TabsTrigger value="overview" className="flex items-center gap-2">
@@ -357,7 +429,7 @@ export function ContentKPIDashboard({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setSelectedTab('rules')}
+            onClick={() => handleTabChange('rules')}
             className={`flex items-center gap-2 ${selectedTab === 'rules' ? 'bg-accent text-accent-foreground' : ''}`}
           >
             <Settings className="h-4 w-4" />
@@ -366,64 +438,38 @@ export function ContentKPIDashboard({
         </div>
 
         <TabsContent value="overview" className="space-y-4">
-          {/* Summary Cards - moved from top level */}
-          <div className="grid gap-4 md:grid-cols-4">
-            <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-700">Overall Score</CardTitle>
-                <TrendingUp className="h-4 w-4 text-gray-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-xl font-bold text-gray-900">{combinedScore !== null ? Math.round(combinedScore) : report.summary.avgGlobalScore}/100</div>
-                <p className="text-xs text-gray-500">
-                  {combinedScore !== null ? 'Combined page & domain score' : `Across ${report.summary.totalPages} pages`}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-700">Top Performers</CardTitle>
-                <CheckCircle className="h-4 w-4 text-gray-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-xl font-bold text-gray-900">
-                  {data?.scores?.filter(page => page.globalScore > 80).length || 0}
-                </div>
-                <p className="text-xs text-gray-500">
-                  Pages scoring above 80
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-700">Need Improvement</CardTitle>
-                <AlertTriangle className="h-4 w-4 text-gray-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-xl font-bold text-gray-900">
-                  {data?.scores?.filter(page => page.globalScore < 60).length || 0}
-                </div>
-                <p className="text-xs text-gray-500">
-                  Pages scoring below 60
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-700">Critical Issues</CardTitle>
-                <AlertCircle className="h-4 w-4 text-gray-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-xl font-bold text-gray-900">{report.criticalIssuesCount}</div>
-                <p className="text-xs text-gray-500">
-                  Require immediate action
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+          {/* Donut Charts Section */}
+          <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
+            <CardContent className="pt-6">
+              <div className="grid gap-6 md:grid-cols-5">
+                <DonutChart
+                  score={combinedScore !== null ? Math.round(combinedScore) : report.summary.avgGlobalScore}
+                  color="#6366f1"
+                  title="Overall"
+                />
+                <DonutChart
+                  score={report.summary.scoreBreakdown?.technical || 0}
+                  dimension="technical"
+                  title="Technical"
+                />
+                <DonutChart
+                  score={report.summary.scoreBreakdown?.authority || 0}
+                  dimension="authority"
+                  title="Authority"
+                />
+                <DonutChart
+                  score={report.summary.scoreBreakdown?.structure || 0}
+                  dimension="structure"
+                  title="Structure"
+                />
+                <DonutChart
+                  score={report.summary.scoreBreakdown?.quality || 0}
+                  dimension="quality"
+                  title="Quality"
+                />
+              </div>
+            </CardContent>
+          </Card>
           {/* Recommendations and Score Breakdown Grid */}
           <div className="grid gap-4 md:grid-cols-3">
             {/* Recommendations - 2/3 width */}
@@ -431,7 +477,10 @@ export function ContentKPIDashboard({
               <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300 h-full">
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg font-semibold text-gray-900">Recommendations</CardTitle>
+                    <div className="flex items-center gap-2">
+                      <Lightbulb className="h-5 w-5 text-blue-500" />
+                      <CardTitle className="text-lg font-semibold text-gray-900">Recommendations</CardTitle>
+                    </div>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -451,32 +500,32 @@ export function ContentKPIDashboard({
                       // Analyze each dimension and create targeted recommendations
                       const dimensionData = [
                         { 
+                          name: 'Technical', 
+                          score: report.summary.scoreBreakdown?.technical || 0,
+                          icon: Settings,
+                          color: COLORS.technical,
+                          threshold: 70
+                        },
+                        { 
+                          name: 'Structure', 
+                          score: report.summary.scoreBreakdown?.structure || 0,
+                          icon: FileText,
+                          color: COLORS.structure,
+                          threshold: 75
+                        },
+                        { 
                           name: 'Authority', 
-                          score: report.summary.scoreBreakdown.authority,
+                          score: report.summary.scoreBreakdown?.authority || 0,
                           icon: CheckCircle,
                           color: COLORS.authority,
                           threshold: 70
                         },
                         { 
-                          name: 'Freshness', 
-                          score: report.summary.scoreBreakdown.freshness,
-                          icon: TrendingUp,
-                          color: COLORS.freshness,
-                          threshold: 75
-                        },
-                        { 
-                          name: 'Structure', 
-                          score: report.summary.scoreBreakdown.structure,
-                          icon: Info,
-                          color: COLORS.structure,
-                          threshold: 80
-                        },
-                        { 
-                          name: 'Brand', 
-                          score: report.summary.scoreBreakdown.brandAlignment,
-                          icon: AlertTriangle,
-                          color: COLORS.brand,
-                          threshold: 70
+                          name: 'Quality', 
+                          score: report.summary.scoreBreakdown?.quality || 0,
+                          icon: BarChart3,
+                          color: COLORS.quality,
+                          threshold: 60
                         }
                       ];
 
@@ -519,29 +568,33 @@ export function ContentKPIDashboard({
                           };
 
                           // Add specific actions based on dimension
-                          if (dim.name === 'Authority') {
+                          if (dim.name === 'Technical') {
                             recommendation.actions = [
-                              'Build more high-quality backlinks to key pages',
-                              'Improve internal linking structure',
-                              'Create authoritative content with expert citations'
-                            ];
-                          } else if (dim.name === 'Freshness') {
-                            recommendation.actions = [
-                              'Update outdated content on high-traffic pages',
-                              'Establish a regular content refresh schedule',
-                              'Add "last updated" dates to important pages'
+                              'Optimize internal linking structure',
+                              'Implement structured data (Schema.org)',
+                              'Add llms.txt file for AI visibility',
+                              'Ensure proper XML sitemap configuration'
                             ];
                           } else if (dim.name === 'Structure') {
                             recommendation.actions = [
-                              'Fix missing or duplicate meta tags',
-                              'Improve heading hierarchy (H1-H6)',
-                              'Optimize page load speed and Core Web Vitals'
+                              'Add more how-to and instructional content',
+                              'Create comprehensive FAQ sections',
+                              'Include more comparison and definitional content',
+                              'Improve content freshness with regular updates'
                             ];
-                          } else if (dim.name === 'Brand') {
+                          } else if (dim.name === 'Authority') {
                             recommendation.actions = [
-                              'Increase brand mentions in key content',
-                              'Ensure consistent brand messaging',
-                              'Add brand-specific schema markup'
+                              'Build high-quality backlinks from authoritative sources',
+                              'Cite reputable sources and studies',
+                              'Increase brand mentions across content',
+                              'Establish thought leadership with expert content'
+                            ];
+                          } else if (dim.name === 'Quality') {
+                            recommendation.actions = [
+                              'Track brand citations across AI platforms',
+                              'Monitor brand sentiment in AI responses',
+                              'Measure AI visibility metrics regularly',
+                              'Optimize content based on AI performance data'
                             ];
                           }
 
@@ -637,7 +690,10 @@ export function ContentKPIDashboard({
             <div className="md:col-span-1">
               <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
                 <CardHeader>
-                  <CardTitle className="text-lg font-semibold text-gray-900">Score Breakdown</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5 text-purple-500" />
+                    <CardTitle className="text-lg font-semibold text-gray-900">Score Breakdown</CardTitle>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
@@ -662,10 +718,10 @@ export function ContentKPIDashboard({
                       {/* Single Radar with gradient fill and colored dots */}
                       <defs>
                         <linearGradient id="radarGradient" x1="0" y1="0" x2="1" y2="1">
-                          <stop offset="0%" stopColor={DIMENSION_COLORS.Authority} stopOpacity={0.6} />
-                          <stop offset="33%" stopColor={DIMENSION_COLORS.Freshness} stopOpacity={0.6} />
-                          <stop offset="66%" stopColor={DIMENSION_COLORS.Structure} stopOpacity={0.6} />
-                          <stop offset="100%" stopColor={DIMENSION_COLORS.Brand} stopOpacity={0.6} />
+                          <stop offset="0%" stopColor={DIMENSION_COLORS.authority} stopOpacity={0.6} />
+                          <stop offset="33%" stopColor={DIMENSION_COLORS.technical} stopOpacity={0.6} />
+                          <stop offset="66%" stopColor={DIMENSION_COLORS.structure} stopOpacity={0.6} />
+                          <stop offset="100%" stopColor={DIMENSION_COLORS.quality} stopOpacity={0.6} />
                         </linearGradient>
                       </defs>
                       <Radar 
@@ -726,40 +782,63 @@ export function ContentKPIDashboard({
             {/* Top Performing Pages */}
             <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
               <CardHeader>
-                <CardTitle className="text-lg font-semibold text-gray-900">Top Performing Pages</CardTitle>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-green-500" />
+                    <CardTitle className="text-lg font-semibold text-gray-900">Top Performing Pages</CardTitle>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-green-600">
+                      {data?.scores?.filter(page => page.globalScore > 80).length || 0}
+                    </div>
+                    <div className="text-xs text-gray-500">Pages scoring above 80</div>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {data?.scores?.filter(page => page.globalScore > 80).map((page, index) => (
-                    <div key={index} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <a
-                          href={page.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm font-medium text-gray-700 hover:underline flex items-center gap-1 truncate"
-                        >
-                          {page.url}
-                          <ExternalLink className="h-3 w-3 flex-shrink-0" />
-                        </a>
-                        <Badge variant="default" className="bg-green-100 text-green-800 ml-2">
-                          {Math.round(page.globalScore)}
-                        </Badge>
-                      </div>
-                      <div className="flex flex-wrap gap-1">
-                        {[
-                          ...(page.scores.authority >= 80 ? ['Strong Authority'] : []),
-                          ...(page.scores.freshness >= 80 ? ['Fresh Content'] : []),
-                          ...(page.scores.structure >= 80 ? ['Well Structured'] : []),
-                          ...(page.scores.brandAlignment >= 80 ? ['Brand Aligned'] : []),
-                        ].map((strength, i) => (
-                          <Badge key={i} variant="outline" className="text-xs">
-                            {strength}
+                  {data?.scores?.filter(page => page.globalScore > 80).map((page, index) => {
+                    // Extract path from URL
+                    const getPathFromUrl = (url: string) => {
+                      try {
+                        const urlObj = new URL(url);
+                        return urlObj.pathname === '/' ? '/' : urlObj.pathname;
+                      } catch {
+                        return url;
+                      }
+                    };
+                    
+                    return (
+                      <div key={index} className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="default" className="bg-green-100 text-green-800">
+                            {Math.round(page.globalScore)}
                           </Badge>
-                        ))}
+                          <a
+                            href={page.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-gray-700 hover:underline flex items-center gap-1 truncate flex-1"
+                          >
+                            {page.title || getPathFromUrl(page.url)}
+                            <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                          </a>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {[
+                            ...(page.scores?.technical >= 80 ? ['Technical Excellence'] : []),
+                            ...(page.scores?.structure >= 80 ? ['AI-Ready Content'] : []),
+                            ...(page.scores?.authority >= 80 ? ['High Authority'] : []),
+                            ...(page.scores?.quality >= 80 ? ['Great AI Visibility'] : []),
+                          ].map((strength, i) => (
+                            <Badge key={i} variant="outline" className="text-xs">
+                              {strength}
+                            </Badge>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )) || []}
+                    );
+                  }) || []}
                   {(!data?.scores?.filter(page => page.globalScore > 80).length) && (
                     <p className="text-sm text-gray-500">No pages scoring above 80 yet.</p>
                   )}
@@ -770,7 +849,18 @@ export function ContentKPIDashboard({
             {/* Pages Needing Improvement */}
             <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
               <CardHeader>
-                <CardTitle className="text-lg font-semibold text-gray-900">Pages Needing Improvement</CardTitle>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-amber-500" />
+                    <CardTitle className="text-lg font-semibold text-gray-900">Pages Needing Improvement</CardTitle>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-amber-600">
+                      {data?.scores?.filter(page => page.globalScore < 60).length || 0}
+                    </div>
+                    <div className="text-xs text-gray-500">Pages scoring below 60</div>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -813,7 +903,17 @@ export function ContentKPIDashboard({
                     </div>
                   )) || []}
                   {(!data?.scores?.filter(page => page.globalScore < 60 && !(page.skipped && page.globalScore === 0)).length) && (
-                    <p className="text-sm text-gray-500">No pages needing improvement.</p>
+                    <div className="text-center py-8">
+                      <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/20 mb-4">
+                        <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                        Excellent Work! 🎉
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 max-w-sm mx-auto">
+                        All your pages are performing well! Every page scores above 60, showing great optimization across your content.
+                      </p>
+                    </div>
                   )}
                 </div>
               </CardContent>
@@ -831,7 +931,10 @@ export function ContentKPIDashboard({
             <div className="md:col-span-2">
               <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
                 <CardHeader>
-                  <CardTitle className="text-lg font-semibold text-gray-900">Issues by Dimension</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <LayoutDashboard className="h-5 w-5 text-indigo-500" />
+                    <CardTitle className="text-lg font-semibold text-gray-900">Issues by Dimension</CardTitle>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -890,7 +993,10 @@ export function ContentKPIDashboard({
             <div className="md:col-span-1">
               <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
                 <CardHeader>
-                  <CardTitle className="text-lg font-semibold text-gray-900">Issues by Severity</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <AlertOctagon className="h-5 w-5 text-red-500" />
+                    <CardTitle className="text-lg font-semibold text-gray-900">Issues by Severity</CardTitle>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -941,8 +1047,13 @@ export function ContentKPIDashboard({
           {/* All Issues Table - Full width */}
           <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
             <CardHeader>
-              <CardTitle className="text-lg font-semibold text-gray-900">All Issues</CardTitle>
-              <p className="text-sm text-gray-500">Complete list of issues across all pages and domains</p>
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-gray-500" />
+                <div>
+                  <CardTitle className="text-lg font-semibold text-gray-900">All Issues</CardTitle>
+                  <p className="text-sm text-gray-500">Complete list of issues across all pages and domains</p>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
@@ -964,6 +1075,7 @@ export function ContentKPIDashboard({
                         sourceType: 'page' | 'domain';
                         issue: any;
                         dimension: string;
+                        pageTitle?: string;
                       }> = [];
 
                       // Get issues from page analysis
@@ -974,7 +1086,8 @@ export function ContentKPIDashboard({
                               source: page.url,
                               sourceType: 'page',
                               issue,
-                              dimension: issue.dimension || 'General'
+                              dimension: issue.dimension || 'General',
+                              pageTitle: page.title
                             });
                           });
                         }
@@ -998,15 +1111,36 @@ export function ContentKPIDashboard({
                         }
                       });
 
-                      // Sort issues by severity (critical > high > medium > low)
-                      const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
-                      allIssues.sort((a, b) => {
-                        const severityA = severityOrder[a.issue.severity as keyof typeof severityOrder] ?? 4;
-                        const severityB = severityOrder[b.issue.severity as keyof typeof severityOrder] ?? 4;
+                      // Group issues by ID (ruleId or id)
+                      const groupedIssues = allIssues.reduce((acc, item) => {
+                        const issueKey = item.issue.ruleId || item.issue.id || `${item.issue.description}_${item.issue.severity}`;
+                        
+                        if (!acc[issueKey]) {
+                          acc[issueKey] = {
+                            issue: item.issue,
+                            dimension: item.dimension,
+                            pages: []
+                          };
+                        }
+                        
+                        acc[issueKey].pages.push({
+                          source: item.source,
+                          sourceType: item.sourceType,
+                          title: item.pageTitle
+                        });
+                        
+                        return acc;
+                      }, {} as Record<string, { issue: any; dimension: string; pages: Array<{ source: string; sourceType: string; title?: string }> }>);
+
+                      // Convert to array and sort by severity
+                      const sortedGroupedIssues = Object.entries(groupedIssues).sort((a, b) => {
+                        const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+                        const severityA = severityOrder[a[1].issue.severity as keyof typeof severityOrder] ?? 4;
+                        const severityB = severityOrder[b[1].issue.severity as keyof typeof severityOrder] ?? 4;
                         return severityA - severityB;
                       });
 
-                      if (allIssues.length === 0) {
+                      if (sortedGroupedIssues.length === 0) {
                         return (
                           <tr>
                             <td colSpan={5} className="text-center py-8">
@@ -1018,15 +1152,15 @@ export function ContentKPIDashboard({
                         );
                       }
 
-                      return allIssues.map((item, index) => {
-                        const Icon = SEVERITY_ICONS[item.issue.severity as keyof typeof SEVERITY_ICONS] || Info;
-                        const severityColor = SEVERITY_COLORS[item.issue.severity as keyof typeof SEVERITY_COLORS] || '#6b7280';
+                      return sortedGroupedIssues.map(([issueKey, groupedIssue], index) => {
+                        const Icon = SEVERITY_ICONS[groupedIssue.issue.severity as keyof typeof SEVERITY_ICONS] || Info;
+                        const severityColor = SEVERITY_COLORS[groupedIssue.issue.severity as keyof typeof SEVERITY_COLORS] || '#6b7280';
                         
                         return (
                           <tr 
-                            key={index} 
+                            key={issueKey} 
                             className="border-b hover:bg-gray-50 transition-colors cursor-pointer"
-                            onClick={() => handleOpenGuide(item.issue.description, item.dimension.toLowerCase(), item.issue.severity)}
+                            onClick={() => handleOpenGuide(groupedIssue.issue.description, groupedIssue.dimension.toLowerCase(), groupedIssue.issue.severity)}
                           >
                             <td className="py-3 px-4">
                               <div className="flex items-center gap-2">
@@ -1040,43 +1174,67 @@ export function ContentKPIDashboard({
                                     backgroundColor: `${severityColor}10`
                                   }}
                                 >
-                                  {item.issue.severity}
+                                  {groupedIssue.issue.severity}
                                 </Badge>
                               </div>
                             </td>
                             <td className="py-3 px-4">
                               <div className="space-y-1">
-                                <p className="text-sm text-gray-900">{item.issue.description}</p>
-                                {item.issue.recommendation && (
+                                <p className="text-sm text-gray-900 font-medium">
+                                  {groupedIssue.issue.ruleName || groupedIssue.issue.description}
+                                </p>
+                                {groupedIssue.issue.ruleName && (
+                                  <p className="text-xs text-gray-600">{groupedIssue.issue.description}</p>
+                                )}
+                                {groupedIssue.issue.recommendation && (
                                   <p className="text-xs text-gray-600">
-                                    <span className="font-medium">Recommendation:</span> {item.issue.recommendation}
+                                    <span className="font-medium">Recommendation:</span> {groupedIssue.issue.recommendation}
                                   </p>
                                 )}
                               </div>
                             </td>
                             <td className="py-3 px-4">
                               <Badge variant="outline" className="text-xs">
-                                {item.dimension}
+                                {groupedIssue.dimension}
                               </Badge>
                             </td>
                             <td className="py-3 px-4">
-                              {item.sourceType === 'page' ? (
-                                <a
-                                  href={item.source}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-sm text-blue-600 hover:underline flex items-center gap-1"
-                                >
-                                  {item.source.length > 50 ? item.source.substring(0, 50) + '...' : item.source}
-                                  <ExternalLink className="h-3 w-3" />
-                                </a>
-                              ) : (
-                                <span className="text-sm text-gray-700">{item.source}</span>
-                              )}
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <Badge variant="secondary" className="text-xs">
+                                    {groupedIssue.pages.length} {groupedIssue.pages.length === 1 ? 'page' : 'pages'}
+                                  </Badge>
+                                </div>
+                                <div className="space-y-0.5 max-h-20 overflow-y-auto">
+                                  {groupedIssue.pages.slice(0, 3).map((page, idx) => (
+                                    <div key={idx}>
+                                      {page.sourceType === 'page' ? (
+                                        <a
+                                          href={page.source}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          {page.title || formatUrlForDisplay(page.source, 40)}
+                                          <ExternalLink className="h-2.5 w-2.5" />
+                                        </a>
+                                      ) : (
+                                        <span className="text-xs text-gray-700">{page.source}</span>
+                                      )}
+                                    </div>
+                                  ))}
+                                  {groupedIssue.pages.length > 3 && (
+                                    <p className="text-xs text-gray-500 font-medium">
+                                      +{groupedIssue.pages.length - 3} more
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
                             </td>
                             <td className="py-3 px-4">
                               <Badge variant="secondary" className="text-xs">
-                                {item.sourceType === 'page' ? 'Page' : 'Domain'}
+                                {groupedIssue.pages.some(p => p.sourceType === 'domain') ? 'Mixed' : 'Pages'}
                               </Badge>
                             </td>
                           </tr>
@@ -1100,18 +1258,18 @@ export function ContentKPIDashboard({
             
             const allPages = data?.scores?.map(page => ({
               url: page.url,
-              title: page.url, // ContentScore doesn't have title field
+              title: page.title, // Now ContentScore has title field
               globalScore: page.globalScore,
               scores: page.scores, // Already in correct format
+              ruleResults: page.ruleResults || [], // Pass the rule results for PageDetailsSection
               details: page.details, // Pass the LLM analysis details
               calculationDetails: page.calculationDetails, // Pass calculation breakdowns
               issues: page.issues || [], // Already in correct format
               strengths: [
-                ...(page.scores.authority >= 80 ? ['Strong Authority Signals'] : []),
-                ...(page.scores.freshness >= 80 ? ['Fresh Content'] : []),
-                ...(page.scores.structure >= 80 ? ['Well Structured'] : []),
-                // Only show brand strength if score is high AND there are actual brand mentions
-                ...(page.scores.brandAlignment >= 80 && page.details?.brand?.brandMentions > 0 ? ['Strong Brand Alignment'] : []),
+                ...(page.scores?.authority >= 80 ? ['Strong Authority Signals'] : []),
+                ...(page.scores?.structure >= 80 ? ['Quality Content'] : []),
+                ...(page.scores?.technical >= 80 ? ['Well Structured'] : []),
+                ...(page.scores?.quality >= 80 ? ['Strong Quality Content'] : []),
               ],
               crawledAt: new Date(page.analyzedAt),
               // Add the missing category fields

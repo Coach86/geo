@@ -128,7 +128,6 @@ export function RuleBasedScoreBreakdown({ dimension, details, color, title }: Ru
                   <ul className="space-y-1">
                     {rule.evidence.map((item, idx) => (
                       <li key={idx} className="text-xs text-muted-foreground flex items-start gap-1">
-                        <CheckCircle className="h-3 w-3 mt-0.5 text-green-600 flex-shrink-0" />
                         <span>{item}</span>
                       </li>
                     ))}

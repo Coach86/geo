@@ -35,46 +35,45 @@ export default function PageIntelligencePage() {
   
   // Crawler state
   const [isCrawling, setIsCrawling] = useState(false);
-  const [crawlProgress, setCrawlProgress] = useState<{ crawledPages: number; totalPages: number; currentUrl?: string } | null>(null);
+  const [crawlProgress, setCrawlProgress] = useState<{ crawledPages: number; totalPages: number; currentUrl?: string; status?: string } | null>(null);
   const [initialCheckDone, setInitialCheckDone] = useState(false);
   const [showCrawlDialog, setShowCrawlDialog] = useState(false);
 
-  // Listen to crawler events
-  const { crawlerStatus, isActive: isCrawlerActive } = useCrawlerEvents({
-    projectId: selectedProjectId || '',
-    token: token || undefined,
-    onCrawlerEvent: (event) => {
-      // Update progress based on WebSocket events - prioritize WebSocket over polling
-      if (event.eventType === 'crawler.started') {
+  // Stable callback for crawler events
+  const handleCrawlerEvent = useCallback((event: any) => {
+    // Update progress based on WebSocket events - prioritize WebSocket over polling
+    if (event.eventType === 'crawler.started') {
+      setIsCrawling(true);
+      setCrawlProgress({
+        crawledPages: event.crawledPages || 0,
+        totalPages: event.totalPages || 100,
+        currentUrl: event.currentUrl,
+        status: event.status,
+      });
+    } else if (event.eventType === 'crawler.progress' || event.eventType === 'crawler.page_crawled') {
+      // Only update if we have valid progress data
+      if (event.crawledPages !== undefined && event.totalPages !== undefined) {
         setIsCrawling(true);
+        const urlToUse = event.currentUrl || (event as any).url; // Try both fields
         setCrawlProgress({
-          crawledPages: event.crawledPages || 0,
-          totalPages: event.totalPages || 100,
-          currentUrl: event.currentUrl,
+          crawledPages: event.crawledPages,
+          totalPages: event.totalPages,
+          currentUrl: urlToUse,
+          status: event.status,
         });
-      } else if (event.eventType === 'crawler.progress' || event.eventType === 'crawler.page_crawled') {
-        // Only update if we have valid progress data
-        if (event.crawledPages !== undefined && event.totalPages !== undefined) {
-          setIsCrawling(true);
-          const urlToUse = event.currentUrl || (event as any).url; // Try both fields
-          setCrawlProgress({
-            crawledPages: event.crawledPages,
-            totalPages: event.totalPages,
-            currentUrl: urlToUse,
-          });
-        }
-      } else if (event.eventType === 'crawler.completed') {
-        setIsCrawling(false);
-        setCrawlProgress(null);
-        // Add a small delay before refetching to ensure backend has finished processing
-        setTimeout(() => {
-          refetch(); // Refresh the data
-        }, 1000);
-        toast({
-          title: "Crawl completed",
-          description: `Successfully analyzed ${event.crawledPages || 0} pages`,
-        });
-      } else if (event.eventType === 'crawler.failed') {
+      }
+    } else if (event.eventType === 'crawler.completed') {
+      setIsCrawling(false);
+      setCrawlProgress(null);
+      // Add a small delay before refetching to ensure backend has finished processing
+      setTimeout(() => {
+        refetch(); // Refresh the data
+      }, 1000);
+      toast({
+        title: "Crawl completed",
+        description: `Successfully analyzed ${event.crawledPages || 0} pages`,
+      });
+    } else if (event.eventType === 'crawler.failed') {
         setIsCrawling(false);
         setCrawlProgress(null);
         toast({
@@ -83,7 +82,13 @@ export default function PageIntelligencePage() {
           variant: "destructive",
         });
       }
-    },
+  }, [refetch]);
+
+  // Listen to crawler events
+  const { crawlerStatus, isActive: isCrawlerActive } = useCrawlerEvents({
+    projectId: selectedProjectId || '',
+    token: token || undefined,
+    onCrawlerEvent: handleCrawlerEvent,
   });
 
   // Check initial crawl status on mount
@@ -152,19 +157,19 @@ export default function PageIntelligencePage() {
     };
   }, [isCrawling, isCrawlerActive, getCrawlStatus, refetch]);
 
-  const handleStartCrawl = async (maxPages: number) => {
+  const handleStartCrawl = async (settings: { maxPages: number; userAgent?: string; includePatterns?: string[]; excludePatterns?: string[]; mode?: 'auto' | 'manual'; manualUrls?: string[] }) => {
     try {
-      console.log('[PageIntelligencePage] Starting crawl with maxPages:', maxPages);
+      console.log('[PageIntelligencePage] Starting crawl with settings:', settings);
       setIsCrawling(true);
-      setCrawlProgress({ crawledPages: 0, totalPages: maxPages, currentUrl: 'Starting...' });
+      setCrawlProgress({ crawledPages: 0, totalPages: settings.maxPages, currentUrl: 'Starting...' });
       setShowCrawlDialog(false);
       
-      const result = await triggerCrawl({ maxPages });
+      const result = await triggerCrawl(settings);
       console.log('[PageIntelligencePage] Crawl triggered successfully:', result);
       
       toast({
         title: "Crawl started",
-        description: `Website analysis has begun for up to ${maxPages} pages. This may take a few minutes.`,
+        description: `Website analysis has begun for up to ${settings.maxPages} pages. This may take a few minutes.`,
       });
     } catch (error: any) {
       console.error('[PageIntelligencePage] Crawl failed:', error);
