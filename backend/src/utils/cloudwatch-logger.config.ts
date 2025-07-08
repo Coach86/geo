@@ -15,11 +15,14 @@ interface LogMetadata {
 
 // Custom format for CloudWatch that includes structured metadata
 const cloudWatchFormat = winston.format.printf(({ level, message, timestamp, context, trace, ...meta }) => {
+  // Add unique identifier to prevent CloudWatch from grouping logs
   const log: any = {
-    timestamp,
+    timestamp: timestamp || new Date().toISOString(),
     level,
     message: typeof message === 'string' ? message : JSON.stringify(message),
     context,
+    // Add nano time for uniqueness
+    nano: process.hrtime.bigint().toString(),
   };
 
   // Add trace if present (for errors) - ensure it's a single line
@@ -32,8 +35,8 @@ const cloudWatchFormat = winston.format.printf(({ level, message, timestamp, con
     log.metadata = meta;
   }
 
-  // Ensure the entire log is on a single line
-  return JSON.stringify(log, null, 0);
+  // Ensure the entire log is on a single line and add newline for immediate flush
+  return JSON.stringify(log, null, 0) + '\n';
 });
 
 // Format for adding default metadata to all logs
@@ -53,6 +56,7 @@ export const getCloudWatchLoggerConfig = (
   const enableCloudWatch = process.env.ENABLE_CLOUDWATCH_LOGS === 'true';
   const logLevel = process.env.LOG_LEVEL || (isProduction ? 'info' : 'debug');
   const logFormat = process.env.LOG_FORMAT || 'json';
+  const forceUnbuffered = process.env.FORCE_UNBUFFERED_LOGS === 'true' || isProduction;
 
   const transports: winston.transport[] = [];
 
@@ -75,6 +79,11 @@ export const getCloudWatchLoggerConfig = (
           // Always use JSON format in production/CloudWatch to ensure single-line logs
           cloudWatchFormat
         ),
+        // Force immediate output without buffering
+        stderrLevels: [],
+        consoleWarnLevels: [],
+        handleExceptions: true,
+        handleRejections: true,
       }),
     );
   } else {

@@ -9,8 +9,10 @@ import * as fs from 'fs';
 import { PostHogService } from './modules/analytics/services/posthog.service';
 
 async function bootstrap() {
+
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     rawBody: true, // Enable raw body parsing for webhooks
+    bufferLogs: false, // Disable log buffering
   });
 
   // Configure CORS based on environment

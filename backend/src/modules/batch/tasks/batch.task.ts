@@ -6,6 +6,7 @@ import { BatchService } from '../services/batch.service';
 import { BrandReportOrchestratorService } from '../services/brand-report-orchestrator.service';
 import { BatchExecutionService } from '../services/batch-execution.service';
 import { ProjectRecoveryService } from '../services/project-recovery.service';
+import { DistributedLockService } from '../services/distributed-lock.service';
 import { ProjectService } from '../../project/services/project.service';
 
 @Injectable()
@@ -18,17 +19,31 @@ export class BatchTask {
     private readonly batchOrchestratorService: BrandReportOrchestratorService,
     private readonly batchExecutionService: BatchExecutionService,
     private readonly projectRecoveryService: ProjectRecoveryService,
+    private readonly distributedLockService: DistributedLockService,
     private readonly projectService: ProjectService,
   ) {
     this.logger.log('Batch task initialized. Batch processing enabled');
   }
 
   // Run every minute (for testing)
-  @Cron('0 3 * * *')
+  @Cron('* * * * *')
   async runDailyBatch() {
-    this.logger.log('Starting daily batch task');
+    const lockName = 'daily-batch';
+    const lockTTL = 60; // 60 minutes TTL
 
+    this.logger.log('Starting daily batch task - attempting to acquire lock...');
+    
+    // Try to acquire distributed lock
+    const lockResult = await this.distributedLockService.acquireLock(lockName, lockTTL);
+    
+    if (!lockResult.acquired) {
+      this.logger.log(`Daily batch task skipped - lock held by instance: ${lockResult.lockHolder}`);
+      return;
+    }
+    
     try {
+      this.logger.log(`Daily batch task lock acquired by instance: ${lockResult.instanceId}`);
+
       // First, run recovery check for projects without reports
       this.logger.log('Running recovery check for projects without reports...');
       await this.projectRecoveryService.recoverProjectsWithoutReports();
@@ -40,6 +55,10 @@ export class BatchTask {
       this.logger.log('Daily batch task completed successfully');
     } catch (error) {
       this.logger.error(`Daily batch task failed: ${error.message}`, error.stack);
+    } finally {
+      // Always release the lock
+      await this.distributedLockService.releaseLock(lockName);
+      this.logger.log('Daily batch task lock released');
     }
   }
 
@@ -96,6 +115,8 @@ export class BatchTask {
     this.logger.log('Checking for stalled batch executions...');
 
     try {
+      // Clean up expired locks first
+      await this.distributedLockService.cleanExpiredLocks();
       // Get current time minus 2 hours
       const twoHoursAgo = new Date();
       twoHoursAgo.setHours(twoHoursAgo.getHours() - 2);
