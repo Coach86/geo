@@ -13,16 +13,25 @@ interface LogMetadata {
   [key: string]: any;
 }
 
+// Global sequence counter for log ordering
+let logSequence = 0;
+
 // Custom format for CloudWatch that includes structured metadata
 const cloudWatchFormat = winston.format.printf(({ level, message, timestamp, context, trace, ...meta }) => {
-  // Add unique identifier to prevent CloudWatch from grouping logs
+  // Increment sequence for each log
+  const seq = ++logSequence;
+  
+  // Add unique identifiers to ensure proper ordering in CloudWatch
   const log: any = {
     timestamp: timestamp || new Date().toISOString(),
     level,
     message: typeof message === 'string' ? message : JSON.stringify(message),
     context,
-    // Add nano time for uniqueness
-    nano: process.hrtime.bigint().toString(),
+    // Add sequence number for ordering logs with same millisecond timestamp
+    seq,
+    // Add process ID and hostname for multi-instance scenarios
+    pid: process.pid,
+    host: process.env.ECS_CONTAINER_METADATA_URI_V4 ? 'ecs' : require('os').hostname(),
   };
 
   // Add trace if present (for errors) - ensure it's a single line

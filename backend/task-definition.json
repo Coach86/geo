@@ -136,7 +136,6 @@
           "awslogs-create-group": "true",
           "awslogs-region": "eu-west-1",
           "awslogs-stream-prefix": "ecs",
-          "awslogs-datetime-format": "\\[%Y-%m-%d %H:%M:%S\\]",
           "mode": "non-blocking",
           "max-buffer-size": "25m"
         },
