@@ -58,12 +58,17 @@ export function AttributeScoresWithSelector({
         const data = await getReportAlignment(selectedReport.id, token);
         // Transform the data to match AlignmentResults interface
         const alignmentResults: AlignmentResults = {
-          summary: data.summary || {
-            overallAlignmentScore: data.overallAlignmentScore,
-            averageAttributeScores: data.averageAttributeScores,
-            attributeAlignmentSummary: data.attributeAlignmentSummary || [],
+          summary: {
+            overallAlignmentScore: data.summary.overallAlignmentScore,
+            averageAttributeScores: data.summary.averageAttributeScores,
+            attributeAlignmentSummary: data.summary.attributeAlignmentSummary.map(item => ({
+              name: item.attribute,
+              score: item.score,
+              mentionRate: '0%',
+              alignment: item.score >= 80 ? 'aligned' : item.score >= 50 ? 'neutral' : 'misaligned'
+            })),
           },
-          detailedResults: data.detailedResults || [],
+          detailedResults: [],
         };
         setAlignmentData(alignmentResults);
       } catch (error) {

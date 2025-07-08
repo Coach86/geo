@@ -95,10 +95,10 @@ interface PageAnalysisTableProps {
 }
 
 const SEVERITY_COLORS = {
-  critical: '#dc2626',
-  high: '#f97316',
-  medium: '#eab308',
-  low: '#3b82f6',
+  critical: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
+  high: { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200' },
+  medium: { bg: 'bg-yellow-50', text: 'text-yellow-700', border: 'border-yellow-200' },
+  low: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
 };
 
 const formatPageCategory = (category?: string): string => {
@@ -165,47 +165,47 @@ const getCategoryColor = (category: string): { bg: string; text: string; border:
   // Explicit mapping for better color distribution - avoiding colors used elsewhere in UI
   const categoryColors: Record<string, { bg: string; text: string; border: string }> = {
     // Sky blue - Home/Main pages
-    'Home': { bg: 'bg-sky-50 dark:bg-sky-950/30', text: 'text-sky-700 dark:text-sky-300', border: 'border-sky-200 dark:border-sky-800' },
+    'Home': { bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200' },
     
     // Violet/Purple - Blog content (avoiding green which is used for "Clean")
-    'Blog/Article': { bg: 'bg-violet-50 dark:bg-violet-950/30', text: 'text-violet-700 dark:text-violet-300', border: 'border-violet-200 dark:border-violet-800' },
-    'Blog Cat': { bg: 'bg-purple-50 dark:bg-purple-950/30', text: 'text-purple-700 dark:text-purple-300', border: 'border-purple-200 dark:border-purple-800' },
+    'Blog/Article': { bg: 'bg-violet-50', text: 'text-violet-700', border: 'border-violet-200' },
+    'Blog Cat': { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' },
     
     // Pink/Rose - Product pages
-    'Product': { bg: 'bg-pink-50 dark:bg-pink-950/30', text: 'text-pink-700 dark:text-pink-300', border: 'border-pink-200 dark:border-pink-800' },
-    'Category': { bg: 'bg-rose-50 dark:bg-rose-950/30', text: 'text-rose-700 dark:text-rose-300', border: 'border-rose-200 dark:border-rose-800' },
-    'Review': { bg: 'bg-fuchsia-50 dark:bg-fuchsia-950/30', text: 'text-fuchsia-700 dark:text-fuchsia-300', border: 'border-fuchsia-200 dark:border-fuchsia-800' },
+    'Product': { bg: 'bg-pink-50', text: 'text-pink-700', border: 'border-pink-200' },
+    'Category': { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200' },
+    'Review': { bg: 'bg-fuchsia-50', text: 'text-fuchsia-700', border: 'border-fuchsia-200' },
     
     // Orange - How-to/Tutorial
-    'How-to': { bg: 'bg-orange-50 dark:bg-orange-950/30', text: 'text-orange-700 dark:text-orange-300', border: 'border-orange-200 dark:border-orange-800' },
-    'Guide': { bg: 'bg-amber-50 dark:bg-amber-950/30', text: 'text-amber-700 dark:text-amber-300', border: 'border-amber-200 dark:border-amber-800' },
+    'How-to': { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200' },
+    'Guide': { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
     
     // Indigo - Business pages
-    'Services': { bg: 'bg-indigo-50 dark:bg-indigo-950/30', text: 'text-indigo-700 dark:text-indigo-300', border: 'border-indigo-200 dark:border-indigo-800' },
-    'Pricing': { bg: 'bg-blue-50 dark:bg-blue-950/30', text: 'text-blue-700 dark:text-blue-300', border: 'border-blue-200 dark:border-blue-800' },
-    'Case Study': { bg: 'bg-cyan-50 dark:bg-cyan-950/30', text: 'text-cyan-700 dark:text-cyan-300', border: 'border-cyan-200 dark:border-cyan-800' },
+    'Services': { bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200' },
+    'Pricing': { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
+    'Case Study': { bg: 'bg-cyan-50', text: 'text-cyan-700', border: 'border-cyan-200' },
     
     // Teal - Info pages
-    'FAQ': { bg: 'bg-teal-50 dark:bg-teal-950/30', text: 'text-teal-700 dark:text-teal-300', border: 'border-teal-200 dark:border-teal-800' },
-    'Pillar': { bg: 'bg-emerald-50 dark:bg-emerald-950/30', text: 'text-emerald-700 dark:text-emerald-300', border: 'border-emerald-200 dark:border-emerald-800' },
+    'FAQ': { bg: 'bg-teal-50', text: 'text-teal-700', border: 'border-teal-200' },
+    'Pillar': { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
     
     // Slate - Corporate
-    'Corporate': { bg: 'bg-slate-50 dark:bg-slate-950/30', text: 'text-slate-700 dark:text-slate-300', border: 'border-slate-200 dark:border-slate-800' },
-    'Compare': { bg: 'bg-zinc-50 dark:bg-zinc-950/30', text: 'text-zinc-700 dark:text-zinc-300', border: 'border-zinc-200 dark:border-zinc-800' },
+    'Corporate': { bg: 'bg-slate-50', text: 'text-slate-700', border: 'border-slate-200' },
+    'Compare': { bg: 'bg-zinc-50', text: 'text-zinc-700', border: 'border-zinc-200' },
     
     // Gray/Stone - Other/System pages
-    'Forum': { bg: 'bg-stone-50 dark:bg-stone-950/30', text: 'text-stone-700 dark:text-stone-300', border: 'border-stone-200 dark:border-stone-800' },
-    'Account': { bg: 'bg-gray-50 dark:bg-gray-950/30', text: 'text-gray-700 dark:text-gray-300', border: 'border-gray-200 dark:border-gray-800' },
-    'Legal': { bg: 'bg-neutral-50 dark:bg-neutral-950/30', text: 'text-neutral-700 dark:text-neutral-300', border: 'border-neutral-200 dark:border-neutral-800' },
-    'Search/Error': { bg: 'bg-red-50 dark:bg-red-950/30', text: 'text-red-600 dark:text-red-400', border: 'border-red-200 dark:border-red-800' },
-    'Unknown': { bg: 'bg-yellow-50 dark:bg-yellow-950/30', text: 'text-yellow-700 dark:text-yellow-300', border: 'border-yellow-200 dark:border-yellow-800' },
+    'Forum': { bg: 'bg-stone-50', text: 'text-stone-700', border: 'border-stone-200' },
+    'Account': { bg: 'bg-gray-50', text: 'text-gray-700', border: 'border-gray-200' },
+    'Legal': { bg: 'bg-neutral-50', text: 'text-neutral-700', border: 'border-neutral-200' },
+    'Search/Error': { bg: 'bg-red-50', text: 'text-red-600', border: 'border-red-200' },
+    'Unknown': { bg: 'bg-yellow-50', text: 'text-yellow-700', border: 'border-yellow-200' },
   };
   
   // Return specific color if mapped, otherwise use a default
   return categoryColors[category] || { 
-    bg: 'bg-gray-50 dark:bg-gray-950/30', 
-    text: 'text-gray-700 dark:text-gray-300', 
-    border: 'border-gray-200 dark:border-gray-800' 
+    bg: 'bg-gray-50', 
+    text: 'text-gray-700', 
+    border: 'border-gray-200' 
   };
 };
 
@@ -300,8 +300,8 @@ export function PageAnalysisTable({ pages, projectId, isDomainAnalysis = false, 
           <Table className="min-w-full">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[30px] sticky left-0 bg-background z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]"></TableHead>
-              <TableHead className="min-w-[200px] max-w-[400px] sticky left-[30px] bg-background z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">{isDomainAnalysis ? 'Domain' : 'Page URL'}</TableHead>
+              <TableHead className="w-[30px] sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]"></TableHead>
+              <TableHead className="min-w-[200px] max-w-[400px] sticky left-[30px] bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">{isDomainAnalysis ? 'Domain' : 'Page URL'}</TableHead>
               {!isDomainAnalysis && <TableHead className="text-center w-[100px]">Category</TableHead>}
               <TableHead className="text-center w-[60px]">Score</TableHead>
               <TableHead className="text-center w-[80px]">Issues</TableHead>
@@ -321,7 +321,7 @@ export function PageAnalysisTable({ pages, projectId, isDomainAnalysis = false, 
                     className={!isDomainAnalysis ? "cursor-pointer hover:bg-muted/50" : ""}
                     onClick={() => !isDomainAnalysis && toggleRowExpansion(page.url)}
                   >
-                    <TableCell className="sticky left-0 bg-background z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                    <TableCell className="sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                       {!isDomainAnalysis && (
                         <button
                           className="p-1 hover:bg-muted rounded-sm"
@@ -338,7 +338,7 @@ export function PageAnalysisTable({ pages, projectId, isDomainAnalysis = false, 
                         </button>
                       )}
                     </TableCell>
-                    <TableCell className="min-w-[200px] max-w-[400px] sticky left-[30px] bg-background z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                    <TableCell className="min-w-[200px] max-w-[400px] sticky left-[30px] bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                       <div className="space-y-0.5 min-w-0 max-w-full">
                         <TooltipProvider>
                           <Tooltip>
@@ -396,9 +396,8 @@ export function PageAnalysisTable({ pages, projectId, isDomainAnalysis = false, 
                           const colorScheme = getCategoryColor(categoryName);
                           return (
                             <Badge 
-                              variant="outline"
                               title={`Analysis: ${page.analysisLevel || 'full'} (${Math.round((page.categoryConfidence || 0) * 100)}% confidence)`}
-                              className={`text-xs px-2 py-0 ${colorScheme.bg} ${colorScheme.text} ${colorScheme.border}`}
+                              className={`text-xs px-2 py-0 border ${colorScheme.bg} ${colorScheme.text} ${colorScheme.border}`}
                             >
                               {categoryName}
                             </Badge>
@@ -409,8 +408,7 @@ export function PageAnalysisTable({ pages, projectId, isDomainAnalysis = false, 
                     <TableCell className="text-center">
                       {page.skipped ? (
                         <Badge 
-                          variant="outline"
-                          className="text-xs px-2 py-0"
+                          className="text-xs px-2 py-0 border bg-gray-50 text-gray-700 border-gray-200"
                           title={page.skipReason}
                         >
                           Skipped
@@ -437,12 +435,7 @@ export function PageAnalysisTable({ pages, projectId, isDomainAnalysis = false, 
                           ).map(([severity, count]) => (
                             <Badge
                               key={severity}
-                              variant="outline"
-                              className="text-xs px-1.5 py-0 h-5"
-                              style={{
-                                borderColor: SEVERITY_COLORS[severity as keyof typeof SEVERITY_COLORS],
-                                color: SEVERITY_COLORS[severity as keyof typeof SEVERITY_COLORS],
-                              }}
+                              className={`text-xs px-1.5 py-0 h-5 border ${SEVERITY_COLORS[severity as keyof typeof SEVERITY_COLORS].bg} ${SEVERITY_COLORS[severity as keyof typeof SEVERITY_COLORS].text} ${SEVERITY_COLORS[severity as keyof typeof SEVERITY_COLORS].border}`}
                             >
                               {count}
                             </Badge>
@@ -458,7 +451,7 @@ export function PageAnalysisTable({ pages, projectId, isDomainAnalysis = false, 
                       ) : (() => {
                         // Check if any technical rules were applied
                         const hasAppliedRules = page.ruleResults?.some(result => 
-                          result.category === 'technical' || result.category === 'TECHNICAL'
+                          result.category === 'technical'
                         );
                         
                         if (!hasAppliedRules) {
@@ -481,7 +474,7 @@ export function PageAnalysisTable({ pages, projectId, isDomainAnalysis = false, 
                       ) : (() => {
                         // Check if any structure rules were applied
                         const hasAppliedRules = page.ruleResults?.some(result => 
-                          result.category === 'structure' || result.category === 'STRUCTURE'
+                          result.category === 'structure'
                         );
                         
                         if (!hasAppliedRules) {
@@ -504,7 +497,7 @@ export function PageAnalysisTable({ pages, projectId, isDomainAnalysis = false, 
                       ) : (() => {
                         // Check if any authority rules were applied
                         const hasAppliedRules = page.ruleResults?.some(result => 
-                          result.category === 'authority' || result.category === 'AUTHORITY'
+                          result.category === 'authority'
                         );
                         
                         if (!hasAppliedRules) {
@@ -527,7 +520,7 @@ export function PageAnalysisTable({ pages, projectId, isDomainAnalysis = false, 
                       ) : (() => {
                         // Check if any quality rules were applied
                         const hasAppliedRules = page.ruleResults?.some(result => 
-                          result.category === 'quality' || result.category === 'QUALITY'
+                          result.category === 'quality'
                         );
                         
                         if (!hasAppliedRules) {
@@ -548,7 +541,7 @@ export function PageAnalysisTable({ pages, projectId, isDomainAnalysis = false, 
 
                   {isExpanded && (
                     <TableRow>
-                      <TableCell colSpan={isDomainAnalysis ? 9 : 10} className="bg-muted/50">
+                      <TableCell colSpan={isDomainAnalysis ? 9 : 10} className="bg-gray-50">
                         <PageDetailsSection 
                           page={page} 
                           projectId={projectId} 

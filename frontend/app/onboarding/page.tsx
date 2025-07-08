@@ -138,10 +138,7 @@ export default function OnboardingPage() {
     }
 
     return (
-      <StepComponent
-        initialData={initialData}
-        onDataReady={setCurrentStepData}
-      />
+      <StepComponent />
     );
   };
 

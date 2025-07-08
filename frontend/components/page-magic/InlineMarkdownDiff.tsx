@@ -33,11 +33,10 @@ export function InlineMarkdownDiff({ currentContent, previousContent }: InlineMa
     marked.setOptions({
       gfm: true,
       breaks: true,
-      headerIds: true,
     });
     
     // Parse markdown to HTML
-    let html = marked.parse(markedContent);
+    let html = marked.parse(markedContent) as string;
     
     // Sanitize HTML
     html = DOMPurify.sanitize(html, {
@@ -51,8 +50,8 @@ export function InlineMarkdownDiff({ currentContent, previousContent }: InlineMa
     });
     
     // Replace our markers with styled spans with fade-in animation
-    html = html.replace(/{{ADD_START}}(.*?){{ADD_END}}/gs, (match, content) => {
-      return `<span class="inline-block bg-green-200 dark:bg-green-800 px-1 rounded animate-fade-in">${content}</span>`;
+    html = html.replace(/{{ADD_START}}([\s\S]*?){{ADD_END}}/g, (match, content) => {
+      return `<span class="inline-block bg-accent/20 px-1 rounded animate-fade-in">${content}</span>`;
     });
     
     return html;
@@ -61,7 +60,7 @@ export function InlineMarkdownDiff({ currentContent, previousContent }: InlineMa
   return (
     <ContentWithHeadingIndicators>
       <div 
-        className="prose prose-sm dark:prose-invert max-w-none pl-14 page-magic-content"
+        className="prose prose-sm max-w-none pl-14 page-magic-content"
         dangerouslySetInnerHTML={{ __html: html }}
       />
     </ContentWithHeadingIndicators>

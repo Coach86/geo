@@ -403,7 +403,7 @@ export default function AddProjectModal({
 
       const result = await createProject(projectRequest, token);
 
-      analytics.trackProjectCreated(result.id, brandName, 'wizard');
+      analytics.trackProjectCreated(result.id, brandName, 'manual');
       toast.success("Project created successfully!");
 
       // Extract domain from the new project and switch to it
@@ -529,8 +529,6 @@ export default function AddProjectModal({
             <MarketSelector
               markets={markets}
               onMarketsChange={setMarkets}
-              planImpact="Starter"
-              onShowPricingDialog={() => router.push("/pricing")}
             />
           </div>
         );

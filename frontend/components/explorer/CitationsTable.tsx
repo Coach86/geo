@@ -427,7 +427,7 @@ export function CitationsTable({ citations, webSearchResults, onExport, searchQu
             <span className="text-sm text-gray-400 italic">No link</span>
           ) : (
             <a
-              href={link}
+              href={link || undefined}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1 text-blue-600 hover:text-blue-800 transition-colors duration-200"
@@ -715,7 +715,7 @@ export function CitationsTable({ citations, webSearchResults, onExport, searchQu
                     <div className="flex items-center gap-2 min-w-0">
                       {row.original.domain !== "No link" && favicons[row.original.domain] ? (
                         <img
-                          src={favicons[row.original.domain]}
+                          src={favicons[row.original.domain] || undefined}
                           alt={`${row.original.domain} favicon`}
                           className="w-4 h-4 rounded-sm flex-shrink-0"
                           onError={(e) => {
@@ -744,7 +744,7 @@ export function CitationsTable({ citations, webSearchResults, onExport, searchQu
                       <span className="text-sm text-gray-400 italic">No link</span>
                     ) : (
                       <a
-                        href={row.original.link}
+                        href={row.original.link || undefined}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-1 text-blue-600 hover:text-blue-800 transition-colors duration-200"

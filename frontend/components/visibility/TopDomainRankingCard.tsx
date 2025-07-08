@@ -130,7 +130,7 @@ export function TopDomainRankingCard({ domains, loading, totalPromptsTested }: T
                                 <div className="flex items-center gap-2 min-w-0 flex-1">
                                   {item.domain !== '-' && item.domain !== 'Others' && favicons[item.domain] && (
                                     <img 
-                                      src={favicons[item.domain]} 
+                                      src={favicons[item.domain] || ''} 
                                       alt={`${item.domain} favicon`}
                                       className="w-4 h-4 flex-shrink-0"
                                       onError={(e) => {

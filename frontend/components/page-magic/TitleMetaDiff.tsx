@@ -24,7 +24,7 @@ export function TitleMetaDiff({ current, previous }: TitleMetaDiffProps) {
           return (
             <span 
               key={index} 
-              className="inline-block bg-green-200 dark:bg-green-800 px-1 rounded text-xs"
+              className="inline-block bg-accent/20 px-1 rounded text-xs"
             >
               {part.value}
             </span>
@@ -33,7 +33,7 @@ export function TitleMetaDiff({ current, previous }: TitleMetaDiffProps) {
           return (
             <span 
               key={index} 
-              className="inline-block bg-red-200 dark:bg-red-800 px-1 rounded text-xs line-through opacity-60"
+              className="inline-block bg-red-200 px-1 rounded text-xs line-through opacity-60"
             >
               {part.value}
             </span>

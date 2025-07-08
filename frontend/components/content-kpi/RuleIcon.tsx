@@ -39,7 +39,7 @@ import {
   Info,
 } from 'lucide-react';
 
-import { DIMENSION_COLORS } from '@/lib/constants/colors';
+import { DIMENSION_COLORS, getDimensionColor } from '@/lib/constants/colors';
 
 interface RuleIconProps {
   ruleId: string;
@@ -122,7 +122,7 @@ export function RuleIcon({
   const IconComponent = RULE_ICON_MAP[ruleId] || CATEGORY_FALLBACK_ICONS[category] || Info;
   
   const sizeConfig = SIZE_CONFIG[size];
-  const categoryColor = DIMENSION_COLORS[category];
+  const categoryColor = getDimensionColor(category);
   
   if (showBackground) {
     return (

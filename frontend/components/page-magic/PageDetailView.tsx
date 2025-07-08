@@ -77,8 +77,12 @@ export function PageDetailView({ pageId }: PageDetailViewProps) {
         token: token || undefined,
       });
 
-      if (result.data) {
-        setPageDetails(result.data);
+      interface PageDetailsResponse {
+        data?: PageDetails;
+      }
+      const typedResult = result as PageDetailsResponse;
+      if (typedResult.data) {
+        setPageDetails(typedResult.data);
       } else {
         setError('Page not found');
       }
@@ -112,23 +116,32 @@ export function PageDetailView({ pageId }: PageDetailViewProps) {
         token: token || undefined,
       });
 
-      if (result.data) {
-        console.log('Extract content response:', result.data);
-        console.log('Structured content:', result.data.structured);
-        console.log('Type of structured.content:', typeof result.data.structured?.content);
+      interface ExtractContentResponse {
+        data?: {
+          structured?: {
+            content?: string;
+          };
+          html?: string;
+        };
+      }
+      const extractResult = result as ExtractContentResponse;
+      if (extractResult.data) {
+        console.log('Extract content response:', extractResult.data);
+        console.log('Structured content:', extractResult.data.structured);
+        console.log('Type of structured.content:', typeof extractResult.data.structured?.content);
         
         // Use structured HTML content from Mozilla Readability
-        if (result.data.structured?.content) {
+        if (extractResult.data.structured?.content) {
           // Check if content is JSON string and parse it
-          let content = result.data.structured.content;
+          let content = extractResult.data.structured.content;
           if (typeof content === 'string' && content.trim().startsWith('{')) {
             console.warn('Structured content appears to be JSON, using raw HTML instead');
-            content = result.data.html || '';
+            content = extractResult.data.html || '';
           }
           setContentHtml(content);
         } else {
           // Fallback to raw HTML if structured content not available
-          setContentHtml(result.data.html || '');
+          setContentHtml(extractResult.data.html || '');
         }
       }
     } catch (err) {
@@ -140,7 +153,7 @@ export function PageDetailView({ pageId }: PageDetailViewProps) {
   };
 
   const handleImprove = async () => {
-    if (!selectedProject?.id || improving) return;
+    if (!selectedProject?.id || improving || !pageDetails) return;
 
     try {
       setImproving(true);
@@ -156,12 +169,20 @@ export function PageDetailView({ pageId }: PageDetailViewProps) {
         token: token || undefined,
       });
 
-      console.log('Improvement started:', result);
-      console.log('Job ID:', result.data.jobId);
-      console.log('Navigating to:', `/page-magic/${result.data.jobId}`);
+      interface ImproveResponse {
+        data?: {
+          jobId: string;
+        };
+      }
+      const improveResult = result as ImproveResponse;
+      console.log('Improvement started:', improveResult);
+      console.log('Job ID:', improveResult.data?.jobId);
+      console.log('Navigating to:', `/page-magic/${improveResult.data?.jobId}`);
 
       // Navigate to the improvement view
-      await router.push(`/page-magic/${result.data.jobId}`);
+      if (improveResult.data?.jobId) {
+        await router.push(`/page-magic/${improveResult.data.jobId}`);
+      }
     } catch (err) {
       console.error('Error starting improvement:', err);
       setError(err instanceof Error ? err.message : 'Failed to start improvement');

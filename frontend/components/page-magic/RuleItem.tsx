@@ -73,15 +73,15 @@ export function RuleItem({
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case 'critical':
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+        return 'bg-red-100 text-red-800';
       case 'high':
-        return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
+        return 'bg-orange-100 text-orange-800';
       case 'medium':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+        return 'bg-yellow-100 text-yellow-800';
       case 'low':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+        return 'bg-blue-100 text-blue-800';
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -101,7 +101,7 @@ export function RuleItem({
   const getStatusIcon = () => {
     switch (status) {
       case 'completed':
-        return <CheckCircle2 className="h-5 w-5 text-green-600" />;
+        return <CheckCircle2 className="h-5 w-5 text-accent" />;
       case 'processing':
         return <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />;
       case 'failed':
@@ -116,7 +116,7 @@ export function RuleItem({
     
     const change = rule.scoreAfter - rule.scoreBefore;
     if (change > 0) {
-      return <TrendingUp className="h-4 w-4 text-green-600" />;
+      return <TrendingUp className="h-4 w-4 text-accent" />;
     } else if (change < 0) {
       return <TrendingDown className="h-4 w-4 text-red-600" />;
     } else {
@@ -129,7 +129,7 @@ export function RuleItem({
     
     const change = rule.scoreAfter - rule.scoreBefore;
     if (change > 0) {
-      return 'text-green-600';
+      return 'text-accent';
     } else if (change < 0) {
       return 'text-red-600';
     } else {
@@ -139,8 +139,8 @@ export function RuleItem({
 
   return (
     <Card className={`transition-all duration-300 ${
-      isProcessing ? 'shadow-md border-blue-200 dark:border-blue-800' : ''
-    } ${status === 'completed' ? 'bg-green-50 dark:bg-green-950' : ''}`}>
+      isProcessing ? 'shadow-md border-blue-200' : ''
+    } ${status === 'completed' ? 'bg-accent/5' : ''}`}>
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-3">
           {/* Status Icon and Index */}
@@ -164,11 +164,11 @@ export function RuleItem({
                 </Badge>
               </div>
               
-              <h4 className="font-medium text-sm leading-tight mb-1">
+              <h4 className="font-medium text-sm leading-tight mb-1 text-gray-900">
                 {rule.ruleName || rule.description}
               </h4>
               
-              <p className="text-xs text-muted-foreground leading-relaxed">
+              <p className="text-xs text-gray-600 leading-relaxed">
                 {rule.recommendation}
               </p>
             </div>
@@ -204,8 +204,8 @@ export function RuleItem({
 
         {/* Processing Details */}
         {isProcessing && (
-          <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-800">
-            <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
+          <div className="mt-3 pt-3 border-t border-blue-200">
+            <div className="flex items-center gap-2 text-sm text-blue-700">
               <Loader2 className="h-3 w-3 animate-spin" />
               <span>Analyzing and improving content...</span>
             </div>
@@ -214,9 +214,9 @@ export function RuleItem({
 
         {/* Completed Details */}
         {status === 'completed' && rule.scoreAfter !== undefined && (
-          <div className="mt-3 pt-3 border-t border-green-200 dark:border-green-800">
+          <div className="mt-3 pt-3 border-t border-accent/20">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-green-700 dark:text-green-300">
+              <span className="text-accent">
                 Rule processed successfully
               </span>
               <span className="text-xs text-muted-foreground">
@@ -228,8 +228,8 @@ export function RuleItem({
 
         {/* Failed Details */}
         {status === 'failed' && (
-          <div className="mt-3 pt-3 border-t border-red-200 dark:border-red-800">
-            <div className="text-sm text-red-700 dark:text-red-300">
+          <div className="mt-3 pt-3 border-t border-red-200">
+            <div className="text-sm text-red-700">
               Processing failed - will continue with next rule
             </div>
           </div>

@@ -246,20 +246,33 @@ function getUncrawledUrls(domain, limit = 100, prioritizeHomepage = false) {
     
     const homepageUrls = homepageStmt.all(domain, domain, domain, domain, domain, Math.min(1, limit)).map(row => row.url);
     
-    if (homepageUrls.length > 0 && limit > 1) {
-      // Get remaining URLs randomly
+    if (homepageUrls.length > 0) {
+      if (limit > 1) {
+        // Get remaining URLs randomly
+        const remainingStmt = db.prepare(`
+          SELECT url FROM discovered_urls 
+          WHERE domain = ? AND crawled = 0 
+          AND NOT (url LIKE 'https://' || ? || '/' OR url LIKE 'https://' || ? OR url LIKE 'http://' || ? || '/' OR url LIKE 'http://' || ?)
+          ORDER BY RANDOM()
+          LIMIT ?
+        `);
+        
+        const remainingUrls = remainingStmt.all(domain, domain, domain, domain, domain, limit - homepageUrls.length).map(row => row.url);
+        return [...homepageUrls, ...remainingUrls];
+      } else {
+        return homepageUrls;
+      }
+    } else {
+      // No homepage found, get random URLs up to the limit
       const remainingStmt = db.prepare(`
         SELECT url FROM discovered_urls 
         WHERE domain = ? AND crawled = 0 
-        AND NOT (url LIKE 'https://' || ? || '/' OR url LIKE 'https://' || ? OR url LIKE 'http://' || ? || '/' OR url LIKE 'http://' || ?)
         ORDER BY RANDOM()
         LIMIT ?
       `);
       
-      const remainingUrls = remainingStmt.all(domain, domain, domain, domain, domain, limit - homepageUrls.length).map(row => row.url);
-      return [...homepageUrls, ...remainingUrls];
-    } else {
-      return homepageUrls;
+      const remainingUrls = remainingStmt.all(domain, limit).map(row => row.url);
+      return remainingUrls;
     }
   }
   

@@ -169,7 +169,7 @@ export function UserManagementSection({
               {!canAddMoreUsers() && (
                 <Badge 
                   variant="secondary" 
-                  className="ml-2 px-2 py-1 text-xs bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"
+                  className="ml-2 px-2 py-1 text-xs bg-purple-100 text-purple-700"
                 >
                   Upgrade
                 </Badge>

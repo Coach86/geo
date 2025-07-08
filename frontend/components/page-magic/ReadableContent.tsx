@@ -9,7 +9,7 @@ import { ContentWithHeadingIndicators } from './ContentWithHeadingIndicators';
 interface ReadableContentProps {
   html: string;
   className?: string;
-  onMetadata?: (metadata: { title?: string; excerpt?: string }) => void;
+  onMetadata?: (metadata: { title?: string | null; excerpt?: string | null }) => void;
 }
 
 export function ReadableContent({ html, className, onMetadata }: ReadableContentProps) {
@@ -91,14 +91,17 @@ export function ReadableContent({ html, className, onMetadata }: ReadableContent
   // Call onMetadata in a useEffect to avoid calling setState during render
   useEffect(() => {
     if (metadata && onMetadata) {
-      onMetadata(metadata);
+      onMetadata({
+        title: metadata.title ?? undefined,
+        excerpt: metadata.excerpt ?? undefined
+      });
     }
   }, [metadata, onMetadata]);
 
   return (
     <ContentWithHeadingIndicators className={className}>
       <div 
-        className="pl-14 prose prose-sm dark:prose-invert max-w-none page-magic-content"
+        className="pl-14 prose prose-sm max-w-none page-magic-content"
         dangerouslySetInnerHTML={{ __html: cleanedHTML }} 
       />
     </ContentWithHeadingIndicators>

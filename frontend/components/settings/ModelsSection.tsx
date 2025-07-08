@@ -168,7 +168,7 @@ export function ModelsSection({
                       {isPremiumLocked ? (
                         <Badge 
                           variant="secondary" 
-                          className="px-2 py-1 text-xs bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 cursor-pointer hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
+                          className="px-2 py-1 text-xs bg-purple-100 text-purple-700 cursor-pointer hover:bg-purple-200 transition-colors"
                           onClick={() => router.push('/update-plan')}
                         >
                           Upgrade

@@ -121,8 +121,8 @@ export function usePageMagicEvents({
     // Connection event handlers
     socketInstance.on('connect', () => {
       console.log('[usePageMagicEvents] ✅ Connected to Page Magic WebSocket');
-      console.log('[usePageMagicEvents] Socket ID:', socketInstance.id);
-      console.log('[usePageMagicEvents] Connected:', socketInstance.connected);
+      console.log('[usePageMagicEvents] Socket ID:', socketInstance?.id);
+      console.log('[usePageMagicEvents] Connected:', socketInstance?.connected);
       setConnected(true);
     });
 
@@ -134,7 +134,6 @@ export function usePageMagicEvents({
 
     socketInstance.on('connect_error', (error) => {
       console.error('[usePageMagicEvents] 🚨 Connection error:', error.message);
-      console.error('[usePageMagicEvents] Error type:', error.type);
       console.error('[usePageMagicEvents] Error details:', error);
       
       // Log additional debugging info

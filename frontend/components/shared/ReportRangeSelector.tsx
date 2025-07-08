@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Calendar, ChevronDown, Filter, CalendarRange } from "lucide-react";
 import { format, subDays, isAfter, isBefore, startOfDay, endOfDay } from "date-fns";
 import {
@@ -98,7 +98,7 @@ export function ReportRangeSelector({
     return { from: undefined, to: undefined };
   });
   
-  const [triggerRef, setTriggerRef] = useState<HTMLElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   // Sort reports by date
   const sortedReports = useMemo(() => {
@@ -271,7 +271,6 @@ export function ReportRangeSelector({
           }}
         >
           <SelectTrigger 
-            ref={setTriggerRef}
             className="h-auto p-0 border-0 bg-transparent hover:bg-gray-100 rounded-md transition-colors [&>svg]:hidden"
           >
             <div className="flex items-center gap-1 px-3 py-1.5">

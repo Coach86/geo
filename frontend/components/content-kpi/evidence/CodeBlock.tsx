@@ -25,18 +25,18 @@ export function CodeBlock({ code }: CodeBlockProps) {
       <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
         <button
           onClick={copyToClipboard}
-          className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          className="p-1 rounded hover:bg-gray-200 transition-colors"
           title="Copy to clipboard"
         >
           {copied ? (
-            <Check className="h-3 w-3 text-green-600" />
+            <Check className="h-3 w-3 text-accent" />
           ) : (
             <Copy className="h-3 w-3 text-gray-500" />
           )}
         </button>
       </div>
-      <pre className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md p-3 overflow-x-auto">
-        <code className="text-xs font-mono text-gray-700 dark:text-gray-300 whitespace-pre">
+      <pre className="bg-gray-50 border border-gray-200 rounded-md p-3 overflow-x-auto">
+        <code className="text-xs font-mono text-gray-700 whitespace-pre">
           {code}
         </code>
       </pre>

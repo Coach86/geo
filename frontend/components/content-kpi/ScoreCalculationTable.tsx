@@ -227,11 +227,11 @@ export function ScoreCalculationTable({ scores, ruleResults, pageUrl }: ScoreCal
                     </TableCell>
                     <TableCell className="text-center">
                       {hasIssues ? (
-                        <div className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 font-semibold text-xs">
+                        <div className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-red-100 text-red-700 font-semibold text-xs">
                           {rule.issues!.length}
                         </div>
                       ) : (
-                        <div className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-semibold text-xs">
+                        <div className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-accent/10 text-accent font-semibold text-xs">
                           0
                         </div>
                       )}
@@ -245,7 +245,14 @@ export function ScoreCalculationTable({ scores, ruleResults, pageUrl }: ScoreCal
       <RuleDetailsDrawer
         isOpen={isDrawerOpen}
         onClose={closeEvidenceDrawer}
-        rule={selectedRule}
+        rule={selectedRule ? {
+          ...selectedRule, 
+          category: selectedRule.category === 'structure' ? 'content' : selectedRule.category as any,
+          evidence: selectedRule.evidence.map(e => ({
+            ...e,
+            topic: e.content.substring(0, 50) // Add default topic from content
+          }))
+        } : null}
         pageUrl={pageUrl}
       />
     </>

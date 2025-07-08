@@ -488,7 +488,7 @@ export default function ExplorerPage() {
                 webSearchResults={explorerData.webSearchResults}
                 onExport={exportToCSV}
                 searchQueryFilter={keywordFilter}
-                promptSet={promptSet}
+                promptSet={promptSet || undefined}
               />
             </CardContent>
           </Card>

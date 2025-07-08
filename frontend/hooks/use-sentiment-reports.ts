@@ -233,7 +233,7 @@ export function useSentimentReports(
           a._sortDate.getTime() - b._sortDate.getTime()
         )
         // Remove the sorting field
-        .map(({ _sortDate, ...rest }): ChartDataOutput => rest);
+        .map(({ _sortDate, ...rest }: ChartDataPointWithSort & { score: number }): ChartDataOutput => rest as ChartDataOutput);
 
       return {
         loading: false,

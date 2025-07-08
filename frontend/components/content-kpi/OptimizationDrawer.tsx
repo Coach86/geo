@@ -2298,7 +2298,7 @@ export function OptimizationDrawer({
   }
 
   const Icon = guide.icon || Info;
-  const dimensionColor = DIMENSION_COLORS[guide.dimension] || '#6b7280';
+  const dimensionColor = DIMENSION_COLORS[guide.dimension as keyof typeof DIMENSION_COLORS] || '#6b7280';
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
@@ -2345,8 +2345,8 @@ export function OptimizationDrawer({
         </SheetHeader>
 
         <div className="mt-6">
-          <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-6">
-            <div className="flex items-center gap-2 text-green-800">
+          <div className="bg-accent/5 border border-accent/20 rounded-lg p-3 mb-6">
+            <div className="flex items-center gap-2 text-accent">
               <Target className="h-4 w-4" />
               <span className="font-semibold text-sm">Expected Impact</span>
             </div>

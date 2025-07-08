@@ -37,7 +37,7 @@ export function EvidenceItemRenderer({ item }: EvidenceItemRendererProps) {
   if (type === 'heading') {
     return (
       <div className="mt-4 mb-3">
-        <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+        <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
           {content}
         </h4>
       </div>
@@ -47,7 +47,7 @@ export function EvidenceItemRenderer({ item }: EvidenceItemRendererProps) {
   // Special case for base score
   if (type === 'base') {
     return (
-      <div className="group hover:bg-gray-50/50 dark:hover:bg-gray-800/30 rounded-lg transition-colors">
+      <div className="group hover:bg-gray-50/50 rounded-lg transition-colors">
         <div className="flex items-start gap-3 p-3 -m-1">
           {/* Blue dot bullet - aligned with icons */}
           <div className="pt-0.5">
@@ -60,11 +60,11 @@ export function EvidenceItemRenderer({ item }: EvidenceItemRendererProps) {
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1">
-                <h4 className="font-semibold text-sm text-gray-900 dark:text-gray-100">
+                <h4 className="font-semibold text-sm text-gray-900">
                   Base Score
                 </h4>
               </div>
-              <div className="inline-flex items-center justify-center min-w-[2rem] h-6 px-2 bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded text-xs font-semibold text-blue-700 dark:text-blue-300">
+              <div className="inline-flex items-center justify-center min-w-[2rem] h-6 px-2 bg-blue-100 border border-blue-300 rounded text-xs font-semibold text-blue-700">
                 {item.score}
               </div>
             </div>
@@ -88,12 +88,12 @@ export function EvidenceItemRenderer({ item }: EvidenceItemRendererProps) {
     }
     
     return (
-      <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700">
+      <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
         <div className="space-y-3">
-          <h5 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+          <h5 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
             Score Calculation
           </h5>
-          <div className="font-mono text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
+          <div className="font-mono text-xs text-gray-600 leading-relaxed">
             {content}
           </div>
         </div>
@@ -106,7 +106,7 @@ export function EvidenceItemRenderer({ item }: EvidenceItemRendererProps) {
   const Icon = config.icon;
 
   return (
-    <div className="group hover:bg-gray-50/50 dark:hover:bg-gray-800/30 rounded-lg transition-colors">
+    <div className="group hover:bg-gray-50/50 rounded-lg transition-colors">
       <div className="flex items-start gap-3 p-3 -m-1">
         {/* Icon column */}
         <div className="pt-0.5">
@@ -119,7 +119,7 @@ export function EvidenceItemRenderer({ item }: EvidenceItemRendererProps) {
           <div className="flex items-start justify-between gap-3 mb-1">
             <div className="flex-1">
               {item.topic && (
-                <h4 className="font-semibold text-sm text-gray-900 dark:text-gray-100">
+                <h4 className="font-semibold text-sm text-gray-900">
                   {item.topic}
                 </h4>
               )}
@@ -135,8 +135,8 @@ export function EvidenceItemRenderer({ item }: EvidenceItemRendererProps) {
           {/* Target - inline with better styling */}
           {item.target && (
             <div className="flex items-start gap-2 mt-2">
-              <Target className="h-3 w-3 text-gray-400 dark:text-gray-500 mt-0.5 flex-shrink-0" />
-              <span className="text-xs text-gray-600 dark:text-gray-400 italic">
+              <Target className="h-3 w-3 text-gray-400 mt-0.5 flex-shrink-0" />
+              <span className="text-xs text-gray-600 italic">
                 {item.target}
               </span>
             </div>

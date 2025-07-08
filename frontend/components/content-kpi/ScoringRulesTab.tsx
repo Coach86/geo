@@ -57,7 +57,7 @@ interface ScoringRulesTabProps {
 
 const DIMENSION_COLORS: Record<string, string> = {
   technical: 'bg-purple-100 text-purple-800',
-  structure: 'bg-green-100 text-green-800',
+  structure: 'bg-accent/10 text-accent',
   authority: 'bg-blue-100 text-blue-800',
   quality: 'bg-orange-100 text-orange-800',
 };
@@ -113,7 +113,7 @@ export function ScoringRulesTab({ projectId }: ScoringRulesTabProps) {
             },
           }
         );
-        setRulesData(response);
+        setRulesData(response as RulesData);
       } catch (error) {
         console.error('Error fetching rules:', error);
         toast({

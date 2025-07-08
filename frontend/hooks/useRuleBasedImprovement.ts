@@ -67,15 +67,21 @@ export function useRuleBasedImprovement(jobId: string): UseRuleBasedImprovementR
         token,
       });
 
-      if (result.success) {
-        setJob(result.data);
+      interface ImprovementResponse {
+        success: boolean;
+        data: any;
+      }
+      const typedResult = result as ImprovementResponse;
+
+      if (typedResult.success) {
+        setJob(typedResult.data);
         
         // Initialize rules if they're provided in the job data, but preserve existing statuses
-        if (result.data.rules && result.data.rules.length > 0) {
+        if (typedResult.data.rules && typedResult.data.rules.length > 0) {
           setRules(prevRules => {
             // If no rules exist yet, initialize them all as pending
             if (prevRules.length === 0) {
-              const mappedRules: Rule[] = result.data.rules.map((rule, index) => ({
+              const mappedRules: Rule[] = typedResult.data.rules.map((rule: any, index: number) => ({
                 ...rule,
                 status: 'pending' as const,
               }));
@@ -85,7 +91,7 @@ export function useRuleBasedImprovement(jobId: string): UseRuleBasedImprovementR
             
             // If rules already exist, merge the new data but preserve existing statuses and scores
             return prevRules.map((existingRule, index) => {
-              const newRuleData = result.data.rules[index];
+              const newRuleData = typedResult.data.rules[index];
               if (newRuleData) {
                 return {
                   ...newRuleData,
@@ -102,25 +108,25 @@ export function useRuleBasedImprovement(jobId: string): UseRuleBasedImprovementR
         // Initialize content versions
         if (contentVersions.length === 0) {
           const versions: ContentVersion[] = [{
-            content: result.data.originalContent,
-            contentMarkdown: result.data.originalContentMarkdown,
-            title: result.data.originalTitle,
-            metaDescription: result.data.originalMetaDescription || result.data.originalMetas?.description,
-            metas: result.data.originalMetas,
-            timestamp: new Date(result.data.createdAt),
+            content: typedResult.data.originalContent,
+            contentMarkdown: typedResult.data.originalContentMarkdown,
+            title: typedResult.data.originalTitle,
+            metaDescription: typedResult.data.originalMetaDescription || typedResult.data.originalMetas?.description,
+            metas: typedResult.data.originalMetas,
+            timestamp: new Date(typedResult.data.createdAt),
             version: 1,
           }];
           
           // If job is completed and has improved versions, add them
-          if (result.data.status === 'completed' && result.data.improvedContent) {
+          if (typedResult.data.status === 'completed' && typedResult.data.improvedContent) {
             versions.push({
-              content: result.data.improvedContent,
-              contentMarkdown: result.data.improvedContentMarkdown,
-              title: result.data.improvedTitle,
-              metaDescription: result.data.improvedMetas?.description,
-              metas: result.data.improvedMetas,
+              content: typedResult.data.improvedContent,
+              contentMarkdown: typedResult.data.improvedContentMarkdown,
+              title: typedResult.data.improvedTitle,
+              metaDescription: typedResult.data.improvedMetas?.description,
+              metas: typedResult.data.improvedMetas,
               ruleProcessed: 'All rules processed',
-              timestamp: new Date(result.data.completedAt || result.data.updatedAt),
+              timestamp: new Date(typedResult.data.completedAt || typedResult.data.updatedAt),
               version: 2,
             });
             setCurrentVersionIndex(1); // Show the improved version

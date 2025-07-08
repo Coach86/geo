@@ -16,6 +16,11 @@ export interface StaticPlan {
   plusColor: string;
   isPopular: boolean;
   billedAnnually: boolean;
+  isRecommended?: boolean;
+  promoInfo?: {
+    code: string;
+    trialDays: number;
+  } | null;
 }
 
 export const staticPlans: StaticPlan[] = [

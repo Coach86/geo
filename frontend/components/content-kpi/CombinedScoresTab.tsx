@@ -152,7 +152,7 @@ export function CombinedScoresTab({ projectId }: CombinedScoresTabProps) {
   };
 
   const categoryColor = (score: number) => {
-    if (score >= 80) return 'text-green-600';
+    if (score >= 80) return 'text-accent';
     if (score >= 70) return 'text-blue-600';
     if (score >= 60) return 'text-yellow-600';
     if (score >= 50) return 'text-orange-600';

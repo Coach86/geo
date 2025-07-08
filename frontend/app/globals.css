@@ -38,7 +38,7 @@
 
 @layer base {
   * {
-    @apply border-border;
+    border-color: hsl(var(--border));
   }
   body {
     @apply bg-mono-50 text-mono-700 font-sans;
@@ -183,7 +183,7 @@
     border-radius: 9999px;
     background-color: white;
     border: 2px solid;
-    border-color: rgb(123, 97, 255);
+    border-color: rgb(4, 191, 145);
   }
 
   .chat-bubble {
@@ -264,7 +264,7 @@
 
 /* Nouvelles classes pour améliorer le design */
 .gradient-accent {
-  background: linear-gradient(135deg, #7b61ff 0%, #a799ff 100%);
+  background: linear-gradient(135deg, #04BF91 0%, #66E7C3 100%);
 }
 
 .gradient-card {
@@ -272,7 +272,7 @@
 }
 
 .gradient-text {
-  background: linear-gradient(90deg, #7b61ff 0%, #a799ff 100%);
+  background: linear-gradient(90deg, #04BF91 0%, #66E7C3 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -281,7 +281,7 @@
 
 .section-divider {
   height: 1px;
-  background: linear-gradient(90deg, transparent 0%, #e2ddff 50%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, #CCF7EB 50%, transparent 100%);
   margin: 2rem 0;
 }
 
@@ -294,8 +294,8 @@
 }
 
 .feature-card:hover {
-  border-color: #e2ddff;
-  box-shadow: 0 8px 24px rgba(123, 97, 255, 0.08);
+  border-color: #CCF7EB;
+  box-shadow: 0 8px 24px rgba(4, 191, 145, 0.08);
   transform: translateY(-2px);
 }
 
@@ -309,8 +309,8 @@
 }
 
 .testimonial-card:hover {
-  border-color: #e2ddff;
-  box-shadow: 0 8px 24px rgba(123, 97, 255, 0.08);
+  border-color: #CCF7EB;
+  box-shadow: 0 8px 24px rgba(4, 191, 145, 0.08);
 }
 
 .testimonial-card::before {
@@ -321,7 +321,7 @@
   font-size: 64px;
   line-height: 1;
   font-family: serif;
-  color: #e2ddff;
+  color: #CCF7EB;
   opacity: 0.5;
 }
 
@@ -334,22 +334,22 @@
 }
 
 .pricing-card:hover {
-  border-color: #e2ddff;
-  box-shadow: 0 8px 24px rgba(123, 97, 255, 0.08);
+  border-color: #CCF7EB;
+  box-shadow: 0 8px 24px rgba(4, 191, 145, 0.08);
   transform: translateY(-2px);
 }
 
 .pricing-card.popular {
-  border-color: #7b61ff;
-  box-shadow: 0 8px 24px rgba(123, 97, 255, 0.12);
+  border-color: #04BF91;
+  box-shadow: 0 8px 24px rgba(4, 191, 145, 0.12);
 }
 
 .pricing-card.popular:hover {
-  box-shadow: 0 12px 32px rgba(123, 97, 255, 0.16);
+  box-shadow: 0 12px 32px rgba(4, 191, 145, 0.16);
 }
 
 .cta-section {
-  background: linear-gradient(135deg, #f4f2ff 0%, #ffffff 100%);
+  background: linear-gradient(135deg, #E6FBF5 0%, #ffffff 100%);
   border-radius: 16px;
   padding: 3rem;
 }
@@ -387,6 +387,36 @@
   }
   .hover\:bg-destructive\/90:hover {
     background-color: hsl(var(--destructive) / 0.9);
+  }
+  .bg-destructive-50 {
+    background-color: hsl(0 84% 95%);
+  }
+  .bg-destructive-200 {
+    background-color: hsl(0 84% 80%);
+  }
+  .text-destructive-700 {
+    color: hsl(0 84% 30%);
+  }
+  .border-destructive-200 {
+    border-color: hsl(0 84% 80%);
+  }
+  .bg-accent-50 {
+    background-color: hsl(168 94% 95%);
+  }
+  .text-accent-700 {
+    color: hsl(168 94% 25%);
+  }
+  .border-accent-200 {
+    border-color: hsl(168 94% 80%);
+  }
+  .bg-primary-50 {
+    background-color: hsl(23 95% 95%);
+  }
+  .text-primary-700 {
+    color: hsl(23 95% 25%);
+  }
+  .border-primary-200 {
+    border-color: hsl(23 95% 80%);
   }
   .animation-delay-200 {
     animation-delay: 200ms;

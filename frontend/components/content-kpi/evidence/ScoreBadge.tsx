@@ -10,12 +10,12 @@ interface ScoreBadgeProps {
 export function ScoreBadge({ score, maxScore }: ScoreBadgeProps) {
   const getScoreStyles = () => {
     if (score > 0) {
-      return 'bg-green-100 dark:bg-green-900/20 border-green-300 dark:border-green-800 text-green-800 dark:text-green-200';
+      return 'bg-accent/10 border-accent/30 text-accent';
     }
     if (score < 0) {
-      return 'bg-red-100 dark:bg-red-900/20 border-red-300 dark:border-red-800 text-red-800 dark:text-red-200';
+      return 'bg-red-100 border-red-300 text-red-800';
     }
-    return 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-200';
+    return 'bg-gray-100 border-gray-300 text-gray-800';
   };
 
   const formatScore = () => {

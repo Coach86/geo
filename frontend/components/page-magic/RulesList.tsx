@@ -15,10 +15,12 @@ export interface Rule {
   recommendation: string;
   currentScore: number;
   affectedElements?: string[];
-  status?: 'pending' | 'processing' | 'completed' | 'failed';
+  status?: 'pending' | 'processing' | 'completed' | 'failed' | 'retrying';
   scoreBefore?: number;
   scoreAfter?: number;
   processingIndex?: number;
+  retryCount?: number;
+  maxRetries?: number;
 }
 
 interface RulesListProps {
@@ -121,10 +123,10 @@ export function RulesList({
               ref={isCurrentRule ? currentRuleRef : undefined}
               className={`flex items-center gap-3 p-2 rounded-lg transition-all duration-500 ${
                 isCurrentRule 
-                  ? 'bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 shadow-md scale-[1.02]' 
+                  ? 'bg-blue-50 border border-blue-200 shadow-md scale-[1.02]' 
                   : status === 'completed' 
-                    ? 'bg-green-50/50 dark:bg-green-950/20 border border-transparent' 
-                    : 'hover:bg-gray-50 dark:hover:bg-gray-900 border border-transparent'
+                    ? 'bg-green-50/50 border border-transparent' 
+                    : 'hover:bg-gray-50 border border-transparent'
               }`}
             >
               {/* Status Icon */}
@@ -132,10 +134,10 @@ export function RulesList({
               
               {/* Rule Info */}
               <div className="flex-1 min-w-0">
-                <div className="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">
+                <div className="font-medium text-sm text-gray-900 truncate">
                   {rule.ruleName || rule.description}
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                <div className="text-xs text-gray-500 truncate">
                   {status === 'retrying' && rule.retryCount && rule.maxRetries ? (
                     <span className="text-orange-600 animate-pulse">
                       Retrying... (attempt {rule.retryCount}/{rule.maxRetries})
@@ -148,7 +150,7 @@ export function RulesList({
               
               {/* Score */}
               <div className="text-right">
-                <div className={`font-bold text-lg text-gray-900 dark:text-gray-100 transition-all duration-500 ${
+                <div className={`font-bold text-lg text-gray-900 transition-all duration-500 ${
                   status === 'completed' && rule.scoreAfter && rule.scoreAfter > rule.currentScore
                     ? 'animate-pulse' 
                     : ''

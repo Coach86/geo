@@ -98,7 +98,7 @@ export function RegeneratePromptsDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          <Alert variant="warning">
+          <Alert className="bg-amber-50 border-amber-200 text-amber-800">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
               <strong>Warning:</strong> This will replace all your current {currentPromptCount} {promptType} prompts. This action cannot be undone.

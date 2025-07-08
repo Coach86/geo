@@ -27,7 +27,7 @@ export function ContentKPIOverview({ projectId }: ContentKPIOverviewProps) {
       const pollInterval = setInterval(async () => {
         try {
           const status = await getCrawlStatus();
-          if (!status.crawl.isRunning) {
+          if (!status.isActive) {
             clearInterval(pollInterval);
             setCrawling(false);
             setCrawlProgress(0);
@@ -35,7 +35,7 @@ export function ContentKPIOverview({ projectId }: ContentKPIOverviewProps) {
             toast.success('Structure analysis completed');
           } else {
             const progress = Math.round(
-              (status.crawl.successfulPages / status.crawl.totalPages) * 100
+              ((status.crawledPages || 0) / (status.totalPages || 1)) * 100
             );
             setCrawlProgress(progress);
           }
@@ -64,7 +64,7 @@ export function ContentKPIOverview({ projectId }: ContentKPIOverviewProps) {
   }
 
   const scoreColors = {
-    high: 'text-green-600',
+    high: 'text-accent',
     medium: 'text-yellow-600',
     low: 'text-red-600',
   };

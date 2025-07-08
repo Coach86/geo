@@ -85,6 +85,7 @@ export async function getPromoInfo(token: string): Promise<{
     trialPlanId?: string;
     validPlanIds?: string[];
   } | null;
+  validationError?: string;
 }> {
   return apiFetch<{
     hasPromoCode: boolean;
@@ -95,6 +96,7 @@ export async function getPromoInfo(token: string): Promise<{
       trialPlanId?: string;
       validPlanIds?: string[];
     } | null;
+    validationError?: string;
   }>('/users/auth/promo-info', {
     method: 'GET',
     headers: {

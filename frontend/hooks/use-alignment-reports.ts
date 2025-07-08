@@ -99,10 +99,12 @@ export function useAlignmentReports(
           const models = ["ChatGPT", "Claude", "Gemini"];
           
           // Create mock aggregated data (using dateRange for chart data)
-          const daysDiff = Math.ceil((dateRange.endDate.getTime() - dateRange.startDate.getTime()) / (1000 * 60 * 60 * 24));
+          const daysDiff = dateRange ? Math.ceil((dateRange.endDate.getTime() - dateRange.startDate.getTime()) / (1000 * 60 * 60 * 24)) : 30;
           const mockChartData = [];
           for (let i = 0; i <= Math.min(daysDiff, 10); i++) {
-            const date = new Date(dateRange.startDate.getTime() + (i * 24 * 60 * 60 * 1000 * (daysDiff / 10)));
+            const date = dateRange 
+              ? new Date(dateRange.startDate.getTime() + (i * 24 * 60 * 60 * 1000 * (daysDiff / 10)))
+              : new Date(Date.now() - (10 - i) * 24 * 60 * 60 * 1000);
             mockChartData.push({
               date: date.toISOString().split('T')[0],
               score: 60 + Math.random() * 25 + i * 2,
@@ -199,8 +201,8 @@ export function useAlignmentReports(
   }, [aggregatedData]);
 
   return {
-    loading,
-    error,
-    ...result
+    ...result,
+    loading: loading || result.loading,
+    error: error || result.error
   };
 }

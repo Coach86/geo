@@ -35,12 +35,13 @@ export function RefreshFrequencySection({
   // Fetch current refresh frequency
   useEffect(() => {
     const fetchRefreshInfo = async () => {
-      if (!organization.planSettings?._id) return;
+      const planId = organization.stripePlanId || organization.trialPlanId;
+      if (!planId) return;
 
       try {
         // Fetch plan details to get refresh frequency
         const response = await fetch(
-          `${API_BASE_URL}/plans/${organization.planSettings._id}`,
+          `${API_BASE_URL}/plans/${planId}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -105,7 +106,7 @@ export function RefreshFrequencySection({
           {currentFrequency === 'weekly' && (
             <Badge 
               variant="secondary" 
-              className="px-2 py-1 text-xs bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 cursor-pointer hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
+              className="px-2 py-1 text-xs bg-purple-100 text-purple-700 cursor-pointer hover:bg-purple-200 transition-colors"
               onClick={() => router.push('/pricing')}
             >
               Upgrade

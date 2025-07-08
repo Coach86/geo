@@ -61,8 +61,14 @@ export function PageImprovementView({ jobId }: PageImprovementViewProps) {
         token: token || undefined,
       })
       .then(result => {
-        if (result.data?.html) {
-          setOriginalHtml(result.data.html);
+        interface ExtractContentResponse {
+          data?: {
+            html?: string;
+          };
+        }
+        const typedResult = result as ExtractContentResponse;
+        if (typedResult.data?.html) {
+          setOriginalHtml(typedResult.data.html);
         }
       })
       .catch(err => {
@@ -163,7 +169,7 @@ export function PageImprovementView({ jobId }: PageImprovementViewProps) {
             <div className="font-semibold mb-1">Improvement failed</div>
             {job.errors.length > 0 ? (
               <ul className="list-disc list-inside space-y-1">
-                {job.errors.map((err, idx) => (
+                {job.errors.map((err: string, idx: number) => (
                   <li key={idx} className="text-sm">{err}</li>
                 ))}
               </ul>

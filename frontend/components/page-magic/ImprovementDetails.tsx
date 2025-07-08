@@ -43,7 +43,7 @@ export function ImprovementDetails({ improvement }: ImprovementDetailsProps) {
               <div key={idx} className="flex items-start gap-2 p-3 bg-muted rounded-lg">
                 <Sparkles className="h-4 w-4 text-purple-600 mt-0.5 flex-shrink-0" />
                 <span className="text-sm">
-                  {typeof rec === 'string' ? rec : rec.content}
+                  {rec}
                 </span>
               </div>
             ))

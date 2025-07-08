@@ -212,7 +212,12 @@ export function useContentKPI(projectId: string) {
           Authorization: `Bearer ${token}`,
         },
       });
-      setData(response);
+      interface ContentScoresResponse {
+        scores: ContentScore[];
+        stats: ContentKPIStats;
+      }
+      const typedResponse = response as ContentScoresResponse;
+      setData(typedResponse);
     } catch (err: any) {
       setError(err as Error);
       // If 404, set empty data
@@ -244,7 +249,8 @@ export function useContentKPI(projectId: string) {
           Authorization: `Bearer ${token}`,
         },
       });
-      setReport(response);
+      const typedResponse = response as ContentKPIReport;
+      setReport(typedResponse);
     } catch (err: any) {
       console.error('Failed to fetch content report:', err);
       // If 404, it means no crawl has run yet - set empty report
@@ -297,7 +303,11 @@ export function useContentKPI(projectId: string) {
     }
   };
 
-  const getCrawlStatus = async () => {
+  const getCrawlStatus = async (): Promise<{
+    isActive: boolean;
+    crawledPages?: number;
+    totalPages?: number;
+  }> => {
     if (!token) throw new Error('Not authenticated');
     try {
       const response = await apiFetch(`/user/projects/${projectId}/crawler/status`, {
@@ -305,7 +315,12 @@ export function useContentKPI(projectId: string) {
           Authorization: `Bearer ${token}`,
         },
       });
-      return response;
+      interface CrawlStatusResponse {
+        isActive: boolean;
+        crawledPages?: number;
+        totalPages?: number;
+      }
+      return response as CrawlStatusResponse;
     } catch (err) {
       throw err;
     }

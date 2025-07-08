@@ -17,9 +17,9 @@ export async function apiFetch<T>(
 ): Promise<T> {
   const { token, headers = {}, ...restOptions } = options;
 
-  const defaultHeaders: HeadersInit = {
+  const defaultHeaders: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...headers,
+    ...(headers as Record<string, string>),
   };
 
   if (token) {

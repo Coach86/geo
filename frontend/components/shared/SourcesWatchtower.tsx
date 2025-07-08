@@ -92,6 +92,15 @@ const fuzzyFilter: FilterFn<CitationItem> = (row, columnId, value) => {
   return searchValue.includes(searchTerm);
 };
 
+const aggregatedFuzzyFilter: FilterFn<AggregatedCitation> = (row, columnId, value) => {
+  if (!value) return true;
+  
+  const searchTerm = value.toLowerCase();
+  const searchValue = String(row.getValue(columnId) || "").toLowerCase();
+  
+  return searchValue.includes(searchTerm);
+};
+
 // Multi-select filter function that handles both single values and arrays
 const multiSelectFilter: FilterFn<AggregatedCitation> = (row, columnId, value) => {
   if (!value || !Array.isArray(value) || value.length === 0) return true;
@@ -273,7 +282,7 @@ export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowe
             </div>
           );
         },
-        filterFn: fuzzyFilter,
+        filterFn: aggregatedFuzzyFilter,
         enableSorting: true,
       }),
 
@@ -443,7 +452,7 @@ export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowe
             </a>
           );
         },
-        filterFn: fuzzyFilter,
+        filterFn: aggregatedFuzzyFilter,
         enableSorting: true,
       }),
 
@@ -602,7 +611,7 @@ export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowe
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
     getPaginationRowModel: getPaginationRowModel(),
-    globalFilterFn: fuzzyFilter,
+    globalFilterFn: aggregatedFuzzyFilter,
     state: {
       globalFilter,
     },
@@ -734,7 +743,7 @@ export function SourcesWatchtower({ citations, type, loading }: SourcesWatchtowe
               </thead>
               <tbody>
                 {(() => {
-                  const renderedRows: JSX.Element[] = [];
+                  const renderedRows: React.JSX.Element[] = [];
                   
                   groupedData.forEach((rows, domain) => {
                     const totalCount = rows.reduce((sum, r) => sum + r.original.totalCount, 0);

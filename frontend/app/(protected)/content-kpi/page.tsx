@@ -151,7 +151,7 @@ export default function PageIntelligencePage() {
       }
     };
 
-    if (!initialCheckDone && getCrawlStatus) {
+    if (!initialCheckDone) {
       checkInitialStatus();
     }
   }, [getCrawlStatus]); // Remove initialCheckDone from dependencies to prevent re-runs

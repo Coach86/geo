@@ -11,6 +11,9 @@ const {
   getCrawledPagesForDomain
 } = require('./database');
 
+// Import sitemap discovery
+const { discoverUrlsFromSitemaps } = require('./sitemap-parser');
+
 // User agent for crawling
 const USER_AGENT = 'PageIntelligenceBot/1.0 (+https://mintai.com/bot)';
 
@@ -337,7 +340,30 @@ async function crawlPages(startUrl, options = {}) {
     }
   }
   
-  // Initialize URLs to discover
+  // Step 1: Try to discover URLs from sitemaps first
+  console.log('🗺️ Attempting sitemap discovery...');
+  let sitemapUrls = [];
+  try {
+    sitemapUrls = await discoverUrlsFromSitemaps(startUrl, {
+      maxUrls: maxPages * 2, // Get more URLs than needed for better selection
+      maxDepth: 3
+    });
+    
+    if (sitemapUrls.length > 0) {
+      console.log(`🗺️ Sitemap discovery found ${sitemapUrls.length} URLs`);
+      
+      // Add sitemap URLs to discovery queue
+      for (const urlEntry of sitemapUrls) {
+        addDiscoveredUrl(urlEntry.url, domain, 'sitemap');
+      }
+    } else {
+      console.log('🗺️ No URLs found via sitemap discovery');
+    }
+  } catch (error) {
+    console.log(`🗺️ Sitemap discovery failed: ${error.message}`);
+  }
+  
+  // Step 2: Initialize URLs to discover (fallback and supplements)
   addDiscoveredUrl(normalizedStartUrl, domain, null);
   addDiscoveredUrl(normalizedHomepage, domain, null); // Always add homepage
   
@@ -362,7 +388,11 @@ async function crawlPages(startUrl, options = {}) {
     }
     
     if (isFirstBatch) {
-      console.log(`  📋 Fetched ${urlsToCrawl.length} URLs (homepage prioritized)`);
+      const sitemapCount = sitemapUrls.length;
+      const message = sitemapCount > 0 
+        ? `📋 Fetched ${urlsToCrawl.length} URLs (${sitemapCount} from sitemap, homepage prioritized)`
+        : `📋 Fetched ${urlsToCrawl.length} URLs (homepage prioritized)`;
+      console.log(`  ${message}`);
     } else {
       console.log(`  📋 Fetched ${urlsToCrawl.length} randomized URLs from queue`);
     }

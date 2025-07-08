@@ -85,9 +85,9 @@ export function AnimatedDiffViewer({
         <div className="p-4 border-b space-y-3">
           {/* Latest Change Info */}
           {currentVersion?.ruleProcessed && currentVersionIndex > 0 && (
-            <div className="flex items-center gap-2 px-3 py-1 bg-green-50 dark:bg-green-950 rounded-lg w-fit">
-              <Zap className="h-3 w-3 text-green-600" />
-              <span className="text-xs text-green-700 dark:text-green-300">
+            <div className="flex items-center gap-2 px-3 py-1 bg-accent/10 rounded-lg w-fit">
+              <Zap className="h-3 w-3 text-accent" />
+              <span className="text-xs text-accent">
                 Applied: {currentVersion.ruleProcessed}
               </span>
             </div>
@@ -103,7 +103,7 @@ export function AnimatedDiffViewer({
                   <Badge variant="secondary" className="text-xs w-32 justify-center">
                     Title
                   </Badge>
-                  <span className="text-xs text-gray-700 dark:text-gray-300 flex-1">
+                  <span className="text-xs text-gray-700 flex-1">
                     {useAnimatedDiff && currentVersionIndex > 0 ? (
                       <AnimatedTitleMetaDiff 
                         current={currentVersion?.title || ''} 
@@ -125,7 +125,7 @@ export function AnimatedDiffViewer({
                   <Badge variant="secondary" className="text-xs w-32 justify-center">
                     Meta Description
                   </Badge>
-                  <span className="text-xs text-gray-700 dark:text-gray-300 flex-1">
+                  <span className="text-xs text-gray-700 flex-1">
                     {useAnimatedDiff && currentVersionIndex > 0 ? (
                       <AnimatedTitleMetaDiff 
                         current={currentVersion?.metaDescription || ''} 
@@ -160,7 +160,7 @@ export function AnimatedDiffViewer({
                       <Badge variant="secondary" className="text-xs w-32 justify-center">
                         Meta {key}
                       </Badge>
-                      <span className="text-xs text-gray-700 dark:text-gray-300 flex-1">
+                      <span className="text-xs text-gray-700 flex-1">
                         {useAnimatedDiff && currentVersionIndex > 0 ? (
                           <AnimatedTitleMetaDiff 
                             current={currentValue} 
@@ -204,10 +204,10 @@ export function AnimatedDiffViewer({
 
           {/* Processing Overlay with Mint Loader - Only show when no improvements yet */}
           {isProcessing && currentVersionIndex === 0 && (
-            <div className="absolute inset-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-lg">
+            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-lg">
               <div className="flex flex-col items-center gap-4 pt-24">
                 <SvgLoader size="xl" />
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <span className="text-sm font-medium text-gray-700">
                   Minting...
                 </span>
               </div>

@@ -254,8 +254,8 @@ export async function updatePromptSet(
 export async function regeneratePromptType(
   projectId: string,
   promptType: 'visibility' | 'sentiment' | 'alignment' | 'competition',
-  count?: number,
-  token: string
+  token: string,
+  count?: number
 ): Promise<{ prompts: string[]; type: string }> {
   try {
     return await apiFetch<{ prompts: string[]; type: string }>(

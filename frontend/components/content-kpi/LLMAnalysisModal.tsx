@@ -85,7 +85,7 @@ export function LLMAnalysisModal({ projectId, pageUrl, trigger }: LLMAnalysisMod
           },
         }
       );
-      setData(response);
+      setData(response as LLMAnalysisData);
     } catch (error) {
       console.error('Error fetching LLM analysis:', error);
       toast({

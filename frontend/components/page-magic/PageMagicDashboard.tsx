@@ -68,7 +68,7 @@ export function PageMagicDashboard() {
   const router = useRouter();
   const { selectedProject } = useNavigation();
   const { token } = useAuth();
-  const [pages, setPages] = useState<Page[]>([]);
+  const [pages, setPages] = useState<PageWithScore[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -99,8 +99,12 @@ export function PageMagicDashboard() {
         token: token || undefined,
       });
 
-      console.log('Pages data:', result.data);
-      setPages(result.data || []);
+      interface PageMagicResponse {
+        data?: PageWithScore[];
+      }
+      const typedResult = result as PageMagicResponse;
+      console.log('Pages data:', typedResult.data);
+      setPages(typedResult.data || []);
     } catch (err) {
       console.error('Error fetching pages:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');

@@ -34,7 +34,7 @@ import { EVIDENCE_TYPE_CONFIG } from './evidence/evidenceConfig';
 import { ScoreBadge } from './evidence/ScoreBadge';
 import { CodeBlock } from './evidence/CodeBlock';
 import { RuleIcon } from './RuleIcon';
-import { DIMENSION_COLORS } from '@/lib/constants/colors';
+import { DIMENSION_COLORS, getDimensionColor } from '@/lib/constants/colors';
 
 interface AIUsage {
   modelName: string;
@@ -81,10 +81,10 @@ const SEVERITY_ICONS = {
 };
 
 const SEVERITY_COLORS = {
-  critical: 'text-red-600 dark:text-red-500',
-  high: 'text-orange-600 dark:text-orange-500',
-  medium: 'text-yellow-600 dark:text-yellow-500',
-  low: 'text-blue-600 dark:text-blue-500',
+  critical: 'text-red-600',
+  high: 'text-orange-600',
+  medium: 'text-yellow-600',
+  low: 'text-blue-600',
 };
 
 // AI-based rules that use LLM for analysis
@@ -108,7 +108,7 @@ function EvidenceItemRendererNoIcon({ item }: { item: EvidenceItem }) {
   if (type === 'heading') {
     return (
       <div className="mt-4 mb-3">
-        <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+        <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
           {content}
         </h4>
       </div>
@@ -118,14 +118,14 @@ function EvidenceItemRendererNoIcon({ item }: { item: EvidenceItem }) {
   // Special case for base score
   if (type === 'base') {
     return (
-      <div className="group hover:bg-gray-50/50 dark:hover:bg-gray-800/30 rounded-lg transition-colors">
+      <div className="group hover:bg-gray-50/50 rounded-lg transition-colors">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1">
-            <h4 className="font-semibold text-sm text-gray-900 dark:text-gray-100">
+            <h4 className="font-semibold text-sm text-gray-900">
               Base Score
             </h4>
           </div>
-          <div className="inline-flex items-center justify-center min-w-[2rem] h-6 px-2 bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded text-xs font-semibold text-blue-700 dark:text-blue-300">
+          <div className="inline-flex items-center justify-center min-w-[2rem] h-6 px-2 bg-blue-100 border border-blue-300 rounded text-xs font-semibold text-blue-700">
             {item.score}
           </div>
         </div>
@@ -147,12 +147,12 @@ function EvidenceItemRendererNoIcon({ item }: { item: EvidenceItem }) {
     }
     
     return (
-      <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700">
+      <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
         <div className="space-y-3">
-          <h5 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+          <h5 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
             Score Calculation
           </h5>
-          <div className="font-mono text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
+          <div className="font-mono text-xs text-gray-600 leading-relaxed">
             {content}
           </div>
         </div>
@@ -164,13 +164,13 @@ function EvidenceItemRendererNoIcon({ item }: { item: EvidenceItem }) {
   const config = EVIDENCE_TYPE_CONFIG[type as keyof typeof EVIDENCE_TYPE_CONFIG] || EVIDENCE_TYPE_CONFIG.info;
 
   return (
-    <div className="group hover:bg-gray-50/50 dark:hover:bg-gray-800/30 rounded-lg transition-colors">
+    <div className="group hover:bg-gray-50/50 rounded-lg transition-colors">
       <div className="flex-1 min-w-0">
         {/* Topic and Score row */}
         <div className="flex items-start justify-between gap-3 mb-1">
           <div className="flex-1">
             {item.topic && (
-              <h4 className="font-semibold text-sm text-gray-900 dark:text-gray-100">
+              <h4 className="font-semibold text-sm text-gray-900">
                 {item.topic}
               </h4>
             )}
@@ -186,8 +186,8 @@ function EvidenceItemRendererNoIcon({ item }: { item: EvidenceItem }) {
         {/* Target - inline with better styling */}
         {item.target && (
           <div className="flex items-start gap-2 mt-2">
-            <Target className="h-3 w-3 text-gray-400 dark:text-gray-500 mt-0.5 flex-shrink-0" />
-            <span className="text-xs text-gray-600 dark:text-gray-400 italic">
+            <Target className="h-3 w-3 text-gray-400 mt-0.5 flex-shrink-0" />
+            <span className="text-xs text-gray-600 italic">
               {item.target}
             </span>
           </div>
@@ -221,7 +221,7 @@ export function RuleDetailsDrawer({ isOpen, onClose, rule, pageUrl }: RuleDetail
             <div className="flex items-center gap-3">
               <div 
                 className="p-2 rounded-lg"
-                style={{ backgroundColor: `${DIMENSION_COLORS[rule.category]}20` }}
+                style={{ backgroundColor: `${getDimensionColor(rule.category)}20` }}
               >
                 <RuleIcon 
                   ruleId={rule.ruleId}
@@ -233,22 +233,16 @@ export function RuleDetailsDrawer({ isOpen, onClose, rule, pageUrl }: RuleDetail
               <div>
                 <SheetTitle className="text-lg">{rule.ruleName}</SheetTitle>
                 <div className="flex items-center gap-2 mt-1">
-                  <Badge 
-                    variant="outline"
-                    style={{
-                      borderColor: DIMENSION_COLORS[rule.category],
-                      color: DIMENSION_COLORS[rule.category]
-                    }}
-                  >
+                  <Badge className="border bg-gray-50 text-gray-700 border-gray-200">
                     {rule.category}
                   </Badge>
                   {rule.passed ? (
-                    <Badge variant="outline" style={{ borderColor: '#10b981', color: '#10b981' }}>
+                    <Badge className="bg-accent/10 text-accent border-accent/30">
                       <CheckCircle2 className="h-3 w-3 mr-1" />
                       Pass
                     </Badge>
                   ) : (
-                    <Badge variant="outline" style={{ borderColor: '#ef4444', color: '#ef4444' }}>
+                    <Badge className="bg-red-50 text-red-700 border-red-200">
                       <AlertCircle className="h-3 w-3 mr-1" />
                       Fail
                     </Badge>
@@ -267,11 +261,11 @@ export function RuleDetailsDrawer({ isOpen, onClose, rule, pageUrl }: RuleDetail
                             <div className="space-y-3">
                               <div>
                                 <p className="font-semibold text-xs mb-1">Model:</p>
-                                <p className="text-xs text-gray-600 dark:text-gray-400">{rule.aiUsage.modelName}</p>
+                                <p className="text-xs text-gray-600">{rule.aiUsage.modelName}</p>
                               </div>
                               <div>
                                 <p className="font-semibold text-xs mb-1">Prompt:</p>
-                                <p className="text-xs text-gray-600 dark:text-gray-400 whitespace-pre-wrap break-words max-h-40 overflow-y-auto">
+                                <p className="text-xs text-gray-600 whitespace-pre-wrap break-words max-h-40 overflow-y-auto">
                                   {rule.aiUsage.prompt.length > 500 
                                     ? rule.aiUsage.prompt.substring(0, 500) + '...' 
                                     : rule.aiUsage.prompt}
@@ -279,7 +273,7 @@ export function RuleDetailsDrawer({ isOpen, onClose, rule, pageUrl }: RuleDetail
                               </div>
                               <div>
                                 <p className="font-semibold text-xs mb-1">Response:</p>
-                                <p className="text-xs text-gray-600 dark:text-gray-400 whitespace-pre-wrap break-words max-h-40 overflow-y-auto">
+                                <p className="text-xs text-gray-600 whitespace-pre-wrap break-words max-h-40 overflow-y-auto">
                                   {rule.aiUsage.response.length > 500 
                                     ? rule.aiUsage.response.substring(0, 500) + '...' 
                                     : rule.aiUsage.response}
@@ -319,9 +313,10 @@ export function RuleDetailsDrawer({ isOpen, onClose, rule, pageUrl }: RuleDetail
               </span>
               <span className="flex-1 bg-gray-200 rounded-full h-2 relative max-w-32">
                 <span 
-                  className="h-2 rounded-full transition-all block"
+                  className={`h-2 rounded-full transition-all block ${
+                    rule.passed ? 'bg-accent' : 'bg-red-500'
+                  }`}
                   style={{ 
-                    backgroundColor: rule.passed ? '#10b981' : '#ef4444',
                     width: `${Math.max(0, Math.min(100, percentage))}%` 
                   }}
                 />
@@ -349,7 +344,7 @@ export function RuleDetailsDrawer({ isOpen, onClose, rule, pageUrl }: RuleDetail
             {/* Evidence Section */}
             {otherEvidence.length > 0 && (
               <div className="space-y-1">
-                <h5 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">
+                <h5 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3">
                   Evidence ({otherEvidence.length})
                   {/* Debug: Show total maxScore in dev mode */}
                   {process.env.NODE_ENV === 'development' && (() => {
@@ -367,7 +362,7 @@ export function RuleDetailsDrawer({ isOpen, onClose, rule, pageUrl }: RuleDetail
                     
                     const isNot100 = totalMaxScore !== 100;
                     return (
-                      <span className={`ml-2 text-xs ${isNot100 ? 'font-bold text-red-600 dark:text-red-400' : 'font-normal text-orange-600 dark:text-orange-400'}`}>
+                      <span className={`ml-2 text-xs ${isNot100 ? 'font-bold text-red-600' : 'font-normal text-orange-600'}`}>
                         [DEBUG: maxScore total = {totalMaxScore}]
                       </span>
                     );
@@ -402,24 +397,24 @@ export function RuleDetailsDrawer({ isOpen, onClose, rule, pageUrl }: RuleDetail
                         </CardContent>
                         {/* Code block outside CardContent for full width */}
                         {item.code && (
-                          <div className="border-t border-gray-100 dark:border-gray-800">
+                          <div className="border-t border-gray-100">
                             <div className="relative group">
                               <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                                 <button
-                                  onClick={() => navigator.clipboard.writeText(item.code)}
-                                  className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                                  onClick={() => navigator.clipboard.writeText(item.code || '')}
+                                  className="p-1 rounded hover:bg-gray-200 transition-colors"
                                   title="Copy to clipboard"
                                 >
                                   <Copy className="h-3 w-3 text-gray-500" />
                                 </button>
                               </div>
-                              <pre className="bg-gray-50 dark:bg-gray-900 border-0 rounded-none p-3 overflow-x-auto m-0 relative">
+                              <pre className="bg-gray-50 border-0 rounded-none p-3 overflow-x-auto m-0 relative">
                                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                  <span className="text-6xl font-mono text-gray-300/20 dark:text-gray-600/20">
+                                  <span className="text-6xl font-mono text-gray-300/20">
                                     &lt;&gt;
                                   </span>
                                 </div>
-                                <code className="text-xs font-mono text-gray-700 dark:text-gray-300 whitespace-pre relative z-10">
+                                <code className="text-xs font-mono text-gray-700 whitespace-pre relative z-10">
                                   {item.code}
                                 </code>
                               </pre>
@@ -440,7 +435,7 @@ export function RuleDetailsDrawer({ isOpen, onClose, rule, pageUrl }: RuleDetail
                 {/* Issues Section */}
                 {hasIssues && (
                   <div>
-                    <h5 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">
+                    <h5 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3">
                       Issues Found ({rule.issues!.length})
                     </h5>
                     <div className="space-y-2">
@@ -450,20 +445,20 @@ export function RuleDetailsDrawer({ isOpen, onClose, rule, pageUrl }: RuleDetail
                         return (
                           <div 
                             key={idx} 
-                            className="pl-4 border-l-2 border-gray-200 dark:border-gray-700 py-2"
+                            className="pl-4 border-l-2 border-gray-200 py-2"
                           >
                             <div className="flex items-start gap-3">
                               <Icon className={`h-4 w-4 mt-0.5 flex-shrink-0 ${SEVERITY_COLORS[issue.severity]}`} />
                               <div className="flex-1 space-y-1">
                                 <div className="flex items-start justify-between gap-4">
-                                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                  <p className="text-sm font-medium text-gray-900">
                                     {issue.description}
                                   </p>
                                   <span className={`text-xs font-medium ${SEVERITY_COLORS[issue.severity]}`}>
                                     {issue.severity}
                                   </span>
                                 </div>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                <p className="text-sm text-gray-600">
                                   {issue.recommendation}
                                 </p>
                                 {issue.affectedElements && issue.affectedElements.length > 0 && (
@@ -471,7 +466,7 @@ export function RuleDetailsDrawer({ isOpen, onClose, rule, pageUrl }: RuleDetail
                                     {issue.affectedElements.map((elem, i) => (
                                       <code 
                                         key={i}
-                                        className="text-xs font-mono bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded"
+                                        className="text-xs font-mono bg-gray-100 px-1.5 py-0.5 rounded"
                                       >
                                         {elem}
                                       </code>
@@ -490,18 +485,18 @@ export function RuleDetailsDrawer({ isOpen, onClose, rule, pageUrl }: RuleDetail
                 {/* Recommendations Section */}
                 {rule.recommendations && rule.recommendations.length > 0 ? (
                   <div>
-                    <h5 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">
+                    <h5 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3">
                       Recommendations ({rule.recommendations.length})
                     </h5>
                     <div className="space-y-3">
                       {rule.recommendations.map((recommendation, idx) => (
                         <div 
                           key={idx}
-                          className="flex items-start gap-3 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg"
+                          className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg"
                         >
-                          <Lightbulb className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-600 dark:text-blue-400" />
+                          <Lightbulb className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-600" />
                           <div className="flex-1">
-                            <p className="text-sm text-gray-900 dark:text-gray-100">
+                            <p className="text-sm text-gray-900">
                               {recommendation}
                             </p>
                           </div>
@@ -512,8 +507,8 @@ export function RuleDetailsDrawer({ isOpen, onClose, rule, pageUrl }: RuleDetail
                 ) : (
                   !hasIssues && (
                     <div className="flex flex-col items-center justify-center py-8 text-center">
-                      <Lightbulb className="h-12 w-12 text-gray-300 dark:text-gray-600 mb-3" />
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                      <Lightbulb className="h-12 w-12 text-gray-300 mb-3" />
+                      <p className="text-sm text-gray-500">
                         No issues or recommendations for this rule.
                       </p>
                     </div>
@@ -526,7 +521,7 @@ export function RuleDetailsDrawer({ isOpen, onClose, rule, pageUrl }: RuleDetail
 
         {/* Fixed Score Computation at Bottom */}
         {scoreItems.length > 0 && (
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4 bg-background">
+          <div className="border-t border-gray-200 pt-4 mt-4 bg-background">
             {scoreItems.map((item, idx) => (
               <EvidenceItemRenderer key={idx} item={item} />
             ))}

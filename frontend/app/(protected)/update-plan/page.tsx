@@ -108,7 +108,6 @@ export default function UpdatePlanPage() {
       name: plan.name,
       tag: plan.tag,
       subtitle: plan.subtitle,
-      features: plan.features,
       included: plan.included,
       price: `€${currentPrice}`,
       pricePeriod: "/mo",
@@ -233,7 +232,6 @@ export default function UpdatePlanPage() {
               name={plan.name}
               tag={plan.tag}
               subtitle={plan.subtitle}
-              features={plan.features}
               included={plan.included}
               price={plan.price}
               pricePeriod={plan.pricePeriod}

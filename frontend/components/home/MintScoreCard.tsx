@@ -252,7 +252,7 @@ export function MintScoreCard({ projectId, token, onGoToProject }: MintScoreCard
           {featureAccess.isFreePlan ? (
             <Badge 
               variant="secondary" 
-              className="px-2 py-1 text-xs bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 cursor-pointer hover:bg-purple-200 dark:hover:bg-purple-800"
+              className="px-2 py-1 text-xs bg-purple-100 text-purple-700 cursor-pointer hover:bg-purple-200"
               onClick={handleUnlockClick}
             >
               Unlock
@@ -316,7 +316,7 @@ export function MintScoreCard({ projectId, token, onGoToProject }: MintScoreCard
             ) : featureAccess.isFreePlan ? (
               <Badge 
                 variant="secondary" 
-                className="px-2 py-1 text-xs bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 cursor-pointer hover:bg-purple-200 dark:hover:bg-purple-800"
+                className="px-2 py-1 text-xs bg-purple-100 text-purple-700 cursor-pointer hover:bg-purple-200"
                 onClick={handleUnlockClick}
               >
                 Unlock
@@ -341,7 +341,7 @@ export function MintScoreCard({ projectId, token, onGoToProject }: MintScoreCard
             ) : featureAccess.isFreePlan ? (
               <Badge 
                 variant="secondary" 
-                className="px-2 py-1 text-xs bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 cursor-pointer hover:bg-purple-200 dark:hover:bg-purple-800"
+                className="px-2 py-1 text-xs bg-purple-100 text-purple-700 cursor-pointer hover:bg-purple-200"
                 onClick={handleUnlockClick}
               >
                 Unlock

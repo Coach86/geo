@@ -125,7 +125,7 @@ export function DiffContentViewer({
                   {metadata.wordCount} words
                 </Badge>
                 {metadata.addedWords > 0 && (
-                  <Badge variant="outline" className="text-xs text-green-600 border-green-200">
+                  <Badge variant="outline" className="text-xs text-accent border-accent/20">
                     +{metadata.addedWords} added
                   </Badge>
                 )}
@@ -145,12 +145,12 @@ export function DiffContentViewer({
             Diff View
           </Badge>
           <span className="text-xs text-muted-foreground">
-            <span className="bg-green-200 text-green-900 dark:bg-green-400/30 dark:text-green-200 px-1 rounded">Green highlights</span> show AI improvements
+            <span className="bg-accent/20 text-accent px-1 rounded">Green highlights</span> show AI improvements
           </span>
         </div>
 
         {/* Diff Content */}
-        <div className="prose prose-sm dark:prose-invert max-w-none">
+        <div className="prose prose-sm max-w-none">
           <div className="whitespace-pre-wrap">
             {diffParts.map(part => {
               if (part.removed) {
@@ -162,7 +162,7 @@ export function DiffContentViewer({
                 return (
                   <span
                     key={part.id}
-                    className="bg-green-200 text-green-900 dark:bg-green-400/30 dark:text-green-200 font-semibold px-1 py-0.5 rounded"
+                    className="bg-accent/20 text-accent font-semibold px-1 py-0.5 rounded"
                   >
                     {part.value}
                   </span>
@@ -171,7 +171,7 @@ export function DiffContentViewer({
               
               // Unchanged content
               return (
-                <span key={part.id} className="text-gray-700 dark:text-gray-300">
+                <span key={part.id} className="text-gray-700">
                   {part.value}
                 </span>
               );

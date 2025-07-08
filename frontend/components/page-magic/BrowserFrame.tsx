@@ -38,9 +38,9 @@ export function BrowserFrame({
   return (
     <Card className={cn("overflow-hidden h-full flex flex-col", className)}>
       {/* Browser Chrome */}
-      <div className="bg-gray-100 dark:bg-gray-800 border-b">
+      <div className="bg-gray-100 border-b">
         {/* Window Controls */}
-        <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200">
           <div className="flex items-center gap-2">
             {/* Mac-style window controls */}
             <div className="flex items-center gap-1.5">
@@ -50,7 +50,7 @@ export function BrowserFrame({
             </div>
           </div>
           
-          <div className="text-xs font-medium text-gray-600 dark:text-gray-300">
+          <div className="text-xs font-medium text-gray-600">
             {title}
           </div>
           
@@ -89,12 +89,12 @@ export function BrowserFrame({
           </div>
 
           {/* URL Bar */}
-          <div className="flex-1 flex items-center gap-2 bg-white dark:bg-gray-900 rounded-md px-3 py-1.5 text-sm">
+          <div className="flex-1 flex items-center gap-2 bg-white rounded-md px-3 py-1.5 text-sm">
             {/* Security Icon */}
             <div className="flex items-center gap-1">
               {url && url.startsWith('https://') && (
                 <svg
-                  className="w-3 h-3 text-green-600 dark:text-green-400"
+                  className="w-3 h-3 text-green-600"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -108,12 +108,12 @@ export function BrowserFrame({
             </div>
 
             {/* URL Text */}
-            <div className="flex-1 flex items-center gap-1 text-gray-700 dark:text-gray-300">
+            <div className="flex-1 flex items-center gap-1 text-gray-700">
               <span className="font-medium">{getDomain(displayUrl)}</span>
               {url && (
                 <>
                   <span className="text-gray-400">/</span>
-                  <span className="text-gray-500 dark:text-gray-400 truncate">
+                  <span className="text-gray-500 truncate">
                     {(() => {
                       try {
                         const urlObj = new URL(url);
@@ -134,7 +134,7 @@ export function BrowserFrame({
                 href={url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                className="text-gray-400 hover:text-gray-600"
               >
                 <ExternalLink className="h-3 w-3" />
               </a>
@@ -144,7 +144,7 @@ export function BrowserFrame({
       </div>
 
       {/* Browser Content */}
-      <div className="flex-1 bg-white dark:bg-gray-900 overflow-auto">
+      <div className="flex-1 bg-white overflow-auto">
         {children}
       </div>
     </Card>

@@ -183,7 +183,7 @@ export default function SettingsPage() {
           organization={organization}
           organizationUsers={organizationUsers}
           currentUser={profile}
-          token={token}
+          token={token || ''}
           onUsersUpdate={setOrganizationUsers}
           onOrganizationUpdate={setOrganization}
         />
@@ -194,18 +194,18 @@ export default function SettingsPage() {
           selectedModels={selectedModels}
           onSelectedModelsChange={setSelectedModels}
           modelsLoading={modelsLoading}
-          token={token}
+          token={token || ''}
         />
         
         <RefreshFrequencySection
           organization={organization}
-          token={token}
+          token={token || ''}
           onOrganizationUpdate={setOrganization}
         />
         
         <ProfileSection
           profile={profile}
-          token={token}
+          token={token || ''}
           onProfileUpdate={setProfile}
         />
       </div>

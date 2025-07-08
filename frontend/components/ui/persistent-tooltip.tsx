@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils"
 const TooltipProvider = TooltipPrimitive.Provider
 
 const Tooltip = React.forwardRef<
-  React.ElementRef<typeof TooltipPrimitive.Root>,
+  HTMLDivElement,
   React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Root>
 >(({ children, ...props }, ref) => {
   const [isLocked, setIsLocked] = React.useState(false)

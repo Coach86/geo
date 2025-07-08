@@ -95,12 +95,12 @@ export function AnimatedTitleMetaDiff({ current, previous, onAnimationComplete }
       // Show final state with highlights
       return (
         <>
-          {diff.map((part, index) => {
+          {diff?.map((part, index) => {
             if (part.added) {
               return (
                 <span 
                   key={index} 
-                  className="inline-block bg-green-200 dark:bg-green-800 px-1 rounded"
+                  className="inline-block bg-accent/20 px-1 rounded"
                 >
                   {part.value}
                 </span>
@@ -142,7 +142,7 @@ export function AnimatedTitleMetaDiff({ current, previous, onAnimationComplete }
             return (
               <span 
                 key={index} 
-                className="inline-block bg-green-200 dark:bg-green-800 px-0.5 rounded animate-fade-in"
+                className="inline-block bg-accent/20 px-0.5 rounded animate-fade-in"
               >
                 {char}
               </span>

@@ -37,7 +37,7 @@ interface ContentScoreAnalysisProps {
 }
 
 const SCORE_COLORS = {
-  excellent: 'bg-green-100 text-green-800 border-green-200',
+  excellent: 'bg-accent/10 text-accent border-accent/20',
   good: 'bg-blue-100 text-blue-800 border-blue-200',
   average: 'bg-yellow-100 text-yellow-800 border-yellow-200',
   poor: 'bg-red-100 text-red-800 border-red-200',
@@ -129,7 +129,7 @@ export function ContentScoreAnalysis({ globalScore, scores, iterations, issues }
     return (
       <div className={cn(
         "flex items-center justify-center gap-1 text-xs mt-1",
-        variation.isPositive ? "text-green-600" : "text-red-600"
+        variation.isPositive ? "text-accent" : "text-red-600"
       )}>
         {variation.isPositive ? (
           <TrendingUp className="h-3 w-3" />
@@ -187,7 +187,7 @@ export function ContentScoreAnalysis({ globalScore, scores, iterations, issues }
                             <span className="capitalize font-medium text-xs">{issue.severity}</span>
                             <span className="text-xs text-muted-foreground">({issue.dimension})</span>
                           </div>
-                          <p className="text-xs text-gray-700 dark:text-gray-300">{issue.description}</p>
+                          <p className="text-xs text-gray-700">{issue.description}</p>
                         </div>
                       ))}
                     </div>

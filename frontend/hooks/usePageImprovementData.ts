@@ -91,13 +91,20 @@ export function usePageImprovementData() {
     try {
       setError(null);
       const result = await apiFetch(`/page-magic/improvement/${jobId}`, { token });
-      console.log('Fetched job data:', result.data);
-      console.log('Job status:', result.data?.status);
-      console.log('Improvements length:', result.data?.improvements?.length);
-      console.log('Improvements:', result.data?.improvements);
-      console.log('First improvement:', result.data?.improvements?.[0]);
-      updateJob(result.data);
-      return result.data;
+      interface JobResponse {
+        data?: PageImprovementJob;
+      }
+      const typedResult = result as JobResponse;
+      console.log('Fetched job data:', typedResult.data);
+      console.log('Job status:', typedResult.data?.status);
+      console.log('Improvements length:', typedResult.data?.improvements?.length);
+      console.log('Improvements:', typedResult.data?.improvements);
+      console.log('First improvement:', typedResult.data?.improvements?.[0]);
+      if (typedResult.data) {
+        updateJob(typedResult.data);
+        return typedResult.data;
+      }
+      return null;
     } catch (err) {
       console.error('Error fetching job details:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -110,11 +117,19 @@ export function usePageImprovementData() {
   const fetchStatus = async (jobId: string, token: string): Promise<any> => {
     try {
       const result = await apiFetch(`/page-magic/improvement/${jobId}/status`, { token });
-      if (result.data) {
-        updateProgress(result.data.progress);
-        updateScores(result.data.currentScore, result.data.previousScore);
+      interface StatusResponse {
+        data?: {
+          progress: number;
+          currentScore: number;
+          previousScore: number;
+        };
       }
-      return result.data;
+      const typedResult = result as StatusResponse;
+      if (typedResult.data) {
+        updateProgress(typedResult.data.progress);
+        updateScores(typedResult.data.currentScore, typedResult.data.previousScore);
+      }
+      return typedResult.data;
     } catch (err) {
       console.error('Error fetching job status:', err);
       return null;

@@ -100,7 +100,7 @@ export function AnimatedTypewriterDiff({
     }
 
     // Calculate AI bubble position based on current segment
-    if (contentRef.current && segment.type !== 'unchanged') {
+    if (contentRef.current) {
       // Use a dynamic position based on segment index
       const basePosition = 50;
       const lineHeight = 24; // Approximate line height
@@ -203,7 +203,6 @@ export function AnimatedTypewriterDiff({
     marked.setOptions({
       gfm: true,
       breaks: true,
-      headerIds: true,
     });
     
     // Build content with diff markers
@@ -212,7 +211,7 @@ export function AnimatedTypewriterDiff({
     // Fallback: if no segments or content issues, just display the current content
     if (segments.length === 0 || !previousContent || !currentContent) {
       console.warn('AnimatedTypewriterDiff: Using fallback rendering');
-      return DOMPurify.sanitize(marked.parse(currentContent || previousContent || ''), {
+      return DOMPurify.sanitize(marked.parse(currentContent || previousContent || '') as string, {
         ALLOWED_TAGS: [
           'p', 'div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
           'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'em', 'strong',
@@ -261,11 +260,11 @@ export function AnimatedTypewriterDiff({
     }
     
     // Parse markdown
-    let html = marked.parse(markedContent);
+    let html = marked.parse(markedContent) as string;
     
     // Replace markers with styled spans
-    html = html.replace(/{{ADD_START}}(.*?){{ADD_END}}/gs, (match, content) => {
-      return `<span class="inline-block bg-green-200 dark:bg-green-800 px-1 rounded">${content}</span>`;
+    html = html.replace(/{{ADD_START}}([\s\S]*?){{ADD_END}}/g, (match, content) => {
+      return `<span class="inline-block bg-accent/20 px-1 rounded">${content}</span>`;
     });
     
     return DOMPurify.sanitize(html, {
@@ -293,9 +292,9 @@ export function AnimatedTypewriterDiff({
         }}
       >
         <div className="relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-green-400 to-blue-500 rounded-full blur-sm opacity-50 animate-pulse" />
-          <div className="relative bg-white dark:bg-gray-800 rounded-full p-1.5 shadow-lg border border-green-400 dark:border-green-600">
-            <Sparkles className="w-4 h-4 text-green-600 dark:text-green-400" />
+          <div className="absolute inset-0 bg-gradient-to-r from-accent to-blue-500 rounded-full blur-sm opacity-50 animate-pulse" />
+          <div className="relative bg-white rounded-full p-1.5 shadow-lg border border-accent">
+            <Sparkles className="w-4 h-4 text-accent" />
           </div>
         </div>
       </div>
@@ -305,7 +304,7 @@ export function AnimatedTypewriterDiff({
         <div 
           ref={contentRef}
           key="content-container"
-          className="prose prose-sm dark:prose-invert max-w-none pl-14 page-magic-content"
+          className="prose prose-sm max-w-none pl-14 page-magic-content"
           dangerouslySetInnerHTML={{ __html: html }}
         />
       </ContentWithHeadingIndicators>

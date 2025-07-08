@@ -166,12 +166,12 @@ export function DomainAnalysisTab({ projectId, onIssueClick }: DomainAnalysisTab
 
   // Prepare radar chart data for average domain scores
   const avgDimensionScores = data.domainAnalyses.reduce((acc, domain) => {
-    if (domain.dimensionScores) {
-      Object.entries(domain.dimensionScores).forEach(([dimension, data]) => {
+    if (domain.analysisResults) {
+      Object.entries(domain.analysisResults).forEach(([dimension, data]) => {
         if (!acc[dimension]) {
           acc[dimension] = { total: 0, count: 0 };
         }
-        acc[dimension].total += data.score;
+        acc[dimension].total += (data as any).score;
         acc[dimension].count += 1;
       });
     }
@@ -254,10 +254,10 @@ export function DomainAnalysisTab({ projectId, onIssueClick }: DomainAnalysisTab
   };
 
   const SEVERITY_COLORS = {
-    critical: 'text-red-600 dark:text-red-500',
-    high: 'text-orange-600 dark:text-orange-500',
-    medium: 'text-yellow-600 dark:text-yellow-500',
-    low: 'text-blue-600 dark:text-blue-500',
+    critical: 'text-red-600',
+    high: 'text-orange-600',
+    medium: 'text-yellow-600',
+    low: 'text-blue-600',
   };
 
   return (

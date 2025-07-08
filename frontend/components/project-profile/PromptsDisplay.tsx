@@ -83,7 +83,7 @@ export function PromptsDisplay({
 
     setIsRegenerating(true);
     try {
-      const result = await regeneratePromptType(projectId, type, count, token);
+      const result = await regeneratePromptType(projectId, type, token, count);
       
       // Update the prompts immediately with the regenerated ones
       if (onUpdate && result.prompts) {

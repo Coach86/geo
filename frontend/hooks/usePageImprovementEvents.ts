@@ -29,7 +29,7 @@ export function usePageImprovementEvents({
   
   const { latestEvent } = usePageMagicEvents({
     jobId,
-    token,
+    token: token || undefined,
     onEvent: (event) => {
       // Update progress based on event
       if (event.progress !== undefined) {

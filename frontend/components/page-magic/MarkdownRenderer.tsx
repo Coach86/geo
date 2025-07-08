@@ -18,11 +18,10 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
     marked.setOptions({
       gfm: true,
       breaks: true,
-      headerIds: true,
     });
     
     // Convert markdown to HTML
-    const rawHtml = marked.parse(content);
+    const rawHtml = marked.parse(content) as string;
     
     // Sanitize the HTML
     return DOMPurify.sanitize(rawHtml, {
@@ -39,7 +38,7 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
   return (
     <ContentWithHeadingIndicators className={className}>
       <div 
-        className="prose prose-sm dark:prose-invert max-w-none pl-14 page-magic-content"
+        className="prose prose-sm max-w-none pl-14 page-magic-content"
         dangerouslySetInnerHTML={{ __html: html }}
       />
     </ContentWithHeadingIndicators>

@@ -98,12 +98,12 @@ export function RulesProcessingSignet({
 
       <CardContent className="p-3 pt-0">
         {currentRule ? (
-          <div className="flex items-center gap-2 p-2 rounded bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800">
+          <div className="flex items-center gap-2 p-2 rounded bg-blue-50/50 border border-blue-200">
             {/* Status Icon */}
             {(() => {
               switch (currentStatus) {
                 case 'completed':
-                  return <CheckCircle2 className="h-3 w-3 text-green-600" />;
+                  return <CheckCircle2 className="h-3 w-3 text-accent" />;
                 case 'processing':
                   return <Loader2 className="h-3 w-3 text-blue-600 animate-spin" />;
                 case 'retrying':
@@ -117,10 +117,10 @@ export function RulesProcessingSignet({
             
             {/* Rule Info */}
             <div className="flex-1 min-w-0">
-              <div className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">
+              <div className="text-xs font-medium text-gray-900 truncate">
                 {currentRule.ruleName || currentRule.description}
               </div>
-              <div className="text-[10px] text-gray-500 dark:text-gray-400 truncate">
+              <div className="text-[10px] text-gray-500 truncate">
                 {currentStatus === 'retrying' && currentRule.retryCount && currentRule.maxRetries ? (
                   <span className="text-orange-600 animate-pulse">
                     Retry {currentRule.retryCount}/{currentRule.maxRetries}
@@ -133,7 +133,7 @@ export function RulesProcessingSignet({
             
             {/* Score */}
             <div className="text-right">
-              <div className={`font-bold text-sm text-gray-900 dark:text-gray-100 ${
+              <div className={`font-bold text-sm text-gray-900 ${
                 currentStatus === 'completed' && currentRule.scoreAfter && currentRule.scoreAfter > currentRule.currentScore
                   ? 'animate-pulse' 
                   : ''

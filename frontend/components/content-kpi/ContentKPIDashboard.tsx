@@ -35,7 +35,7 @@ interface ContentKPIDashboardProps {
   crawlProgress: { crawledPages: number; totalPages: number; currentUrl?: string; status?: string } | null;
   showCrawlDialog: boolean;
   setShowCrawlDialog: (show: boolean) => void;
-  handleStartCrawl: (maxPages: number) => void;
+  handleStartCrawl: (settings: { maxPages: number; userAgent?: string; includePatterns?: string[]; excludePatterns?: string[]; mode?: 'auto' | 'manual'; manualUrls?: string[] }) => void;
 }
 
 const COLORS = {
@@ -334,7 +334,7 @@ export function ContentKPIDashboard({
 
   // Prepare issues by severity
   const issuesBySeverity = report.issuesSummary.reduce((acc, issue) => {
-    issue.severities.forEach(sev => {
+    issue.severities.forEach((sev: { severity: string; count: number }) => {
       if (!acc[sev.severity]) acc[sev.severity] = 0;
       acc[sev.severity] += sev.count;
     });
@@ -497,7 +497,16 @@ export function ContentKPIDashboard({
                   <div className="space-y-3 max-h-[380px] overflow-y-auto">
                     {/* Generate smart recommendations based on scores and issues */}
                     {(() => {
-                      const recommendations = [];
+                      const recommendations: Array<{
+                        dimension: string;
+                        score: number;
+                        priority: string;
+                        issues: number;
+                        criticals: number;
+                        icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
+                        color: string;
+                        actions: string[];
+                      }> = [];
                       
                       // Analyze each dimension and create targeted recommendations
                       const dimensionData = [
@@ -542,8 +551,8 @@ export function ContentKPIDashboard({
 
                       // Count critical/high severity issues
                       const criticalIssues = report.issuesSummary.reduce((acc, dim) => {
-                        const critical = dim.severities.filter(s => s.severity === 'critical' || s.severity === 'high')
-                          .reduce((sum, s) => sum + s.count, 0);
+                        const critical = dim.severities.filter((s: { severity: string }) => s.severity === 'critical' || s.severity === 'high')
+                          .reduce((sum: number, s: { count: number }) => sum + s.count, 0);
                         if (critical > 0) acc[dim._id] = critical;
                         return acc;
                       }, {} as Record<string, number>);
@@ -670,7 +679,7 @@ export function ContentKPIDashboard({
                             </div>
                             
                             <div className="space-y-1.5 ml-9">
-                              {rec.actions.slice(0, 2).map((action, i) => (
+                              {rec.actions.slice(0, 2).map((action: string, i: number) => (
                                 <div key={i} className="flex items-start gap-2">
                                   <div className="mt-1">
                                     <div className="h-1.5 w-1.5 rounded-full bg-gray-400" />
@@ -712,10 +721,10 @@ export function ContentKPIDashboard({
                           const { x, y, payload, index } = props;
                           const item = radarData.find(d => d.abbreviation === payload.value);
                           // Add extra offset for top (T) and bottom (A) labels
-                          let yOffset = y;
-                          if (index === 0) { // Technical (top)
+                          let yOffset = y ?? 0;
+                          if (index === 0 && typeof y === 'number') { // Technical (top)
                             yOffset = y - 10;
-                          } else if (index === 2) { // Authority (bottom)
+                          } else if (index === 2 && typeof y === 'number') { // Authority (bottom)
                             yOffset = y + 10;
                           }
                           return (
@@ -834,7 +843,7 @@ export function ContentKPIDashboard({
                     return (
                       <div key={index} className="space-y-2">
                         <div className="flex items-center gap-2">
-                          <Badge variant="default" className="bg-green-100 text-green-800">
+                          <Badge variant="default" className="bg-accent/10 text-accent">
                             {Math.round(page.globalScore)}
                           </Badge>
                           <a
@@ -927,13 +936,13 @@ export function ContentKPIDashboard({
                   )) || []}
                   {(!data?.scores?.filter(page => page.globalScore < 60 && !(page.skipped && page.globalScore === 0)).length) && (
                     <div className="text-center py-8">
-                      <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/20 mb-4">
-                        <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
+                      <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-accent/10 mb-4">
+                        <CheckCircle className="h-8 w-8 text-green-600" />
                       </div>
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
                         Excellent Work! 🎉
                       </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 max-w-sm mx-auto">
+                      <p className="text-sm text-gray-600 max-w-sm mx-auto">
                         All your pages are performing well! Every page scores above 60, showing great optimization across your content.
                       </p>
                     </div>
@@ -992,7 +1001,7 @@ export function ContentKPIDashboard({
                             </Badge>
                           </div>
                           <div className="flex gap-2">
-                            {dimension.severities.map((sev) => (
+                            {dimension.severities.map((sev: { severity: string; count: number }) => (
                               <Badge
                                 key={sev.severity}
                                 style={{
@@ -1046,7 +1055,8 @@ export function ContentKPIDashboard({
                     {/* Legend */}
                     <div className="flex flex-wrap justify-center gap-x-4 gap-y-2">
                       {Object.entries(SEVERITY_COLORS).map(([severity, color]) => {
-                        const count = severityData.find(item => item.severity === severity)?.count || 0;
+                        const severityItem = severityData.find(item => item.severity === severity);
+                        const count = (severityItem?.count as number | undefined) || 0;
                         return (
                           <div key={severity} className="flex items-center gap-2">
                             <div 
@@ -1055,7 +1065,9 @@ export function ContentKPIDashboard({
                             />
                             <span className="text-sm capitalize text-gray-700">
                               {severity}
-                              {count > 0 && <span className="font-medium ml-1">({count})</span>}
+                              {count > 0 && (
+                                <span className="font-medium ml-1">({count})</span>
+                              )}
                             </span>
                           </div>
                         );
@@ -1284,7 +1296,12 @@ export function ContentKPIDashboard({
               title: page.title, // Now ContentScore has title field
               globalScore: page.globalScore,
               scores: page.scores, // Already in correct format
-              ruleResults: page.ruleResults || [], // Pass the rule results for PageDetailsSection
+              ruleResults: (page.ruleResults || []).map(rule => ({
+                ...rule,
+                evidence: rule.evidence.map(e => 
+                  typeof e === 'string' ? { type: 'info' as const, content: e } : e
+                )
+              })), // Transform evidence to EvidenceItem[]
               details: page.details, // Pass the LLM analysis details
               calculationDetails: page.calculationDetails, // Pass calculation breakdowns
               issues: page.issues || [], // Already in correct format

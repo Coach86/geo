@@ -21,12 +21,9 @@ import { SingleReportSelector } from "@/components/shared/SingleReportSelector";
 import type { ReportResponse } from "@/types/reports";
 import { PageTransition } from "@/components/shared/PageTransition";
 
-interface ProcessedReport {
-  id: string;
-  projectId: string;
+interface ProcessedReport extends ReportResponse {
   brandName: string;
   competitors: string[];
-  generatedAt: string;
 }
 
 export default function CompetitionPage() {
@@ -47,11 +44,9 @@ export default function CompetitionPage() {
     error: reportError
   } = useReportData<ProcessedReport>((report, project) => {
     return {
-      id: report.id,
-      projectId: report.projectId,
+      ...report,
       brandName: project.brandName,
       competitors: project.competitors || [],
-      generatedAt: report.generatedAt,
     };
   });
   
@@ -115,7 +110,7 @@ export default function CompetitionPage() {
       // Save to report provider which will persist to localStorage
       selectReport(selectedProjectId, report.id);
     }
-    setSelectedReport(report);
+    setSelectedReport(report as ProcessedReport | null);
   }, [setSelectedReport, selectReport, selectedProjectId]);
 
   // Handle model filter change
