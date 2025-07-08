@@ -119,7 +119,7 @@ export class ProjectService {
           throw new BadRequestException('Market is required');
         }
 
-        this.logger.error(scrapedData);
+        this.logger.log('Scraped data:', scrapedData);
 
         // Summarize with LLM using web search + scraped data
         project = await this.generateProjectWithCompetitors(
