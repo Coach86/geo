@@ -191,4 +191,17 @@ export class CrawlerEventsGateway implements OnGatewayInit, OnGatewayConnection,
     this.logger.log(`[ANALYZER] Emitting analysis completed event for project ${payload.projectId}`);
     this.server.to(`crawler-${payload.projectId}`).emit('crawler.completed', event);
   }
+
+  @OnEvent('content.scores.deleted')
+  handleContentScoresDeleted(payload: any) {
+    const event = {
+      projectId: payload.projectId,
+      deletedCount: payload.deletedCount || 0,
+      timestamp: payload.timestamp || new Date(),
+      eventType: 'content.scores.deleted',
+    };
+    
+    this.logger.log(`[CONTENT] Emitting content scores deleted event for project ${payload.projectId} - deleted ${payload.deletedCount} scores`);
+    this.server.to(`crawler-${payload.projectId}`).emit('content.scores.deleted', event);
+  }
 }

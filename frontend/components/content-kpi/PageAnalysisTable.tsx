@@ -455,50 +455,94 @@ export function PageAnalysisTable({ pages, projectId, isDomainAnalysis = false, 
                     <TableCell className="text-center px-2">
                       {page.skipped || !page.scores ? (
                         <span className="text-xs text-muted-foreground">-</span>
-                      ) : (
-                        <div 
-                          className="text-xs font-bold"
-                          style={{ color: DIMENSION_COLORS.technical }}
-                        >
-                          {page.scores.technical}
-                        </div>
-                      )}
+                      ) : (() => {
+                        // Check if any technical rules were applied
+                        const hasAppliedRules = page.ruleResults?.some(result => 
+                          result.category === 'technical' || result.category === 'TECHNICAL'
+                        );
+                        
+                        if (!hasAppliedRules) {
+                          return <span className="text-xs text-muted-foreground">N/A</span>;
+                        }
+                        
+                        return (
+                          <div 
+                            className="text-xs font-bold"
+                            style={{ color: DIMENSION_COLORS.technical }}
+                          >
+                            {page.scores.technical}
+                          </div>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell className="text-center px-2">
                       {page.skipped || !page.scores ? (
                         <span className="text-xs text-muted-foreground">-</span>
-                      ) : (
-                        <div 
-                          className="text-xs font-bold"
-                          style={{ color: DIMENSION_COLORS.structure }}
-                        >
-                          {page.scores.structure}
-                        </div>
-                      )}
+                      ) : (() => {
+                        // Check if any structure rules were applied
+                        const hasAppliedRules = page.ruleResults?.some(result => 
+                          result.category === 'structure' || result.category === 'STRUCTURE'
+                        );
+                        
+                        if (!hasAppliedRules) {
+                          return <span className="text-xs text-muted-foreground">N/A</span>;
+                        }
+                        
+                        return (
+                          <div 
+                            className="text-xs font-bold"
+                            style={{ color: DIMENSION_COLORS.structure }}
+                          >
+                            {page.scores.structure}
+                          </div>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell className="text-center px-2">
                       {page.skipped || !page.scores ? (
                         <span className="text-xs text-muted-foreground">-</span>
-                      ) : (
-                        <div 
-                          className="text-xs font-bold"
-                          style={{ color: DIMENSION_COLORS.authority }}
-                        >
-                          {page.scores.authority}
-                        </div>
-                      )}
+                      ) : (() => {
+                        // Check if any authority rules were applied
+                        const hasAppliedRules = page.ruleResults?.some(result => 
+                          result.category === 'authority' || result.category === 'AUTHORITY'
+                        );
+                        
+                        if (!hasAppliedRules) {
+                          return <span className="text-xs text-muted-foreground">N/A</span>;
+                        }
+                        
+                        return (
+                          <div 
+                            className="text-xs font-bold"
+                            style={{ color: DIMENSION_COLORS.authority }}
+                          >
+                            {page.scores.authority}
+                          </div>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell className="text-center px-2">
                       {page.skipped || !page.scores ? (
                         <span className="text-xs text-muted-foreground">-</span>
-                      ) : (
-                        <div 
-                          className="text-xs font-bold"
-                          style={{ color: DIMENSION_COLORS.quality }}
-                        >
-                          {page.scores.quality}
-                        </div>
-                      )}
+                      ) : (() => {
+                        // Check if any quality rules were applied
+                        const hasAppliedRules = page.ruleResults?.some(result => 
+                          result.category === 'quality' || result.category === 'QUALITY'
+                        );
+                        
+                        if (!hasAppliedRules) {
+                          return <span className="text-xs text-muted-foreground">N/A</span>;
+                        }
+                        
+                        return (
+                          <div 
+                            className="text-xs font-bold"
+                            style={{ color: DIMENSION_COLORS.quality }}
+                          >
+                            {page.scores.quality}
+                          </div>
+                        );
+                      })()}
                     </TableCell>
                   </TableRow>
 

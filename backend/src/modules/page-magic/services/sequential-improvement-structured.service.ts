@@ -513,7 +513,7 @@ export class SequentialImprovementStructuredService {
         {
           model: this.preferredModel,
           temperature: 0.7,
-          maxTokens: 4000,
+          maxTokens: 8192, // Increased from 4000 to handle longer content
         }
       );
 
@@ -681,6 +681,8 @@ CRITICAL RULES - FAILURE TO FOLLOW THESE WILL RESULT IN REJECTION:
 6. Keep the same language as the original
 7. Return valid JSON starting with { and ending with }
 8. NO explanations, NO markdown, NO text outside the JSON
+9. When improving content, ALWAYS return the COMPLETE improved content - never truncate or shorten
+10. Preserve ALL existing content while making improvements - do not remove sections
 
 EXAMPLE - If the issue is "Meta description too long":
 WRONG: {"title": "...", "metas": {"description": "..."}, "content": "..."}

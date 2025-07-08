@@ -27,10 +27,13 @@ export function ContentWithHeadingIndicators({
     if (!containerRef.current) return;
 
     const updateIndicators = () => {
+      // Early return if ref is not attached
+      if (!containerRef.current) return;
+      
       const newIndicators: typeof indicators = [];
       
       // Find all headings
-      const headings = containerRef.current!.querySelectorAll('h1, h2, h3, h4, h5, h6');
+      const headings = containerRef.current.querySelectorAll('h1, h2, h3, h4, h5, h6');
       headings.forEach((heading, index) => {
         const level = parseInt(heading.tagName[1]) as 1 | 2 | 3 | 4 | 5 | 6;
         const id = `heading-${index}-${Date.now()}`;
@@ -50,7 +53,7 @@ export function ContentWithHeadingIndicators({
       });
 
       // Find all list items
-      const listItems = containerRef.current!.querySelectorAll('li');
+      const listItems = containerRef.current.querySelectorAll('li');
       listItems.forEach((li, index) => {
         const id = `list-${index}-${Date.now()}`;
         
@@ -88,8 +91,8 @@ export function ContentWithHeadingIndicators({
       setIndicators(newIndicators);
     };
 
-    // Initial update
-    updateIndicators();
+    // Initial update with a small delay to ensure DOM is ready
+    const timeoutId = setTimeout(updateIndicators, 100);
 
     // Create observer for content changes
     const observer = new MutationObserver(updateIndicators);
@@ -99,6 +102,7 @@ export function ContentWithHeadingIndicators({
     });
 
     return () => {
+      clearTimeout(timeoutId);
       observer.disconnect();
     };
   }, [children]);

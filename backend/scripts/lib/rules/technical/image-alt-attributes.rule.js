@@ -1,37 +1,25 @@
-import { Injectable } from '@nestjs/common';
-import { BaseAEORule } from '../base-aeo.rule';
-import { RuleResult, PageContent, Category, EvidenceItem, RuleIssue } from '../../../interfaces/rule.interface';
-import { EvidenceHelper } from '../../../utils/evidence.helper';
-import { ImageAltIssueId, createImageAltIssue } from './image-alt.issues';
+const { BaseRule, EvidenceHelper } = require('../base-rule');
 
-// Evidence topics for this rule
-enum ImageAltTopic {
-  IMAGE_ANALYSIS = 'Image Analysis',
-  ALT_COVERAGE = 'Alt Coverage',
-  ALT_QUALITY = 'Alt Quality',
-  SEMANTIC_MARKUP = 'Semantic Markup'
-}
-
-@Injectable()
-export class ImageAltRule extends BaseAEORule {
+class ImageAltAttributesRule extends BaseRule {
   constructor() {
     super(
-      'image_alt',
+      'image_alt_attributes',
       'Image Alt Attributes',
-      'STRUCTURE' as Category,
+      'technical',
       {
-        impactScore: 2,
-        pageTypes: [],
+        impactScore: 2, // Medium impact
+        pageTypes: [], // Applies to all page types
         isDomainLevel: false
       }
     );
   }
 
-  async evaluate(url: string, content: PageContent): Promise<RuleResult> {
-    const evidence: EvidenceItem[] = [];
-    const recommendations: string[] = [];
+  async evaluate(url, content) {
+    const evidence = [];
+    const issues = [];
+    const recommendations = [];
     let score = 0;
-    const scoreBreakdown: { component: string; points: number }[] = [];
+    const scoreBreakdown = [];
     
     const html = content.html || '';
     
@@ -41,17 +29,17 @@ export class ImageAltRule extends BaseAEORule {
     const totalImages = images.length;
     
     if (totalImages === 0) {
-      evidence.push(EvidenceHelper.info(ImageAltTopic.IMAGE_ANALYSIS, 'No images found on page'));
-      return this.createResult(100, evidence);
+      evidence.push(EvidenceHelper.info('Image Analysis', 'No images found on page'));
+      return this.createResult(100, evidence, issues, {}, recommendations);
     }
     
     // Check alt attributes
     let imagesWithAlt = 0;
     let imagesWithEmptyAlt = 0;
     let imagesWithDescriptiveAlt = 0;
-    const emptyAltImages: string[] = [];
+    const emptyAltImages = [];
     
-    images.forEach((img: string) => {
+    images.forEach((img) => {
       const altMatch = img.match(/alt=["']([^"']*?)["']/i);
       
       if (altMatch) {
@@ -79,7 +67,7 @@ export class ImageAltRule extends BaseAEORule {
     const descriptivePercentage = (imagesWithDescriptiveAlt / totalImages) * 100;
     
     // Combined image statistics
-    evidence.push(EvidenceHelper.info(ImageAltTopic.IMAGE_ANALYSIS,
+    evidence.push(EvidenceHelper.info('Image Analysis',
       `Total images: ${totalImages}, with alt attribute: ${imagesWithAlt} (${altPercentage.toFixed(1)}%), descriptive: ${imagesWithDescriptiveAlt} (${descriptivePercentage.toFixed(1)}%)`
     ));
     
@@ -89,7 +77,7 @@ export class ImageAltRule extends BaseAEORule {
     if (descriptivePercentage >= 95) {
       baseScore = 100;
       scoreBreakdown.push({ component: 'Excellent: ≥95% images have descriptive alt text', points: 100 });
-      evidence.push(EvidenceHelper.success(ImageAltTopic.ALT_QUALITY, '≥95% images have descriptive alt text', {
+      evidence.push(EvidenceHelper.success('Alt Quality', '≥95% images have descriptive alt text', {
         score: 100,
         maxScore: 100,
         target: 'Excellent accessibility'
@@ -97,7 +85,7 @@ export class ImageAltRule extends BaseAEORule {
     } else if (descriptivePercentage >= 75) {
       baseScore = 80;
       scoreBreakdown.push({ component: 'Good: 75-94% images have descriptive alt text', points: 80 });
-      evidence.push(EvidenceHelper.success(ImageAltTopic.ALT_QUALITY, '75-94% images have descriptive alt text', {
+      evidence.push(EvidenceHelper.success('Alt Quality', '75-94% images have descriptive alt text', {
         score: 80,
         maxScore: 100,
         target: '≥95% for full score'
@@ -105,7 +93,7 @@ export class ImageAltRule extends BaseAEORule {
     } else if (descriptivePercentage >= 50) {
       baseScore = 60;
       scoreBreakdown.push({ component: 'Moderate: 50-74% images have descriptive alt text', points: 60 });
-      evidence.push(EvidenceHelper.warning(ImageAltTopic.ALT_QUALITY, '50-74% images have descriptive alt text', {
+      evidence.push(EvidenceHelper.warning('Alt Quality', '50-74% images have descriptive alt text', {
         score: 60,
         maxScore: 100,
         target: '≥75% for good score'
@@ -113,7 +101,7 @@ export class ImageAltRule extends BaseAEORule {
     } else if (descriptivePercentage >= 25) {
       baseScore = 40;
       scoreBreakdown.push({ component: 'Poor: 25-49% images have descriptive alt text', points: 40 });
-      evidence.push(EvidenceHelper.warning(ImageAltTopic.ALT_QUALITY, '25-49% images have descriptive alt text', {
+      evidence.push(EvidenceHelper.warning('Alt Quality', '25-49% images have descriptive alt text', {
         score: 40,
         maxScore: 100,
         target: '≥50% for moderate score'
@@ -121,7 +109,7 @@ export class ImageAltRule extends BaseAEORule {
     } else {
       baseScore = 20;
       scoreBreakdown.push({ component: 'Very poor: <25% images have descriptive alt text', points: 20 });
-      evidence.push(EvidenceHelper.error(ImageAltTopic.ALT_QUALITY, '<25% images have descriptive alt text', {
+      evidence.push(EvidenceHelper.error('Alt Quality', '<25% images have descriptive alt text', {
         score: 20,
         maxScore: 100,
         target: '≥25% for poor score, ≥95% for excellent'
@@ -137,7 +125,7 @@ export class ImageAltRule extends BaseAEORule {
         return `${index + 1}. ${filename.length > 50 ? filename.substring(0, 47) + '...' : filename}`;
       }).join('\n');
       
-      evidence.push(EvidenceHelper.warning(ImageAltTopic.ALT_COVERAGE, `${imagesWithEmptyAlt} images have empty alt attributes`, { 
+      evidence.push(EvidenceHelper.warning('Alt Coverage', `${imagesWithEmptyAlt} images have empty alt attributes`, { 
         code: imageList,
         target: 'Add descriptive alt text for better accessibility'
       }));
@@ -149,7 +137,7 @@ export class ImageAltRule extends BaseAEORule {
     const genericAlts = html.match(genericAltPattern) || [];
     
     if (genericAlts.length > 0) {
-      evidence.push(EvidenceHelper.warning(ImageAltTopic.ALT_QUALITY, `Found ${genericAlts.length} generic alt texts`, {
+      evidence.push(EvidenceHelper.warning('Alt Quality', `Found ${genericAlts.length} generic alt texts`, {
         target: 'Replace with descriptive alternatives'
       }));
       recommendations.push('Replace generic alt texts with descriptive alternatives');
@@ -160,7 +148,7 @@ export class ImageAltRule extends BaseAEORule {
     const figcaptionCount = (html.match(/<figcaption[^>]*>/gi) || []).length;
     
     if (figureCount > 0 && figcaptionCount > 0) {
-      evidence.push(EvidenceHelper.success(ImageAltTopic.SEMANTIC_MARKUP, `Using semantic figure/figcaption elements`, {
+      evidence.push(EvidenceHelper.success('Semantic Markup', `Using semantic figure/figcaption elements`, {
         target: 'Enhances accessibility structure'
       }));
     }
@@ -169,8 +157,6 @@ export class ImageAltRule extends BaseAEORule {
     evidence.push(...EvidenceHelper.scoreCalculation(scoreBreakdown, score, 100));
     
     // Generate issues based on problems found
-    const issues: RuleIssue[] = [];
-    
     if (totalImages === 0) {
       // No issue if there are no images
     } else {
@@ -180,54 +166,55 @@ export class ImageAltRule extends BaseAEORule {
         const missingPercentage = Math.round((missingAlts / totalImages) * 100);
         
         if (missingPercentage > 50) {
-          issues.push(createImageAltIssue(
-            ImageAltIssueId.MISSING_ALT_CRITICAL,
-            undefined,
-            `${missingAlts} images (${missingPercentage}%) missing alt attributes`
+          issues.push(this.createIssue(
+            'critical',
+            `${missingAlts} images (${missingPercentage}%) missing alt attributes`,
+            'Add alt attributes to all images for accessibility compliance'
           ));
         } else if (missingPercentage > 20) {
-          issues.push(createImageAltIssue(
-            ImageAltIssueId.MISSING_ALT_HIGH,
-            undefined,
-            `${missingAlts} images (${missingPercentage}%) missing alt attributes`
+          issues.push(this.createIssue(
+            'high',
+            `${missingAlts} images (${missingPercentage}%) missing alt attributes`,
+            'Add alt attributes to improve accessibility'
           ));
         } else {
-          issues.push(createImageAltIssue(
-            ImageAltIssueId.MISSING_ALT_MEDIUM,
-            undefined,
-            `${missingAlts} images missing alt attributes`
+          issues.push(this.createIssue(
+            'medium',
+            `${missingAlts} images missing alt attributes`,
+            'Add alt attributes for complete accessibility coverage'
           ));
         }
       }
       
       if (imagesWithEmptyAlt > Math.ceil(totalImages * 0.3)) {
-        issues.push(createImageAltIssue(
-          ImageAltIssueId.EMPTY_ALT_EXCESSIVE,
-          emptyAltImages.slice(0, 5), // Show first 5 as affected elements
-          `${imagesWithEmptyAlt} images have empty alt attributes`
+        issues.push(this.createIssue(
+          'medium',
+          `${imagesWithEmptyAlt} images have empty alt attributes`,
+          'Replace empty alt attributes with descriptive text',
+          emptyAltImages.slice(0, 5) // Show first 5 as affected elements
         ));
       }
       
       if (genericAlts.length > 0) {
-        issues.push(createImageAltIssue(
-          ImageAltIssueId.GENERIC_ALT_TEXT,
-          undefined,
-          `${genericAlts.length} images use generic alt text`
+        issues.push(this.createIssue(
+          'medium',
+          `${genericAlts.length} images use generic alt text`,
+          'Replace generic alt text with specific descriptions'
         ));
       }
       
       // Check for very low descriptive alt percentage
       if (descriptivePercentage < 25) {
-        issues.push(createImageAltIssue(
-          ImageAltIssueId.LOW_DESCRIPTIVE_CRITICAL,
-          undefined,
-          `Only ${descriptivePercentage.toFixed(1)}% of images have descriptive alt text`
+        issues.push(this.createIssue(
+          'critical',
+          `Only ${descriptivePercentage.toFixed(1)}% of images have descriptive alt text`,
+          'Improve alt text quality to be more descriptive (≥4 words)'
         ));
       } else if (descriptivePercentage < 50) {
-        issues.push(createImageAltIssue(
-          ImageAltIssueId.LOW_DESCRIPTIVE_HIGH,
-          undefined,
-          `Only ${descriptivePercentage.toFixed(1)}% of images have descriptive alt text`
+        issues.push(this.createIssue(
+          'high',
+          `Only ${descriptivePercentage.toFixed(1)}% of images have descriptive alt text`,
+          'Increase descriptive alt text coverage to at least 50%'
         ));
       }
     }
@@ -235,3 +222,5 @@ export class ImageAltRule extends BaseAEORule {
     return this.createResult(score, evidence, issues, {}, recommendations);
   }
 }
+
+module.exports = ImageAltAttributesRule;

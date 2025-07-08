@@ -228,14 +228,46 @@ function addDiscoveredUrl(url, domain, sourceUrl) {
  * Get uncrawled URLs for a domain
  * @param {string} domain - The domain
  * @param {number} limit - Maximum number of URLs to return
+ * @param {boolean} prioritizeHomepage - Whether to prioritize homepage URLs
  * @returns {Array} Array of URLs to crawl
  */
-function getUncrawledUrls(domain, limit = 100) {
+function getUncrawledUrls(domain, limit = 100, prioritizeHomepage = false) {
   if (!db) throw new Error('Database not initialized');
   
+  if (prioritizeHomepage) {
+    // First, check for homepage URLs (root domain)
+    const homepageStmt = db.prepare(`
+      SELECT url FROM discovered_urls 
+      WHERE domain = ? AND crawled = 0 
+      AND (url LIKE 'https://' || ? || '/' OR url LIKE 'https://' || ? OR url LIKE 'http://' || ? || '/' OR url LIKE 'http://' || ?)
+      ORDER BY url
+      LIMIT ?
+    `);
+    
+    const homepageUrls = homepageStmt.all(domain, domain, domain, domain, domain, Math.min(1, limit)).map(row => row.url);
+    
+    if (homepageUrls.length > 0 && limit > 1) {
+      // Get remaining URLs randomly
+      const remainingStmt = db.prepare(`
+        SELECT url FROM discovered_urls 
+        WHERE domain = ? AND crawled = 0 
+        AND NOT (url LIKE 'https://' || ? || '/' OR url LIKE 'https://' || ? OR url LIKE 'http://' || ? || '/' OR url LIKE 'http://' || ?)
+        ORDER BY RANDOM()
+        LIMIT ?
+      `);
+      
+      const remainingUrls = remainingStmt.all(domain, domain, domain, domain, domain, limit - homepageUrls.length).map(row => row.url);
+      return [...homepageUrls, ...remainingUrls];
+    } else {
+      return homepageUrls;
+    }
+  }
+  
+  // Default behavior: random order
   const stmt = db.prepare(`
     SELECT url FROM discovered_urls 
     WHERE domain = ? AND crawled = 0
+    ORDER BY RANDOM()
     LIMIT ?
   `);
   

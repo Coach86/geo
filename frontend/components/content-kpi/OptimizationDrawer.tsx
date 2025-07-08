@@ -69,15 +69,127 @@ const DIMENSION_COLORS = {
   freshness: '#3B82F6',
   structure: '#10B981',
   brand: '#EF4444',
+  quality: '#6B7280',
+  technical: '#3B82F6',
+  content: '#10B981',
 };
 
 // Comprehensive guide mappings
 const OPTIMIZATION_GUIDES: Record<string, any> = {
+  // Quality Dimension Guide
+  'Improve Quality Score': {
+    dimension: 'quality',
+    icon: BarChart,
+    overview: 'The Quality dimension is measured by two main rules: Content Freshness (date signals, year mentions, freshness keywords) and In-Depth Guides (word count, structure, TOC, examples). Each rule can score up to 100 points.',
+    impact: 'Content Freshness: Up to 100 points across 6 components. In-Depth Guides: Up to 93 points across 10+ components.',
+    steps: [
+      {
+        title: 'Content Freshness (100 points)',
+        description: 'Maximize freshness signals across all components.',
+        actions: [
+          'URL dates: Add /2024/01/ patterns to time-sensitive content (+15)',
+          'Metadata: Include datePublished and dateModified (+20)',
+          'Content age: Update within 30 days for maximum points (+25)',
+          'Visible dates: Display "Published" and "Last updated" dates (+15)',
+          'Year mentions: Include 3+ references to current/recent years (+15)',
+          'Freshness keywords: Use "latest", "updated", "current" 3+ times (+10)'
+        ]
+      },
+      {
+        title: 'In-Depth Guides (93 points)',
+        description: 'Create comprehensive guides with all scoring elements.',
+        actions: [
+          'Word count: Write 3,000+ words for maximum score (+30)',
+          'Structure: Use 10+ headings with 3+ H2 sections (+15)',
+          'Media: Include 10+ images, videos, or code blocks (+10)',
+          'Table of contents: Add navigation menu (+10)',
+          'Guide positioning: Use "Ultimate Guide" or "Complete Guide" (+10)',
+          'Examples: Include practical examples and case studies (+5)',
+          'Links: Add internal and external references (+5)',
+          'Industry focus: Target specific industry or use case (+5)'
+        ]
+      },
+      {
+        title: 'Quality Optimization Strategy',
+        description: 'Prioritize high-impact improvements.',
+        actions: [
+          'Start with content freshness - easier to implement quickly',
+          'Focus on metadata and visible dates for immediate gains',
+          'Plan in-depth guides for pillar content topics',
+          'Aim for 93/100 on guides by including all elements',
+          'Monitor scores after updates to verify improvements'
+        ]
+      }
+    ],
+    code: `<!-- Example: Combining Freshness + In-Depth Guide -->
+<!-- URL with date for freshness (+15 points) -->
+https://example.com/blog/2024/01/ultimate-content-marketing-guide
+
+<article>
+  <header>
+    <h1>The Ultimate Guide to Content Marketing in 2024</h1>
+    <!-- Guide positioning (+10) + Year reference -->
+    <div class="meta">
+      <time datetime="2024-01-15">Published: January 15, 2024</time>
+      <time datetime="2024-01-20">Last Updated: January 20, 2024</time>
+      <!-- Visible dates (+15 points) -->
+      <span>5,500 words • 25 min read</span>
+      <!-- 3000+ words (+30 points) -->
+    </div>
+  </header>
+  
+  <!-- Table of Contents (+10 points) -->
+  <nav class="toc">
+    <h2>Table of Contents</h2>
+    <ol>
+      <li><a href="#intro">Introduction</a></li>
+      <li><a href="#strategy">1. Content Strategy</a></li>
+      <li><a href="#creation">2. Content Creation</a></li>
+      <li><a href="#distribution">3. Distribution</a></li>
+      <!-- 3+ H2 sections for structure points -->
+    </ol>
+  </nav>
+  
+  <section id="strategy">
+    <h2>1. Content Strategy</h2>
+    <p>In 2024, the latest content marketing trends show that updated 
+    strategies focusing on current AI tools are essential...</p>
+    <!-- Freshness keywords + year mentions -->
+    
+    <h3>1.1 Practical Example</h3>
+    <p>Let's look at how Company X recently improved...</p>
+    <!-- Examples (+5 points) -->
+    
+    <img src="strategy-framework.png" alt="Content strategy framework">
+    <video src="tutorial.mp4">Strategy tutorial</video>
+    <!-- Media elements (need 10+ for full points) -->
+  </section>
+</article>
+
+<!-- Metadata for freshness (+20 points) -->
+<meta property="article:published_time" content="2024-01-15T08:00:00Z">
+<meta property="article:modified_time" content="2024-01-20T10:30:00Z">`,
+    bestPractices: [
+      'Combine both rules for maximum quality score',
+      'Use all 6 freshness components for 100 points',
+      'Include all 10+ guide elements for 93 points',
+      'Update content monthly to maintain freshness',
+      'Track individual component scores for optimization'
+    ],
+    pitfalls: [
+      'Missing date metadata (-20 freshness points)',
+      'Content under 1,500 words (guide not scored)',
+      'No table of contents (-10 guide points)',
+      'Long content without depth (-10 penalty)',
+      'Ignoring freshness signals in evergreen content'
+    ]
+  },
+  
   // Overview Guide
   'Optimization Guide Overview': {
     dimension: 'overview',
     icon: BookOpen,
-    overview: 'Welcome to the Mint Page Intelligence Optimization Guide. This comprehensive resource helps you implement improvements across all content dimensions.',
+    overview: 'Welcome to the Mint Guide. This comprehensive resource helps you implement improvements across all content dimensions.',
     impact: 'Following these guides can improve overall scores by 30-50%',
     steps: [
       {
@@ -1012,92 +1124,103 @@ companies that implement SEO best practices see a 40% increase in organic traffi
   },
 
   'in_depth_guides': {
-    dimension: 'content',
+    dimension: 'quality',
     icon: BookMarked,
-    overview: 'Comprehensive guides demonstrate expertise and provide thorough coverage of complex topics, building authority with AI models.',
-    impact: 'Can improve authority and content depth scores by 35-50 points',
+    overview: 'In-depth guides are scored based on word count, structure, media elements, and semantic analysis including table of contents, guide positioning, examples, and topic coverage.',
+    impact: 'Can achieve up to 93/100 points: Word count (30), Structure (15), Media (10), TOC (10), Guide type (10), Examples (5), Links (5), Entity coverage (5), Industry focus (5)',
     steps: [
       {
-        title: 'Topic Research and Planning',
-        description: 'Identify comprehensive topics that need in-depth coverage.',
+        title: 'Meet Length Requirements',
+        description: 'Create comprehensive content with sufficient word count.',
         actions: [
-          'Research keyword clusters around main topics',
-          'Analyze competitor content for gaps',
-          'Survey audience for detailed questions',
-          'Plan logical content structure and flow'
+          'Write 3,000+ words for maximum points (30 points)',
+          'Ensure at least 2,000 words for good score (20 points)',
+          'Never go below 1,500 words (minimum threshold)',
+          'Focus on depth, not just length - avoid penalties for shallow content'
         ]
       },
       {
-        title: 'Create Comprehensive Content',
-        description: 'Develop thorough, well-researched content.',
+        title: 'Structure Your Guide',
+        description: 'Organize content with clear hierarchy and navigation.',
         actions: [
-          'Cover topics from beginner to advanced levels',
-          'Include practical examples and case studies',
-          'Add step-by-step instructions with visuals',
-          'Provide actionable takeaways and next steps'
+          'Include 10+ headings with at least 3 H2 sections (15 points)',
+          'Add a table of contents or navigation menu (10 points)',
+          'Use clear section divisions with H2 and H3 tags',
+          'Position as "Ultimate Guide" or "Complete Guide" in title/URL (10 points)'
         ]
       },
       {
-        title: 'Enhance with Supporting Elements',
-        description: 'Add depth with multimedia and interactive elements.',
+        title: 'Add Rich Content Elements',
+        description: 'Enhance guide with multimedia and practical elements.',
         actions: [
-          'Include relevant charts, graphs, and infographics',
-          'Add downloadable resources and templates',
-          'Create interactive elements like calculators',
-          'Include expert quotes and external references'
+          'Include 10+ media elements: images, videos, code blocks (10 points)',
+          'Add practical examples and case studies (5 points)',
+          'Link to related internal content (3-5 points)',
+          'Include external references to authoritative sources',
+          'Focus on specific industry or use case (5 points)'
         ]
       }
     ],
-    code: `<!-- Guide Structure with Schema -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "HowTo",
-  "name": "Complete Guide to SEO Optimization",
-  "description": "A comprehensive guide covering all aspects of SEO",
-  "totalTime": "PT3H",
-  "supply": ["Website", "SEO tools", "Analytics platform"],
-  "step": [
-    {
-      "@type": "HowToStep",
-      "name": "Keyword Research",
-      "text": "Identify target keywords using research tools"
-    }
-  ]
-}
-</script>
+    code: `<!-- URL should indicate guide content (+5 points) -->
+https://example.com/ultimate-guide-to-seo-optimization
 
-<!-- Article Structure -->
+<!-- Guide Structure Example (93/100 score) -->
 <article class="guide">
   <header>
-    <h1>The Complete Guide to SEO Optimization</h1>
-    <p class="guide-meta">Last updated: January 2024 • 15 min read</p>
+    <h1>The Ultimate Guide to SEO Optimization in 2024</h1>
+    <!-- "Ultimate Guide" positioning = +10 points -->
+    <p class="guide-meta">5,336 words • 25 min read • Industry: Digital Marketing</p>
   </header>
   
+  <!-- Table of Contents (+10 points) -->
   <nav class="table-of-contents">
     <h2>Table of Contents</h2>
     <ol>
-      <li><a href="#keyword-research">Keyword Research</a></li>
-      <li><a href="#on-page-optimization">On-Page Optimization</a></li>
+      <li><a href="#introduction">Introduction</a></li>
+      <li><a href="#keyword-research">1. Keyword Research</a></li>
+      <li><a href="#on-page-seo">2. On-Page SEO</a></li>
+      <!-- Need 3+ H2 sections for structure points -->
     </ol>
   </nav>
   
+  <!-- Main Content (3,000+ words = +30 points) -->
   <section id="keyword-research">
-    <h2>1. Keyword Research</h2>
-    <!-- Detailed content -->
+    <h2>1. Keyword Research</h2> <!-- H2 sections -->
+    
+    <h3>1.1 Understanding Search Intent</h3> <!-- H3 subsections -->
+    <p>Let's look at a practical example...</p>
+    <!-- Practical examples = +5 points -->
+    
+    <img src="keyword-research-tool.png" alt="Keyword research tool interface">
+    <video src="tutorial.mp4">Tutorial video</video>
+    <!-- 10+ media elements = +10 points -->
+    
+    <p>For more details, see our <a href="/seo-tools">SEO tools guide</a>.</p>
+    <!-- Internal links = +3 points -->
+    
+    <p>According to <a href="https://moz.com/research">Moz research</a>...</p>
+    <!-- External references = +2 points -->
+  </section>
+  
+  <!-- Industry Focus Example (+5 points) -->
+  <section id="ecommerce-seo">
+    <h2>4. SEO for E-commerce Sites</h2>
+    <p>Specific strategies for online retail...</p>
   </section>
 </article>`,
     bestPractices: [
-      'Create comprehensive table of contents',
-      'Include estimated reading time',
-      'Add downloadable summaries or checklists',
-      'Update content regularly to maintain accuracy'
+      'Aim for 93/100 score with 3000+ words and all elements',
+      'Position content as "Ultimate" or "Complete" guide',
+      'Include table of contents for easy navigation',
+      'Maintain 75%+ entity coverage for topics',
+      'Add industry-specific sections for focus points'
     ],
     pitfalls: [
-      'Making guides too superficial',
-      'Not providing actionable advice',
-      'Forgetting to update outdated information',
-      'Missing clear next steps for readers'
+      'Writing below 1,500 words (automatic low score)',
+      'Long content without depth (-10 penalty)',
+      'No table of contents (-10 points)',
+      'Low entity coverage under 25% (-10 penalty)',
+      'Missing practical examples (-5 points)'
     ]
   },
 
@@ -1262,138 +1385,172 @@ companies that implement SEO best practices see a 40% increase in organic traffi
   },
 
   'content_freshness': {
-    dimension: 'freshness',
+    dimension: 'quality',
     icon: Calendar,
-    overview: 'Fresh, regularly updated content signals relevance and helps maintain high search rankings and AI model preference.',
-    impact: 'Can improve freshness scores by 25-45 points',
+    overview: 'Content freshness is measured by date metadata, visible dates, recent year references, and freshness indicators. The rule checks URL dates, structured metadata, visible date mentions, current year references, and freshness keywords.',
+    impact: 'Can improve quality scores by up to 100 points (URL: 15, Metadata: 20, Age: 25, Visible Dates: 15, Years: 15, Indicators: 10)',
     steps: [
       {
-        title: 'Audit Content Age',
-        description: 'Identify content that needs updating.',
+        title: 'Add Date Metadata and URLs',
+        description: 'Implement structured date information that AI can understand.',
         actions: [
-          'Review publish dates on all content',
-          'Identify pages with declining traffic',
-          'Check for outdated information or statistics',
-          'Prioritize high-value pages for updates'
+          'Add date patterns to URLs for time-sensitive content (/2024/01/ or /2024-01-15)',
+          'Include datePublished and dateModified in meta tags or JSON-LD',
+          'Use ISO 8601 date format (2024-01-15T08:00:00Z)',
+          'Ensure dates are machine-readable and consistent'
         ]
       },
       {
-        title: 'Update Content Regularly',
-        description: 'Implement a content refresh strategy.',
+        title: 'Display Visible Dates',
+        description: 'Make dates visible in your content for users and AI.',
         actions: [
-          'Add new sections with current information',
-          'Update statistics and data points',
-          'Refresh examples and case studies',
-          'Remove or update broken links'
+          'Show "Published on: [date]" or "Last updated: [date]" prominently',
+          'Use consistent date formats (January 15, 2024 or 01/15/2024)',
+          'Place dates near the top of content',
+          'Ensure visible dates match metadata dates'
         ]
       },
       {
-        title: 'Signal Content Updates',
-        description: 'Make content freshness visible to users and search engines.',
+        title: 'Include Freshness Signals',
+        description: 'Add current year references and freshness indicators.',
         actions: [
-          'Update modified dates in schema markup',
-          'Add "Last updated" notices',
-          'Include changelog for major updates',
-          'Share updates on social media'
+          'Mention current year (2024) or recent years (2023, 2022) naturally in content',
+          'Use freshness keywords: "latest", "updated", "current", "recent", "new"',
+          'Include phrases like "as of January 2024" or "this year"',
+          'Update content to maintain at least 3 year references and 3 freshness indicators'
         ]
       }
     ],
-    code: `<!-- Content Freshness Schema -->
+    code: `<!-- URL with Date Pattern (worth 15 points) -->
+https://example.com/blog/2024/01/content-marketing-guide
+
+<!-- Date Metadata (worth 20 points for presence + up to 25 for recency) -->
+<meta property="article:published_time" content="2024-01-15T08:00:00Z">
+<meta property="article:modified_time" content="2024-01-20T10:30:00Z">
+
+<!-- JSON-LD Schema -->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "Article",
-  "datePublished": "2023-01-15",
-  "dateModified": "2024-01-20",
-  "headline": "SEO Best Practices Guide",
-  "description": "Updated guide covering latest SEO trends and techniques"
+  "datePublished": "2024-01-15T08:00:00Z",
+  "dateModified": "2024-01-20T10:30:00Z"
 }
 </script>
 
-<!-- Update Notice -->
-<div class="content-freshness">
-  <p class="update-notice">
-    <strong>Last Updated:</strong> January 20, 2024
-  </p>
-  <details class="changelog">
-    <summary>What's New</summary>
-    <ul>
-      <li>Added section on AI search optimization</li>
-      <li>Updated Google algorithm changes for 2024</li>
-      <li>New case studies and examples</li>
-    </ul>
-  </details>
-</div>`,
+<!-- Visible Dates (worth 15 points) -->
+<article>
+  <div class="article-meta">
+    <time datetime="2024-01-15">Published on: January 15, 2024</time>
+    <time datetime="2024-01-20">Last updated: January 20, 2024</time>
+  </div>
+  
+  <!-- Content with Year References (worth up to 15 points) -->
+  <p>In 2024, content marketing has evolved significantly. As of January 2024, 
+  the latest trends show... Based on 2023 data, we've seen...</p>
+  
+  <!-- Freshness Indicators (worth up to 10 points) -->
+  <p>This updated guide covers the latest strategies. Recently revised to include 
+  current best practices and new techniques just released this year.</p>
+</article>`,
     bestPractices: [
-      'Set up content review schedules',
-      'Monitor competitor content updates',
-      'Track performance after updates',
-      'Document changes made'
+      'Update content within 30 days for maximum age points (25)',
+      'Include both datePublished and dateModified metadata',
+      'Match visible dates with metadata dates exactly',
+      'Use at least 3 recent year mentions and 3 freshness keywords'
     ],
     pitfalls: [
-      'Only changing dates without real updates',
-      'Forgetting to update related content',
-      'Not promoting content updates',
-      'Removing valuable historical information'
+      'Missing structured date metadata (loses 20 points)',
+      'Content older than 1 year (loses all 25 age points)',
+      'No visible dates in content (loses 15 points)',
+      'Using outdated year references or no freshness indicators'
     ]
   },
 
   'main_heading': {
     dimension: 'structure',
     icon: Heading1,
-    overview: 'A clear, descriptive main heading (H1) helps users and AI models understand the primary topic of your content.',
-    impact: 'Can improve structure and SEO scores by 15-25 points',
+    overview: 'Main heading (H1) scoring is based on: having exactly one H1 (40 points), optimal length of 3-10 words (20 points), descriptiveness with 20+ characters (20 points), non-generic text (10 points), and relationship to title tag (10 points).',
+    impact: 'Can achieve up to 100 points across 5 components. Having no H1 results in 0 points, multiple H1s cap at 10 points.',
     steps: [
       {
-        title: 'Optimize H1 Tags',
-        description: 'Create compelling, keyword-rich main headings.',
+        title: 'Use Exactly One H1 Tag',
+        description: 'Having exactly one H1 is worth 40 base points.',
         actions: [
-          'Use only one H1 tag per page',
-          'Include primary keyword near the beginning',
-          'Keep under 60 characters for SEO',
-          'Make it match or closely relate to title tag'
+          'Ensure exactly one H1 tag exists on the page (40 points)',
+          'Remove any duplicate H1 tags (multiple H1s = max 10 points)',
+          'Never have zero H1 tags (0 points total)',
+          'Place H1 prominently at the top of main content'
         ]
       },
       {
-        title: 'Write for Users First',
-        description: 'Balance SEO with user experience.',
+        title: 'Optimize H1 Length and Content',
+        description: 'Length and quality add up to 50 additional points.',
         actions: [
-          'Make headings descriptive and compelling',
-          'Use natural language, not keyword stuffing',
-          'Ensure heading accurately describes content',
-          'Consider emotional impact and clarity'
+          'Keep H1 between 3-10 words for optimal length (20 points)',
+          'Make H1 descriptive with 20+ characters (20 points)',
+          'Avoid generic text like "Home", "Welcome", "Page 1" (10 points)',
+          'Use specific, meaningful text that describes the page'
+        ]
+      },
+      {
+        title: 'Relate H1 to Title Tag',
+        description: 'H1 should relate to but not exactly match the title.',
+        actions: [
+          'Include some common keywords between H1 and title (10 points)',
+          'Make H1 unique - not an exact copy of title tag',
+          'Ensure H1 and title are topically related',
+          'Avoid completely unrelated H1 and title text'
         ]
       }
     ],
-    code: `<!-- Good H1 Examples -->
-<h1>Complete Guide to Email Marketing in 2024</h1>
-<h1>How to Build a WordPress Website: Step-by-Step Tutorial</h1>
-<h1>Top 10 Project Management Tools for Remote Teams</h1>
+    code: `<!-- Perfect Score H1 Example (100/100) -->
+<head>
+  <title>Email Marketing Guide 2024 - Strategies, Tools & Best Practices</title>
+</head>
+<body>
+  <!-- Exactly one H1 (+40 points) -->
+  <!-- 7 words - optimal length (+20 points) -->
+  <!-- 42 characters - descriptive (+20 points) -->
+  <!-- Not generic text (+10 points) -->
+  <!-- Relates to title but unique (+10 points) -->
+  <h1>Complete Guide to Email Marketing Success</h1>
 
-<!-- H1 with Schema -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "Article",
-  "headline": "Complete Guide to Email Marketing in 2024",
-  "description": "Learn proven email marketing strategies..."
-}
-</script>
+<!-- Scoring Breakdown Examples -->
 
-<!-- Bad H1 Examples to Avoid -->
-<!-- <h1>Welcome</h1> (too vague) -->
-<!-- <h1>Best Email Marketing Tools Software Solutions</h1> (keyword stuffing) -->`,
+<!-- 60/100: One H1, optimal length, but generic -->
+<h1>Email Marketing Guide</h1>
+<!-- Only 3 words and 21 characters -->
+
+<!-- 50/100: One H1 but too short -->
+<h1>Email Guide</h1>
+<!-- Only 2 words (needs 3-10) -->
+
+<!-- 10/100: Multiple H1 tags (critical error) -->
+<h1>Email Marketing</h1>
+<h1>Our Services</h1>
+<h1>Contact Us</h1>
+
+<!-- 0/100: No H1 tag at all -->
+<h2>Email Marketing Guide</h2>
+
+<!-- Bad: Generic text loses 10 points -->
+<h1>Welcome</h1>
+<h1>Home</h1>
+<h1>Page 1</h1>`,
     bestPractices: [
-      'Make H1 unique on each page',
-      'Include primary target keyword',
-      'Keep it under 60 characters',
-      'Match user search intent'
+      'Always use exactly one H1 tag (40 points)',
+      'Keep H1 between 3-10 words (20 points)',
+      'Make H1 20+ characters for descriptiveness (20 points)',
+      'Avoid generic text patterns (10 points)',
+      'Relate to title without exact matching (10 points)'
     ],
     pitfalls: [
-      'Using multiple H1 tags',
-      'Making it too generic or vague',
-      'Keyword stuffing in headings',
-      'Not matching title tag'
+      'No H1 tag = automatic 0 score',
+      'Multiple H1 tags = maximum 10 points',
+      'H1 under 3 words loses length points',
+      'Generic text like "Welcome" loses 10 points',
+      'Exact title match loses relationship points'
     ]
   },
 
@@ -1744,52 +1901,54 @@ Sitemap: https://yoursite.com/sitemap.xml`,
   'clean_html_structure': {
     dimension: 'technical',
     icon: Code,
-    overview: 'Clean HTML structure ensures proper page rendering, accessibility, and efficient AI content processing.',
-    impact: 'Can improve technical scores by 25-40 points and reduce page load times',
+    overview: 'Clean HTML structure is scored based on semantic HTML usage, content ratio, HTML validation errors, div usage, and accessibility basics. Starts at 100 points and deducts for issues.',
+    impact: 'Can lose up to 100 points: Validation errors (-80), No semantic HTML (-40), Low content ratio (-30), Excessive divs (-20), Missing lang (-10)',
     steps: [
       {
+        title: 'Add Semantic HTML5 Tags',
+        description: 'Use semantic elements instead of generic divs (worth 40 points).',
+        actions: [
+          'Add <header> for page/section headers',
+          'Use <nav> for navigation menus',
+          'Wrap main content in <main>',
+          'Use <article> for self-contained content',
+          'Add <section> for content sections',
+          'Include <footer> for page/section footers',
+          'Use <aside> for sidebar content'
+        ]
+      },
+      {
         title: 'Fix HTML Validation Errors',
-        description: 'Identify and resolve critical HTML errors.',
+        description: 'Reduce validation errors for better scores.',
         actions: [
-          'Run HTML validator to identify all errors',
-          'Fix unclosed tags and attribute errors',
-          'Ensure proper nesting of elements',
-          'Remove deprecated HTML elements',
-          'Fix duplicate IDs and invalid attributes'
+          'Fix critical errors first (>15 errors = only 20/100 score)',
+          'Address high priority errors (>10 errors = max 40/100)',
+          'Fix moderate errors (>5 errors = max 60/100)',
+          'Resolve all errors for perfect validation (0 errors = full points)',
+          'Remove deprecated tags: font, center, marquee, blink, frame'
         ]
       },
       {
-        title: 'Optimize HTML Structure',
-        description: 'Improve overall HTML organization.',
+        title: 'Optimize Content Structure',
+        description: 'Ensure content is in HTML, not JavaScript-loaded.',
         actions: [
-          'Use semantic HTML5 elements (article, section, nav)',
-          'Implement proper heading hierarchy (H1-H6)',
-          'Add ARIA labels for accessibility',
-          'Minimize nested div structures',
-          'Use appropriate HTML elements for content type'
-        ]
-      },
-      {
-        title: 'Validate and Test',
-        description: 'Ensure HTML meets standards.',
-        actions: [
-          'Test with W3C HTML validator',
-          'Check accessibility with screen readers',
-          'Verify cross-browser compatibility',
-          'Test mobile responsiveness',
-          'Monitor Core Web Vitals impact'
+          'Keep content-to-HTML ratio above 30%',
+          'Reduce div usage to under 50% of all tags',
+          'Add lang attribute to <html> tag (worth 10 points)',
+          'Include <!DOCTYPE html> declaration',
+          'Minimize inline styles (under 50 instances)'
         ]
       }
     ],
-    code: `<!-- Example: Clean HTML Structure -->
-<!DOCTYPE html>
-<html lang="en">
+    code: `<!-- Perfect Score HTML Structure -->
+<!DOCTYPE html> <!-- Required for proper rendering -->
+<html lang="en"> <!-- lang attribute worth 10 points -->
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Page Title</title>
 </head>
 <body>
+  <!-- Semantic HTML5 tags (worth 40 points if missing) -->
   <header>
     <nav aria-label="Main navigation">
       <ul>
@@ -1799,44 +1958,45 @@ Sitemap: https://yoursite.com/sitemap.xml`,
     </nav>
   </header>
   
-  <main>
-    <article>
-      <header>
-        <h1>Article Title</h1>
-        <time datetime="2024-01-01">January 1, 2024</time>
-      </header>
+  <main> <!-- Critical semantic tag -->
+    <article> <!-- Use semantic tags, not divs -->
+      <h1>Main Title</h1>
       
-      <section>
-        <h2>Section Heading</h2>
-        <p>Well-structured content...</p>
+      <section> <!-- Organize with sections -->
+        <h2>Subheading</h2>
+        <p>Content should be in raw HTML, not loaded by JavaScript.
+        Keep content-to-HTML ratio above 30% to avoid penalties.</p>
       </section>
+      
+      <!-- Avoid excessive divs - keep under 50% of all tags -->
+      <aside>
+        <h3>Related Info</h3>
+        <p>Use semantic elements instead of <div> wrappers.</p>
+      </aside>
     </article>
   </main>
   
   <footer>
     <p>&copy; 2024 Company Name</p>
   </footer>
+  
+  <!-- Avoid deprecated tags: <font>, <center>, <marquee>, <blink> -->
+  <!-- Minimize inline styles - keep under 50 instances -->
 </body>
 </html>`,
     bestPractices: [
-      'Always use DOCTYPE declaration',
-      'Include lang attribute on html element',
-      'Use semantic HTML5 elements',
-      'Maintain proper heading hierarchy',
-      'Validate HTML regularly',
-      'Include alt text for images',
-      'Use ARIA labels appropriately',
-      'Minimize inline styles and scripts'
+      'Start with 100 points and avoid deductions',
+      'Use all 7 semantic HTML5 tags for structure',
+      'Keep HTML validation errors at 0 for full points',
+      'Maintain 30%+ content-to-HTML ratio',
+      'Keep div usage under 50% of total tags'
     ],
     pitfalls: [
-      'Using divs instead of semantic elements',
-      'Skipping heading levels (H1 to H3)',
-      'Missing alt attributes on images',
-      'Duplicate IDs on same page',
-      'Unclosed or improperly nested tags',
-      'Missing meta charset declaration',
-      'Using deprecated HTML elements',
-      'Not validating HTML after changes'
+      'No semantic HTML tags (-40 points immediately)',
+      'More than 15 validation errors (-80 points)',
+      'JavaScript-loaded content with low HTML ratio (-30)',
+      'Missing lang attribute (-10 points)',
+      'Using deprecated tags like <font> or <center>'
     ]
   },
 
@@ -1988,6 +2148,18 @@ function findGuideMatch(guideName: string): any {
     return OPTIMIZATION_GUIDES[guideName];
   }
 
+  // Check for dimension-specific "Improve X Score" guides
+  if (guideName.includes('Improve') && guideName.includes('Score')) {
+    const dimensionMatch = guideName.match(/Improve (\w+) Score/);
+    if (dimensionMatch) {
+      const dimension = dimensionMatch[1];
+      const guideKey = `Improve ${dimension} Score`;
+      if (OPTIMIZATION_GUIDES[guideKey]) {
+        return OPTIMIZATION_GUIDES[guideKey];
+      }
+    }
+  }
+
   // Then try to find a guide that contains keywords from the issue
   const lowerGuideName = guideName.toLowerCase();
   
@@ -2070,6 +2242,15 @@ function findGuideMatch(guideName: string): any {
     'comparison': 'comparison_content',
     'subheading': 'subheadings',
     'freshness': 'content_freshness',
+    'update content regularly': 'content_freshness',
+    'maintain freshness': 'content_freshness',
+    'publication and modification dates': 'content_freshness',
+    'add publication': 'content_freshness',
+    'comprehensive in-depth guides': 'in_depth_guides',
+    'in-depth guides': 'in_depth_guides',
+    'authoritative content': 'in_depth_guides',
+    'detailed, authoritative content': 'in_depth_guides',
+    'covers topics thoroughly': 'in_depth_guides',
     'h1 tag': 'main_heading',
     'case study': 'case_studies',
     'sources': 'citing_sources',
@@ -2106,7 +2287,7 @@ export function OptimizationDrawer({
       <Sheet open={isOpen} onOpenChange={onClose}>
         <SheetContent className="w-full max-w-2xl overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>Optimization Guide</SheetTitle>
+            <SheetTitle>Mint Guide</SheetTitle>
             <SheetDescription>
               Guide not found for: {guideName}
             </SheetDescription>

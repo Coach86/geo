@@ -499,7 +499,8 @@ export class VisibilityPipelineService extends BasePipelineService {
         this.logger.log(`[VIS-DEDUP] Processing brand: name="${brand.name}", type="${brand.type}", id="${brand.id}" (${brand.id === null ? 'null' : brand.id === undefined ? 'undefined' : `string: "${brand.id}"`})`);
         
         // Use ID as primary key if available (and not null), otherwise fall back to normalized name
-        const key = (brand.id && brand.id !== null) ? brand.id : brand.name.toLowerCase().trim();
+        // Convert ID to lowercase to prevent duplicates from capitalization differences
+        const key = (brand.id && brand.id !== null) ? brand.id.toLowerCase() : brand.name.toLowerCase().trim();
         
         // [VIS-DEDUP] Log the key being used
         this.logger.log(`[VIS-DEDUP] Using key: "${key}" (based on ${(brand.id && brand.id !== null) ? 'ID' : 'normalized name'})`);

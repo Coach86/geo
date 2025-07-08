@@ -40,9 +40,9 @@ interface ContentKPIDashboardProps {
 
 const COLORS = {
   technical: '#3B82F6', // Vibrant Blue
-  structure: '#10B981', // Vibrant Emerald
+  structure: '#F59E0B', // Vibrant Amber (Orange)
   authority: '#8B5CF6', // Vibrant purple
-  quality: '#F59E0B', // Vibrant Amber
+  quality: '#6B7280', // Gray
 };
 
 
@@ -290,9 +290,6 @@ export function ContentKPIDashboard({
                       }
                     </span>
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    This process analyzes your website's structure independently from regular batch runs
-                  </div>
                 </div>
               </div>
             </CardContent>
@@ -306,23 +303,31 @@ export function ContentKPIDashboard({
   const radarData = [
     { 
       dimension: 'Technical',
+      abbreviation: 'T',
       value: report.summary.scoreBreakdown?.technical || 0,
-      fullMark: 100
+      fullMark: 100,
+      color: COLORS.technical
     },
     { 
       dimension: 'Structure',
+      abbreviation: 'S',
       value: report.summary.scoreBreakdown?.structure || 0,
-      fullMark: 100
+      fullMark: 100,
+      color: COLORS.structure
     },
     { 
       dimension: 'Authority',
+      abbreviation: 'A',
       value: report.summary.scoreBreakdown?.authority || 0,
-      fullMark: 100
+      fullMark: 100,
+      color: COLORS.authority
     },
     { 
       dimension: 'Quality',
+      abbreviation: 'Q',
       value: report.summary.scoreBreakdown?.quality || 0,
-      fullMark: 100
+      fullMark: 100,
+      color: COLORS.quality
     },
   ];
 
@@ -391,9 +396,6 @@ export function ContentKPIDashboard({
                       : `Pages crawled: ${crawlProgress.crawledPages} / ${crawlProgress.totalPages}`
                     }
                   </span>
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  This process analyzes your website's structure independently from regular batch runs
                 </div>
               </div>
             </div>
@@ -591,10 +593,10 @@ export function ContentKPIDashboard({
                             ];
                           } else if (dim.name === 'Quality') {
                             recommendation.actions = [
-                              'Track brand citations across AI platforms',
-                              'Monitor brand sentiment in AI responses',
-                              'Measure AI visibility metrics regularly',
-                              'Optimize content based on AI performance data'
+                              'Update content regularly to maintain freshness',
+                              'Create comprehensive in-depth guides on key topics',
+                              'Add publication and modification dates to all content',
+                              'Develop detailed, authoritative content that covers topics thoroughly'
                             ];
                           }
 
@@ -696,8 +698,8 @@ export function ContentKPIDashboard({
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <RadarChart data={radarData}>
+                  <ResponsiveContainer width="100%" height={320}>
+                    <RadarChart data={radarData} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                       <PolarGrid 
                         gridType="polygon"
                         radialLines={true}
@@ -705,14 +707,37 @@ export function ContentKPIDashboard({
                         strokeWidth={1}
                       />
                       <PolarAngleAxis 
-                        dataKey="dimension" 
-                        tick={{ fill: '#374151', fontSize: 14, fontWeight: 600 }}
+                        dataKey="abbreviation" 
+                        tick={(props) => {
+                          const { x, y, payload, index } = props;
+                          const item = radarData.find(d => d.abbreviation === payload.value);
+                          // Add extra offset for top (T) and bottom (A) labels
+                          let yOffset = y;
+                          if (index === 0) { // Technical (top)
+                            yOffset = y - 10;
+                          } else if (index === 2) { // Authority (bottom)
+                            yOffset = y + 10;
+                          }
+                          return (
+                            <text 
+                              x={x} 
+                              y={yOffset} 
+                              fill={item?.color || '#374151'}
+                              fontSize={20}
+                              fontWeight={700}
+                              textAnchor="middle"
+                              dominantBaseline="middle"
+                            >
+                              {payload.value}
+                            </text>
+                          );
+                        }}
                       />
                       <PolarRadiusAxis 
                         angle={90} 
                         domain={[0, 100]}
                         tickCount={5}
-                        tick={{ fill: '#6b7280', fontSize: 12 }}
+                        tick={{ fill: '#6b7280', fontSize: 10 }}
                         axisLine={false}
                       />
                       {/* Single Radar with gradient fill and colored dots */}
@@ -741,7 +766,11 @@ export function ContentKPIDashboard({
                           boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                           padding: '12px 16px'
                         }}
-                        formatter={(value: number) => [`${value}%`, '']}
+                        formatter={(value: number, name: string, props: any) => {
+                          // Find the full dimension name from the payload
+                          const fullName = props.payload.dimension || name;
+                          return [`${value}%`, fullName];
+                        }}
                         labelStyle={{ color: '#374151', fontWeight: 600, marginBottom: '4px' }}
                         itemStyle={{ color: '#6b7280' }}
                       />
@@ -749,28 +778,22 @@ export function ContentKPIDashboard({
                   </ResponsiveContainer>
                   {/* Legend */}
                   <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mt-4">
-                    {radarData.map((item) => {
-                      const color = DIMENSION_COLORS[item.dimension as keyof typeof DIMENSION_COLORS];
-                      return (
-                        <div key={item.dimension} className="flex items-center gap-2">
-                          <div className="relative">
-                            <div 
-                              className="w-4 h-4 rounded-full border-2 border-white shadow-sm" 
-                              style={{ backgroundColor: color }}
-                            />
-                            <div 
-                              className="absolute top-1 left-1 w-2 h-2 rounded-full bg-white"
-                            />
-                          </div>
-                          <span className="text-sm font-semibold text-gray-700">
-                            {item.value}%
-                          </span>
-                          <span className="text-sm text-gray-500">
-                            {item.dimension}
-                          </span>
-                        </div>
-                      );
-                    })}
+                    {radarData.map((item) => (
+                      <div key={item.dimension} className="flex items-center gap-2">
+                        <span 
+                          className="text-sm font-bold"
+                          style={{ color: item.color }}
+                        >
+                          {item.value}%
+                        </span>
+                        <span 
+                          className="text-sm font-medium"
+                          style={{ color: item.color }}
+                        >
+                          {item.dimension}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>

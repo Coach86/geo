@@ -1,7 +1,7 @@
 // Export all technical rules
 module.exports = [
-  require('./status-code.rule'),
-  require('./https-security.rule'),
-  require('./mobile-optimization.rule'),
-  require('./url-structure.rule')
+  require('./clean-html-structure.rule'),
+  require('./url-structure.rule'),
+  require('./structured-data.rule'),
+  require('./image-alt-attributes.rule')
 ];

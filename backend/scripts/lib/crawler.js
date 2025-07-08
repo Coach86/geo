@@ -310,32 +310,69 @@ async function crawlPages(startUrl, options = {}) {
   const normalizedStartUrl = normalizeUrl(startUrl);
   const domain = getDomain(startUrl);
   
+  // Always ensure we have the homepage URL
+  const homepageUrl = `https://${domain}`;
+  const normalizedHomepage = normalizeUrl(homepageUrl);
+  
   console.log(`Starting crawl from: ${normalizedStartUrl}`);
   console.log(`Domain: ${domain}`);
+  console.log(`Homepage: ${normalizedHomepage}`);
   console.log(`Max pages: ${maxPages}`);
   
   // Check if we already have crawled pages for this domain
   const existingPages = getCrawledPagesForDomain(domain);
   if (existingPages.length >= maxPages) {
     console.log(`Already have ${existingPages.length} cached pages for ${domain}`);
-    return existingPages.slice(0, maxPages);
+    
+    // Ensure homepage is included in existing pages
+    const hasHomepage = existingPages.some(page => 
+      normalizeUrl(page.url) === normalizedHomepage || 
+      normalizeUrl(page.url) === normalizeUrl(`http://${domain}`)
+    );
+    
+    if (hasHomepage) {
+      return existingPages.slice(0, maxPages);
+    } else {
+      console.log('Homepage not found in existing pages, will crawl it first');
+    }
   }
   
-  // Initialize with start URL
+  // Initialize URLs to discover
   addDiscoveredUrl(normalizedStartUrl, domain, null);
+  addDiscoveredUrl(normalizedHomepage, domain, null); // Always add homepage
   
   const crawledPages = [...existingPages];
   const crawledUrls = new Set(crawledPages.map(p => p.url));
   const limiter = pLimit(parallel);
   
   // Crawl loop
+  let isFirstBatch = true;
   while (crawledPages.length < maxPages) {
-    // Get batch of uncrawled URLs
-    const urlsToCrawl = getUncrawledUrls(domain, Math.min(parallel * 2, maxPages - crawledPages.length));
+    // Get batch of uncrawled URLs 
+    // For first batch, prioritize homepage; then use randomized selection
+    const urlsToCrawl = getUncrawledUrls(
+      domain, 
+      Math.min(parallel * 2, maxPages - crawledPages.length),
+      isFirstBatch // Prioritize homepage on first batch
+    );
     
     if (urlsToCrawl.length === 0) {
       console.log('No more URLs to crawl');
       break;
+    }
+    
+    if (isFirstBatch) {
+      console.log(`  📋 Fetched ${urlsToCrawl.length} URLs (homepage prioritized)`);
+    } else {
+      console.log(`  📋 Fetched ${urlsToCrawl.length} randomized URLs from queue`);
+    }
+    
+    isFirstBatch = false;
+    
+    if (urlsToCrawl.length > 0) {
+      const isHomepage = urlsToCrawl[0].match(new RegExp(`^https?://${domain.replace('.', '\\.')}/?$`));
+      const emoji = isHomepage ? '🏠' : '🎲';
+      console.log(`  ${emoji} Next URL: ${urlsToCrawl[0].substring(0, 80)}${urlsToCrawl[0].length > 80 ? '...' : ''}`);
     }
     
     // Crawl batch in parallel

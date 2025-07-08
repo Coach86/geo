@@ -7,7 +7,7 @@ class SubheadingsRule extends BaseRule {
       'Subheadings Structure',
       'content',
       {
-        impactScore: 2, // Medium-high impact
+        impactScore: 3, // High impact
         pageTypes: [], // Applies to all page types
         isDomainLevel: false
       }
@@ -23,97 +23,160 @@ class SubheadingsRule extends BaseRule {
     const $ = content.$;
 
     try {
-      const h2Count = $('h2').length;
-      const h3Count = $('h3').length;
-      const h4Count = $('h4').length;
-      const totalHeadings = h2Count + h3Count + h4Count;
+      // Extract all heading levels using regex (matching TypeScript implementation)
+      const html = content.html || '';
+      const h2Matches = html.match(/<h2[^>]*>[\s\S]*?<\/h2>/gi) || [];
+      const h3Matches = html.match(/<h3[^>]*>[\s\S]*?<\/h3>/gi) || [];
+      const h4Matches = html.match(/<h4[^>]*>[\s\S]*?<\/h4>/gi) || [];
+      const h5Matches = html.match(/<h5[^>]*>[\s\S]*?<\/h5>/gi) || [];
+      const h6Matches = html.match(/<h6[^>]*>[\s\S]*?<\/h6>/gi) || [];
+      
+      const h2Count = h2Matches.length;
+      const h3Count = h3Matches.length;
+      const h4Count = h4Matches.length;
+      const h5Count = h5Matches.length;
+      const h6Count = h6Matches.length;
+      const totalSubheadings = h2Count + h3Count + h4Count + h5Count + h6Count;
 
-      // Base score for having subheadings
-      if (h2Count > 0) {
-        score = 40;
-        scoreBreakdown.push({ component: 'Has H2 headings', points: 40 });
-        evidence.push(EvidenceHelper.success('Structure', `Found ${h2Count} H2 headings`));
-      } else {
-        scoreBreakdown.push({ component: 'No H2 headings', points: 0 });
-        evidence.push(EvidenceHelper.error('Structure', 'No H2 headings found'));
+      // Calculate word count from clean content (matching TypeScript implementation)
+      const cleanText = content.cleanContent || $('body').text();
+      const wordCount = cleanText.split(/\s+/).filter(word => word.length > 0).length;
+
+      // If no content or very short, not applicable
+      if (wordCount < 50) {
+        evidence.push(EvidenceHelper.warning('Content Length', 'Content too short to evaluate subheadings'));
+        return this.createResult(0, evidence, issues, {}, recommendations);
+      }
+
+      // Check if there are any subheadings
+      if (totalSubheadings === 0) {
+        evidence.push(EvidenceHelper.error('No Subheadings', 'No subheadings found (H2-H6)', { 
+          target: 'Add descriptive subheadings to break up content', 
+          score: 20 
+        }));
+        score = 20;
+        scoreBreakdown.push({ component: 'No subheadings', points: 20 });
         issues.push(this.createIssue(
           'high',
-          'Missing H2 subheadings',
-          'Add H2 headings to create clear content structure'
+          'No subheadings found',
+          'Add H2-H6 headings to create clear content structure'
         ));
-      }
+      } else {
+        // Calculate subheading density
+        const wordsPerSubheading = Math.round(wordCount / totalSubheadings);
+        
+        // Build heading counts summary
+        const headingCounts = [];
+        if (h2Count > 0) headingCounts.push(`${h2Count} H2`);
+        if (h3Count > 0) headingCounts.push(`${h3Count} H3`);
+        if (h4Count > 0) headingCounts.push(`${h4Count} H4`);
+        if (h5Count > 0) headingCounts.push(`${h5Count} H5`);
+        if (h6Count > 0) headingCounts.push(`${h6Count} H6`);
+        
+        evidence.push(EvidenceHelper.info('Heading Analysis', `Found ${totalSubheadings} subheadings (${headingCounts.join(', ')})`));
 
-      // Check content length vs heading ratio
-      const bodyText = $('body').text();
-      const wordCount = bodyText.split(/\s+/).filter(w => w.length > 0).length;
-      const headingsPerWords = totalHeadings / (wordCount / 300); // Expect heading every ~300 words
-
-      if (wordCount > 500) {
-        if (headingsPerWords >= 0.8 && headingsPerWords <= 2) {
-          score += 30;
-          scoreBreakdown.push({ component: 'Good heading density', points: 30 });
-          evidence.push(EvidenceHelper.success('Density', 'Good ratio of headings to content'));
-        } else if (headingsPerWords < 0.5) {
-          score += 10;
-          scoreBreakdown.push({ component: 'Too few headings', points: 10 });
-          evidence.push(EvidenceHelper.warning('Density', 'Content could use more headings'));
-          recommendations.push('Add more subheadings to break up long content');
-        } else if (headingsPerWords > 3) {
-          score += 10;
-          scoreBreakdown.push({ component: 'Too many headings', points: 10 });
-          evidence.push(EvidenceHelper.warning('Density', 'Too many headings for content length'));
-          recommendations.push('Consolidate some sections to improve flow');
+        // Score based on density (following TypeScript version logic)
+        if (wordsPerSubheading <= 100) {
+          evidence.push(EvidenceHelper.success('Density', `Excellent density: 1 subheading every ${wordsPerSubheading} words`, { 
+            target: '≤100 words per subheading' 
+          }));
+          score = 90;
+          scoreBreakdown.push({ component: 'Excellent density (≤100 words)', points: 90 });
+        } else if (wordsPerSubheading <= 199) {
+          evidence.push(EvidenceHelper.success('Density', `Good density: 1 subheading every ${wordsPerSubheading} words`, { 
+            target: '≤100 words per subheading for +10 points' 
+          }));
+          score = 80;
+          scoreBreakdown.push({ component: 'Good density (100-199 words)', points: 80 });
+        } else if (wordsPerSubheading <= 300) {
+          evidence.push(EvidenceHelper.warning('Density', `Moderate density: 1 subheading every ${wordsPerSubheading} words`, { 
+            target: '≤100 words per subheading for +30 points' 
+          }));
+          score = 60;
+          scoreBreakdown.push({ component: 'Moderate density (200-300 words)', points: 60 });
         } else {
-          score += 20;
-          scoreBreakdown.push({ component: 'Acceptable heading density', points: 20 });
+          evidence.push(EvidenceHelper.error('Density', `Poor density: 1 subheading every ${wordsPerSubheading} words`, { 
+            target: '≤100 words per subheading for +50 points' 
+          }));
+          score = 40;
+          scoreBreakdown.push({ component: 'Poor density (>300 words)', points: 40 });
+          recommendations.push('Add more subheadings to break up long content sections');
         }
-      }
 
-      // Check hierarchy
-      if (h2Count > 0 && h3Count > 0) {
-        score += 20;
-        scoreBreakdown.push({ component: 'Good hierarchy', points: 20 });
-        evidence.push(EvidenceHelper.success('Hierarchy', 'Uses multiple heading levels (H2, H3)'));
-        
-        // Check if H3s appear without H2s (broken hierarchy)
-        let brokenHierarchy = false;
-        $('h3').each((i, el) => {
-          const $h3 = $(el);
-          const prevH2 = $h3.prevAll('h2').first();
-          if (prevH2.length === 0) {
-            brokenHierarchy = true;
+        // Check for question-based H2s (matching TypeScript implementation)
+        const h2Texts = h2Matches.map(match => {
+          // Extract text content from H2, handling nested HTML tags and multiline content
+          const textMatch = match.match(/<h2[^>]*>([\s\S]*?)<\/h2>/i);
+          if (textMatch) {
+            // Remove HTML tags and get clean text
+            const htmlContent = textMatch[1];
+            const cleanText = htmlContent.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+            return cleanText;
           }
-        });
-        
-        if (brokenHierarchy) {
-          score -= 10;
-          scoreBreakdown.push({ component: 'Broken hierarchy', points: -10 });
-          evidence.push(EvidenceHelper.warning('Hierarchy', 'Some H3s appear before any H2'));
+          return '';
+        }).filter(text => text.length > 0);
+
+        const questionH2s = h2Texts.filter(text => text.includes('?'));
+        const questionPercentage = h2Texts.length > 0 ? (questionH2s.length / h2Texts.length) * 100 : 0;
+
+        if (questionPercentage >= 30) {
+          evidence.push(EvidenceHelper.success('Question-based H2s', `${Math.round(questionPercentage)}% of H2s are question-based`, { 
+            target: '≥30% question-based H2s' 
+          }));
+          score += 10; // Add question-based bonus
+          scoreBreakdown.push({ component: 'Question-based H2s bonus', points: 10 });
+        } else if (questionPercentage > 0) {
+          evidence.push(EvidenceHelper.warning('Question-based H2s', `${Math.round(questionPercentage)}% of H2s are question-based`, { 
+            target: '≥30% for +10 points' 
+          }));
+          const partialBonus = Math.round(questionPercentage * 10 / 30);
+          score += partialBonus;
+          scoreBreakdown.push({ component: 'Partial question-based H2s bonus', points: partialBonus });
+        } else {
+          evidence.push(EvidenceHelper.warning('Question-based H2s', 'No question-based H2s found', { 
+            target: '≥30% question-based H2s for +10 points' 
+          }));
+        }
+
+        // Check for generic headings
+        const genericHeadings = ['introduction', 'overview', 'more info', 'details', 'conclusion', 'summary'];
+        const genericCount = h2Texts.filter(text => 
+          genericHeadings.some(generic => text.toLowerCase() === generic.toLowerCase())
+        ).length;
+
+        if (genericCount > 0) {
+          const penalty = genericCount * 5;
+          evidence.push(EvidenceHelper.warning('Generic Headings', `Found ${genericCount} generic subheading(s)`, { 
+            target: 'Use descriptive, keyword-rich subheadings' 
+          }));
+          score = Math.max(20, score - penalty);
+          scoreBreakdown.push({ component: 'Generic headings penalty', points: -penalty });
+          recommendations.push('Replace generic headings with more descriptive, specific titles');
+        }
+
+
+        // Check heading hierarchy (simplified for regex-based approach)
+        const hasProperHierarchy = this.checkHeadingHierarchy(html);
+        if (!hasProperHierarchy) {
+          evidence.push(EvidenceHelper.warning('Hierarchy', 'Improper heading hierarchy detected', { 
+            target: 'Ensure H3s follow H2s, H4s follow H3s, etc.' 
+          }));
+          score = Math.max(20, score - 10);
+          scoreBreakdown.push({ component: 'Improper hierarchy penalty', points: -10 });
           issues.push(this.createIssue(
             'medium',
             'Heading hierarchy is broken',
-            'Ensure H3s only appear after H2s'
+            'Ensure proper heading order (H2 before H3, etc.)'
           ));
         }
-      } else if (h3Count > 0 && h2Count === 0) {
-        evidence.push(EvidenceHelper.error('Hierarchy', 'H3 headings without H2s'));
-        issues.push(this.createIssue(
-          'high',
-          'Skipped heading levels',
-          'Use H2 before H3 for proper hierarchy'
-        ));
       }
 
-      // Check heading text quality
-      const headingQuality = this.analyzeHeadingQuality($);
-      score += headingQuality.score;
-      scoreBreakdown.push(...headingQuality.breakdown);
-      evidence.push(...headingQuality.evidence);
-      issues.push(...headingQuality.issues);
+      // Cap score at 100
+      score = Math.min(100, Math.max(20, score));
 
     } catch (error) {
       evidence.push(EvidenceHelper.error('Subheadings', `Error analyzing subheadings: ${error.message}`));
-      score = 0;
+      score = 20; // Default to base score on error
     }
 
     evidence.push(...EvidenceHelper.scoreCalculation(scoreBreakdown, score, 100));
@@ -121,48 +184,23 @@ class SubheadingsRule extends BaseRule {
     return this.createResult(score, evidence, issues, {}, recommendations);
   }
 
-  analyzeHeadingQuality($) {
-    const quality = {
-      score: 0,
-      breakdown: [],
-      evidence: [],
-      issues: []
-    };
-
-    const allHeadings = [];
-    $('h2, h3, h4').each((i, el) => {
-      allHeadings.push($(el).text().trim());
-    });
-
-    if (allHeadings.length === 0) return quality;
-
-    // Check for meaningful headings
-    const genericHeadings = allHeadings.filter(h => 
-      /^(introduction|overview|conclusion|summary|more|other|misc)$/i.test(h) ||
-      h.length < 3
-    );
-
-    if (genericHeadings.length === 0) {
-      quality.score += 10;
-      quality.breakdown.push({ component: 'Descriptive headings', points: 10 });
-      quality.evidence.push(EvidenceHelper.success('Quality', 'All headings are descriptive'));
-    } else {
-      const genericRatio = genericHeadings.length / allHeadings.length;
-      if (genericRatio > 0.3) {
-        quality.breakdown.push({ component: 'Generic headings', points: 0 });
-        quality.evidence.push(EvidenceHelper.warning('Quality', `${Math.round(genericRatio * 100)}% of headings are generic`));
-        quality.issues.push({
-          severity: 'medium',
-          description: 'Many headings are too generic',
-          recommendation: 'Use more descriptive, specific headings'
-        });
-      } else {
-        quality.score += 5;
-        quality.breakdown.push({ component: 'Some generic headings', points: 5 });
-      }
+  // Check heading hierarchy (simplified version)
+  checkHeadingHierarchy(html) {
+    // Simple check: ensure H3s don't appear before H2s
+    const h2Index = html.search(/<h2[^>]*>/i);
+    const h3Index = html.search(/<h3[^>]*>/i);
+    
+    // If H3 exists but appears before first H2, hierarchy is broken
+    if (h3Index !== -1 && h2Index !== -1 && h3Index < h2Index) {
+      return false;
     }
-
-    return quality;
+    
+    // If H3 exists but no H2 exists, hierarchy is broken
+    if (h3Index !== -1 && h2Index === -1) {
+      return false;
+    }
+    
+    return true;
   }
 }
 

@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as cheerio from 'cheerio';
-import { 
-  PageCategory, 
-  PageCategoryType, 
+import {
+  PageCategory,
+  PageCategoryType,
   AnalysisLevel
 } from '../interfaces/page-category.interface';
 import { PageMetadata } from '../schemas/crawled-page.schema';
@@ -56,7 +56,7 @@ export class PageCategorizerService {
    */
   private quickCategorizeByUrl(url: string): PageCategory | null {
     const urlPath = new URL(url).pathname.toLowerCase();
-    
+
     // Very obvious patterns
     if (urlPath === '/' || urlPath === '') {
       return {
@@ -85,6 +85,15 @@ export class PageCategorizerService {
       };
     }
 
+    if (urlPath.includes('/blog/')) {
+      return {
+        type: PageCategoryType.BLOG_POST_ARTICLE,
+        confidence: 0.95,
+        analysisLevel: AnalysisLevel.FULL,
+        reason: 'Blog post/article URL pattern'
+      };
+    }
+
     return null;
   }
 
@@ -94,9 +103,9 @@ export class PageCategorizerService {
   private async categorizewithLLM(url: string, html: string, metadata?: PageMetadata): Promise<PageCategory | null> {
     const $ = cheerio.load(html);
     const cleanContent = this.extractCleanContent($);
-    
+
     const prompt = this.buildCategorizationPrompt(url, cleanContent, metadata);
-    
+
     try {
       const response = await this.llmService.call(
         LlmProvider.OpenAILangChain,
@@ -125,7 +134,7 @@ export class PageCategorizerService {
    */
   private buildCategorizationPrompt(url: string, content: string, metadata?: PageMetadata): string {
     const truncatedContent = content.substring(0, 2000); // Limit content length
-    
+
     return `Categorize this webpage into one of the following categories:
 
 TIER 1 - CORE BUSINESS & HIGH-IMPACT PAGES:
@@ -182,7 +191,7 @@ Return ONLY a JSON object with:
       }
 
       const parsed = JSON.parse(jsonMatch[0]);
-      
+
       if (!parsed.category || !Object.values(PageCategoryType).includes(parsed.category)) {
         throw new Error(`Invalid category: ${parsed.category}`);
       }
@@ -208,18 +217,18 @@ Return ONLY a JSON object with:
   private extractCleanContent($: cheerio.CheerioAPI): string {
     // Remove scripts, styles, and other non-content elements
     $('script, style, noscript, iframe').remove();
-    
+
     // Get key content indicators
     const parts: string[] = [];
-    
+
     // Title
     const title = $('title').text().trim();
     if (title) parts.push(`Title: ${title}`);
-    
+
     // Main headings
     const h1 = $('h1').first().text().trim();
     if (h1) parts.push(`H1: ${h1}`);
-    
+
     // Navigation items (helps identify page type)
     const navItems = $('nav a, .nav a, .navigation a')
       .slice(0, 10)
@@ -229,7 +238,7 @@ Return ONLY a JSON object with:
     if (navItems.length > 0) {
       parts.push(`Navigation: ${navItems.join(', ')}`);
     }
-    
+
     // Main content
     const mainContent = $('main, article, [role="main"], .content, #content')
       .first()
@@ -248,7 +257,7 @@ Return ONLY a JSON object with:
         .substring(0, 1000);
       parts.push(`Content: ${bodyText}`);
     }
-    
+
     return parts.join('\n\n');
   }
 
@@ -297,19 +306,19 @@ Return ONLY a JSON object with:
     switch (analysisLevel) {
       case AnalysisLevel.EXCLUDED:
         return { shouldAnalyze: false };
-      
+
       case AnalysisLevel.LIMITED:
         return {
           shouldAnalyze: true,
           dimensions: ['structure', 'brandAlignment']
         };
-      
+
       case AnalysisLevel.PARTIAL:
         return {
           shouldAnalyze: true,
           dimensions: ['freshness', 'structure', 'authority', 'brandAlignment']
         };
-      
+
       case AnalysisLevel.FULL:
       default:
         return {
@@ -342,7 +351,7 @@ Return ONLY a JSON object with:
       [PageCategoryType.COMPARISON_PAGE]: 'Comparison Page',
       [PageCategoryType.BLOG_POST_ARTICLE]: 'Blog Post/Article',
       [PageCategoryType.BLOG_CATEGORY_TAG_PAGE]: 'Blog Category/Tag Page',
-      
+
       // Tier 2
       [PageCategoryType.PILLAR_PAGE_TOPIC_HUB]: 'Pillar Page/Topic Hub',
       [PageCategoryType.PRODUCT_ROUNDUP_REVIEW_ARTICLE]: 'Product Roundup/Review Article',
@@ -352,16 +361,16 @@ Return ONLY a JSON object with:
       [PageCategoryType.IN_DEPTH_GUIDE_WHITE_PAPER]: 'In-Depth Guide/White Paper',
       [PageCategoryType.FAQ_GLOSSARY_PAGES]: 'FAQ & Glossary Pages',
       [PageCategoryType.PUBLIC_FORUM_UGC_PAGES]: 'Public Forum & UGC Pages',
-      
+
       // Tier 3
       [PageCategoryType.CORPORATE_CONTACT_PAGES]: 'Corporate & Contact Pages',
       [PageCategoryType.PRIVATE_USER_ACCOUNT_PAGES]: 'Private User Account Pages',
       [PageCategoryType.SEARCH_RESULTS_ERROR_PAGES]: 'Search Results & Error Pages',
       [PageCategoryType.LEGAL_PAGES]: 'Legal Pages',
-      
+
       [PageCategoryType.UNKNOWN]: 'Unknown'
     };
-    
+
     return names[category] || 'Unknown';
   }
 }

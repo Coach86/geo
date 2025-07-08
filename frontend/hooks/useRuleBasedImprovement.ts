@@ -196,16 +196,32 @@ export function useRuleBasedImprovement(jobId: string): UseRuleBasedImprovementR
           metaDescription: job?.originalMetaDescription || '',
         };
         
+        // Debug logging
+        console.log('[CONTENT-UPDATE] Rule fix result:', {
+          ruleId: rule.ruleId,
+          improvedTitle: result.improvedTitle,
+          improvedMetaDesc: result.improvedMetas?.description,
+          hasImprovedContent: !!result.improvedContent,
+          contentLength: result.improvedContent?.length || 0,
+        });
+        
+        // Only update fields that were actually improved by this rule
+        // Don't replace with empty values
         const newVersion: ContentVersion = {
-          content: result.improvedContent || latestVersion.content,
-          contentMarkdown: result.improvedContentMarkdown || result.improvedContent || latestVersion.contentMarkdown,
-          title: result.improvedTitle || latestVersion.title,
-          metaDescription: result.improvedMetas?.description || latestVersion.metaDescription,
+          content: (result.improvedContent && result.improvedContent.trim()) ? result.improvedContent : latestVersion.content,
+          contentMarkdown: (result.improvedContentMarkdown && result.improvedContentMarkdown.trim()) ? result.improvedContentMarkdown : ((result.improvedContent && result.improvedContent.trim()) ? result.improvedContent : latestVersion.contentMarkdown),
+          title: (result.improvedTitle && result.improvedTitle.trim() && result.improvedTitle !== 'Meta description enhancement') ? result.improvedTitle : latestVersion.title,
+          metaDescription: (result.improvedMetas?.description && result.improvedMetas.description.trim()) ? result.improvedMetas.description : latestVersion.metaDescription,
           metas: result.improvedMetas || latestVersion.metas,
           ruleProcessed: rule.ruleName || rule.description,
           timestamp: new Date(),
           version: contentVersions.length + 1,
         };
+        
+        // Warn if suspicious title change
+        if (result.improvedTitle === 'Meta description enhancement') {
+          console.warn('[CONTENT-UPDATE] Suspicious title returned from backend:', result.improvedTitle);
+        }
         
         setContentVersions(prev => [...prev, newVersion]);
         setCurrentVersionIndex(contentVersions.length); // Move to latest version

@@ -178,24 +178,85 @@ const { analyzePageWithRules } = hasLLMKeys
   ? require('./lib/page-analyzer-with-llm')
   : require('./lib/page-analyzer');
 
+// Define all possible rule IDs for consistent CSV columns
+const ALL_RULE_IDS = {
+  // Technical rules
+  'clean_html_structure': 'Technical: Clean HTML Structure',
+  'url_structure': 'Technical: URL Structure', 
+  'structured_data': 'Technical: Structured Data Implementation',
+  'https_security': 'Technical: HTTPS Security',
+  'status_code': 'Technical: HTTP Status Code',
+  'mobile_optimization': 'Technical: Mobile Optimization',
+  
+  // Content rules
+  'main_heading': 'Content: Main Heading (H1)',
+  'meta_description': 'Content: Meta Description',
+  'subheadings': 'Content: Subheadings Structure',
+  'image_alt_attributes': 'Content: Image Alt Attributes',
+  
+  // Authority rules
+  'citing_sources': 'Authority: Citing Sources',
+  'comparison-content': 'Authority: Comparison Content',
+  
+  // Quality rules
+  'in-depth-guides-llm': 'Quality: In-Depth Guides (LLM)',
+  'content_freshness': 'Quality: Content Freshness'
+};
+
 // Main analysis function for a single company
-async function analyzeCompany(company, runNumber, config) {
+async function analyzeCompany(company, runNumber, config, csvWriter) {
   console.log(`\n[Run ${runNumber}] Analyzing ${company.name} (${company.url})`);
   
   try {
-    // Step 1: Crawl pages (with caching)
-    const startTime = Date.now();
-    const crawledPages = await crawlPages(company.url, {
-      maxPages: config.maxPages,
-      parallel: config.parallel
-    });
+    let crawledPages = [];
     
-    const crawlTime = Date.now() - startTime;
-    console.log(`  Crawled ${crawledPages.length} pages in ${(crawlTime / 1000).toFixed(1)}s`);
-    
-    if (crawledPages.length === 0) {
-      console.log(`  WARNING: No pages could be crawled from ${company.url}`);
-      return [];
+    // Check if this is a single URL analysis
+    if (config.url && config.url === company.url) {
+      // Single URL mode - fetch and analyze just this page
+      console.log(`  Single URL analysis mode`);
+      const startTime = Date.now();
+      
+      try {
+        // Fetch the single page content
+        const axios = require('axios');
+        const response = await axios.get(company.url, {
+          timeout: 10000,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; PageIntelligenceBot/1.0)'
+          }
+        });
+        
+        crawledPages = [{
+          url: company.url,
+          html: response.data,
+          title: '',
+          cleanContent: '',
+          status_code: response.status,
+          content_type: response.headers['content-type'] || 'text/html'
+        }];
+        
+        const fetchTime = Date.now() - startTime;
+        console.log(`  Fetched page content in ${(fetchTime / 1000).toFixed(1)}s`);
+        
+      } catch (error) {
+        console.log(`  ERROR: Failed to fetch page: ${error.message}`);
+        return [];
+      }
+    } else {
+      // Step 1: Crawl pages (with caching)
+      const startTime = Date.now();
+      crawledPages = await crawlPages(company.url, {
+        maxPages: config.maxPages,
+        parallel: config.parallel
+      });
+      
+      const crawlTime = Date.now() - startTime;
+      console.log(`  Crawled ${crawledPages.length} pages in ${(crawlTime / 1000).toFixed(1)}s`);
+      
+      if (crawledPages.length === 0) {
+        console.log(`  WARNING: No pages could be crawled from ${company.url}`);
+        return [];
+      }
     }
     
     // Step 2: Analyze each page with rules
@@ -214,6 +275,27 @@ async function analyzeCompany(company, runNumber, config) {
             quality: score.ruleResults?.quality?.map(r => r.ruleName || r.ruleId || 'Unknown').join(', ') || ''
           };
 
+          // Extract individual rule scores from all dimensions
+          const individualRuleScores = {};
+          // Initialize all rule scores as empty to ensure consistent columns
+          Object.keys(ALL_RULE_IDS).forEach(ruleId => {
+            individualRuleScores[`rule_${ruleId}`] = '';
+          });
+          
+          // Populate actual rule scores from results
+          if (score.ruleResults) {
+            Object.values(score.ruleResults).forEach(dimensionResults => {
+              if (Array.isArray(dimensionResults)) {
+                dimensionResults.forEach(ruleResult => {
+                  const ruleId = ruleResult.ruleId || ruleResult.ruleName;
+                  if (ruleId && ALL_RULE_IDS[ruleId]) {
+                    individualRuleScores[`rule_${ruleId}`] = ruleResult.score ?? '';
+                  }
+                });
+              }
+            });
+          }
+
           const pageResult = {
             company: company.name,
             companyUrl: company.url,
@@ -227,6 +309,8 @@ async function analyzeCompany(company, runNumber, config) {
             qualityScore: score.scores.quality ?? '',
             globalScore: score.globalScore,
             llmUsageCount: score.llmUsageCount || 0,
+            // Add individual rule scores
+            ...individualRuleScores,
             technicalRules: rulesApplied.technical,
             contentRules: rulesApplied.content,
             authorityRules: rulesApplied.authority,
@@ -237,6 +321,13 @@ async function analyzeCompany(company, runNumber, config) {
           };
           
           pageResults.push(pageResult);
+          
+          // Write to CSV immediately to avoid OOM
+          try {
+            await csvWriter.writeRecords([pageResult]);
+          } catch (csvError) {
+            console.warn(`  Warning: Failed to write CSV record: ${csvError.message}`);
+          }
           
           // Save to database
           await savePageScore({
@@ -255,8 +346,14 @@ async function analyzeCompany(company, runNumber, config) {
           }
         } catch (error) {
           console.error(`  Error analyzing ${page.url}: ${error.message}`);
-          // Add error record
-          pageResults.push({
+          
+          // Create error record with empty rule scores
+          const errorRuleScores = {};
+          Object.keys(ALL_RULE_IDS).forEach(ruleId => {
+            errorRuleScores[`rule_${ruleId}`] = '';
+          });
+          
+          const errorRecord = {
             company: company.name,
             companyUrl: company.url,
             pageUrl: page.url,
@@ -269,6 +366,7 @@ async function analyzeCompany(company, runNumber, config) {
             qualityScore: '',
             globalScore: 0,
             llmUsageCount: 0,
+            ...errorRuleScores,
             technicalRules: '',
             contentRules: '',
             authorityRules: '',
@@ -276,7 +374,16 @@ async function analyzeCompany(company, runNumber, config) {
             issues: JSON.stringify([{dimension: 'technical', severity: 'critical', description: error.message}]),
             recommendations: JSON.stringify([]),
             timestamp: new Date().toISOString()
-          });
+          };
+          
+          pageResults.push(errorRecord);
+          
+          // Write error record to CSV immediately
+          try {
+            await csvWriter.writeRecords([errorRecord]);
+          } catch (csvError) {
+            console.warn(`  Warning: Failed to write error CSV record: ${csvError.message}`);
+          }
         }
       })
     );
@@ -309,7 +416,14 @@ async function analyzeCompany(company, runNumber, config) {
     
   } catch (error) {
     console.error(`Error analyzing ${company.name}: ${error.message}`);
-    return [{
+    
+    // Create error record with empty rule scores
+    const errorRuleScores = {};
+    Object.keys(ALL_RULE_IDS).forEach(ruleId => {
+      errorRuleScores[`rule_${ruleId}`] = '';
+    });
+    
+    const companyErrorRecord = {
       company: company.name,
       companyUrl: company.url,
       pageUrl: company.url,
@@ -322,6 +436,7 @@ async function analyzeCompany(company, runNumber, config) {
       qualityScore: '',
       globalScore: 0,
       llmUsageCount: 0,
+      ...errorRuleScores,
       technicalRules: '',
       contentRules: '',
       authorityRules: '',
@@ -329,7 +444,16 @@ async function analyzeCompany(company, runNumber, config) {
       issues: JSON.stringify([{dimension: 'technical', severity: 'critical', description: error.message}]),
       recommendations: JSON.stringify([]),
       timestamp: new Date().toISOString()
-    }];
+    };
+    
+    // Write company error record to CSV immediately
+    try {
+      await csvWriter.writeRecords([companyErrorRecord]);
+    } catch (csvError) {
+      console.warn(`  Warning: Failed to write company error CSV record: ${csvError.message}`);
+    }
+    
+    return [companyErrorRecord];
   }
 }
 
@@ -417,6 +541,54 @@ async function main() {
   // Initialize database
   const db = initDatabase();
   
+  // Initialize CSV writer with all rule columns
+  const now = new Date();
+  const dateStr = now.toISOString().split('T')[0];
+  const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+  const outputDir = path.join(__dirname, 'data', 'page-intelligence');
+  
+  // Ensure output directory exists
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
+  }
+  
+  const outputPath = path.join(outputDir, `page-intelligence-results-${dateStr}-${timeStr}.csv`);
+  
+  // Create CSV header with all rule score columns
+  const csvHeader = [
+    { id: 'company', title: 'Company' },
+    { id: 'companyUrl', title: 'Company URL' },
+    { id: 'pageUrl', title: 'Page URL' },
+    { id: 'run', title: 'Run' },
+    { id: 'pageCategory', title: 'Page Category' },
+    { id: 'analysisLevel', title: 'Analysis Level' },
+    { id: 'technicalScore', title: 'Technical Score' },
+    { id: 'contentScore', title: 'Content Score' },
+    { id: 'authorityScore', title: 'Authority Score' },
+    { id: 'qualityScore', title: 'Quality Score' },
+    { id: 'globalScore', title: 'Global Score' },
+    { id: 'llmUsageCount', title: 'LLM Usage Count' },
+    // Add individual rule score columns
+    ...Object.entries(ALL_RULE_IDS).map(([ruleId, ruleName]) => ({
+      id: `rule_${ruleId}`,
+      title: ruleName
+    })),
+    { id: 'technicalRules', title: 'Technical Rules Applied' },
+    { id: 'contentRules', title: 'Content Rules Applied' },
+    { id: 'authorityRules', title: 'Authority Rules Applied' },
+    { id: 'qualityRules', title: 'Quality Rules Applied' },
+    { id: 'issues', title: 'Issues (JSON)' },
+    { id: 'recommendations', title: 'Recommendations (JSON)' },
+    { id: 'timestamp', title: 'Timestamp' }
+  ];
+  
+  const csvWriter = createObjectCsvWriter({
+    path: outputPath,
+    header: csvHeader
+  });
+  
+  console.log(`\nCSV output will be written to: ${outputPath}`);
+  
   try {
     let companies = [];
     
@@ -483,7 +655,7 @@ async function main() {
     // Process each company
     for (const company of companies) {
       for (let run = 1; run <= config.runs; run++) {
-        const pageResults = await analyzeCompany(company, run, config);
+        const pageResults = await analyzeCompany(company, run, config, csvWriter);
         if (pageResults && pageResults.length > 0) {
           allPageResults.push(...pageResults);
         }
@@ -496,46 +668,7 @@ async function main() {
       }
     }
     
-    // Write page-level results to CSV with date/time suffix
-    const now = new Date();
-    const dateStr = now.toISOString().split('T')[0];
-    const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
-    const outputDir = path.join(__dirname, 'data', 'page-intelligence');
-    
-    // Ensure output directory exists
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true });
-    }
-    
-    const outputPath = path.join(outputDir, `page-intelligence-results-${dateStr}-${timeStr}.csv`);
-    
-    const csvWriter = createObjectCsvWriter({
-      path: outputPath,
-      header: [
-        { id: 'company', title: 'Company' },
-        { id: 'companyUrl', title: 'Company URL' },
-        { id: 'pageUrl', title: 'Page URL' },
-        { id: 'run', title: 'Run' },
-        { id: 'pageCategory', title: 'Page Category' },
-        { id: 'analysisLevel', title: 'Analysis Level' },
-        { id: 'technicalScore', title: 'Technical Score' },
-        { id: 'contentScore', title: 'Content Score' },
-        { id: 'authorityScore', title: 'Authority Score' },
-        { id: 'qualityScore', title: 'Quality Score' },
-        { id: 'globalScore', title: 'Global Score' },
-        { id: 'llmUsageCount', title: 'LLM Usage Count' },
-        { id: 'technicalRules', title: 'Technical Rules Applied' },
-        { id: 'contentRules', title: 'Content Rules Applied' },
-        { id: 'authorityRules', title: 'Authority Rules Applied' },
-        { id: 'qualityRules', title: 'Quality Rules Applied' },
-        { id: 'issues', title: 'Issues (JSON)' },
-        { id: 'recommendations', title: 'Recommendations (JSON)' },
-        { id: 'timestamp', title: 'Timestamp' }
-      ]
-    });
-    
-    await csvWriter.writeRecords(allPageResults);
-    console.log(`\nPage-level results written to: ${outputPath}`);
+    console.log(`\nCSV results have been written incrementally to: ${outputPath}`);
     
     // Summary
     console.log('\n=== Analysis Summary ===');
@@ -562,6 +695,55 @@ async function main() {
           .forEach(([category, count]) => {
             console.log(`  ${category}: ${count} pages`);
           });
+        
+        // Detailed URL recap
+        console.log('\n=== URL Analysis Recap ===');
+        console.log('Pages analyzed (sorted by global score):');
+        
+        // Sort pages by global score descending
+        const sortedPages = [...allPageResults].sort((a, b) => b.globalScore - a.globalScore);
+        
+        sortedPages.forEach((page, index) => {
+          const urlDisplay = page.pageUrl.length > 80 
+            ? page.pageUrl.substring(0, 77) + '...' 
+            : page.pageUrl;
+          
+          console.log(`\n  ${index + 1}. ${urlDisplay}`);
+          console.log(`     Company: ${page.company}`);
+          console.log(`     Category: ${page.pageCategory} (${page.analysisLevel})`);
+          console.log(`     Scores: Tech:${page.technicalScore || 'N/A'} | Content:${page.contentScore || 'N/A'} | Auth:${page.authorityScore || 'N/A'} | Quality:${page.qualityScore || 'N/A'}`);
+          console.log(`     Global Score: ${page.globalScore}/100`);
+          
+          // Show critical issues if any
+          try {
+            const issues = JSON.parse(page.issues || '[]');
+            const criticalIssues = issues.filter(i => i.severity === 'critical');
+            const highIssues = issues.filter(i => i.severity === 'high');
+            
+            if (criticalIssues.length > 0 || highIssues.length > 0) {
+              console.log(`     Issues: ${criticalIssues.length} critical, ${highIssues.length} high`);
+            }
+          } catch (e) {
+            // Ignore JSON parse errors
+          }
+        });
+        
+        // Top performers
+        if (sortedPages.length > 1) {
+          console.log('\n=== Top Performing Pages ===');
+          sortedPages.slice(0, 3).forEach((page, index) => {
+            console.log(`  ${index + 1}. ${page.pageUrl.substring(0, 60)}... (Score: ${page.globalScore}/100)`);
+          });
+        }
+        
+        // Pages needing attention
+        const lowScorePages = sortedPages.filter(p => p.globalScore < 50);
+        if (lowScorePages.length > 0) {
+          console.log('\n=== Pages Needing Attention (Score < 50) ===');
+          lowScorePages.slice(0, 5).forEach((page, index) => {
+            console.log(`  ${index + 1}. ${page.pageUrl.substring(0, 60)}... (Score: ${page.globalScore}/100)`);
+          });
+        }
       }
     }
     

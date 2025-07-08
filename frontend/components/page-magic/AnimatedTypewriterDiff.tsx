@@ -34,6 +34,12 @@ export function AnimatedTypewriterDiff({
 
   // Parse content into segments with line tracking
   const segments = React.useMemo(() => {
+    // Guard against empty or invalid content
+    if (!previousContent || !currentContent) {
+      console.warn('AnimatedTypewriterDiff: Missing content', { previousContent, currentContent });
+      return [];
+    }
+
     const diff = Diff.diffWords(previousContent, currentContent);
     const segments: DiffSegment[] = [];
     let currentLine = 0;
@@ -203,6 +209,20 @@ export function AnimatedTypewriterDiff({
     // Build content with diff markers
     let markedContent = '';
     
+    // Fallback: if no segments or content issues, just display the current content
+    if (segments.length === 0 || !previousContent || !currentContent) {
+      console.warn('AnimatedTypewriterDiff: Using fallback rendering');
+      return DOMPurify.sanitize(marked.parse(currentContent || previousContent || ''), {
+        ALLOWED_TAGS: [
+          'p', 'div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+          'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'em', 'strong',
+          'b', 'i', 'u', 'a', 'br', 'hr', 'table', 'thead', 'tbody',
+          'tr', 'th', 'td', 'img', 'figure', 'figcaption'
+        ],
+        ALLOWED_ATTR: ['href', 'title', 'alt', 'src', 'width', 'height', 'class', 'id'],
+      });
+    }
+    
     // If animation is complete, show final content with all additions highlighted
     if (!isAnimating && currentContent) {
       const diff = Diff.diffWords(previousContent, currentContent);
@@ -232,6 +252,12 @@ export function AnimatedTypewriterDiff({
         }
         // Skip removed segments
       });
+    }
+    
+    // Ensure we have content to display
+    if (!markedContent) {
+      console.warn('AnimatedTypewriterDiff: No marked content, using displayedContent');
+      markedContent = displayedContent || currentContent || previousContent || '';
     }
     
     // Parse markdown

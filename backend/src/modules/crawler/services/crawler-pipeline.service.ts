@@ -77,9 +77,14 @@ export class CrawlerPipelineService {
         includePatterns: options?.includePatterns || project.crawlSettings?.includePatterns,
         excludePatterns: options?.excludePatterns || project.crawlSettings?.excludePatterns,
         userAgent: options?.userAgent,
+        mode: options?.mode || 'auto',
+        manualUrls: options?.manualUrls,
       } as CrawlOptions;
       
-      this.logger.log(`[PIPELINE] Crawl options configured: maxPages=${crawlOptions.maxPages}, crawlDelay=${crawlOptions.crawlDelay}ms`);
+      this.logger.log(`[PIPELINE] Crawl options configured: maxPages=${crawlOptions.maxPages}, crawlDelay=${crawlOptions.crawlDelay}ms, mode=${crawlOptions.mode}`);
+      if (crawlOptions.mode === 'manual' && crawlOptions.manualUrls) {
+        this.logger.log(`[PIPELINE] Manual mode: Will crawl ${crawlOptions.manualUrls.length} specific URLs: ${crawlOptions.manualUrls.join(', ')}`);
+      }
 
       // Step 1: Crawl website
       this.logger.log(`[PIPELINE] Step 1: Starting website crawl for ${project.website} with max ${crawlOptions.maxPages} pages`);

@@ -39,8 +39,47 @@ export default function PageIntelligencePage() {
   const [initialCheckDone, setInitialCheckDone] = useState(false);
   const [showCrawlDialog, setShowCrawlDialog] = useState(false);
 
+  // Check if we should show crawling state from query parameter
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('crawling') === 'true') {
+        setIsCrawling(true);
+        setCrawlProgress({ crawledPages: 0, totalPages: 100, currentUrl: 'Starting...', status: 'started' });
+        
+        // Remove the query parameter from URL without reload
+        const url = new URL(window.location.href);
+        url.searchParams.delete('crawling');
+        window.history.replaceState({}, '', url.toString());
+      }
+    }
+  }, []);
+
   // Stable callback for crawler events
   const handleCrawlerEvent = useCallback((event: any) => {
+    // Handle content scores deletion event
+    if (event.eventType === 'content.scores.deleted') {
+      toast({
+        title: "Preparing analysis",
+        description: `Clearing ${event.deletedCount || 'existing'} previous content scores...`,
+      });
+      // Reload the page with crawling parameter to show loader
+      setTimeout(() => {
+        // Get current URL parts
+        const currentUrl = window.location.href;
+        const hashIndex = currentUrl.indexOf('#');
+        const hash = hashIndex !== -1 ? currentUrl.substring(hashIndex) : '';
+        const baseUrl = hashIndex !== -1 ? currentUrl.substring(0, hashIndex) : currentUrl;
+        
+        // Add or update the crawling parameter
+        const separator = baseUrl.includes('?') ? '&' : '?';
+        const newUrl = `${baseUrl}${separator}crawling=true${hash}`;
+        
+        window.location.href = newUrl;
+      }, 500);
+      return;
+    }
+    
     // Update progress based on WebSocket events - prioritize WebSocket over polling
     if (event.eventType === 'crawler.started') {
       setIsCrawling(true);
@@ -115,7 +154,7 @@ export default function PageIntelligencePage() {
     if (!initialCheckDone && getCrawlStatus) {
       checkInitialStatus();
     }
-  }, [getCrawlStatus, initialCheckDone]);
+  }, [getCrawlStatus]); // Remove initialCheckDone from dependencies to prevent re-runs
 
   // Check crawl status periodically when crawling, but only as fallback when WebSocket is not connected
   useEffect(() => {

@@ -85,6 +85,7 @@ export class WebCrawlerService {
       const normalizedUrls = options.manualUrls.map(url => this.normalizeUrl(url));
       this.crawlQueue.set(projectId, new Set(normalizedUrls));
       this.logger.log(`[CRAWLER] Manual mode: Added ${normalizedUrls.length} URLs to queue`);
+      // In manual mode, only crawl the specifically requested URLs
     } else {
       // For auto mode, start with the normalized URL and discover more
       this.crawlQueue.set(projectId, new Set([normalizedStartUrl]));
@@ -121,7 +122,8 @@ export class WebCrawlerService {
       }
 
       // Randomize the crawl queue to avoid crawling all pages from same section
-      this.randomizeCrawlQueue(projectId);
+      // Ensure homepage is always first (except in manual mode)
+      this.randomizeCrawlQueue(projectId, normalizedStartUrl, options.mode);
       
       // Start crawling
       this.logger.log(`[CRAWLER] Starting crawl loop for project ${projectId}`);
@@ -413,10 +415,38 @@ export class WebCrawlerService {
     // Extract JSON-LD
     $('script[type="application/ld+json"]').each((_, element) => {
       try {
-        const json = JSON.parse($(element).html() || '{}');
-        schemas.push(json);
+        let jsonContent = $(element).html() || '{}';
+        
+        // Clean up common issues in JSON-LD
+        jsonContent = jsonContent.trim();
+        
+        // Remove HTML comments that might be in the JSON
+        jsonContent = jsonContent.replace(/<!--[\s\S]*?-->/g, '');
+        
+        // Remove any trailing content after the JSON (common in malformed JSON-LD)
+        const firstBraceIndex = jsonContent.indexOf('{');
+        const lastBraceIndex = jsonContent.lastIndexOf('}');
+        
+        if (firstBraceIndex !== -1 && lastBraceIndex !== -1 && lastBraceIndex > firstBraceIndex) {
+          jsonContent = jsonContent.substring(firstBraceIndex, lastBraceIndex + 1);
+        }
+        
+        // Only try to parse if we have valid-looking JSON
+        if (jsonContent.startsWith('{') && jsonContent.endsWith('}')) {
+          const json = JSON.parse(jsonContent);
+          schemas.push(json);
+        } else if (jsonContent.startsWith('[') && jsonContent.endsWith(']')) {
+          const json = JSON.parse(jsonContent);
+          // If it's an array, add each item
+          if (Array.isArray(json)) {
+            schemas.push(...json);
+          } else {
+            schemas.push(json);
+          }
+        }
       } catch (error) {
-        this.logger.debug('Failed to parse JSON-LD', error);
+        // Only log as debug since malformed JSON-LD is common and not critical
+        this.logger.debug(`Failed to parse JSON-LD: ${error.message}`);
       }
     });
 
@@ -782,27 +812,96 @@ export class WebCrawlerService {
 
   /**
    * Randomize the crawl queue to avoid crawling all pages from the same section
+   * Always ensures the homepage is first in the queue for analysis (except in manual mode)
    */
-  private randomizeCrawlQueue(projectId: string): void {
+  private randomizeCrawlQueue(projectId: string, homepageUrl: string, mode?: 'auto' | 'manual'): void {
     const queue = this.crawlQueue.get(projectId);
     if (!queue || queue.size <= 1) {
       return;
     }
 
-    // Convert Set to Array, shuffle, then convert back to Set
+    // Convert Set to Array
     const urls = Array.from(queue);
-    this.logger.log(`[CRAWLER] Randomizing crawl queue with ${urls.length} URLs`);
+    this.logger.log(`[CRAWLER] Randomizing crawl queue with ${urls.length} URLs (mode: ${mode || 'auto'})`);
     
-    // Fisher-Yates shuffle algorithm
-    for (let i = urls.length - 1; i > 0; i--) {
+    // In manual mode, just shuffle all URLs without homepage prioritization
+    if (mode === 'manual') {
+      // Shuffle all URLs using Fisher-Yates algorithm
+      for (let i = urls.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [urls[i], urls[j]] = [urls[j], urls[i]];
+      }
+      
+      // Clear and rebuild the queue with shuffled URLs
+      queue.clear();
+      urls.forEach(url => queue.add(url));
+      
+      this.logger.log(`[CRAWLER] Manual mode: Randomized ${urls.length} URLs without homepage prioritization`);
+      return;
+    }
+    
+    // For auto mode, ensure homepage is first
+    const homepageIndex = urls.findIndex(url => {
+      const normalizedUrl = this.normalizeUrl(url);
+      const normalizedHomepage = this.normalizeUrl(homepageUrl);
+      return this.isHomepageUrl(normalizedUrl, normalizedHomepage);
+    });
+    
+    let homepage: string | null = null;
+    let otherUrls: string[] = [];
+    
+    if (homepageIndex !== -1) {
+      homepage = urls[homepageIndex];
+      otherUrls = urls.filter((_, index) => index !== homepageIndex);
+    } else {
+      // If homepage not found in queue, add it
+      homepage = homepageUrl;
+      otherUrls = urls;
+      this.logger.log(`[CRAWLER] Homepage not found in queue, adding: ${homepageUrl}`);
+    }
+    
+    // Shuffle only the non-homepage URLs using Fisher-Yates algorithm
+    for (let i = otherUrls.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [urls[i], urls[j]] = [urls[j], urls[i]];
+      [otherUrls[i], otherUrls[j]] = [otherUrls[j], otherUrls[i]];
     }
 
-    // Clear and rebuild the queue with shuffled URLs
+    // Clear and rebuild the queue with homepage first, then shuffled URLs
     queue.clear();
-    urls.forEach(url => queue.add(url));
     
-    this.logger.log(`[CRAWLER] Queue randomized successfully`);
+    // Always add homepage first
+    if (homepage) {
+      queue.add(homepage);
+    }
+    
+    // Add shuffled remaining URLs
+    otherUrls.forEach(url => queue.add(url));
+    
+    this.logger.log(`[CRAWLER] Queue randomized successfully with homepage prioritized`);
+  }
+
+  /**
+   * Check if a URL is the homepage URL
+   */
+  private isHomepageUrl(url: string, homepageUrl: string): boolean {
+    // Normalize both URLs for comparison
+    const normalizedUrl = this.normalizeUrl(url);
+    const normalizedHomepage = this.normalizeUrl(homepageUrl);
+    
+    // Check if they're exactly the same
+    if (normalizedUrl === normalizedHomepage) {
+      return true;
+    }
+    
+    // Check if the URL is the root path of the same domain
+    try {
+      const urlObj = new URL(normalizedUrl);
+      const homepageObj = new URL(normalizedHomepage);
+      
+      return urlObj.hostname === homepageObj.hostname && 
+             (urlObj.pathname === '/' || urlObj.pathname === '');
+    } catch {
+      return false;
+    }
   }
 }

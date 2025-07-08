@@ -5,7 +5,7 @@ import type { Socket } from 'socket.io-client';
 
 export interface CrawlerEvent {
   projectId: string;
-  eventType: 'crawler.started' | 'crawler.progress' | 'crawler.page_crawled' | 'crawler.completed' | 'crawler.failed';
+  eventType: 'crawler.started' | 'crawler.progress' | 'crawler.page_crawled' | 'crawler.completed' | 'crawler.failed' | 'content.scores.deleted';
   currentUrl?: string;
   crawledPages?: number;
   totalPages?: number;
@@ -13,6 +13,7 @@ export interface CrawlerEvent {
   status?: 'started' | 'crawling' | 'analyzing' | 'completed' | 'analysis_completed' | 'failed';
   message?: string;
   error?: string;
+  deletedCount?: number; // For content.scores.deleted event
   timestamp: Date;
 }
 
@@ -65,8 +66,6 @@ export function useCrawlerEvents({ projectId, token, onCrawlerEvent }: UseCrawle
       return;
     }
 
-    let socketInstance: Socket | null = null;
-
     // Dynamic import to avoid SSR issues
     import('socket.io-client').then(({ io }) => {
 
@@ -79,7 +78,7 @@ export function useCrawlerEvents({ projectId, token, onCrawlerEvent }: UseCrawle
       console.log('  - Namespace:', '/crawler-events');
 
       // Connect to crawler-events namespace (we might need to create this or use the existing namespace)
-      socketInstance = io(`${serverUrl}`, {
+      const socketInstance = io(`${serverUrl}`, {
         path: '/api/socket-io/',
         auth: {
           token,
@@ -104,9 +103,14 @@ export function useCrawlerEvents({ projectId, token, onCrawlerEvent }: UseCrawle
       });
 
       // Listen for crawler events
-      socketInstance.on('crawler.started', (data: CrawlerEvent) => {
+      socketInstance.on('crawler.started', (data: any) => {
         console.log('[useCrawlerEvents] Crawler started event received:', data);
-        handleCrawlerEvent({ ...data, eventType: 'crawler.started' });
+        const event: CrawlerEvent = {
+          ...data,
+          eventType: 'crawler.started',
+          status: data.status || 'started',
+        };
+        handleCrawlerEvent(event);
       });
 
       socketInstance.on('crawler.progress', (data: any) => {
@@ -119,6 +123,7 @@ export function useCrawlerEvents({ projectId, token, onCrawlerEvent }: UseCrawle
           crawledPages: data.crawledPages,
           totalPages: data.totalPages,
           progress: data.progress,
+          status: data.status, // Pass through the status field
           timestamp: new Date(),
         };
         handleCrawlerEvent(event);
@@ -149,6 +154,17 @@ export function useCrawlerEvents({ projectId, token, onCrawlerEvent }: UseCrawle
         handleCrawlerEvent({ ...data, eventType: 'crawler.failed' });
       });
 
+      socketInstance.on('content.scores.deleted', (data: any) => {
+        console.log('[useCrawlerEvents] Content scores deleted event received:', data);
+        const event: CrawlerEvent = {
+          projectId: data.projectId,
+          eventType: 'content.scores.deleted',
+          deletedCount: data.deletedCount,
+          timestamp: new Date(data.timestamp || Date.now()),
+        };
+        handleCrawlerEvent(event);
+      });
+
       socketInstance.on('connect_error', (error: any) => {
         console.error('[useCrawlerEvents] Connection error:', error.message);
         console.error('[useCrawlerEvents] Error details:', error);
@@ -158,10 +174,11 @@ export function useCrawlerEvents({ projectId, token, onCrawlerEvent }: UseCrawle
     });
 
     return () => {
-      if (socketInstance) {
+      if (socketRef.current) {
+        console.log('[useCrawlerEvents] Cleaning up socket connection');
         // Unsubscribe from crawler events
-        socketInstance.emit('unsubscribe_crawler', { projectId });
-        socketInstance.disconnect();
+        socketRef.current.emit('unsubscribe_crawler', { projectId });
+        socketRef.current.disconnect();
         socketRef.current = null;
       }
     };

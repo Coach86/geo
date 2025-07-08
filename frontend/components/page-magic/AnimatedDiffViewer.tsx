@@ -42,7 +42,8 @@ export function AnimatedDiffViewer({
   const contentRef = useRef<HTMLDivElement>(null);
 
   const currentVersion = versions[currentVersionIndex] || versions[0];
-  const previousVersion = currentVersionIndex > 0 ? versions[currentVersionIndex - 1] : null;
+  // Always compare against the original content (version 1), not the previous version
+  const previousVersion = currentVersionIndex > 0 ? versions[0] : null;
 
   // Trigger animation when version changes
   useEffect(() => {

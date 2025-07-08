@@ -60,7 +60,7 @@ export class PageImprovementService {
         {
           model: this.preferredModel,
           temperature: 0.7,
-          maxTokens: 4000,
+          maxTokens: 8192, // Increased from 4000 to handle longer content
           webAccess: false, // Don't need web access for content improvement
         }
       );

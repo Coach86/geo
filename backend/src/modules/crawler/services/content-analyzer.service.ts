@@ -42,7 +42,15 @@ export class ContentAnalyzerService {
 
     // Clear existing analysis data only in auto mode to ensure fresh results
     if (mode !== 'manual') {
-      await this.contentScoreRepository.deleteByProjectId(projectId);
+      const deletedCount = await this.contentScoreRepository.deleteByProjectId(projectId);
+      this.logger.log(`[ANALYZER] Deleted ${deletedCount} existing content scores for project ${projectId}`);
+      
+      // Emit event to notify that content scores have been deleted
+      this.eventEmitter.emit('content.scores.deleted', {
+        projectId,
+        deletedCount,
+        timestamp: new Date(),
+      });
     } else {
       this.logger.log('[ANALYZER] Manual mode: preserving existing content scores');
     }

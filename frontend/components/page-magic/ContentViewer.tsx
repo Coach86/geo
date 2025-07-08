@@ -191,12 +191,40 @@ export function ContentViewer({
 
         {/* Content - use ReadableContent for HTML or formatted content for text */}
         {html ? (
-          <ReadableContent 
-            html={html} 
-            className="prose prose-sm dark:prose-invert max-w-none" 
-            onMetadata={handleMetadata}
-          />
-        ) : (
+          (() => {
+            // Check if html is actually JSON string
+            if (typeof html === 'string' && html.trim().startsWith('{')) {
+              console.error('HTML content appears to be JSON:', html.substring(0, 200));
+              return (
+                <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                  <p className="text-red-600 dark:text-red-400 font-semibold mb-2">
+                    Error: Content is displaying as JSON
+                  </p>
+                  <p className="text-sm text-red-500 dark:text-red-300">
+                    The page content is being returned as JSON data instead of HTML. 
+                    This is a bug that needs to be fixed.
+                  </p>
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-sm text-red-500 dark:text-red-300">
+                      Show JSON content
+                    </summary>
+                    <pre className="mt-2 p-2 bg-red-100 dark:bg-red-900/30 rounded text-xs overflow-auto">
+                      {html.substring(0, 500)}...
+                    </pre>
+                  </details>
+                </div>
+              );
+            }
+            
+            return (
+              <ReadableContent 
+                html={html} 
+                className="prose prose-sm dark:prose-invert max-w-none" 
+                onMetadata={handleMetadata}
+              />
+            );
+          })()
+        ) : formattedContent.length > 0 ? (
           <ContentWithHeadingIndicators>
             <div className="prose prose-sm dark:prose-invert max-w-none pl-14 page-magic-content">
               {formattedContent.map((item) => {
@@ -215,7 +243,7 @@ export function ContentViewer({
               })}
             </div>
           </ContentWithHeadingIndicators>
-        )}
+        ) : null}
       </div>
     </div>
   );

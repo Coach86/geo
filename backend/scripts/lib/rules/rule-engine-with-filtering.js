@@ -8,8 +8,6 @@ const qualityRules = require('./quality');
 
 // Import LLM-enabled rules
 const InDepthGuidesLLMRule = require('./quality/in-depth-guides-llm.rule');
-const DefinitionalContentLLMRule = require('./content/definitional-content-llm.rule');
-const CaseStudiesLLMRule = require('./content/case-studies-llm.rule');
 const ComparisonContentLLMRule = require('./authority/comparison-content-llm.rule');
 
 /**
@@ -71,37 +69,6 @@ async function analyzeWithRules(pageContent, options = {}) {
       console.log('  Using LLM-enabled version of in-depth guides rule');
     }
     
-    // Find and replace definitional content rule in content rules if it exists
-    const definitionalIndex = ruleGroups.content.findIndex(Rule => {
-      const rule = new Rule();
-      return rule.id === 'definitional-content';
-    });
-    
-    if (definitionalIndex >= 0) {
-      // Replace with LLM version
-      ruleGroups.content[definitionalIndex] = DefinitionalContentLLMRule;
-      console.log('  Using LLM-enabled version of definitional content rule');
-    } else {
-      // Add it if not present
-      ruleGroups.content.push(DefinitionalContentLLMRule);
-      console.log('  Added LLM-enabled definitional content rule');
-    }
-    
-    // Find and replace case studies rule in content rules if it exists
-    const caseStudiesIndex = ruleGroups.content.findIndex(Rule => {
-      const rule = new Rule();
-      return rule.id === 'case-studies';
-    });
-    
-    if (caseStudiesIndex >= 0) {
-      // Replace with LLM version
-      ruleGroups.content[caseStudiesIndex] = CaseStudiesLLMRule;
-      console.log('  Using LLM-enabled version of case studies rule');
-    } else {
-      // Add it if not present
-      ruleGroups.content.push(CaseStudiesLLMRule);
-      console.log('  Added LLM-enabled case studies rule');
-    }
     
     // Find and replace comparison content rule in authority rules if it exists
     const comparisonIndex = ruleGroups.authority.findIndex(Rule => {
@@ -143,7 +110,7 @@ async function analyzeWithRules(pageContent, options = {}) {
       continue;
     }
     
-    console.log(`\n  📏 === ${dimension.toUpperCase()} DIMENSION ===`);
+    console.log(`\n  📏 === ${dimension.toUpperCase()} DIMENSION === (${pageContent.url})`);
     
     const ruleResults = [];
     const ruleDetails = [];
@@ -156,8 +123,6 @@ async function analyzeWithRules(pageContent, options = {}) {
         // Initialize rule with LLM clients if it's an LLM-enabled rule
         // Check if it's one of the known LLM rules
         const isLLMRule = [
-          'DefinitionalContentLLMRule', 
-          'CaseStudiesLLMRule', 
           'ComparisonContentLLMRule',
           'InDepthGuidesLLMRule'
         ].includes(Rule.name);
@@ -255,7 +220,13 @@ async function analyzeWithRules(pageContent, options = {}) {
     for (const outcome of ruleOutcomes) {
       if (outcome) {
         const { result, rule } = outcome;
-        ruleResults.push(result);
+        // Add rule metadata to the result
+        const enrichedResult = {
+          ...result,
+          ruleId: rule.id,
+          ruleName: rule.name
+        };
+        ruleResults.push(enrichedResult);
         ruleDetails.push(rule);
         
         // Collect issues

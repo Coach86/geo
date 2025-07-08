@@ -3,6 +3,7 @@ import { BaseAEORule } from '../base-aeo.rule';
 import { RuleResult, PageContent, Category, EvidenceItem, RuleIssue } from '../../../interfaces/rule.interface';
 import { EvidenceHelper } from '../../../utils/evidence.helper';
 import { MainHeadingIssueId, createMainHeadingIssue } from './main-heading.issues';
+import * as cheerio from 'cheerio';
 
 // Evidence topics for this rule
 enum MainHeadingTopic {
@@ -34,20 +35,16 @@ export class MainHeadingRule extends BaseAEORule {
     const scoreBreakdown: { component: string; points: number }[] = [];
     
     const html = content.html || '';
+    const $ = cheerio.load(html);
     
-    // Extract all H1 tags
-    const h1Pattern = /<h1[^>]*>(.*?)<\/h1>/gi;
-    const h1Matches = html.match(h1Pattern) || [];
-    const h1Count = h1Matches.length;
+    // Extract all H1 tags using Cheerio
+    const h1Elements = $('h1');
+    const h1Count = h1Elements.length;
     
     // Extract H1 text content
-    const h1Texts = h1Matches.map(h1 => {
-      const textMatch = h1.match(/<h1[^>]*>(.*?)<\/h1>/i);
-      if (textMatch) {
-        return textMatch[1].replace(/<[^>]+>/g, '').trim();
-      }
-      return '';
-    }).filter(text => text.length > 0);
+    const h1Texts = h1Elements.map((i, el) => {
+      return $(el).text().replace(/\s+/g, ' ').trim();
+    }).get().filter(text => text.length > 0);
     
     // Check H1 count and combine with length check
     if (h1Count === 1) {
@@ -149,9 +146,8 @@ export class MainHeadingRule extends BaseAEORule {
       }
       
       // Check if H1 matches or relates to title tag
-      const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
-      if (titleMatch) {
-        const titleText = titleMatch[1].replace(/<[^>]+>/g, '').trim();
+      const titleText = $('title').text().trim();
+      if (titleText) {
         const h1Lower = primaryH1.toLowerCase();
         const titleLower = titleText.toLowerCase();
         
@@ -232,9 +228,8 @@ export class MainHeadingRule extends BaseAEORule {
       }
       
       // Check for title match/mismatch
-      const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
-      if (titleMatch) {
-        const titleText = titleMatch[1].replace(/<[^>]+>/g, '').trim();
+      const titleText = $('title').text().trim();
+      if (titleText) {
         const h1Lower = primaryH1.toLowerCase();
         const titleLower = titleText.toLowerCase();
         

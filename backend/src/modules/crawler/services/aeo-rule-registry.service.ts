@@ -20,7 +20,7 @@ import { DefinitionalContentRule } from '../rules/aeo/content/definitional-conte
 import { CaseStudiesRule } from '../rules/aeo/content/case-studies.rule';
 import { ContentFreshnessRule } from '../rules/aeo/content/content-freshness.rule';
 import { FAQPagesRule } from '../rules/aeo/content/faq-pages.rule';
-import { ImageAltRule } from '../rules/aeo/content/image-alt.rule';
+import { ImageAltRule } from '../rules/aeo/technical/image-alt.rule';
 import { MainHeadingRule } from '../rules/aeo/content/main-heading.rule';
 import { MetaDescriptionRule } from '../rules/aeo/content/meta-description.rule';
 import { GlossariesRule } from '../rules/aeo/content/glossaries.rule';
@@ -63,8 +63,9 @@ export class AEORuleRegistryService {
     this.register(new RobotsTxtRule());
     this.register(new StatusCodeRule());
     this.register(new StructuredDataRule());
-    this.register(new UrlStructureRule());
+    this.register(new UrlStructureRule(this.llmService));
     this.register(new XmlSitemapRule());
+    this.register(new ImageAltRule());
     
     // Structure Rules
     this.register(new HowToContentRule());
@@ -72,7 +73,6 @@ export class AEORuleRegistryService {
     this.register(new CaseStudiesRule(this.llmService));
     this.register(new ContentFreshnessRule());
     this.register(new FAQPagesRule());
-    this.register(new ImageAltRule());
     this.register(new MainHeadingRule());
     this.register(new MetaDescriptionRule(this.llmService));
     this.register(new GlossariesRule());

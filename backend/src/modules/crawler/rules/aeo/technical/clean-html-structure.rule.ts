@@ -3,6 +3,7 @@ import { BaseAEORule } from '../base-aeo.rule';
 import { RuleResult, PageContent, Category, EvidenceItem, RuleIssue } from '../../../interfaces/rule.interface';
 import { EvidenceHelper } from '../../../utils/evidence.helper';
 import { CleanHtmlStructureIssueId, createCleanHtmlStructureIssue } from './clean-html-structure.issues';
+import { HtmlValidate, Message, Severity } from 'html-validate';
 
 // Evidence topics for this rule
 enum CleanHtmlTopic {
@@ -81,52 +82,51 @@ export class CleanHtmlStructureRule extends BaseAEORule {
       }
     }
     
-    // Count HTML validation errors (simplified check)
-    const htmlErrors = this.checkHtmlValidation(html);
-    const errorSample = this.generateErrorSample(html);
+    // HTML validation using html-validate library
+    const validationResult = await this.checkHtmlValidation(html);
     
-    if (htmlErrors > 15) {
+    if (validationResult.errorCount > 15) {
       const penalty = score - 20;
       score = Math.min(score, 20);
       scoreBreakdown.push({ component: 'Critical HTML errors', points: -penalty });
-      evidence.push(EvidenceHelper.error(CleanHtmlTopic.HTML_VALIDATION, `Critical: ${htmlErrors} validation errors per 100 lines`, { 
-        target: '<5 errors per 100 lines',
-        code: errorSample,
+      evidence.push(EvidenceHelper.error(CleanHtmlTopic.HTML_VALIDATION, `Critical: ${validationResult.errorCount} validation errors found`, { 
+        target: '≤5 errors for good HTML quality',
+        code: validationResult.samples.join('\n'),
         score: -penalty
       }));
       recommendations.push('Fix HTML validation errors for up to 80 points');
-    } else if (htmlErrors > 10) {
+    } else if (validationResult.errorCount > 10) {
       const penalty = score - 40;
       score = Math.min(score, 40);
       scoreBreakdown.push({ component: 'High HTML errors', points: -penalty });
-      evidence.push(EvidenceHelper.error(CleanHtmlTopic.HTML_VALIDATION, `High: ${htmlErrors} validation errors per 100 lines`, { 
-        target: '<5 errors per 100 lines',
-        code: errorSample,
+      evidence.push(EvidenceHelper.error(CleanHtmlTopic.HTML_VALIDATION, `High: ${validationResult.errorCount} validation errors found`, { 
+        target: '≤5 errors for good HTML quality',
+        code: validationResult.samples.join('\n'),
         score: -penalty
       }));
-      recommendations.push('Reduce errors to <5 per 100 lines for up to 60 points');
-    } else if (htmlErrors > 5) {
+      recommendations.push('Fix HTML validation errors for up to 60 points');
+    } else if (validationResult.errorCount > 5) {
       const penalty = score - 60;
       score = Math.min(score, 60);
       scoreBreakdown.push({ component: 'Moderate HTML errors', points: -penalty });
-      evidence.push(EvidenceHelper.warning(CleanHtmlTopic.HTML_VALIDATION, `Moderate: ${htmlErrors} validation errors per 100 lines`, { 
-        target: '<5 errors per 100 lines',
-        code: errorSample,
+      evidence.push(EvidenceHelper.warning(CleanHtmlTopic.HTML_VALIDATION, `Moderate: ${validationResult.errorCount} validation errors found`, { 
+        target: '≤5 errors for good HTML quality',
+        code: validationResult.samples.join('\n'),
         score: -penalty
       }));
-      recommendations.push('Reduce errors to <5 per 100 lines for up to 40 points');
-    } else if (htmlErrors > 0) {
+      recommendations.push('Fix HTML validation errors for up to 40 points');
+    } else if (validationResult.errorCount > 0) {
       const penalty = score - 80;
       score = Math.min(score, 80);
       scoreBreakdown.push({ component: 'Minor HTML errors', points: -penalty });
-      evidence.push(EvidenceHelper.warning(CleanHtmlTopic.HTML_VALIDATION, `Minor: ${htmlErrors} validation errors per 100 lines`, { 
+      evidence.push(EvidenceHelper.warning(CleanHtmlTopic.HTML_VALIDATION, `Minor: ${validationResult.errorCount} validation errors found`, { 
         target: '0 errors for perfect score',
-        code: errorSample,
+        code: validationResult.samples.join('\n'),
         score: -penalty
       }));
       recommendations.push('Fix all HTML validation errors for +20 points');
     } else {
-      evidence.push(EvidenceHelper.success(CleanHtmlTopic.HTML_VALIDATION, 'No HTML validation errors detected', { target: '0 errors per 100 lines' }));
+      evidence.push(EvidenceHelper.success(CleanHtmlTopic.HTML_VALIDATION, 'Excellent: No validation errors found', { target: '≤5 errors for good HTML quality' }));
     }
     
     // Check for excessive div usage (divitis)
@@ -200,17 +200,17 @@ export class CleanHtmlStructureRule extends BaseAEORule {
     }
     
     // Check for validation errors
-    if (htmlErrors > 15) {
+    if (validationResult.errorCount > 15) {
       issues.push(createCleanHtmlStructureIssue(
         CleanHtmlStructureIssueId.CRITICAL_VALIDATION_ERRORS,
         undefined,
-        `Critical HTML validation errors (${htmlErrors} errors per 100 lines)`
+        `Critical HTML validation errors (${validationResult.errorCount} errors found)`
       ));
-    } else if (htmlErrors > 5) {
+    } else if (validationResult.errorCount > 5) {
       issues.push(createCleanHtmlStructureIssue(
         CleanHtmlStructureIssueId.HIGH_VALIDATION_ERRORS,
         undefined,
-        `High number of HTML validation errors (${htmlErrors} errors per 100 lines)`
+        `High number of HTML validation errors (${validationResult.errorCount} errors found)`
       ));
     }
     
@@ -231,73 +231,88 @@ export class CleanHtmlStructureRule extends BaseAEORule {
     return this.createResult(Math.max(0, score), evidence, issues, undefined, recommendations);
   }
   
-  private checkHtmlValidation(html: string): number {
-    // Simplified HTML validation check - counts common errors
+  private async checkHtmlValidation(html: string): Promise<{
+    errorCount: number;
+    warningCount: number;
+    samples: string[];
+  }> {
+    try {
+      const htmlvalidate = new HtmlValidate({
+        rules: {
+          // Core validation errors
+          'void-style': 'error',
+          'deprecated': 'error',
+          'attr-quotes': 'error',
+          'doctype-style': 'warn',
+          
+          // Content & structure
+          'element-permitted-content': 'error',
+          'no-missing-references': 'warn',
+          
+          // AEO-specific checks
+          'no-inline-style': 'warn',
+          'prefer-native-element': 'warn'
+        }
+      });
+      
+      const report = await htmlvalidate.validateString(html);
+      const messages = report.results[0]?.messages || [];
+      
+      const errors = messages.filter((msg: Message) => msg.severity === Severity.ERROR);
+      const warnings = messages.filter((msg: Message) => msg.severity === Severity.WARN);
+      
+      // Generate sample error messages
+      const samples = messages
+        .slice(0, 5) // Limit to 5 samples
+        .map((msg: Message) => {
+          const icon = msg.severity === Severity.ERROR ? '❌' : '⚠️';
+          const location = msg.line ? ` (Line ${msg.line})` : '';
+          return `${icon} ${msg.message}${location}`;
+        });
+      
+      return {
+        errorCount: errors.length,
+        warningCount: warnings.length,
+        samples
+      };
+    } catch (error) {
+      // Fallback to simplified validation if html-validate fails
+      console.warn('html-validate failed, using fallback validation:', error.message);
+      return this.fallbackValidation(html);
+    }
+  }
+
+  private fallbackValidation(html: string): {
+    errorCount: number;
+    warningCount: number;
+    samples: string[];
+  } {
     let errors = 0;
-    const lines = html.split('\n').length;
-    
-    // Check for unclosed tags
-    const openTags = html.match(/<([a-z]+)(?:\s|>)/gi) || [];
-    const closeTags = html.match(/<\/([a-z]+)>/gi) || [];
-    errors += Math.abs(openTags.length - closeTags.length) * 2;
-    
-    // Check for missing quotes in attributes
-    const unquotedAttrs = html.match(/\s[a-z-]+=(?!["'])[^\s>]+/gi) || [];
-    errors += unquotedAttrs.length;
+    const samples: string[] = [];
     
     // Check for deprecated tags
     const deprecatedTags = ['font', 'center', 'marquee', 'blink', 'frame', 'frameset'];
     deprecatedTags.forEach(tag => {
       const regex = new RegExp(`<${tag}[^>]*>`, 'gi');
       const matches = html.match(regex) || [];
-      errors += matches.length * 3;
+      if (matches.length > 0) {
+        errors += matches.length;
+        samples.push(`❌ Deprecated tag: <${tag}>`);
+      }
     });
     
-    // Calculate errors per 100 lines
-    return Math.round((errors / lines) * 100);
+    // Check for unquoted attributes
+    const unquotedAttrs = html.match(/\s[a-z-]+=(?!["'])[^\s>]+/gi) || [];
+    if (unquotedAttrs.length > 0) {
+      errors += unquotedAttrs.length;
+      samples.push(`❌ Unquoted attribute: ${unquotedAttrs[0]?.trim()}`);
+    }
+    
+    return {
+      errorCount: errors,
+      warningCount: 0,
+      samples: samples.slice(0, 3)
+    };
   }
 
-  private generateErrorSample(html: string): string {
-    const errorSamples: string[] = [];
-    
-    // Find unquoted attributes
-    const unquotedAttrs = html.match(/\s[a-z-]+=(?!["'])[^\s>]+/gi) || [];
-    if (unquotedAttrs.length > 0 && unquotedAttrs[0]) {
-      errorSamples.push(`❌ Unquoted attribute: ${unquotedAttrs[0].trim()}`);
-    }
-    
-    // Find deprecated tags
-    const deprecatedTags = ['font', 'center', 'marquee', 'blink', 'frame', 'frameset'];
-    for (const tag of deprecatedTags) {
-      const regex = new RegExp(`<${tag}[^>]*>`, 'gi');
-      const match = html.match(regex);
-      if (match && match[0]) {
-        errorSamples.push(`❌ Deprecated tag: ${match[0]}`);
-        break;
-      }
-    }
-    
-    // Find potential unclosed tags (simplified detection)
-    const unclosedPattern = /<(div|span|p|a)\s[^>]*>(?![\s\S]*<\/\1>)/gi;
-    const unclosedMatch = html.match(unclosedPattern);
-    if (unclosedMatch && unclosedMatch[0]) {
-      errorSamples.push(`❌ Potentially unclosed: ${unclosedMatch[0]}`);
-    }
-    
-    // Find missing alt attributes on images
-    const imgWithoutAlt = html.match(/<img(?![^>]*alt=)[^>]*>/gi);
-    if (imgWithoutAlt && imgWithoutAlt[0]) {
-      errorSamples.push(`❌ Missing alt attribute: ${imgWithoutAlt[0]}`);
-    }
-    
-    // Find inline styles (not validation errors but poor practice)
-    const inlineStyles = html.match(/<[^>]*style=["'][^"']*["'][^>]*>/gi);
-    if (inlineStyles && inlineStyles[0]) {
-      errorSamples.push(`⚠️ Inline style: ${inlineStyles[0].substring(0, 60)}...`);
-    }
-    
-    return errorSamples.length > 0 
-      ? errorSamples.slice(0, 3).join('\n') 
-      : 'Sample HTML validation errors not found in current analysis';
-  }
 }

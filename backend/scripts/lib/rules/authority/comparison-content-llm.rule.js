@@ -66,14 +66,15 @@ class ComparisonContentLLMRule extends BaseRule {
     return /(?:vs|versus|compare|comparison|difference|alternative)/i.test(url);
   }
   
-  async evaluate(pageContent) {
+  async evaluate(pageContent, options = {}) {
     const issues = [];
     const recommendations = [];
     const evidence = [];
     let score = 0;
     let llmUsed = false;
     
-    const { url, $ } = pageContent;
+    const url = pageContent.url;
+    const $ = pageContent.$;
     const html = pageContent.html || '';
     const cleanText = $('body').text() || '';
     
@@ -94,7 +95,7 @@ class ComparisonContentLLMRule extends BaseRule {
         description: 'Insufficient content to analyze for comparisons',
         recommendation: 'Add substantial comparison content'
       });
-      return { score: this.SCORE_NOT_PRESENT, issues, recommendations, evidence };
+      return this.createResult(this.SCORE_NOT_PRESENT, evidence, issues, {}, recommendations);
     }
     
     // Check LLM availability
@@ -149,7 +150,7 @@ class ComparisonContentLLMRule extends BaseRule {
         });
       }
       
-      return { score, issues, recommendations, evidence };
+      return this.createResult(score, evidence, issues, {}, recommendations);
     }
     
     // LLM Analysis
@@ -407,13 +408,7 @@ Analyze for comparisons and return structured data according to the schema.`;
       }
     }
     
-    return {
-      score,
-      issues,
-      recommendations,
-      evidence,
-      llmUsed
-    };
+    return this.createResult(score, evidence, issues, {}, recommendations);
   }
 }
 

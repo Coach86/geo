@@ -1,8 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { BaseAEORule } from '../base-aeo.rule';
 import { RuleResult, PageContent, Category, EvidenceItem, RuleIssue } from '../../../interfaces/rule.interface';
 import { EvidenceHelper } from '../../../utils/evidence.helper';
 import { UrlStructureIssueId, createUrlStructureIssue } from './url-structure.issues';
+import { LlmService } from '../../../../llm/services/llm.service';
+import { LlmProvider } from '../../../../llm/interfaces/llm-provider.enum';
+import { z } from 'zod';
 
 
 // Evidence topics for this rule
@@ -16,9 +19,31 @@ enum UrlStructureTopic {
   URL = 'URL'
 }
 
+// Schema for LLM structured output
+const UrlEvaluationSchema = z.object({
+  descriptive: z.object({
+    isDescriptive: z.boolean(),
+    reason: z.string()
+  }),
+  keywordOptimized: z.object({
+    isOptimized: z.boolean(),
+    reason: z.string()
+  }),
+  hierarchy: z.object({
+    isGood: z.boolean(),
+    reason: z.string()
+  })
+});
+
+type UrlEvaluation = z.infer<typeof UrlEvaluationSchema>;
+
 @Injectable()
 export class UrlStructureRule extends BaseAEORule {
-  constructor() {
+  private readonly logger = new Logger(UrlStructureRule.name);
+
+  constructor(
+    private readonly llmService: LlmService
+  ) {
     super(
       'url_structure',
       'URL Structure & Optimization',
@@ -93,19 +118,13 @@ export class UrlStructureRule extends BaseAEORule {
         }));
       }
 
-      // Check URL structure and readability
+      // Use LLM to evaluate URL structure intelligently
       const path = urlObj.pathname;
+      const urlEvaluation = await this.evaluateUrlWithLLM(url, path);
 
-      // Check for readable, descriptive URLs
-      if (this.isDescriptiveUrl(path)) {
-        // Extract descriptive words from the URL path
-        const segments = path.replace(/^\/|\/$/g, '').split('/');
-        const descriptiveWords = segments.flatMap(segment => 
-          segment.split('-').filter(word => word.length > 2)
-        );
-        
+      // Apply descriptive evaluation
+      if (urlEvaluation.descriptive.isDescriptive) {
         evidence.push(EvidenceHelper.success(UrlStructureTopic.LENGTH, 'URL uses descriptive, readable words', {
-          code: descriptiveWords.slice(0, 8).join(', ') + (descriptiveWords.length > 8 ? '...' : ''),
           target: 'Descriptive URLs improve user experience and SEO',
           score: 0
         }));
@@ -113,7 +132,7 @@ export class UrlStructureRule extends BaseAEORule {
         score -= 15;
         issues++;
         scoreBreakdown.push({ component: 'Non-descriptive URL', points: -15 });
-        evidence.push(EvidenceHelper.warning(UrlStructureTopic.URL, 'URL could be more descriptive', { score: -15, maxScore: 15 }));
+        evidence.push(EvidenceHelper.warning(UrlStructureTopic.URL, urlEvaluation.descriptive.reason, { score: -15, maxScore: 15 }));
         foundIssues.push(createUrlStructureIssue(UrlStructureIssueId.NOT_DESCRIPTIVE, [url]));
       }
 
@@ -133,28 +152,20 @@ export class UrlStructureRule extends BaseAEORule {
         }));
       }
 
-      // Check for keyword optimization
-      const keywordOptimization = this.checkKeywordOptimization(path);
-      if (keywordOptimization.optimized) {
+      // Apply keyword optimization evaluation
+      if (urlEvaluation.keywordOptimized.isOptimized) {
         evidence.push(EvidenceHelper.success(UrlStructureTopic.LENGTH, 'URL appears keyword-optimized', {
           target: 'Keyword-optimized URLs improve search visibility',
           score: 0
         }));
       } else {
-        evidence.push(EvidenceHelper.warning(UrlStructureTopic.LENGTH, 'URL could be more keyword-optimized'));
-        if (keywordOptimization.suggestion) {
-          recommendations.push(keywordOptimization.suggestion);
-          if (keywordOptimization.hasKeywordStuffing) {
-            foundIssues.push(createUrlStructureIssue(UrlStructureIssueId.KEYWORD_STUFFING, [path]));
-          } else if (keywordOptimization.hasGenericTerms) {
-            foundIssues.push(createUrlStructureIssue(UrlStructureIssueId.GENERIC_TERMS, [path]));
-          }
-        }
+        evidence.push(EvidenceHelper.warning(UrlStructureTopic.LENGTH, urlEvaluation.keywordOptimized.reason));
+        recommendations.push(urlEvaluation.keywordOptimized.reason);
+        foundIssues.push(createUrlStructureIssue(UrlStructureIssueId.GENERIC_TERMS, [path]));
       }
 
-      // Check URL hierarchy
-      const hierarchyCheck = this.checkUrlHierarchy(path);
-      if (hierarchyCheck.isGood) {
+      // Apply hierarchy evaluation
+      if (urlEvaluation.hierarchy.isGood) {
         evidence.push(EvidenceHelper.success(UrlStructureTopic.STRUCTURE, 'Clear URL hierarchy/structure', {
           target: 'Logical URL structure helps navigation and indexing',
           score: 0
@@ -162,20 +173,12 @@ export class UrlStructureRule extends BaseAEORule {
       } else {
         score -= 10;
         scoreBreakdown.push({ component: 'Poor URL hierarchy', points: -10 });
-        evidence.push(EvidenceHelper.warning(UrlStructureTopic.URL_LENGTH, `${hierarchyCheck.issue}`, { score: -10, maxScore: 10 }));
-        if (hierarchyCheck.isTooDeep) {
-          foundIssues.push(createUrlStructureIssue(
-            UrlStructureIssueId.HIERARCHY_TOO_DEEP,
-            [path],
-            hierarchyCheck.issue
-          ));
-        } else {
-          foundIssues.push(createUrlStructureIssue(
-            UrlStructureIssueId.ILLOGICAL_HIERARCHY,
-            [path],
-            hierarchyCheck.issue
-          ));
-        }
+        evidence.push(EvidenceHelper.warning(UrlStructureTopic.URL_LENGTH, urlEvaluation.hierarchy.reason, { score: -10, maxScore: 10 }));
+        foundIssues.push(createUrlStructureIssue(
+          UrlStructureIssueId.ILLOGICAL_HIERARCHY,
+          [path],
+          urlEvaluation.hierarchy.reason
+        ));
       }
 
       // Check for parameters
@@ -227,16 +230,30 @@ export class UrlStructureRule extends BaseAEORule {
     // Remove leading/trailing slashes and split
     const segments = path.replace(/^\/|\/$/g, '').split('/');
 
-    // Check if segments use readable words
-    const readablePattern = /^[a-z0-9-]+$/i;
-    const hasReadableSegments = segments.every(segment =>
-      readablePattern.test(segment) && segment.length > 0
-    );
+    if (segments.length === 0) return true; // Root path is fine
 
-    // Check if using hyphens for word separation (not underscores or camelCase)
-    const usesHyphens = segments.some(segment => segment.includes('-'));
+    // Check if segments contain actual descriptive words (not just codes/numbers)
+    const descriptiveCount = segments.filter(segment => {
+      // Skip segments that are clearly product codes or IDs
+      if (/^[0-9-]+$/.test(segment)) return false; // Pure number sequences like "24-0-0-18"
+      if (/^[0-9-]+[a-z0-9]+$/i.test(segment)) return false; // Product codes like "24-0-0-18so3"
+      if (/^p\d+$/.test(segment)) return false; // Product IDs like "p211171"
+      if (/^\d+$/.test(segment)) return false; // Pure numbers
+      if (/^[a-z]+\d+$/i.test(segment)) return false; // Letter+number codes like "abc123"
+      if (segment.length < 3) return false; // Too short to be descriptive
+      
+      // Check for mix of letters (suggests actual words)
+      const hasLetters = /[a-zA-Z]/.test(segment);
+      const letterCount = (segment.match(/[a-zA-Z]/g) || []).length;
+      const totalLength = segment.length;
+      
+      // Must have at least 60% letters to be considered descriptive
+      // Also ensure it's not just a short letter sequence
+      return hasLetters && (letterCount / totalLength) >= 0.6 && letterCount >= 3;
+    }).length;
 
-    return hasReadableSegments && (segments.length === 0 || usesHyphens || segments.every(s => s.length < 15));
+    // At least 50% of segments should be descriptive for the URL to be considered descriptive
+    return descriptiveCount >= Math.ceil(segments.length * 0.5);
   }
 
   private checkSpecialCharacters(path: string): { evidence: EvidenceItem[], issues: RuleIssue[] } {
@@ -285,6 +302,27 @@ export class UrlStructureRule extends BaseAEORule {
       return { optimized: true, suggestion: '' };
     }
 
+    // Check for meaningless segments (product codes, IDs, etc.)
+    const meaninglessSegments = segments.filter(segment => {
+      // Product codes like "24-0-0-18so3"
+      if (/^[0-9-]+$/.test(segment)) return true;
+      // Product IDs like "p211171"
+      if (/^p\d+$/.test(segment)) return true;
+      // Pure numbers
+      if (/^\d+$/.test(segment)) return true;
+      // Random character sequences
+      if (segment.length > 8 && !/[aeiou]/.test(segment)) return true;
+      return false;
+    });
+
+    if (meaninglessSegments.length > 0) {
+      return {
+        optimized: false,
+        suggestion: 'Replace product codes and IDs with descriptive keywords that users would search for',
+        hasGenericTerms: true
+      };
+    }
+
     // Check for keyword stuffing
     const wordCounts = new Map<string, number>();
     segments.forEach(segment => {
@@ -306,7 +344,7 @@ export class UrlStructureRule extends BaseAEORule {
     }
 
     // Check if URL is too generic
-    const genericTerms = ['page', 'post', 'item', 'content', 'view'];
+    const genericTerms = ['page', 'post', 'item', 'content', 'view', 'detail', 'info'];
     const hasGenericTerms = segments.some(segment =>
       genericTerms.some(term => segment === term)
     );
@@ -315,6 +353,20 @@ export class UrlStructureRule extends BaseAEORule {
       return {
         optimized: false,
         suggestion: 'Replace generic terms with descriptive keywords',
+        hasGenericTerms: true
+      };
+    }
+
+    // Check if URL contains meaningful keywords (at least some words with vowels)
+    const meaningfulSegments = segments.filter(segment => {
+      const words = segment.split('-');
+      return words.some(word => word.length > 3 && /[aeiou]/.test(word));
+    });
+
+    if (meaningfulSegments.length === 0) {
+      return {
+        optimized: false,
+        suggestion: 'Add descriptive keywords that users would search for',
         hasGenericTerms: true
       };
     }
@@ -356,5 +408,61 @@ export class UrlStructureRule extends BaseAEORule {
     }
 
     return { isGood: true };
+  }
+
+  private async evaluateUrlWithLLM(url: string, path: string): Promise<UrlEvaluation> {
+    try {
+      const prompt = `Analyze this URL for SEO and user experience quality:
+
+URL: ${url}
+Path: ${path}
+
+Evaluate the following 3 aspects:
+
+1. DESCRIPTIVE: Does the URL use descriptive, readable words instead of product codes, IDs, or meaningless characters?
+   - URLs like "/products/wireless-headphones" are descriptive
+   - URLs like "/24-0-0-18so3/p211171" or "/abc123/xyz456" are NOT descriptive
+
+2. KEYWORD_OPTIMIZED: Does the URL contain meaningful keywords that users would search for?
+   - Avoid product codes, generic terms like "page/item/content", or keyword stuffing
+   - Should contain relevant keywords for the content
+
+3. HIERARCHY: Does the URL have a logical, clear hierarchy that makes sense?
+   - Should not be too deep (5+ levels)
+   - Should follow a logical parent-child relationship
+   - Should be well-structured
+
+For each aspect, provide:
+- boolean evaluation (true = good, false = needs improvement)
+- brief reason explaining your decision`;
+
+      return await this.llmService.getStructuredOutput(
+        LlmProvider.OpenAI,
+        prompt,
+        UrlEvaluationSchema,
+        {
+          model: 'gpt-4o-mini',
+          temperature: 0.1,
+          systemPrompt: 'You are an SEO expert evaluating URL structure quality. Be strict in your evaluation - only return true for genuinely good URLs.'
+        }
+      );
+    } catch (error) {
+      // Fallback to conservative evaluation if LLM fails
+      this.logger.error(`LLM evaluation failed for URL ${url}: ${error.message}`);
+      return {
+        descriptive: {
+          isDescriptive: false,
+          reason: 'Could not evaluate URL descriptiveness (LLM unavailable)'
+        },
+        keywordOptimized: {
+          isOptimized: false,
+          reason: 'Could not evaluate keyword optimization (LLM unavailable)'
+        },
+        hierarchy: {
+          isGood: true,
+          reason: 'Fallback evaluation - assuming hierarchy is acceptable'
+        }
+      };
+    }
   }
 }

@@ -49,7 +49,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       // Default to first project if no persisted selection
       setSelectedProject(allProjects[0]);
     }
-  }, [allProjects, selectedProject]);
+  }, [allProjects]); // Remove selectedProject from dependencies to prevent infinite loop
 
   return (
     <NavigationContext.Provider

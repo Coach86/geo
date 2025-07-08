@@ -152,32 +152,32 @@ export class DomainAnalysisService {
       // Create analysis results
       const analysisResults = {
         technical: {
-          score: categoryScores.technical.score,
+          score: categoryScores.technical?.score || 0,
           maxScore: 100,
-          evidence: categoryScores.technical.ruleResults.flatMap(r => r.evidence),
+          evidence: categoryScores.technical?.ruleResults?.flatMap(r => r.evidence) || [],
           details: {},
-          issues: categoryScores.technical.issues
+          issues: categoryScores.technical?.issues || []
         },
         structure: {
-          score: categoryScores.structure.score,
+          score: categoryScores.structure?.score || 0,
           maxScore: 100,
-          evidence: categoryScores.structure.ruleResults.flatMap(r => r.evidence),
+          evidence: categoryScores.structure?.ruleResults?.flatMap(r => r.evidence) || [],
           details: {},
-          issues: categoryScores.structure.issues
+          issues: categoryScores.structure?.issues || []
         },
         authority: {
-          score: categoryScores.authority.score,
+          score: categoryScores.authority?.score || 0,
           maxScore: 100,
-          evidence: categoryScores.authority.ruleResults.flatMap(r => r.evidence),
+          evidence: categoryScores.authority?.ruleResults?.flatMap(r => r.evidence) || [],
           details: {},
-          issues: categoryScores.authority.issues
+          issues: categoryScores.authority?.issues || []
         },
         quality: {
-          score: categoryScores.monitoringkpi.score,
+          score: categoryScores.quality?.score || 0,
           maxScore: 100,
-          evidence: categoryScores.monitoringkpi.ruleResults.flatMap(r => r.evidence),
+          evidence: categoryScores.quality?.ruleResults?.flatMap(r => r.evidence) || [],
           details: {},
-          issues: categoryScores.monitoringkpi.issues
+          issues: categoryScores.quality?.issues || []
         }
       };
 

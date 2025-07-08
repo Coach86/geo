@@ -113,9 +113,19 @@ export function PageDetailView({ pageId }: PageDetailViewProps) {
       });
 
       if (result.data) {
+        console.log('Extract content response:', result.data);
+        console.log('Structured content:', result.data.structured);
+        console.log('Type of structured.content:', typeof result.data.structured?.content);
+        
         // Use structured HTML content from Mozilla Readability
         if (result.data.structured?.content) {
-          setContentHtml(result.data.structured.content);
+          // Check if content is JSON string and parse it
+          let content = result.data.structured.content;
+          if (typeof content === 'string' && content.trim().startsWith('{')) {
+            console.warn('Structured content appears to be JSON, using raw HTML instead');
+            content = result.data.html || '';
+          }
+          setContentHtml(content);
         } else {
           // Fallback to raw HTML if structured content not available
           setContentHtml(result.data.html || '');
