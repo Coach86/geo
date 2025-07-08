@@ -7,9 +7,7 @@ async function testSitemapDiscovery() {
   console.log('Testing sitemap discovery...\n');
   
   const testUrls = [
-    'https://blog.google',
-    'https://techcrunch.com',
-    'https://medium.com'
+    'https://www.malt.fr'
   ];
   
   for (const url of testUrls) {
@@ -17,8 +15,9 @@ async function testSitemapDiscovery() {
     
     try {
       const urls = await discoverUrlsFromSitemaps(url, {
-        maxUrls: 10,
-        maxDepth: 2
+        maxUrls: 20,
+        maxDepth: 2,
+        maxSitemaps: 10
       });
       
       console.log(`\nDiscovered ${urls.length} URLs:`);

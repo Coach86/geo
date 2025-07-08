@@ -2,8 +2,8 @@ const axios = require('axios');
 const { parseStringPromise } = require('xml2js');
 const { URL } = require('url');
 
-// User agent for sitemap requests
-const USER_AGENT = 'PageIntelligenceBot/1.0 (+https://mintai.com/bot)';
+// User agent for sitemap requests - using browser-like UA to avoid blocks
+const USER_AGENT = 'Mozilla/5.0 (compatible; PageIntelligenceBot/1.0; +https://mintai.com/bot)';
 
 /**
  * Normalize URL for consistent storage and comparison
@@ -277,10 +277,17 @@ async function processSitemapsRecursive(sitemapUrls, baseDomain, processedSitema
     return [];
   }
   
+  // Limit number of sitemaps processed at each level to prevent excessive recursion
+  const maxSitemapsPerLevel = 20;
+  const limitedUrls = sitemapUrls.slice(0, maxSitemapsPerLevel);
+  if (sitemapUrls.length > maxSitemapsPerLevel) {
+    console.log(`  [SITEMAP] Limited to ${maxSitemapsPerLevel} sitemaps at depth ${currentDepth} (found ${sitemapUrls.length})`);
+  }
+  
   const allUrls = [];
   const nestedSitemaps = [];
   
-  for (const sitemapUrl of sitemapUrls) {
+  for (const sitemapUrl of limitedUrls) {
     // Skip if already processed
     if (processedSitemaps.has(sitemapUrl)) {
       continue;
@@ -291,8 +298,11 @@ async function processSitemapsRecursive(sitemapUrls, baseDomain, processedSitema
     try {
       const sitemap = await fetchSitemap(sitemapUrl, baseDomain);
       
-      // Collect URLs from this sitemap
-      for (const urlEntry of sitemap.urls) {
+      // Collect URLs from this sitemap (with limit to prevent memory issues)
+      const maxUrlsPerSitemap = 1000;
+      const limitedUrls = sitemap.urls.slice(0, maxUrlsPerSitemap);
+      
+      for (const urlEntry of limitedUrls) {
         if (shouldCrawlUrl(urlEntry.url, baseDomain)) {
           allUrls.push({
             url: normalizeUrl(urlEntry.url),
@@ -302,6 +312,10 @@ async function processSitemapsRecursive(sitemapUrls, baseDomain, processedSitema
             changefreq: urlEntry.changefreq
           });
         }
+      }
+      
+      if (sitemap.urls.length > maxUrlsPerSitemap) {
+        console.log(`  [SITEMAP] Limited to first ${maxUrlsPerSitemap} URLs from ${sitemapUrl} (found ${sitemap.urls.length})`);
       }
       
       // Collect nested sitemaps for recursive processing
@@ -341,6 +355,7 @@ async function processSitemapsRecursive(sitemapUrls, baseDomain, processedSitema
 async function discoverUrlsFromSitemaps(baseUrl, options = {}) {
   const maxUrls = options.maxUrls || 1000;
   const maxDepth = options.maxDepth || 3;
+  const maxSitemaps = options.maxSitemaps || 50; // Limit number of sitemaps to process
   
   const domain = getDomain(baseUrl);
   console.log(`[SITEMAP DISCOVERY] Starting for domain: ${domain}`);
@@ -361,8 +376,13 @@ async function discoverUrlsFromSitemaps(baseUrl, options = {}) {
     return [];
   }
   
-  // Step 3: Process all sitemaps recursively
-  const discoveredUrls = await processSitemapsRecursive(allSitemapUrls, domain, new Set(), maxDepth);
+  // Step 3: Process all sitemaps recursively (with limits)
+  const limitedSitemapUrls = allSitemapUrls.slice(0, maxSitemaps);
+  if (allSitemapUrls.length > maxSitemaps) {
+    console.log(`[SITEMAP DISCOVERY] Limited to first ${maxSitemaps} sitemaps (found ${allSitemapUrls.length})`);
+  }
+  
+  const discoveredUrls = await processSitemapsRecursive(limitedSitemapUrls, domain, new Set(), maxDepth);
   
   // Step 4: Deduplicate and limit results
   const uniqueUrls = new Map();

@@ -14,8 +14,8 @@ const {
 // Import sitemap discovery
 const { discoverUrlsFromSitemaps } = require('./sitemap-parser');
 
-// User agent for crawling
-const USER_AGENT = 'PageIntelligenceBot/1.0 (+https://mintai.com/bot)';
+// User agent for crawling - using browser-like UA to avoid blocks
+const USER_AGENT = 'Mozilla/5.0 (compatible; PageIntelligenceBot/1.0; +https://mintai.com/bot)';
 
 /**
  * Normalize URL for consistent storage and comparison

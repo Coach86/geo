@@ -44,6 +44,14 @@ export class WebCrawlerService {
   private crawledUrls: Map<string, Set<string>> = new Map(); // projectId -> crawled URLs
   private robotsTxtCache: Map<string, any> = new Map(); // domain -> robots parser
   private crawlStates: Map<string, CrawlProgress> = new Map(); // projectId -> current crawl state
+  
+  private readonly userAgents = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  ];
 
   constructor(
     private readonly configService: ConfigService,
@@ -52,7 +60,7 @@ export class WebCrawlerService {
   ) {
     this.userAgent = this.configService.get<string>(
       'CRAWLER_USER_AGENT',
-      'MintAI-Crawler/1.0 (+https://mintai.com/bot)'
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     );
     this.defaultTimeout = this.configService.get<number>('CRAWLER_TIMEOUT_MS', 30000);
     this.maxConcurrentRequests = this.configService.get<number>('CRAWLER_CONCURRENT_REQUESTS', 5);
@@ -61,6 +69,13 @@ export class WebCrawlerService {
       timeout: this.defaultTimeout,
       headers: {
         'User-Agent': this.userAgent,
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
       },
       validateStatus: () => true, // Don't throw on any status code
     });
@@ -226,10 +241,18 @@ export class WebCrawlerService {
           this.activeRequests++;
           try {
             this.logger.debug(`[CRAWLER] Active requests: ${this.activeRequests}/${this.maxConcurrentRequests}`);
-            // Use custom user-agent if provided
-            const headers = options.userAgent 
-              ? { 'User-Agent': options.userAgent }
-              : {};
+            // Use custom user-agent if provided, otherwise select random one
+            const userAgent = options.userAgent || this.userAgents[Math.floor(Math.random() * this.userAgents.length)];
+            const headers = {
+              'User-Agent': userAgent,
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+              'Accept-Language': 'en-US,en;q=0.9',
+              'Accept-Encoding': 'gzip, deflate, br',
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache',
+              'Connection': 'keep-alive',
+              'Upgrade-Insecure-Requests': '1',
+            };
             return await this.axiosInstance.get(url, { headers });
           } finally {
             this.activeRequests--;
@@ -572,9 +595,12 @@ export class WebCrawlerService {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
 
-    // Apply crawl delay
+    // Apply crawl delay with random jitter
     if (delayMs > 0) {
-      await new Promise(resolve => setTimeout(resolve, delayMs));
+      // Add random jitter to the delay (±20%)
+      const jitter = delayMs * 0.2;
+      const randomDelay = delayMs + (Math.random() * jitter * 2 - jitter);
+      await new Promise(resolve => setTimeout(resolve, Math.round(randomDelay)));
     }
   }
 
@@ -671,7 +697,16 @@ export class WebCrawlerService {
   private async getSitemapsFromRobotsTxt(baseUrl: URL): Promise<string[]> {
     try {
       const robotsUrl = `${baseUrl.protocol}//${baseUrl.hostname}/robots.txt`;
-      const response = await this.axiosInstance.get(robotsUrl, { timeout: 5000 });
+      const userAgent = this.userAgents[Math.floor(Math.random() * this.userAgents.length)];
+      const response = await this.axiosInstance.get(robotsUrl, { 
+        timeout: 5000,
+        headers: {
+          'User-Agent': userAgent,
+          'Accept': 'text/plain, */*',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Connection': 'keep-alive',
+        }
+      });
       
       if (response.status === 200) {
         const robotsContent = response.data;
@@ -705,10 +740,15 @@ export class WebCrawlerService {
   private async parseSitemap(sitemapUrl: string, domain: string, options: CrawlOptions): Promise<string[]> {
     try {
       this.logger.debug(`[SITEMAP] Fetching sitemap: ${sitemapUrl}`);
+      const userAgent = this.userAgents[Math.floor(Math.random() * this.userAgents.length)];
       const response = await this.axiosInstance.get(sitemapUrl, { 
         timeout: 10000,
         headers: {
+          'User-Agent': userAgent,
           'Accept': 'application/xml, text/xml, */*',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Connection': 'keep-alive',
         }
       });
 

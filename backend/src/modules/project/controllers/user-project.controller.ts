@@ -26,6 +26,7 @@ import { UserService } from '../../user/services/user.service';
 import { OrganizationService } from '../../organization/services/organization.service';
 import { PromptService } from '../../prompt/services/prompt.service';
 import { BatchExecutionRepository } from '../../batch/repositories/batch-execution.repository';
+import { SubscriptionStatus, PlanType } from '../../organization/enums/subscription.enum';
 
 @ApiTags('User - Projects')
 @Controller('user/project')
@@ -590,8 +591,19 @@ export class UserProjectController {
         }
       }
       
-      // Don't emit project created event here - wait until plan is selected
-      // The batch processing will be triggered after the user selects a plan
+      // Check if organization has a paid plan
+      const organization = await this.organizationService.findOne(user.organizationId);
+      this.logger.log(`Organization check for ${user.organizationId}: found=${!!organization}, stripeSubscriptionId=${organization?.stripeSubscriptionId}, subscriptionStatus=${organization?.subscriptionStatus}, stripePlanId=${organization?.stripePlanId}`);
+      
+      if (organization && 
+          ((organization.stripeSubscriptionId && organization.subscriptionStatus === SubscriptionStatus.ACTIVE) || 
+           organization.stripePlanId === PlanType.MANUAL)) {
+        // Organization has an active paid subscription or manual plan, emit project created event
+        this.logger.log(`Organization ${user.organizationId} has active subscription or manual plan, triggering batch for new project ${projectId}`);
+        this.eventEmitter.emit('project.created', new ProjectCreatedEvent(projectId));
+      } else {
+        this.logger.log(`Organization ${user.organizationId} has no active subscription or manual plan, waiting for plan activation`);
+      }
 
       this.logger.log(`Project saved successfully with ID: ${projectId}`);
 
