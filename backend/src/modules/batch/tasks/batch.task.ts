@@ -25,8 +25,8 @@ export class BatchTask {
     this.logger.log('Batch task initialized. Batch processing enabled');
   }
 
-  // Run every minute (for testing)
-  @Cron('* * * * *')
+  // Run at 3am every day
+  @Cron('0 3 * * *')
   async runDailyBatch() {
     const lockName = 'daily-batch';
     const lockTTL = 60; // 60 minutes TTL
