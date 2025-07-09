@@ -11,6 +11,7 @@ import ProjectInfo from "@/components/onboarding/project-info";
 import BrandIdentity from "@/components/onboarding/brand-identity";
 import PromptSelection from "@/components/onboarding/prompt-selection";
 import PhoneVerification from "@/components/onboarding/phone-verification";
+import type { Market, Competitor, Prompt } from "./types/form-data";
 
 // Step IDs as enum for type safety
 export enum StepId {
@@ -21,11 +22,60 @@ export enum StepId {
   PRICING = 5,
 }
 
+// Type definitions for each step's data
+export interface ProjectStepData {
+  project: {
+    website: string;
+    brandName: string;
+    description: string;
+    industry: string;
+  };
+  brand: {
+    markets: Market[];
+    analyzedData?: {
+      keyBrandAttributes: string[];
+      competitors: string[];
+      fullDescription?: string;
+    };
+  };
+}
+
+export interface BrandStepData {
+  project: {
+    brandName: string;
+    description: string;
+    industry: string;
+  };
+  attributes: string[];
+  competitors: Competitor[];
+}
+
+export interface PromptsStepData {
+  visibilityPrompts: Prompt[];
+  perceptionPrompts: Prompt[];
+  alignmentPrompts?: string[];
+  competitionPrompts?: string[];
+}
+
+export interface ContactStepData {
+  phoneNumber: string;
+  phoneCountry: string;
+}
+
+// Union type for all possible step data
+export type StepData = ProjectStepData | BrandStepData | PromptsStepData | ContactStepData;
+
+// Common props that all step components accept
+export interface StepComponentProps {
+  initialData?: any;
+  onDataReady?: (data: StepData) => void;
+}
+
 export interface OnboardingStep {
   id: StepId;
   name: string;
   icon: React.ComponentType<{ className?: string }>;
-  component: React.ComponentType;
+  component: React.ComponentType<StepComponentProps>;
   path: string;
   canNavigate?: (formData: any) => boolean;
   nextButtonText?: string;

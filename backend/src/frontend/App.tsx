@@ -16,6 +16,8 @@ import PlanManagement from './pages/PlanManagement';
 import OrganizationSettings from './pages/OrganizationSettings';
 import PromoCodeManagement from './pages/PromoCodeManagement';
 import BatchStatisticsPage from './pages/BatchStatistics';
+import BatchProjectsList from './pages/BatchProjectsList';
+import BatchExecutions from './pages/BatchExecutions';
 import { ThemeProvider } from './utils/ThemeContext';
 import { socketManager } from './utils/socket';
 import { requestNotificationPermission } from './utils/notifications';
@@ -90,6 +92,8 @@ const App: React.FC = () => {
             <Route path="projects/new" element={<ProjectCreation />} />
             <Route path="batch-results/:id" element={<BatchResults />} />
             <Route path="batch-statistics" element={<BatchStatisticsPage />} />
+            <Route path="batch-projects" element={<BatchProjectsList />} />
+            <Route path="batch-executions" element={<BatchExecutions />} />
             <Route path="users" element={<UserList />} />
             <Route path="users/new" element={<UserCreation />} />
             <Route path="config" element={<Config />} />

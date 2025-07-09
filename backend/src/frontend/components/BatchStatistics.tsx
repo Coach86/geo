@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Paper,
@@ -28,6 +29,7 @@ interface BatchStatistic {
 }
 
 export const BatchStatistics: React.FC = () => {
+  const navigate = useNavigate();
   const [statistics, setStatistics] = useState<BatchStatistic[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -66,6 +68,30 @@ export const BatchStatistics: React.FC = () => {
   useEffect(() => {
     fetchStatistics();
   }, [dateRange]);
+
+  const handleStatClick = (triggerSource: string) => {
+    // Calculate date range for the query
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - dateRange);
+
+    const params = new URLSearchParams({
+      triggerSource,
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+    });
+
+    navigate(`/batch-projects?${params.toString()}`);
+  };
+
+  const handleCellClick = (triggerSource: string, date: string) => {
+    const params = new URLSearchParams({
+      triggerSource,
+      date,
+    });
+
+    navigate(`/batch-projects?${params.toString()}`);
+  };
 
   if (loading) {
     return (
@@ -111,7 +137,20 @@ export const BatchStatistics: React.FC = () => {
         <>
           {/* Summary Statistics */}
           <Box sx={{ mb: 3, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 2 }}>
-            <Paper sx={{ p: 2, textAlign: 'center', backgroundColor: '#f5f5f5' }}>
+            <Paper 
+              sx={{ 
+                p: 2, 
+                textAlign: 'center', 
+                backgroundColor: '#f5f5f5',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: 2,
+                },
+              }}
+              onClick={() => handleStatClick('total')}
+            >
               <Typography variant="h6" color="primary">
                 {statistics.reduce((sum, stat) => sum + stat.total, 0)}
               </Typography>
@@ -119,7 +158,20 @@ export const BatchStatistics: React.FC = () => {
                 Total Batches
               </Typography>
             </Paper>
-            <Paper sx={{ p: 2, textAlign: 'center', backgroundColor: '#f5f5f5' }}>
+            <Paper 
+              sx={{ 
+                p: 2, 
+                textAlign: 'center', 
+                backgroundColor: '#f5f5f5',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: 2,
+                },
+              }}
+              onClick={() => handleStatClick('cron')}
+            >
               <Typography variant="h6" sx={{ color: '#8884d8' }}>
                 {statistics.reduce((sum, stat) => sum + stat.cron, 0)}
               </Typography>
@@ -127,7 +179,20 @@ export const BatchStatistics: React.FC = () => {
                 Scheduled (Cron)
               </Typography>
             </Paper>
-            <Paper sx={{ p: 2, textAlign: 'center', backgroundColor: '#f5f5f5' }}>
+            <Paper 
+              sx={{ 
+                p: 2, 
+                textAlign: 'center', 
+                backgroundColor: '#f5f5f5',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: 2,
+                },
+              }}
+              onClick={() => handleStatClick('manual')}
+            >
               <Typography variant="h6" sx={{ color: '#82ca9d' }}>
                 {statistics.reduce((sum, stat) => sum + stat.manual, 0)}
               </Typography>
@@ -135,7 +200,20 @@ export const BatchStatistics: React.FC = () => {
                 Manual
               </Typography>
             </Paper>
-            <Paper sx={{ p: 2, textAlign: 'center', backgroundColor: '#f5f5f5' }}>
+            <Paper 
+              sx={{ 
+                p: 2, 
+                textAlign: 'center', 
+                backgroundColor: '#f5f5f5',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: 2,
+                },
+              }}
+              onClick={() => handleStatClick('project_creation')}
+            >
               <Typography variant="h6" sx={{ color: '#ffc658' }}>
                 {statistics.reduce((sum, stat) => sum + stat.project_creation, 0)}
               </Typography>
@@ -168,18 +246,45 @@ export const BatchStatistics: React.FC = () => {
                       })}
                     </TableCell>
                     <TableCell align="center">
-                      <Chip label={stat.total} size="small" color="primary" />
+                      <Chip 
+                        label={stat.total} 
+                        size="small" 
+                        color="primary"
+                        sx={{ cursor: 'pointer' }}
+                        onClick={() => handleCellClick('total', stat.date)}
+                      />
                     </TableCell>
                     <TableCell align="center">
-                      {stat.cron > 0 && <Chip label={stat.cron} size="small" sx={{ bgcolor: '#8884d8', color: 'white' }} />}
+                      {stat.cron > 0 && (
+                        <Chip 
+                          label={stat.cron} 
+                          size="small" 
+                          sx={{ bgcolor: '#8884d8', color: 'white', cursor: 'pointer' }}
+                          onClick={() => handleCellClick('cron', stat.date)}
+                        />
+                      )}
                       {stat.cron === 0 && '-'}
                     </TableCell>
                     <TableCell align="center">
-                      {stat.manual > 0 && <Chip label={stat.manual} size="small" sx={{ bgcolor: '#82ca9d', color: 'white' }} />}
+                      {stat.manual > 0 && (
+                        <Chip 
+                          label={stat.manual} 
+                          size="small" 
+                          sx={{ bgcolor: '#82ca9d', color: 'white', cursor: 'pointer' }}
+                          onClick={() => handleCellClick('manual', stat.date)}
+                        />
+                      )}
                       {stat.manual === 0 && '-'}
                     </TableCell>
                     <TableCell align="center">
-                      {stat.project_creation > 0 && <Chip label={stat.project_creation} size="small" sx={{ bgcolor: '#ffc658', color: 'white' }} />}
+                      {stat.project_creation > 0 && (
+                        <Chip 
+                          label={stat.project_creation} 
+                          size="small" 
+                          sx={{ bgcolor: '#ffc658', color: 'white', cursor: 'pointer' }}
+                          onClick={() => handleCellClick('project_creation', stat.date)}
+                        />
+                      )}
                       {stat.project_creation === 0 && '-'}
                     </TableCell>
                   </TableRow>

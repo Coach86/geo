@@ -366,14 +366,14 @@ function NavigationButtons() {
 
   return (
     <div className="w-full flex justify-between">
-      <Button variant="outline" className="flex items-center gap-2 rounded-md border-mono-200" onClick={handleBack}>
-        <ArrowLeft className="h-4 w-4" />
+      <Button variant="outline" className="flex items-center gap-2 rounded-md border-mono-200 px-6 py-3 text-base" onClick={handleBack}>
+        <ArrowLeft className="h-5 w-5" />
         <span>Back</span>
       </Button>
 
       {!isPricingStep && (
         <Button
-          className={`flex items-center gap-2 rounded-md ${
+          className={`flex items-center gap-2 rounded-md px-6 py-3 text-base ${
             canNavigate ? "bg-accent-500 hover:bg-accent-600" : "bg-gray-300"
           } text-white shadow-button transition-all duration-300`}
           onClick={handleNext}
@@ -387,7 +387,7 @@ function NavigationButtons() {
           ) : (
             <>
               <span>{buttonText}</span>
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRight className="h-5 w-5" />
             </>
           )}
         </Button>

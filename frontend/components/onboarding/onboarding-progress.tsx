@@ -43,15 +43,14 @@ export default function OnboardingProgress() {
             return (
               <div
                 key={step.id}
-                className="flex flex-col items-center cursor-pointer"
-                onClick={() => navigateToStep(step.id)}
+                className="flex flex-col items-center"
               >
                 <div
                   className={`flex items-center justify-center w-10 h-10 rounded-md mb-1 transition-colors ${
                     isActive
                       ? "bg-accent-500 text-white shadow-sm"
                       : "bg-mono-100 text-mono-400"
-                  } hover:opacity-80`}
+                  }`}
                 >
                   {Icon && <Icon className="w-5 h-5" />}
                 </div>

@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useOnboarding } from "@/providers/onboarding-provider";
 import { useAuth } from "@/providers/auth-provider";
 import { getUserProjects } from "@/lib/auth-api";
-import { getStepComponent, StepId } from "./steps.config";
+import { getStepComponent, StepId, type StepComponentProps, type StepData } from "./steps.config";
 import { getOnboardingData } from "@/lib/onboarding-storage";
 import { Globe } from "lucide-react";
 
@@ -137,18 +137,16 @@ export default function OnboardingPage() {
         break;
     }
 
-    // Cast to any to bypass TypeScript's strict checking for dynamic components
-    const AnyStepComponent = StepComponent as any;
+    // Props are properly typed via StepComponentProps
+    const props: StepComponentProps = {
+      initialData,
+      onDataReady: (data: StepData) => {
+        // Update the current step data in the onboarding context
+        setCurrentStepData(data);
+      }
+    };
 
-    return (
-      <AnyStepComponent 
-        initialData={initialData}
-        onDataReady={(data: any) => {
-          // Update the current step data in the onboarding context
-          setCurrentStepData(data);
-        }}
-      />
-    );
+    return <StepComponent {...props} />;
   };
 
   return <div className="w-full animate-fade-in">{renderStep()}</div>;

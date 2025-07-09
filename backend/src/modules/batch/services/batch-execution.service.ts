@@ -268,8 +268,12 @@ export class BatchExecutionService {
    */
   async getBatchExecutionsByProject(projectId: string): Promise<any[]> {
     try {
+      this.logger.log(`Getting batch executions for project: ${projectId}`);
+      
       // Get all batch executions for this project
       const batchExecutions = await this.batchExecutionRepository.findByProjectId(projectId);
+      
+      this.logger.log(`Found ${batchExecutions.length} batch executions for project ${projectId}`);
 
       // Get all batch execution IDs
       const batchExecutionIds = batchExecutions.map((be: { id: string }) => be.id);
@@ -294,14 +298,113 @@ export class BatchExecutionService {
         {},
       );
 
+      // Get project details
+      let project = null;
+      try {
+        project = await this.projectRepository.findById(projectId);
+      } catch (error) {
+        this.logger.warn(`Could not find project ${projectId}: ${error.message}`);
+      }
+      
       // Combine the data
       return batchExecutions.map((execution: any) => ({
         ...execution,  // Using lean() so it's already a plain object
         finalResults: resultsMap[execution.id] || [],
+        project: project ? {
+          id: project.id,
+          name: project.name || project.brandName,
+          website: project.website,
+        } : null,
       }));
     } catch (error) {
       this.logger.error(
         `Failed to get batch executions for project: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Get projects by trigger type and date
+   * @param triggerSource The trigger source (cron, manual, project_creation)
+   * @param date The date to filter by (optional)
+   * @returns Array of projects with their batch executions
+   */
+  async getProjectsByTriggerType(
+    triggerSource?: string,
+    date?: string,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<any[]> {
+    try {
+      // Build match criteria
+      const matchCriteria: any = {};
+      
+      if (triggerSource && triggerSource !== 'total') {
+        matchCriteria.triggerSource = triggerSource;
+      }
+      
+      if (date) {
+        // If specific date is provided, filter for that day
+        const dateObj = new Date(date);
+        const nextDay = new Date(date);
+        nextDay.setDate(nextDay.getDate() + 1);
+        
+        matchCriteria.executedAt = {
+          $gte: dateObj,
+          $lt: nextDay,
+        };
+      } else if (startDate && endDate) {
+        // If date range is provided
+        matchCriteria.executedAt = {
+          $gte: startDate,
+          $lte: endDate,
+        };
+      }
+      
+      // Get batch executions matching criteria
+      const batchExecutions = await this.batchExecutionRepository.find(matchCriteria);
+      
+      // Get unique project IDs
+      const projectIds = [...new Set(batchExecutions.map((be: any) => be.projectId))];
+      
+      // Get project details
+      const projects = await Promise.all(
+        projectIds.map(async (projectId) => {
+          try {
+            const project = await this.projectRepository.findById(projectId);
+            const projectBatches = batchExecutions.filter((be: any) => be.projectId === projectId);
+            
+            // Convert Mongoose document to plain object
+            const projectData = project.toObject ? project.toObject() : project;
+            
+            return {
+              _id: projectData._id,
+              id: projectData.id,
+              name: projectData.name || projectData.brandName,
+              brandName: projectData.brandName,
+              website: projectData.website,
+              createdAt: projectData.createdAt,
+              organizationId: projectData.organizationId,
+              batchExecutions: projectBatches.map((be: any) => ({
+                id: be.id,
+                executedAt: be.executedAt,
+                triggerSource: be.triggerSource,
+                status: be.status,
+              })),
+            };
+          } catch (error) {
+            this.logger.warn(`Failed to get project ${projectId}: ${error.message}`);
+            return null;
+          }
+        }),
+      );
+      
+      return projects.filter(p => p !== null);
+    } catch (error) {
+      this.logger.error(
+        `Failed to get projects by trigger type: ${error.message}`,
         error.stack,
       );
       throw error;
