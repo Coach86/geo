@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -50,41 +50,6 @@ interface Organization {
   createdAt: string;
 }
 
-// Memoized search component to prevent focus loss
-const SearchInput = memo(({ value, onChange, onClear }: { 
-  value: string; 
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; 
-  onClear: () => void;
-}) => {
-  return (
-    <TextField
-      fullWidth
-      size="small"
-      placeholder="Search users by email..."
-      value={value}
-      onChange={onChange}
-      InputProps={{
-        startAdornment: (
-          <InputAdornment position="start">
-            <SearchIcon sx={{ color: 'text.secondary' }} />
-          </InputAdornment>
-        ),
-        endAdornment: value && (
-          <InputAdornment position="end">
-            <IconButton
-              size="small"
-              onClick={onClear}
-            >
-              <ClearIcon />
-            </IconButton>
-          </InputAdornment>
-        ),
-      }}
-    />
-  );
-});
-
-SearchInput.displayName = 'SearchInput';
 
 const UserList: React.FC = () => {
   const navigate = useNavigate();
@@ -245,6 +210,159 @@ const UserList: React.FC = () => {
     );
   }
 
+  // Memoize the table content to prevent re-renders during search
+  const tableContent = useMemo(() => {
+    if (dataLoading) {
+      return (
+        <Box sx={{ p: 4, textAlign: 'center' }}>
+          <CircularProgress size={40} />
+          <Typography variant="body2" sx={{ mt: 2 }}>Loading users...</Typography>
+        </Box>
+      );
+    }
+
+    if (!usersData || usersData.data.length === 0) {
+      return (
+        <Box sx={{ p: 4, textAlign: 'center' }}>
+          <Typography variant="body1">
+            {localSearch || pagination.search ? 'No users found matching your search.' : 'No users found.'}
+          </Typography>
+          {!localSearch && !pagination.search && (
+            <Button
+              variant="outlined"
+              color="primary"
+              startIcon={<AddIcon />}
+              component={RouterLink}
+              to="/users/new"
+              sx={{ mt: 2 }}
+            >
+              Add Your First User
+            </Button>
+          )}
+        </Box>
+      );
+    }
+
+    return (
+      <TableContainer component={Paper}>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ maxWidth: 250 }}>Email</TableCell>
+              <TableCell sx={{ maxWidth: 200 }}>Organization</TableCell>
+              <TableCell sx={{ width: 100 }}>Language</TableCell>
+              <TableCell sx={{ width: 120 }}>Phone</TableCell>
+              <TableCell sx={{ width: 80 }}>Projects</TableCell>
+              <TableCell sx={{ width: 100 }}>Created</TableCell>
+              <TableCell align="center" sx={{ width: 100 }}>Actions</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {usersData.data.map((user) => (
+              <TableRow key={user.id} hover sx={{ '& td': { py: 1 } }}>
+                <TableCell sx={{ maxWidth: 250 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0 }}>
+                    <EmailIcon sx={{ mr: 0.5, color: 'text.secondary', fontSize: 16, flexShrink: 0 }} />
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}
+                      title={user.email}
+                    >
+                      {user.email}
+                    </Typography>
+                  </Box>
+                </TableCell>
+                <TableCell sx={{ maxWidth: 200 }}>
+                  <Box sx={{ minWidth: 0 }}>
+                    {user.organizationId ? (
+                      <Link
+                        component="button"
+                        variant="body2"
+                        onClick={() => handleOrganizationClick(user.organizationId!)}
+                        sx={{
+                          textDecoration: 'none',
+                          color: 'primary.main',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          display: 'block',
+                          textAlign: 'left',
+                          maxWidth: '100%',
+                          '&:hover': {
+                            textDecoration: 'underline',
+                          },
+                        }}
+                        title={user.organizationId}
+                      >
+                        {getOrganizationId(user.organizationId)}
+                      </Link>
+                    ) : (
+                      <Typography variant="body2">-</Typography>
+                    )}
+                  </Box>
+                </TableCell>
+                <TableCell>
+                  <Chip
+                    label={user.language.toUpperCase()}
+                    size="small"
+                    sx={{ 
+                      height: 20,
+                      fontSize: '0.7rem',
+                      '& .MuiChip-label': { px: 1 }
+                    }}
+                  />
+                </TableCell>
+                <TableCell>
+                  <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                    {user.phoneNumber || '-'}
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                    {user.projectIds?.length || 0}
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                    {new Date(user.createdAt).toLocaleDateString()}
+                  </Typography>
+                </TableCell>
+                <TableCell align="center">
+                  <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.5 }}>
+                    <Tooltip title="Edit User">
+                      <IconButton
+                        size="small"
+                        onClick={() => handleEditClick(user)}
+                        color="primary"
+                        sx={{ p: 0.5 }}
+                      >
+                        <EditIcon sx={{ fontSize: 18 }} />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Delete User">
+                      <IconButton
+                        size="small"
+                        onClick={() => handleDeleteUser(user.id)}
+                        color="error"
+                        sx={{ p: 0.5 }}
+                      >
+                        <DeleteIcon sx={{ fontSize: 18 }} />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    );
+  }, [dataLoading, usersData, localSearch, pagination.search, handleEditClick, handleDeleteUser, handleOrganizationClick, getOrganizationId]);
+
   return (
     <Container maxWidth="lg">
       <Box sx={{ mb: 4 }}>
@@ -271,160 +389,39 @@ const UserList: React.FC = () => {
         </Box>
       </Box>
 
+      {/* Search Bar - Keep outside Card to prevent re-render issues */}
+      <Box sx={{ mb: 3 }}>
+        <TextField
+          fullWidth
+          size="small"
+          placeholder="Search users by email..."
+          value={localSearch}
+          onChange={handleSearchChange}
+          inputRef={searchInputRef}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon sx={{ color: 'text.secondary' }} />
+              </InputAdornment>
+            ),
+            endAdornment: localSearch && (
+              <InputAdornment position="end">
+                <IconButton
+                  size="small"
+                  onClick={clearSearch}
+                >
+                  <ClearIcon />
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
+          key="user-search-input"
+        />
+      </Box>
+
       <Card>
-        <CardContent>
-          {/* Search Bar */}
-          <Box sx={{ mb: 3 }}>
-            <SearchInput 
-              value={localSearch}
-              onChange={handleSearchChange}
-              onClear={clearSearch}
-            />
-          </Box>
-        </CardContent>
-        
         <CardContent sx={{ p: 0 }}>
-          {dataLoading ? (
-            <Box sx={{ p: 4, textAlign: 'center' }}>
-              <CircularProgress size={40} />
-              <Typography variant="body2" sx={{ mt: 2 }}>Loading users...</Typography>
-            </Box>
-          ) : !usersData || usersData.data.length === 0 ? (
-            <Box sx={{ p: 4, textAlign: 'center' }}>
-              <Typography variant="body1">
-                {localSearch || pagination.search ? 'No users found matching your search.' : 'No users found.'}
-              </Typography>
-              {!localSearch && !pagination.search && (
-                <Button
-                variant="outlined"
-                color="primary"
-                startIcon={<AddIcon />}
-                component={RouterLink}
-                to="/users/new"
-                sx={{ mt: 2 }}
-              >
-                Add Your First User
-              </Button>
-              )}
-            </Box>
-          ) : (
-            <TableContainer component={Paper}>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ maxWidth: 250 }}>Email</TableCell>
-                    <TableCell sx={{ maxWidth: 200 }}>Organization</TableCell>
-                    <TableCell sx={{ width: 100 }}>Language</TableCell>
-                    <TableCell sx={{ width: 120 }}>Phone</TableCell>
-                    <TableCell sx={{ width: 80 }}>Projects</TableCell>
-                    <TableCell sx={{ width: 100 }}>Created</TableCell>
-                    <TableCell align="center" sx={{ width: 100 }}>Actions</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {usersData.data.map((user) => (
-                    <TableRow key={user.id} hover sx={{ '& td': { py: 1 } }}>
-                      <TableCell sx={{ maxWidth: 250 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0 }}>
-                          <EmailIcon sx={{ mr: 0.5, color: 'text.secondary', fontSize: 16, flexShrink: 0 }} />
-                          <Typography 
-                            variant="body2" 
-                            sx={{ 
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap'
-                            }}
-                            title={user.email}
-                          >
-                            {user.email}
-                          </Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell sx={{ maxWidth: 200 }}>
-                        <Box sx={{ minWidth: 0 }}>
-                          {user.organizationId ? (
-                            <Link
-                              component="button"
-                              variant="body2"
-                              onClick={() => handleOrganizationClick(user.organizationId!)}
-                              sx={{
-                                textDecoration: 'none',
-                                color: 'primary.main',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                                display: 'block',
-                                textAlign: 'left',
-                                maxWidth: '100%',
-                                '&:hover': {
-                                  textDecoration: 'underline',
-                                },
-                              }}
-                              title={user.organizationId}
-                            >
-                              {getOrganizationId(user.organizationId)}
-                            </Link>
-                          ) : (
-                            <Typography variant="body2">-</Typography>
-                          )}
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={user.language.toUpperCase()}
-                          size="small"
-                          sx={{ 
-                            height: 20,
-                            fontSize: '0.7rem',
-                            '& .MuiChip-label': { px: 1 }
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
-                          {user.phoneNumber || '-'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
-                          {user.projectIds?.length || 0}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
-                          {new Date(user.createdAt).toLocaleDateString()}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="center">
-                        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.5 }}>
-                          <Tooltip title="Edit User">
-                            <IconButton
-                              size="small"
-                              onClick={() => handleEditClick(user)}
-                              color="primary"
-                              sx={{ p: 0.5 }}
-                            >
-                              <EditIcon sx={{ fontSize: 18 }} />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Delete User">
-                            <IconButton
-                              size="small"
-                              onClick={() => handleDeleteUser(user.id)}
-                              color="error"
-                              sx={{ p: 0.5 }}
-                            >
-                              <DeleteIcon sx={{ fontSize: 18 }} />
-                            </IconButton>
-                          </Tooltip>
-                        </Box>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
+          {tableContent}
           {usersData && usersData.totalPages > 1 && (
             <Box sx={{ p: 2 }}>
               <Pagination

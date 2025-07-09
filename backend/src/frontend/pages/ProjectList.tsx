@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Typography,
@@ -60,6 +60,7 @@ interface Organization {
 const ProjectList: React.FC = () => {
   const [projectsData, setProjectsData] = useState<PaginatedResponse<Project> | null>(null);
   const [loading, setLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentView, setCurrentView] = useState<number>(0);
   const [selectedOrganizationId, setSelectedOrganizationId] = useState<string>('');
