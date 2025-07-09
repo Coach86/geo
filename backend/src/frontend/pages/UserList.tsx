@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -50,11 +50,48 @@ interface Organization {
   createdAt: string;
 }
 
+// Memoized search component to prevent focus loss
+const SearchInput = memo(({ value, onChange, onClear }: { 
+  value: string; 
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; 
+  onClear: () => void;
+}) => {
+  return (
+    <TextField
+      fullWidth
+      size="small"
+      placeholder="Search users by email..."
+      value={value}
+      onChange={onChange}
+      InputProps={{
+        startAdornment: (
+          <InputAdornment position="start">
+            <SearchIcon sx={{ color: 'text.secondary' }} />
+          </InputAdornment>
+        ),
+        endAdornment: value && (
+          <InputAdornment position="end">
+            <IconButton
+              size="small"
+              onClick={onClear}
+            >
+              <ClearIcon />
+            </IconButton>
+          </InputAdornment>
+        ),
+      }}
+    />
+  );
+});
+
+SearchInput.displayName = 'SearchInput';
+
 const UserList: React.FC = () => {
   const navigate = useNavigate();
   const [usersData, setUsersData] = useState<PaginatedResponse<User> | null>(null);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -91,22 +128,21 @@ const UserList: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      setLoading(true);
+      // Use separate loading state for data updates
+      setDataLoading(true);
       const [userData, orgsData] = await Promise.all([
         getUsers(pagination.queryParams),
         getAllOrganizations(),
       ]);
       setUsersData(userData);
       setOrganizations(orgsData.data || orgsData); // Handle both paginated and non-paginated response
+      setError(null);
     } catch (err) {
       console.error('Failed to fetch data:', err);
       setError('Failed to load data. Please try again.');
     } finally {
       setLoading(false);
-      // Restore focus to search input after data loads
-      if (searchInputRef.current && document.activeElement !== searchInputRef.current) {
-        searchInputRef.current.focus();
-      }
+      setDataLoading(false);
     }
   };
 
@@ -170,7 +206,7 @@ const UserList: React.FC = () => {
     navigate(`/organization?filter=${organizationId}`);
   };
 
-  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSearchChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
     setLocalSearch(value);
     
@@ -183,15 +219,15 @@ const UserList: React.FC = () => {
     searchTimeoutRef.current = setTimeout(() => {
       pagination.setSearch(value);
     }, 500); // 500ms debounce
-  };
+  }, [pagination]);
 
-  const clearSearch = () => {
+  const clearSearch = useCallback(() => {
     setLocalSearch('');
     pagination.setSearch('');
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
-  };
+  }, [pagination]);
 
   if (loading) {
     return (
@@ -239,41 +275,26 @@ const UserList: React.FC = () => {
         <CardContent>
           {/* Search Bar */}
           <Box sx={{ mb: 3 }}>
-            <TextField
-              fullWidth
-              size="small"
-              placeholder="Search users by email..."
+            <SearchInput 
               value={localSearch}
               onChange={handleSearchChange}
-              inputRef={searchInputRef}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon sx={{ color: 'text.secondary' }} />
-                  </InputAdornment>
-                ),
-                endAdornment: localSearch && (
-                  <InputAdornment position="end">
-                    <IconButton
-                      size="small"
-                      onClick={clearSearch}
-                    >
-                      <ClearIcon />
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
+              onClear={clearSearch}
             />
           </Box>
         </CardContent>
         
         <CardContent sx={{ p: 0 }}>
-          {!usersData || usersData.data.length === 0 ? (
+          {dataLoading ? (
+            <Box sx={{ p: 4, textAlign: 'center' }}>
+              <CircularProgress size={40} />
+              <Typography variant="body2" sx={{ mt: 2 }}>Loading users...</Typography>
+            </Box>
+          ) : !usersData || usersData.data.length === 0 ? (
             <Box sx={{ p: 4, textAlign: 'center' }}>
               <Typography variant="body1">
-                {pagination.search ? 'No users found matching your search.' : 'No users found.'}
+                {localSearch || pagination.search ? 'No users found matching your search.' : 'No users found.'}
               </Typography>
-              {!pagination.search && (
+              {!localSearch && !pagination.search && (
                 <Button
                 variant="outlined"
                 color="primary"
