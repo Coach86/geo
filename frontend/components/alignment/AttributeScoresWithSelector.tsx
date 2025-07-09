@@ -68,7 +68,7 @@ export function AttributeScoresWithSelector({
               alignment: item.score >= 80 ? 'aligned' : item.score >= 50 ? 'neutral' : 'misaligned'
             })),
           },
-          detailedResults: [],
+          detailedResults: data.detailedResults || [],
         };
         setAlignmentData(alignmentResults);
       } catch (error) {

@@ -1,6 +1,7 @@
 /**
  * API Types and Interfaces
  */
+import { DetailedAlignmentResult } from '@/types/alignment';
 
 // User types
 export interface CreateUserRequest {
@@ -272,5 +273,6 @@ export interface AlignmentSummary {
 
 export interface AlignmentData {
   summary: AlignmentSummary;
+  detailedResults: DetailedAlignmentResult[];
   // Add other alignment fields if needed
 }
