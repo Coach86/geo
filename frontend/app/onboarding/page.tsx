@@ -132,7 +132,7 @@ export default function OnboardingPage() {
       case StepId.CONTACT:
         initialData = {
           phoneNumber: existingData.contact?.phoneNumber || "",
-          phoneCountry: existingData.contact?.phoneCountry || "US",
+          phoneCountry: existingData.contact?.phoneCountry, // Don't default to US, let component detect
         };
         break;
     }

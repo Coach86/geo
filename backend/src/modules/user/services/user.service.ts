@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException, forwardRef, Inject } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, forwardRef, Inject, BadRequestException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { v4 as uuidv4 } from 'uuid';
 import { CreateUserDto } from '../dto/create-user.dto';
@@ -15,6 +15,7 @@ import { PostHogService } from '../../analytics/services/posthog.service';
 import { UserCreatedEvent } from '../events/user-created.event';
 import { UserUpdatedEvent } from '../events/user-updated.event';
 import { UserDeletedEvent } from '../events/user-deleted.event';
+import { isDisposableEmail, DISPOSABLE_EMAIL_ERROR_MESSAGE } from '../../../common/constants/disposable-emails';
 
 @Injectable()
 export class UserService {
@@ -36,6 +37,12 @@ export class UserService {
   async create(createUserDto: CreateUserDto): Promise<UserResponseDto> {
     try {
       this.logger.log(`Creating user with email: ${createUserDto.email}`);
+
+      // Check if email is disposable
+      if (isDisposableEmail(createUserDto.email)) {
+        this.logger.warn(`Attempted to create user with disposable email: ${createUserDto.email}`);
+        throw new BadRequestException(DISPOSABLE_EMAIL_ERROR_MESSAGE);
+      }
 
       let organizationId = createUserDto.organizationId;
       let isNewOrganization = false;
@@ -275,6 +282,12 @@ export class UserService {
   async updateEmail(id: string, updateEmailDto: UpdateEmailDto): Promise<UserResponseDto> {
     try {
       this.logger.log(`Updating email for user: ${id}`);
+
+      // Check if new email is disposable
+      if (isDisposableEmail(updateEmailDto.email)) {
+        this.logger.warn(`Attempted to update user ${id} with disposable email: ${updateEmailDto.email}`);
+        throw new BadRequestException(DISPOSABLE_EMAIL_ERROR_MESSAGE);
+      }
 
       // Check if user exists and get current email
       const currentUser = await this.findOne(id);

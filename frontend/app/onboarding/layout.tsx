@@ -190,7 +190,7 @@ function NavigationButtons() {
             contact: {
               ...existingData.contact,
               phoneNumber: currentStepData.phoneNumber || "",
-              phoneCountry: currentStepData.phoneCountry || "US",
+              phoneCountry: currentStepData.phoneCountry || "",
             }
           });
           // From contact step, create the project before going to pricing

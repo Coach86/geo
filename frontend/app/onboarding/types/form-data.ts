@@ -115,7 +115,7 @@ export const DEFAULT_PROMPT_DATA: PromptData = {
 export const DEFAULT_CONTACT_DATA: ContactData = {
   email: "",
   phoneNumber: "",
-  phoneCountry: "US",
+  phoneCountry: "", // Let the component auto-detect
 };
 
 export function createDefaultFormData(): OnboardingFormData {

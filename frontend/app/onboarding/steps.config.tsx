@@ -126,7 +126,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   {
     id: StepId.CONTACT,
     name: "Account",
-    icon: Phone,
+    icon: CheckCircle,
     component: PhoneVerification,
     path: "/onboarding",
     canNavigate: (formData) => {
