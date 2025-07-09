@@ -64,7 +64,7 @@ export default function ProjectInfo({ initialData, onDataReady }: ProjectInfoCom
         },
       });
     }
-  }, [website, markets, onDataReady]);
+  }, [website, markets]); // Remove onDataReady from deps to avoid infinite loop
 
 
   const handleMarketsChange = (newMarkets: Market[]) => {

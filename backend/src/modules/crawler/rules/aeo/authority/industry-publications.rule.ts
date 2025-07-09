@@ -7,6 +7,7 @@ import { EvidenceHelper } from '../../../utils/evidence.helper';
 import { LlmService } from '../../../../llm/services/llm.service';
 import { LlmProvider } from '../../../../llm/interfaces/llm-provider.enum';
 import { z } from 'zod';
+import * as psl from 'psl';
 
 // Evidence topics for this rule
 enum IndustryPublicationsTopic {
@@ -360,11 +361,19 @@ Return structured data following the schema provided.`;
   private extractBrandName(url: string): string {
     try {
       const hostname = new URL(url).hostname;
-      // Remove common TLDs and www
-      const brand = hostname
-        .replace(/^www\./, '')
-        .replace(/\.(com|org|net|io|co|ai|app|dev)(\.[a-z]{2})?$/i, '')
-        .split('.').pop() || hostname;
+      
+      // Use psl to parse the domain properly
+      const parsed = psl.parse(hostname);
+      
+      if (!parsed || 'error' in parsed) {
+        return 'the company';
+      }
+      
+      // Get the main domain without TLD
+      // For "tally.so", this returns "tally"
+      // For "app.tally.so", this returns "tally"
+      // For "example.co.uk", this returns "example"
+      const brand = parsed.sld || 'the company';
       
       // Capitalize first letter
       return brand.charAt(0).toUpperCase() + brand.slice(1);

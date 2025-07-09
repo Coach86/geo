@@ -146,7 +146,7 @@ export default function PhoneVerification({ initialData, onDataReady }: PhoneVer
     if (onDataReady) {
       onDataReady({ phoneNumber, phoneCountry });
     }
-  }, [phoneNumber, phoneCountry, onDataReady]);
+  }, [phoneNumber, phoneCountry]); // Remove onDataReady from deps to avoid infinite loop
 
   // Fonction pour formater le numéro de téléphone
   const formatPhoneNumber = (value: string) => {

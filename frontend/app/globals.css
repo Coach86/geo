@@ -424,6 +424,9 @@
   .animation-delay-400 {
     animation-delay: 400ms;
   }
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+  }
 }
 
 /* Page Magic Content Styles - Override global and prose styles */

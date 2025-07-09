@@ -137,8 +137,17 @@ export default function OnboardingPage() {
         break;
     }
 
+    // Cast to any to bypass TypeScript's strict checking for dynamic components
+    const AnyStepComponent = StepComponent as any;
+
     return (
-      <StepComponent />
+      <AnyStepComponent 
+        initialData={initialData}
+        onDataReady={(data: any) => {
+          // Update the current step data in the onboarding context
+          setCurrentStepData(data);
+        }}
+      />
     );
   };
 

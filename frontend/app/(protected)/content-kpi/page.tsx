@@ -63,20 +63,11 @@ export default function PageIntelligencePage() {
         title: "Preparing analysis",
         description: `Clearing ${event.deletedCount || 'existing'} previous content scores...`,
       });
-      // Reload the page with crawling parameter to show loader
-      setTimeout(() => {
-        // Get current URL parts
-        const currentUrl = window.location.href;
-        const hashIndex = currentUrl.indexOf('#');
-        const hash = hashIndex !== -1 ? currentUrl.substring(hashIndex) : '';
-        const baseUrl = hashIndex !== -1 ? currentUrl.substring(0, hashIndex) : currentUrl;
-        
-        // Add or update the crawling parameter
-        const separator = baseUrl.includes('?') ? '&' : '?';
-        const newUrl = `${baseUrl}${separator}crawling=true${hash}`;
-        
-        window.location.href = newUrl;
-      }, 500);
+      // Set crawling state and refetch data instead of reloading page
+      setIsCrawling(true);
+      setCrawlProgress({ crawledPages: 0, totalPages: 100, currentUrl: 'Starting...', status: 'started' });
+      // Refetch data to clear the current content
+      refetch();
       return;
     }
     
@@ -103,11 +94,13 @@ export default function PageIntelligencePage() {
       }
     } else if (event.eventType === 'crawler.completed') {
       setIsCrawling(false);
-      setCrawlProgress(null);
-      // Add a small delay before refetching to ensure backend has finished processing
-      setTimeout(() => {
-        refetch(); // Refresh the data
-      }, 1000);
+      // Keep progress but mark as completed
+      setCrawlProgress(prev => ({
+        crawledPages: event.crawledPages || prev?.crawledPages || 0,
+        totalPages: event.totalPages || prev?.totalPages || 100,
+        currentUrl: 'Completed',
+        status: 'completed',
+      }));
       toast({
         title: "Crawl completed",
         description: `Successfully analyzed ${event.crawledPages || 0} pages`,
@@ -175,8 +168,13 @@ export default function PageIntelligencePage() {
             }));
           } else {
             setIsCrawling(false);
-            setCrawlProgress(null);
-            refetch(); // Refresh the data
+            // Keep progress but mark as completed
+            setCrawlProgress(prev => ({
+              crawledPages: status.crawledPages || prev?.crawledPages || 0,
+              totalPages: status.totalPages || prev?.totalPages || 100,
+              currentUrl: 'Completed',
+              status: 'completed',
+            }));
             toast({
               title: "Crawl completed",
               description: `Successfully analyzed ${status.crawledPages || 0} pages`,
@@ -186,7 +184,10 @@ export default function PageIntelligencePage() {
           console.error('Error checking crawl status:', error);
           // If polling fails, assume crawl is complete
           setIsCrawling(false);
-          setCrawlProgress(null);
+          setCrawlProgress(prev => prev ? {
+            ...prev,
+            status: 'completed'
+          } : null);
         }
       }, 3000); // Reduced frequency to 3 seconds since it's just a fallback
     }

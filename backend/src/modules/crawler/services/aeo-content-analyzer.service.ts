@@ -58,6 +58,32 @@ export class AEOContentAnalyzerService extends ContentAnalyzerService {
         page.metadata || {}
       );
 
+      // Check if page should be skipped based on category
+      if (pageCategory.analysisLevel === AnalysisLevel.EXCLUDED) {
+        this.aeoLogger.log(`[AEO] Skipping excluded page category ${pageCategory.type}: ${page.url}`);
+        
+        // Return a skipped result with zero scores
+        return {
+          scores: {
+            technical: 0,
+            structure: 0,
+            authority: 0,
+            quality: 0
+          },
+          globalScore: 0,
+          title: page.metadata?.title,
+          pageType: 'skipped',
+          pageCategory: pageCategory.type,
+          analysisLevel: pageCategory.analysisLevel,
+          categoryConfidence: pageCategory.confidence,
+          skipped: true,
+          skipReason: `Page category "${this.pageCategorizerService.getCategoryDisplayName(pageCategory.type)}" is excluded from analysis`,
+          ruleResults: [],
+          recommendations: [],
+          issues: []
+        };
+      }
+
       // Prepare page content for AEO analysis
       const pageContent: PageContent = {
         url: page.url,

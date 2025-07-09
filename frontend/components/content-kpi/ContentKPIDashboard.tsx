@@ -61,6 +61,50 @@ const SEVERITY_ICONS = {
   low: CheckCircle,
 };
 
+// Animated status text component
+const AnimatedStatusText = ({ status }: { status?: string }) => {
+  const [currentTextIndex, setCurrentTextIndex] = useState(0);
+  
+  const crawlingTexts = [
+    'Getting HTML content...',
+    'Parsing page structure...',
+    'Following internal links...',
+    'Checking robots.txt...',
+    'Extracting metadata...',
+    'Discovering new pages...',
+    'Validating URLs...',
+    'Building sitemap...'
+  ];
+  
+  const analyzingTexts = [
+    'Checking HTML validity...',
+    'Analyzing content depth...',
+    'Evaluating SEO signals...',
+    'Processing page structure...',
+    'Examining authority markers...',
+    'Calculating quality metrics...',
+    'Running AI analysis...',
+    'Generating insights...'
+  ];
+  
+  const texts = status === 'analyzing' ? analyzingTexts : crawlingTexts;
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTextIndex((prev) => (prev + 1) % texts.length);
+    }, 2000); // Change text every 2 seconds
+    
+    return () => clearInterval(interval);
+  }, [texts.length, status]);
+  
+  return (
+    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+      <Loader2 className="h-3 w-3 animate-spin" />
+      <span className="animate-fade-in">{texts[currentTextIndex]}</span>
+    </div>
+  );
+};
+
 // Helper function to format URLs for display
 const formatUrlForDisplay = (url: string, maxLength: number = 60): string => {
   if (!url || url === 'Starting...') return url;
@@ -241,15 +285,20 @@ export function ContentKPIDashboard({
           </CardContent>
         </Card>
 
-        {/* Progress Bar when crawling */}
-        {isCrawling && crawlProgress && crawlProgress.totalPages > 0 && (
+        {/* Progress Bar when crawling or completed */}
+        {(isCrawling || crawlProgress?.status === 'completed') && crawlProgress && crawlProgress.totalPages > 0 && (
           <Card>
             <CardContent className="pt-6">
               <div className="space-y-3">
                 <div className="flex justify-between text-sm">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      {crawlProgress.status === 'analyzing' ? (
+                      {crawlProgress.status === 'completed' ? (
+                        <>
+                          <CheckCircle className="h-4 w-4 text-green-600" />
+                          <span>Analysis completed successfully!</span>
+                        </>
+                      ) : crawlProgress.status === 'analyzing' ? (
                         <>
                           <Brain className="h-4 w-4 animate-pulse" />
                           <span>Analyzing content with AI...</span>
@@ -261,7 +310,7 @@ export function ContentKPIDashboard({
                         </>
                       )}
                     </div>
-                    {crawlProgress.currentUrl && crawlProgress.currentUrl !== 'Starting...' && crawlProgress.status !== 'analyzing' && (
+                    {crawlProgress.currentUrl && crawlProgress.currentUrl !== 'Starting...' && crawlProgress.currentUrl !== 'Completed' && crawlProgress.status !== 'analyzing' && (
                       <div className="flex items-center text-xs text-muted-foreground mt-1">
                         <Globe className="h-3 w-3 mr-1 flex-shrink-0" />
                         <span className="truncate" title={crawlProgress.currentUrl}>
@@ -274,6 +323,11 @@ export function ContentKPIDashboard({
                         Processing crawled data and generating insights...
                       </div>
                     )}
+                    {crawlProgress.status === 'completed' && (
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Successfully analyzed {crawlProgress.crawledPages} pages. Click reload to view the results.
+                      </div>
+                    )}
                   </div>
                   <span className="font-medium">{Math.min(100, Math.round((crawlProgress.crawledPages / crawlProgress.totalPages) * 100))}%</span>
                 </div>
@@ -282,13 +336,29 @@ export function ContentKPIDashboard({
                   className="h-2"
                 />
                 <div className="space-y-1">
-                  <div className="flex justify-between text-xs text-muted-foreground">
+                  <div className="flex justify-between items-center text-xs text-muted-foreground">
                     <span>
-                      {crawlProgress.status === 'analyzing' 
+                      {crawlProgress.status === 'completed'
+                        ? `Analyzed: ${crawlProgress.crawledPages} pages`
+                        : crawlProgress.status === 'analyzing' 
                         ? `Analyzing: ${crawlProgress.crawledPages} / ${crawlProgress.totalPages} pages`
                         : `Pages crawled: ${crawlProgress.crawledPages} / ${crawlProgress.totalPages}`
                       }
                     </span>
+                    {crawlProgress.status === 'completed' ? (
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          window.location.reload();
+                        }}
+                        className="h-7"
+                      >
+                        <Loader2 className="mr-1.5 h-3 w-3" />
+                        Reload
+                      </Button>
+                    ) : (
+                      <AnimatedStatusText status={crawlProgress.status} />
+                    )}
                   </div>
                 </div>
               </div>
@@ -348,15 +418,20 @@ export function ContentKPIDashboard({
 
   return (
     <div className="space-y-6">
-      {/* Progress Bar when crawling */}
-      {isCrawling && crawlProgress && crawlProgress.totalPages > 0 && (
+      {/* Progress Bar when crawling or completed */}
+      {(isCrawling || crawlProgress?.status === 'completed') && crawlProgress && crawlProgress.totalPages > 0 && (
         <Card>
           <CardContent className="pt-6">
             <div className="space-y-3">
               <div className="flex justify-between text-sm">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    {crawlProgress.status === 'analyzing' ? (
+                    {crawlProgress.status === 'completed' ? (
+                      <>
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <span>Analysis completed successfully!</span>
+                      </>
+                    ) : crawlProgress.status === 'analyzing' ? (
                       <>
                         <Brain className="h-4 w-4 animate-pulse" />
                         <span>Analyzing content with AI...</span>
@@ -368,7 +443,7 @@ export function ContentKPIDashboard({
                       </>
                     )}
                   </div>
-                  {crawlProgress.currentUrl && crawlProgress.currentUrl !== 'Starting...' && crawlProgress.status !== 'analyzing' && (
+                  {crawlProgress.currentUrl && crawlProgress.currentUrl !== 'Starting...' && crawlProgress.currentUrl !== 'Completed' && crawlProgress.status !== 'analyzing' && (
                     <div className="flex items-center text-xs text-muted-foreground mt-1">
                       <Globe className="h-3 w-3 mr-1 flex-shrink-0" />
                       <span className="truncate" title={crawlProgress.currentUrl}>
@@ -381,6 +456,11 @@ export function ContentKPIDashboard({
                       Processing crawled data and generating insights...
                     </div>
                   )}
+                  {crawlProgress.status === 'completed' && (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Successfully analyzed {crawlProgress.crawledPages} pages. Click reload to view the results.
+                    </div>
+                  )}
                 </div>
                 <span className="font-medium">{Math.min(100, Math.round((crawlProgress.crawledPages / crawlProgress.totalPages) * 100))}%</span>
               </div>
@@ -389,13 +469,29 @@ export function ContentKPIDashboard({
                 className="h-2"
               />
               <div className="space-y-1">
-                <div className="flex justify-between text-xs text-muted-foreground">
+                <div className="flex justify-between items-center text-xs text-muted-foreground">
                   <span>
-                    {crawlProgress.status === 'analyzing' 
+                    {crawlProgress.status === 'completed'
+                      ? `Analyzed: ${crawlProgress.crawledPages} pages`
+                      : crawlProgress.status === 'analyzing' 
                       ? `Analyzing: ${crawlProgress.crawledPages} / ${crawlProgress.totalPages} pages`
                       : `Pages crawled: ${crawlProgress.crawledPages} / ${crawlProgress.totalPages}`
                     }
                   </span>
+                  {crawlProgress.status === 'completed' ? (
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        window.location.reload();
+                      }}
+                      className="h-7"
+                    >
+                      <Loader2 className="mr-1.5 h-3 w-3" />
+                      Reload
+                    </Button>
+                  ) : (
+                    <AnimatedStatusText status={crawlProgress.status} />
+                  )}
                 </div>
               </div>
             </div>

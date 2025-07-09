@@ -104,26 +104,39 @@ export class PageCategorizerService {
     const $ = cheerio.load(html);
     const cleanContent = this.extractCleanContent($);
 
-    const prompt = this.buildCategorizationPrompt(url, cleanContent, metadata);
+    let prompt = this.buildCategorizationPrompt(url, cleanContent, metadata);
+    let retryCount = 0;
+    const maxRetries = 1;
 
-    try {
-      const response = await this.llmService.call(
-        LlmProvider.OpenAILangChain,
-        prompt,
-        {
-          model: 'gpt-4o-mini', // Fast and cost-effective for categorization
-          temperature: 0.1, // Low temperature for consistent categorization
-          maxTokens: 200,
+    while (retryCount <= maxRetries) {
+      try {
+        const response = await this.llmService.call(
+          LlmProvider.OpenAILangChain,
+          prompt,
+          {
+            model: 'gpt-4o-mini', // Fast and cost-effective for categorization
+            temperature: 0.1, // Low temperature for consistent categorization
+            maxTokens: 200,
+          }
+        );
+
+        const category = this.parseLLMResponse(response.text);
+        if (category) {
+          this.logger.log(`LLM categorized ${url} as ${category.type} with confidence ${category.confidence}`);
+          return category;
         }
-      );
-
-      const category = this.parseLLMResponse(response.text);
-      if (category) {
-        this.logger.log(`LLM categorized ${url} as ${category.type} with confidence ${category.confidence}`);
-        return category;
+      } catch (error) {
+        if (retryCount < maxRetries && error.message?.includes('Invalid category:')) {
+          // Retry with error context
+          this.logger.warn(`LLM returned invalid category, retrying with error context: ${error.message}`);
+          prompt = this.buildCategorizationPromptWithError(url, cleanContent, metadata, error.message);
+          retryCount++;
+          continue;
+        }
+        this.logger.error('LLM categorization failed:', error);
+        break;
       }
-    } catch (error) {
-      this.logger.error('LLM categorization failed:', error);
+      break;
     }
 
     return null;
@@ -172,9 +185,62 @@ META DESCRIPTION: ${metadata?.description || 'No description'}
 CONTENT (first 2000 chars):
 ${truncatedContent}
 
+IMPORTANT: The "category" field must be EXACTLY one of these values (do not use tier names):
+homepage, product_category_page, product_detail_page, services_features_page, pricing_page, comparison_page, blog_post_article, blog_category_tag_page, pillar_page_topic_hub, product_roundup_review_article, how_to_guide_tutorial, case_study_success_story, what_is_x_definitional_page, in_depth_guide_white_paper, faq_glossary_pages, public_forum_ugc_pages, corporate_contact_pages, private_user_account_pages, search_results_error_pages, legal_pages, unknown
+
 Return ONLY a JSON object with:
 {
-  "category": "category_name",
+  "category": "exact_category_value_from_list_above",
+  "confidence": 0.0-1.0,
+  "reason": "brief explanation"
+}`;
+  }
+
+  /**
+   * Build prompt for LLM categorization with error context
+   */
+  private buildCategorizationPromptWithError(url: string, content: string, metadata: PageMetadata | undefined, errorMessage: string): string {
+    const truncatedContent = content.substring(0, 2000); // Limit content length
+
+    return `ERROR: Your previous response was invalid. ${errorMessage}
+
+PLEASE TRY AGAIN. Categorize this webpage into one of the following categories:
+
+VALID CATEGORIES (you MUST use exactly one of these values):
+- homepage
+- product_category_page
+- product_detail_page
+- services_features_page
+- pricing_page
+- comparison_page
+- blog_post_article
+- blog_category_tag_page
+- pillar_page_topic_hub
+- product_roundup_review_article
+- how_to_guide_tutorial
+- case_study_success_story
+- what_is_x_definitional_page
+- in_depth_guide_white_paper
+- faq_glossary_pages
+- public_forum_ugc_pages
+- corporate_contact_pages
+- private_user_account_pages
+- search_results_error_pages
+- legal_pages
+- unknown
+
+URL: ${url}
+TITLE: ${metadata?.title || 'No title'}
+META DESCRIPTION: ${metadata?.description || 'No description'}
+
+CONTENT (first 2000 chars):
+${truncatedContent}
+
+CRITICAL: You MUST return a JSON object where the "category" field contains EXACTLY one of the valid category values listed above. Do NOT use tier names like "TIER 1" or any other value.
+
+Return ONLY this JSON structure:
+{
+  "category": "one_of_the_exact_values_from_list_above",
   "confidence": 0.0-1.0,
   "reason": "brief explanation"
 }`;
@@ -207,7 +273,7 @@ Return ONLY a JSON object with:
       };
     } catch (error) {
       this.logger.error('Failed to parse LLM response:', error);
-      return null;
+      throw error; // Re-throw to allow retry logic
     }
   }
 

@@ -186,7 +186,7 @@ export default function BrandIdentity({ initialData, onDataReady }: BrandIdentit
         competitors
       });
     }
-  }, [brandName, description, industry, attributeItems, competitorItems, onDataReady]);
+  }, [brandName, description, industry, attributeItems, competitorItems]); // Remove onDataReady from deps to avoid infinite loop
 
   // Get count of selected attributes
   const selectedAttributesCount = attributeItems.filter(item => item.selected).length;
