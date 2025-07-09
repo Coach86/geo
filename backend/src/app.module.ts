@@ -26,6 +26,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { EmailModule } from './modules/email/email.module';
 import { CrawlerModule } from './modules/crawler/crawler.module';
 import { PageMagicModule } from './modules/page-magic/page-magic.module';
+import { ShopifyBillingModule } from './modules/shopify-billing/shopify-billing.module';
 import { getWinstonConfig } from './utils/logger.config';
 import { getCloudWatchLoggerConfig } from './utils/cloudwatch-logger.config';
 import { LoggerModule } from './utils/logger.module';
@@ -103,6 +104,7 @@ import { CommonModule } from './common/common.module';
     EmailModule,
     CrawlerModule,
     PageMagicModule,
+    ShopifyBillingModule,
     LoggerModule,
   ],
   controllers: [AppController],

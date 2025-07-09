@@ -174,6 +174,7 @@ export interface GeneratePromptsRequest {
   scrapedKeywords?: string[];
   shortDescription?: string;
   fullDescription?: string;
+  additionalInstructions?: string;
 }
 
 export interface GeneratePromptsResponse {
@@ -192,6 +193,19 @@ export interface PromptSet {
   competition: string[];
   updatedAt: string;
   createdAt: string;
+}
+
+export interface GeneratePromptsFromKeywordsRequest {
+  projectId: string;
+  keywords: string[];
+  additionalInstructions?: string;
+  promptType: 'visibility' | 'sentiment' | 'alignment' | 'competition';
+  count?: number;
+}
+
+export interface GeneratePromptsFromKeywordsResponse {
+  prompts: string[];
+  type: string;
 }
 
 // Batch result types

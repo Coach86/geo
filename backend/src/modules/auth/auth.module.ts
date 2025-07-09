@@ -15,6 +15,7 @@ import { TokenController } from './controllers/token.controller';
 import { ShopifyAuthController } from './controllers/shopify-auth.controller';
 import { UserAuthController } from './controllers/user-auth.controller';
 import { TokenAuthGuard } from './guards/token-auth.guard';
+import { ShopifyAuthGuard } from './guards/shopify-auth.guard';
 import { Admin, AdminSchema } from './schemas/admin.schema';
 import { AccessToken, AccessTokenSchema } from './schemas/access-token.schema';
 import { ReportModule } from '../report/report.module';
@@ -52,10 +53,11 @@ import { AccessTokenRepository } from './repositories/access-token.repository';
     LocalStrategy,
     JwtStrategy,
     TokenAuthGuard,
+    ShopifyAuthGuard,
     AdminRepository,
     AccessTokenRepository
   ],
   controllers: [AuthController, PublicAuthController, TokenController, ShopifyAuthController, UserAuthController],
-  exports: [AuthService, TokenService, JwtTokenService, ShopifyAuthService, TokenAuthGuard, AdminRepository, AccessTokenRepository, JwtModule],
+  exports: [AuthService, TokenService, JwtTokenService, ShopifyAuthService, TokenAuthGuard, ShopifyAuthGuard, AdminRepository, AccessTokenRepository, JwtModule],
 })
 export class AuthModule {}

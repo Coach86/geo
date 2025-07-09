@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Typography,
@@ -44,10 +44,12 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import PersonIcon from '@mui/icons-material/Person';
-import { getProjects, getUsers } from '../utils/api';
+import { getProjects, getUsers, PaginatedResponse } from '../utils/api';
 import { getAllOrganizations } from '../utils/api-organization';
 import { Project, User } from '../utils/types';
 import ProjectCard from '../components/ProjectCard';
+import Pagination from '../components/shared/Pagination';
+import { usePagination } from '../hooks/usePagination';
 
 interface Organization {
   id: string;
@@ -56,40 +58,35 @@ interface Organization {
 }
 
 const ProjectList: React.FC = () => {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [projectsData, setProjectsData] = useState<PaginatedResponse<Project> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentView, setCurrentView] = useState<number>(0);
   const [selectedOrganizationId, setSelectedOrganizationId] = useState<string>('');
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loadingOrganizations, setLoadingOrganizations] = useState(false);
+  const [localSearch, setLocalSearch] = useState('');
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const theme = useTheme();
   const [searchParams] = useSearchParams();
+  
+  // Use pagination hook
+  const pagination = usePagination();
 
   const fetchData = async () => {
     try {
       setLoading(true);
       setLoadingOrganizations(true);
 
-      // Fetch projects
-      const projectData = await getProjects();
-      // Sort projects by createdAt (newest to oldest)
-      const sortedProjects = projectData.sort((a, b) => 
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-      setProjects(sortedProjects);
-      setFilteredProjects(sortedProjects);
+      // Fetch projects with pagination
+      const projectData = await getProjects(pagination.queryParams);
+      setProjectsData(projectData);
 
-      // Fetch organizations
+      // Fetch organizations (without pagination for now)
       const orgData = await getAllOrganizations();
-      // Sort organizations by createdAt (newest to oldest)  
-      const sortedOrgs = orgData.sort((a: Organization, b: Organization) => 
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-      setOrganizations(sortedOrgs);
+      setOrganizations(orgData.data || orgData); // Handle both paginated and non-paginated response
 
       setError(null);
     } catch (err) {
@@ -98,11 +95,29 @@ const ProjectList: React.FC = () => {
     } finally {
       setLoading(false);
       setLoadingOrganizations(false);
+      // Restore focus to search input after data loads
+      if (searchInputRef.current && document.activeElement !== searchInputRef.current) {
+        searchInputRef.current.focus();
+      }
     }
   };
 
   useEffect(() => {
     fetchData();
+  }, [pagination.page, pagination.limit, pagination.search]);
+
+  // Initialize local search with pagination search
+  useEffect(() => {
+    setLocalSearch(pagination.search);
+  }, []);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
   }, []);
 
   // Set organization filter from URL params on mount
@@ -122,42 +137,27 @@ const ProjectList: React.FC = () => {
     setSelectedOrganizationId(e.target.value);
   };
 
-  useEffect(() => {
-    // Start with all projects
-    let filtered = [...projects];
-
-    // Apply organization filter if selected
-    if (selectedOrganizationId) {
-      filtered = filtered.filter((project) => project.organizationId === selectedOrganizationId);
-    }
-
-    // Apply search term filter
-    if (searchTerm.trim() !== '') {
-      const searchTermLower = searchTerm.toLowerCase();
-      filtered = filtered.filter((project) => {
-        return (
-          project.brandName.toLowerCase().includes(searchTermLower) ||
-          project.industry.toLowerCase().includes(searchTermLower) ||
-          project.shortDescription.toLowerCase().includes(searchTermLower) ||
-          project.keyBrandAttributes?.some((feature) =>
-            feature.toLowerCase().includes(searchTermLower),
-          ) ||
-          project.competitors?.some((competitor) =>
-            competitor.toLowerCase().includes(searchTermLower),
-          )
-        );
-      });
-    }
-
-    setFilteredProjects(filtered);
-  }, [searchTerm, projects, selectedOrganizationId]);
-
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(event.target.value);
+    const value = event.target.value;
+    setLocalSearch(value);
+    
+    // Clear existing timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
+    // Set new timeout for debounced search
+    searchTimeoutRef.current = setTimeout(() => {
+      pagination.setSearch(value);
+    }, 500); // 500ms debounce
   };
 
   const clearSearch = () => {
-    setSearchTerm('');
+    setLocalSearch('');
+    pagination.setSearch('');
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
   };
 
   const handleViewChange = (_event: React.SyntheticEvent, newValue: number) => {
@@ -166,9 +166,11 @@ const ProjectList: React.FC = () => {
 
   const countProjectsByIndustry = () => {
     const industries: Record<string, number> = {};
-    projects.forEach((project) => {
-      industries[project.industry] = (industries[project.industry] || 0) + 1;
-    });
+    if (projectsData) {
+      projectsData.data.forEach((project) => {
+        industries[project.industry] = (industries[project.industry] || 0) + 1;
+      });
+    }
     return industries;
   };
 
@@ -289,7 +291,7 @@ const ProjectList: React.FC = () => {
                         fontWeight: 500,
                       }}
                     >
-                      ({filteredProjects.length})
+                      ({projectsData?.total || 0})
                     </Typography>
                   </Typography>
                 </Box>
@@ -312,8 +314,9 @@ const ProjectList: React.FC = () => {
               <TextField
                 placeholder="Search projects..."
                 size="small"
-                value={searchTerm}
+                value={localSearch}
                 onChange={handleSearchChange}
+                inputRef={searchInputRef}
                 sx={{
                   flex: 1,
                   '& .MuiOutlinedInput-root': {
@@ -337,7 +340,7 @@ const ProjectList: React.FC = () => {
                       />
                     </InputAdornment>
                   ),
-                  endAdornment: searchTerm ? (
+                  endAdornment: localSearch ? (
                     <InputAdornment position="end">
                       <IconButton onClick={clearSearch} edge="end" size="small">
                         <ClearIcon sx={{ fontSize: '0.9rem' }} />
@@ -630,7 +633,7 @@ const ProjectList: React.FC = () => {
 
             <Divider />
 
-            {filteredProjects.length === 0 ? (
+            {!projectsData || projectsData.data.length === 0 ? (
               <Box
                 sx={{
                   p: 5,
@@ -682,7 +685,7 @@ const ProjectList: React.FC = () => {
                     lineHeight: 1.5,
                   }}
                 >
-                  {searchTerm
+                  {pagination.search
                     ? 'No projects match your search criteria. Try using different keywords or clearing your filters.'
                     : 'There are no projects in the portfolio yet. Add your first project to get started.'}
                 </Typography>
@@ -719,7 +722,7 @@ const ProjectList: React.FC = () => {
                     gap: 2.5,
                   }}
                 >
-                  {filteredProjects.map((project) => (
+                  {projectsData.data.map((project) => (
                     <ProjectCard
                       key={project.id}
                       project={project}
@@ -727,6 +730,16 @@ const ProjectList: React.FC = () => {
                     />
                   ))}
                 </Box>
+                {projectsData && projectsData.totalPages > 1 && (
+                  <Pagination
+                    page={pagination.page}
+                    totalPages={projectsData.totalPages}
+                    total={projectsData.total}
+                    limit={pagination.limit}
+                    onPageChange={pagination.setPage}
+                    onLimitChange={pagination.setLimit}
+                  />
+                )}
               </Box>
             )}
           </Card>

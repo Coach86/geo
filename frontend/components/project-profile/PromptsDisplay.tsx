@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, Settings, RefreshCw } from "lucide-react";
+import { ChevronRight, Settings, RefreshCw, Plus } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -8,8 +8,15 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { EditableList } from "./EditableList";
 import { RegeneratePromptsDialog } from "./RegeneratePromptsDialog";
+import { GeneratePromptsDialog } from "./GeneratePromptsDialog";
 import { useAuth } from "@/providers/auth-provider";
 import { regeneratePromptType } from "@/lib/auth-api";
 import { toast } from "@/hooks/use-toast";
@@ -25,6 +32,8 @@ interface PromptsDisplayProps {
   onAddClick?: () => void;
   onRegenerateComplete?: () => void;
   maxSpontaneousPrompts?: number;
+  openGenerateDialog?: boolean;
+  onGenerateDialogClose?: () => void;
 }
 
 export function PromptsDisplay({
@@ -37,15 +46,27 @@ export function PromptsDisplay({
   onAddClick,
   onRegenerateComplete,
   maxSpontaneousPrompts,
+  openGenerateDialog = false,
+  onGenerateDialogClose,
 }: PromptsDisplayProps) {
   const { token } = useAuth();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isRegenerateDialogOpen, setIsRegenerateDialogOpen] = useState(false);
+  const [isGenerateDialogOpen, setIsGenerateDialogOpen] = useState(openGenerateDialog);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [selectedGenerationMethod, setSelectedGenerationMethod] = useState<'ai' | 'keywords'>('ai');
   const isAtLimit = maxPrompts ? prompts.length >= maxPrompts : false;
   const displayThreshold = 5;
   const displayedPrompts = prompts.slice(0, displayThreshold);
   const hiddenCount = Math.max(0, prompts.length - displayThreshold);
+  
+  // Handle opening the generate dialog when prop changes
+  useEffect(() => {
+    if (openGenerateDialog) {
+      setIsDrawerOpen(true);
+      setIsGenerateDialogOpen(true);
+    }
+  }, [openGenerateDialog]);
   
   const titles = {
     visibility: "Visibility Prompts",
@@ -71,7 +92,7 @@ export function PromptsDisplay({
     sentiment: "gray",
   } as const;
 
-  const handleRegenerate = async (count: number) => {
+  const handleRegenerate = async (count: number, additionalInstructions?: string) => {
     if (!token) {
       toast({
         title: "Authentication required",
@@ -83,7 +104,7 @@ export function PromptsDisplay({
 
     setIsRegenerating(true);
     try {
-      const result = await regeneratePromptType(projectId, type, token, count);
+      const result = await regeneratePromptType(projectId, type, token, count, additionalInstructions);
       
       // Update the prompts immediately with the regenerated ones
       if (onUpdate && result.prompts) {
@@ -119,15 +140,49 @@ export function PromptsDisplay({
       <div className="space-y-3">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-medium text-gray-700">{titles[type]}</h3>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-xs hover:bg-gray-100"
-            onClick={() => setIsDrawerOpen(true)}
-          >
-            <Settings className="h-3 w-3 mr-1" />
-            Manage
-          </Button>
+          <div className="flex gap-2">
+            {type === "visibility" && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs"
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Create Prompts
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => {
+                    setSelectedGenerationMethod('ai');
+                    setIsDrawerOpen(true);
+                    setIsGenerateDialogOpen(true);
+                  }}>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Generate with AI
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => {
+                    setSelectedGenerationMethod('keywords');
+                    setIsDrawerOpen(true);
+                    setIsGenerateDialogOpen(true);
+                  }}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Generate from Keywords
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs"
+              onClick={() => setIsDrawerOpen(true)}
+            >
+              <Settings className="h-3 w-3 mr-1" />
+              Manage
+            </Button>
+          </div>
         </div>
         
         {/* Display first 5 prompts */}
@@ -164,26 +219,43 @@ export function PromptsDisplay({
       <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
         <SheetContent className="w-full sm:max-w-xl">
           <SheetHeader>
-            <SheetTitle>{titles[type]}</SheetTitle>
-            <SheetDescription>
-              Manage your {type} prompts. {canAdd && type === "visibility" && "You can add, edit, or remove prompts."}
-            </SheetDescription>
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <SheetTitle>{titles[type]}</SheetTitle>
+                <SheetDescription>
+                  Manage your {type} prompts. {canAdd && type === "visibility" && "You can add, edit, or remove prompts."}
+                </SheetDescription>
+              </div>
+              {type === "visibility" && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="text-xs">
+                      <Plus className="h-3 w-3 mr-1" />
+                      Create Prompts
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem onClick={() => {
+                      setSelectedGenerationMethod('ai');
+                      setIsGenerateDialogOpen(true);
+                    }}>
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Generate with AI
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => {
+                      setSelectedGenerationMethod('keywords');
+                      setIsGenerateDialogOpen(true);
+                    }}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Generate from Keywords
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
           </SheetHeader>
           
           <div className="mt-6 space-y-4">
-            {type === "visibility" && (
-              <div className="flex justify-center">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsRegenerateDialogOpen(true)}
-                  className="text-xs"
-                >
-                  <RefreshCw className="h-3 w-3 mr-1" />
-                  Regenerate Prompts
-                </Button>
-              </div>
-            )}
             
             <div className="relative">
             {isRegenerating && (
@@ -223,6 +295,34 @@ export function PromptsDisplay({
         onConfirm={handleRegenerate}
         currentPromptCount={prompts.length}
         maxSpontaneousPrompts={maxSpontaneousPrompts}
+      />
+
+      {/* Generate Prompts Dialog */}
+      <GeneratePromptsDialog
+        open={isGenerateDialogOpen}
+        onOpenChange={(open) => {
+          setIsGenerateDialogOpen(open);
+          if (!open && onGenerateDialogClose) {
+            onGenerateDialogClose();
+          }
+        }}
+        projectId={projectId}
+        promptType={type}
+        currentPrompts={prompts}
+        onPromptsGenerated={async (newPrompts) => {
+          if (onUpdate) {
+            onUpdate(newPrompts);
+          }
+          if (onRegenerateComplete) {
+            await onRegenerateComplete();
+          }
+          setIsGenerateDialogOpen(false);
+          if (onGenerateDialogClose) {
+            onGenerateDialogClose();
+          }
+        }}
+        maxSpontaneousPrompts={maxSpontaneousPrompts}
+        initialMethod={selectedGenerationMethod}
       />
     </>
   );

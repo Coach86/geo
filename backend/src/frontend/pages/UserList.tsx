@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -39,9 +39,11 @@ import BusinessIcon from '@mui/icons-material/Business';
 import PhoneIcon from '@mui/icons-material/Phone';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
-import { getUsers, deleteUser, updateUser } from '../utils/api';
+import { getUsers, deleteUser, updateUser, PaginatedResponse } from '../utils/api';
 import { getAllOrganizations } from '../utils/api-organization';
 import { User } from '../utils/types';
+import Pagination from '../components/shared/Pagination';
+import { usePagination } from '../hooks/usePagination';
 
 interface Organization {
   id: string;
@@ -50,9 +52,7 @@ interface Organization {
 
 const UserList: React.FC = () => {
   const navigate = useNavigate();
-  const [users, setUsers] = useState<User[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
-  const [userSearchTerm, setUserSearchTerm] = useState('');
+  const [usersData, setUsersData] = useState<PaginatedResponse<User> | null>(null);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,47 +64,49 @@ const UserList: React.FC = () => {
     phoneNumber: '',
     organizationId: '',
   });
+  const [localSearch, setLocalSearch] = useState('');
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  
+  // Use pagination hook
+  const pagination = usePagination();
 
   useEffect(() => {
     fetchData();
+  }, [pagination.page, pagination.limit, pagination.search]);
+
+  // Initialize local search with pagination search
+  useEffect(() => {
+    setLocalSearch(pagination.search);
   }, []);
 
-  // Filter users based on search term
+  // Cleanup timeout on unmount
   useEffect(() => {
-    if (userSearchTerm.trim() === '') {
-      setFilteredUsers(users);
-    } else {
-      const searchLower = userSearchTerm.toLowerCase();
-      const filtered = users.filter(user => 
-        user.email.toLowerCase().includes(searchLower)
-      );
-      setFilteredUsers(filtered);
-    }
-  }, [userSearchTerm, users]);
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [usersData, orgsData] = await Promise.all([
-        getUsers(),
+      const [userData, orgsData] = await Promise.all([
+        getUsers(pagination.queryParams),
         getAllOrganizations(),
       ]);
-      // Sort users by createdAt (newest to oldest)
-      const sortedUsers = usersData.sort((a, b) => 
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-      setUsers(sortedUsers);
-      setFilteredUsers(sortedUsers);
-      // Sort organizations by createdAt (newest to oldest)
-      const sortedOrgs = orgsData.sort((a: Organization, b: Organization) => 
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-      setOrganizations(sortedOrgs);
+      setUsersData(userData);
+      setOrganizations(orgsData.data || orgsData); // Handle both paginated and non-paginated response
     } catch (err) {
       console.error('Failed to fetch data:', err);
       setError('Failed to load data. Please try again.');
     } finally {
       setLoading(false);
+      // Restore focus to search input after data loads
+      if (searchInputRef.current && document.activeElement !== searchInputRef.current) {
+        searchInputRef.current.focus();
+      }
     }
   };
 
@@ -115,8 +117,8 @@ const UserList: React.FC = () => {
 
     try {
       await deleteUser(userId);
-      setUsers(users.filter(u => u.id !== userId));
-      setFilteredUsers(filteredUsers.filter(u => u.id !== userId));
+      // Refresh the data
+      fetchData();
     } catch (err) {
       console.error('Failed to delete user:', err);
       alert('Failed to delete user. Please try again.');
@@ -138,15 +140,15 @@ const UserList: React.FC = () => {
     if (!editingUser) return;
 
     try {
-      const updatedUser = await updateUser(editingUser.id, {
+      await updateUser(editingUser.id, {
         email: editFormData.email,
         language: editFormData.language,
         phoneNumber: editFormData.phoneNumber || undefined,
         organizationId: editFormData.organizationId,
       });
       
-      setUsers(users.map(u => u.id === editingUser.id ? updatedUser : u));
-      setFilteredUsers(filteredUsers.map(u => u.id === editingUser.id ? updatedUser : u));
+      // Refresh data
+      fetchData();
       setEditDialogOpen(false);
       setEditingUser(null);
     } catch (err: any) {
@@ -157,11 +159,38 @@ const UserList: React.FC = () => {
 
   const getOrganizationId = (orgId: string | undefined) => {
     if (!orgId) return '-';
+    // For very long IDs, truncate but keep enough to be recognizable
+    if (orgId.length > 30) {
+      return `${orgId.slice(0, 20)}...`;
+    }
     return orgId;
   };
 
   const handleOrganizationClick = (organizationId: string) => {
     navigate(`/organization?filter=${organizationId}`);
+  };
+
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value;
+    setLocalSearch(value);
+    
+    // Clear existing timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
+    // Set new timeout for debounced search
+    searchTimeoutRef.current = setTimeout(() => {
+      pagination.setSearch(value);
+    }, 500); // 500ms debounce
+  };
+
+  const clearSearch = () => {
+    setLocalSearch('');
+    pagination.setSearch('');
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
   };
 
   if (loading) {
@@ -214,19 +243,20 @@ const UserList: React.FC = () => {
               fullWidth
               size="small"
               placeholder="Search users by email..."
-              value={userSearchTerm}
-              onChange={(e) => setUserSearchTerm(e.target.value)}
+              value={localSearch}
+              onChange={handleSearchChange}
+              inputRef={searchInputRef}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
                     <SearchIcon sx={{ color: 'text.secondary' }} />
                   </InputAdornment>
                 ),
-                endAdornment: userSearchTerm && (
+                endAdornment: localSearch && (
                   <InputAdornment position="end">
                     <IconButton
                       size="small"
-                      onClick={() => setUserSearchTerm('')}
+                      onClick={clearSearch}
                     >
                       <ClearIcon />
                     </IconButton>
@@ -238,12 +268,12 @@ const UserList: React.FC = () => {
         </CardContent>
         
         <CardContent sx={{ p: 0 }}>
-          {filteredUsers.length === 0 ? (
+          {!usersData || usersData.data.length === 0 ? (
             <Box sx={{ p: 4, textAlign: 'center' }}>
               <Typography variant="body1">
-                {userSearchTerm ? 'No users found matching your search.' : 'No users found.'}
+                {pagination.search ? 'No users found matching your search.' : 'No users found.'}
               </Typography>
-              {!userSearchTerm && (
+              {!pagination.search && (
                 <Button
                 variant="outlined"
                 color="primary"
@@ -258,30 +288,39 @@ const UserList: React.FC = () => {
             </Box>
           ) : (
             <TableContainer component={Paper}>
-              <Table>
+              <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell>Email</TableCell>
-                    <TableCell>Organization</TableCell>
-                    <TableCell>Language</TableCell>
-                    <TableCell>Phone Number</TableCell>
-                    <TableCell>Projects</TableCell>
-                    <TableCell>Created</TableCell>
-                    <TableCell align="center">Actions</TableCell>
+                    <TableCell sx={{ maxWidth: 250 }}>Email</TableCell>
+                    <TableCell sx={{ maxWidth: 200 }}>Organization</TableCell>
+                    <TableCell sx={{ width: 100 }}>Language</TableCell>
+                    <TableCell sx={{ width: 120 }}>Phone</TableCell>
+                    <TableCell sx={{ width: 80 }}>Projects</TableCell>
+                    <TableCell sx={{ width: 100 }}>Created</TableCell>
+                    <TableCell align="center" sx={{ width: 100 }}>Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredUsers.map((user) => (
-                    <TableRow key={user.id} hover>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <EmailIcon sx={{ mr: 1, color: 'text.secondary', fontSize: 20 }} />
-                          <Typography variant="body2">{user.email}</Typography>
+                  {usersData.data.map((user) => (
+                    <TableRow key={user.id} hover sx={{ '& td': { py: 1 } }}>
+                      <TableCell sx={{ maxWidth: 250 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0 }}>
+                          <EmailIcon sx={{ mr: 0.5, color: 'text.secondary', fontSize: 16, flexShrink: 0 }} />
+                          <Typography 
+                            variant="body2" 
+                            sx={{ 
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}
+                            title={user.email}
+                          >
+                            {user.email}
+                          </Typography>
                         </Box>
                       </TableCell>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <BusinessIcon sx={{ mr: 1, color: 'text.secondary', fontSize: 20 }} />
+                      <TableCell sx={{ maxWidth: 200 }}>
+                        <Box sx={{ minWidth: 0 }}>
                           {user.organizationId ? (
                             <Link
                               component="button"
@@ -290,10 +329,17 @@ const UserList: React.FC = () => {
                               sx={{
                                 textDecoration: 'none',
                                 color: 'primary.main',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                display: 'block',
+                                textAlign: 'left',
+                                maxWidth: '100%',
                                 '&:hover': {
                                   textDecoration: 'underline',
                                 },
                               }}
+                              title={user.organizationId}
                             >
                               {getOrganizationId(user.organizationId)}
                             </Link>
@@ -303,57 +349,72 @@ const UserList: React.FC = () => {
                         </Box>
                       </TableCell>
                       <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <LanguageIcon sx={{ mr: 1, color: 'text.secondary', fontSize: 20 }} />
-                          <Chip
-                            label={user.language}
-                            size="small"
-                            color="primary"
-                            variant="outlined"
-                          />
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          {user.phoneNumber && (
-                            <PhoneIcon sx={{ mr: 1, color: 'text.secondary', fontSize: 20 }} />
-                          )}
-                          <Typography variant="body2">{user.phoneNumber || '-'}</Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell>
                         <Chip
-                          label={`${user.projectIds?.length || 0} projects`}
+                          label={user.language.toUpperCase()}
                           size="small"
-                          color="default"
+                          sx={{ 
+                            height: 20,
+                            fontSize: '0.7rem',
+                            '& .MuiChip-label': { px: 1 }
+                          }}
                         />
                       </TableCell>
-                      <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                          {user.phoneNumber || '-'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                          {user.projectIds?.length || 0}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                          {new Date(user.createdAt).toLocaleDateString()}
+                        </Typography>
+                      </TableCell>
                       <TableCell align="center">
-                        <Tooltip title="Edit User">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleEditClick(user)}
-                            color="primary"
-                          >
-                            <EditIcon />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Delete User">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleDeleteUser(user.id)}
-                            color="error"
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                        </Tooltip>
+                        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.5 }}>
+                          <Tooltip title="Edit User">
+                            <IconButton
+                              size="small"
+                              onClick={() => handleEditClick(user)}
+                              color="primary"
+                              sx={{ p: 0.5 }}
+                            >
+                              <EditIcon sx={{ fontSize: 18 }} />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Delete User">
+                            <IconButton
+                              size="small"
+                              onClick={() => handleDeleteUser(user.id)}
+                              color="error"
+                              sx={{ p: 0.5 }}
+                            >
+                              <DeleteIcon sx={{ fontSize: 18 }} />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             </TableContainer>
+          )}
+          {usersData && usersData.totalPages > 1 && (
+            <Box sx={{ p: 2 }}>
+              <Pagination
+                page={pagination.page}
+                totalPages={usersData.totalPages}
+                total={usersData.total}
+                limit={pagination.limit}
+                onPageChange={pagination.setPage}
+                onLimitChange={pagination.setLimit}
+              />
+            </Box>
           )}
         </CardContent>
       </Card>

@@ -29,9 +29,10 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
         'p', 'div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
         'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'em', 'strong',
         'b', 'i', 'u', 'a', 'br', 'hr', 'table', 'thead', 'tbody',
-        'tr', 'th', 'td', 'img', 'figure', 'figcaption'
+        'tr', 'th', 'td'
       ],
-      ALLOWED_ATTR: ['href', 'title', 'alt', 'src', 'width', 'height', 'class', 'id'],
+      ALLOWED_ATTR: ['href', 'title', 'class', 'id'],
+      FORBID_TAGS: ['style', 'script', 'img', 'figure', 'figcaption'],
     });
   }, [content]);
   

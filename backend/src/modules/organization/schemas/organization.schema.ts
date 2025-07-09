@@ -87,6 +87,18 @@ export class Organization {
   @Prop({ type: String, sparse: true, index: true })
   shopifyShopDomain?: string;
 
+  @Prop({ type: String })
+  shopifyAccessToken?: string;
+
+  @Prop({ type: String })
+  shopifySubscriptionId?: string;
+
+  @Prop({ type: Object })
+  shopifySubscriptionData?: any;
+
+  @Prop({ type: Object })
+  shopifyShopData?: any;
+
   // Free plan activation tracking
   @Prop({ type: Boolean, default: false })
   hasActivatedFreePlan?: boolean;

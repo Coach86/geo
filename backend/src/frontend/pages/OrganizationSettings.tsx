@@ -145,9 +145,11 @@ const OrganizationSettings: React.FC = () => {
   const loadOrganizations = async () => {
     try {
       setLoading(true);
-      const orgsData = await getAllOrganizations(true); // Include projects
+      const orgsData = await getAllOrganizations({ includeProjects: true }); // Include projects
+      // Handle the response - it might be paginated or not
+      const orgsList = orgsData.data || orgsData;
       // Sort organizations by createdAt (newest to oldest)
-      const sortedOrgs = orgsData.sort((a: Organization, b: Organization) => 
+      const sortedOrgs = (Array.isArray(orgsList) ? orgsList : []).sort((a: Organization, b: Organization) => 
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
       setOrganizations(sortedOrgs);
@@ -173,9 +175,13 @@ const OrganizationSettings: React.FC = () => {
 
   const loadOrganizationUsers = async (orgId: string) => {
     try {
-      const usersData = await getOrganizationUsers(orgId);
+      const response = await getOrganizationUsers(orgId);
+      // Handle both paginated and non-paginated responses
+      const usersData = response.data || response;
+      const usersList = Array.isArray(usersData) ? usersData : [];
+      
       // Sort users by createdAt (newest to oldest)
-      const sortedUsers = usersData.sort((a: User, b: User) => 
+      const sortedUsers = usersList.sort((a: User, b: User) => 
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
       setUsers(sortedUsers);
@@ -435,34 +441,34 @@ const OrganizationSettings: React.FC = () => {
                           },
                         }}
                       >
-                        <ListItemText
-                          primary={
-                            <Box>
-                              <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
-                                {org.id}
-                              </Typography>
-                              {org.projects && org.projects.length > 0 && (
-                                <Typography variant="body1" sx={{ mt: 0.5 }}>
-                                  {org.projects.map(p => p.brandName).join(', ')}
+                        <Box sx={{ flex: 1 }}>
+                          <ListItemText
+                            primary={
+                              <Box>
+                                <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
+                                  {org.id}
                                 </Typography>
-                              )}
-                            </Box>
-                          }
-                          secondary={
-                            <Box component="span" display="flex" gap={1} mt={0.5}>
-                              <Chip
-                                size="small"
-                                icon={<PeopleIcon />}
-                                label={`${org.currentUsers || 0} users`}
-                              />
-                              <Chip
-                                size="small"
-                                icon={<FolderIcon />}
-                                label={`${org.currentProjects || 0} projects`}
-                              />
-                            </Box>
-                          }
-                        />
+                                {org.projects && org.projects.length > 0 && (
+                                  <Typography variant="body1" sx={{ mt: 0.5 }}>
+                                    {org.projects.map(p => p.brandName).join(', ')}
+                                  </Typography>
+                                )}
+                              </Box>
+                            }
+                          />
+                          <Box display="flex" gap={1} mt={0.5}>
+                            <Chip
+                              size="small"
+                              icon={<PeopleIcon />}
+                              label={`${org.currentUsers || 0} users`}
+                            />
+                            <Chip
+                              size="small"
+                              icon={<FolderIcon />}
+                              label={`${org.currentProjects || 0} projects`}
+                            />
+                          </Box>
+                        </Box>
                       </ListItemButton>
                     </ListItem>
                     ))

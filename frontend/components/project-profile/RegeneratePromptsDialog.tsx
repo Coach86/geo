@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -18,7 +19,7 @@ interface RegeneratePromptsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   promptType: 'visibility' | 'sentiment' | 'alignment' | 'competition';
-  onConfirm: (count: number) => Promise<void>;
+  onConfirm: (count: number, additionalInstructions?: string) => Promise<void>;
   currentPromptCount: number;
   maxSpontaneousPrompts?: number;
 }
@@ -34,6 +35,7 @@ export function RegeneratePromptsDialog({
   const router = useRouter();
   const [selectedCount, setSelectedCount] = useState("15");
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [additionalInstructions, setAdditionalInstructions] = useState("");
 
   const countOptions = promptType === 'visibility' 
     ? [
@@ -60,7 +62,7 @@ export function RegeneratePromptsDialog({
     
     setIsRegenerating(true);
     try {
-      await onConfirm(count);
+      await onConfirm(count, additionalInstructions.trim() || undefined);
       onOpenChange(false);
     } catch (error) {
       console.error("Failed to regenerate prompts:", error);
@@ -128,6 +130,19 @@ export function RegeneratePromptsDialog({
                 );
               })}
             </RadioGroup>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Additional Instructions (Optional)</Label>
+            <Textarea
+              placeholder="e.g., Focus on technical aspects of the product"
+              value={additionalInstructions}
+              onChange={(e) => setAdditionalInstructions(e.target.value)}
+              rows={3}
+            />
+            <p className="text-xs text-muted-foreground">
+              Provide specific guidance to tailor the prompt generation
+            </p>
           </div>
         </div>
 

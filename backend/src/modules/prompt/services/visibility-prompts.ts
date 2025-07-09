@@ -11,6 +11,7 @@ type VisibilityUserPromptParams = {
   count: number;
   competitors: string[];
   keywords: string[];
+  additionalInstructions?: string;
 };
 export function visibilityUserPrompt({
   market,
@@ -21,6 +22,7 @@ export function visibilityUserPrompt({
   count,
   competitors,
   keywords,
+  additionalInstructions,
 }: VisibilityUserPromptParams): string {
   const prompt = `
       ## USER
@@ -30,7 +32,7 @@ export function visibilityUserPrompt({
       - Company/Brandname: ${brandName} in the ${industry} industry
       - Market that needs to be targeted: ${market}
       - Current date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-      - Competitors: ${competitors.join(', ')}
+      - Competitors: ${competitors.join(', ')}${additionalInstructions ? `\n      - Additional Instructions: ${additionalInstructions}` : ''}
 
       ### GOAL:
       1. Think step-by-step (do NOT reveal this reasoning in the final answer):

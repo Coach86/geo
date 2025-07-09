@@ -19,6 +19,8 @@ import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/
 import { OrganizationService } from '../../organization/services/organization.service';
 import { ConfigService } from '../../config/services/config.service';
 import { AdminGuard } from '../../auth/guards/admin.guard';
+import { PaginationDto, PaginatedResponseDto } from '../../../common/dto/pagination.dto';
+import { FindUsersQueryDto } from '../dto/find-users-query.dto';
 
 @ApiTags('Admin - Users')
 @Controller('admin/users')
@@ -42,33 +44,53 @@ export class UserController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all users or find by email or organizationId' })
-  @ApiQuery({
-    name: 'email',
-    required: false,
-    description: 'Filter users by email',
-  })
-  @ApiQuery({
-    name: 'organizationId',
-    required: false,
-    description: 'Filter users by organization ID',
-  })
+  @ApiOperation({ summary: 'Get all users with pagination and filters' })
   @ApiResponse({
     status: 200,
-    description: 'List of users or single user if email provided',
-    type: [UserResponseDto],
+    description: 'Paginated list of users',
   })
   async findAll(
-    @Query('email') email?: string,
-    @Query('organizationId') organizationId?: string,
-  ): Promise<UserResponseDto | UserResponseDto[]> {
-    if (email) {
-      return await this.userService.findByEmail(email);
+    @Query() queryDto: FindUsersQueryDto,
+  ) {
+    // If exact email match is requested, return single result
+    if (queryDto.email && !queryDto.search) {
+      const user = await this.userService.findByEmail(queryDto.email);
+      return new PaginatedResponseDto([user], 1, 1, 1);
     }
-    if (organizationId) {
-      return await this.userService.findByOrganizationId(organizationId);
+
+    // Get all users or filter by organizationId
+    let users: UserResponseDto[] = [];
+    if (queryDto.organizationId) {
+      users = await this.userService.findByOrganizationId(queryDto.organizationId);
+    } else {
+      users = await this.userService.findAll();
     }
-    return await this.userService.findAll();
+
+    // Apply search filter if provided
+    if (queryDto.search) {
+      const searchLower = queryDto.search.toLowerCase();
+      users = users.filter(user => 
+        user.email.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Sort by createdAt (newest first)
+    users.sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+
+    // Calculate pagination
+    const total = users.length;
+    const startIndex = queryDto.offset;
+    const endIndex = startIndex + (queryDto.limit || 20);
+    const paginatedUsers = users.slice(startIndex, endIndex);
+
+    return new PaginatedResponseDto(
+      paginatedUsers,
+      total,
+      queryDto.page || 1,
+      queryDto.limit || 20
+    );
   }
 
   @Get(':id')

@@ -11,12 +11,12 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, ArrowLeft, ArrowRight, Globe, Users, MessageSquare, Plus, Check, X as XIcon, TrendingUp } from "lucide-react";
+import { AlertCircle, ArrowLeft, ArrowRight, Globe, Users, MessageSquare, Plus, Check, X as XIcon, TrendingUp, Sparkles } from "lucide-react";
 import { SvgLoader } from "@/components/ui/svg-loader";
 import { toast } from "sonner";
 import { useAuth } from "@/providers/auth-provider";
 import { useAnalytics } from "@/hooks/use-analytics";
-import { analyzeWebsite, createProject, getUserUrlUsage, generatePrompts, type CreateFullProjectRequest, type UrlUsageResponse, type GeneratePromptsRequest } from "@/lib/auth-api";
+import { analyzeWebsite, createProject, getUserUrlUsage, generatePrompts, generatePromptsFromKeywords, type CreateFullProjectRequest, type UrlUsageResponse, type GeneratePromptsRequest } from "@/lib/auth-api";
 import { extractHostname } from "@/utils/url-utils";
 import { saveSelectedDomain, saveSelectedProject } from "@/lib/navigation-persistence";
 import { getMyOrganization, type Organization } from "@/lib/organization-api";
@@ -34,6 +34,9 @@ import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
 import { MarketSelector } from "@/components/onboarding/project-info/MarketSelector";
 import type { Market } from "@/app/onboarding/types/form-data";
+import { PromptGenerationMethod } from "@/components/project-profile/PromptGenerationMethod";
+import { KeywordsInput } from "@/components/project-profile/KeywordsInput";
+import { PromptCountSelect } from "@/components/project-profile/PromptCountSelect";
 
 interface AddProjectModalProps {
   isOpen: boolean;
@@ -50,7 +53,8 @@ interface AddProjectModalProps {
 enum StepId {
   PROJECT = 1,
   BRAND = 2,
-  PROMPTS = 3,
+  PROMPT_METHOD = 3,
+  PROMPTS = 4,
 }
 
 interface StepConfig {
@@ -62,6 +66,7 @@ interface StepConfig {
 const STEPS: StepConfig[] = [
   { id: StepId.PROJECT, name: "Project", icon: Globe },
   { id: StepId.BRAND, name: "Brand", icon: Users },
+  { id: StepId.PROMPT_METHOD, name: "Generator", icon: Sparkles },
   { id: StepId.PROMPTS, name: "Prompts", icon: MessageSquare },
 ];
 
@@ -100,7 +105,13 @@ export default function AddProjectModal({
   const [competitors, setCompetitors] = useState<string[]>([]);
   const [analyzedData, setAnalyzedData] = useState<any>(null);
 
-  // Step 3: Prompts
+  // Step 3: Prompt Method
+  const [promptGenerationMethod, setPromptGenerationMethod] = useState<'ai' | 'keywords'>('ai');
+  const [keywords, setKeywords] = useState("");
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [promptCount, setPromptCount] = useState('12');
+
+  // Step 4: Prompts
   const [visibilityPrompts, setVisibilityPrompts] = useState<{ id: string; text: string; selected: boolean }[]>([]);
   const [perceptionPrompts, setPerceptionPrompts] = useState<string[]>([]);
   const [alignmentPrompts, setAlignmentPrompts] = useState<string[]>([]);
@@ -109,6 +120,7 @@ export default function AddProjectModal({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editableValue, setEditableValue] = useState("");
   const [promptInput, setPromptInput] = useState("");
+  const [additionalInstructions, setAdditionalInstructions] = useState("");
 
   // Helper to generate unique IDs
   const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -156,6 +168,10 @@ export default function AddProjectModal({
       setEditingId(null);
       setEditableValue("");
       setPromptInput("");
+      setAdditionalInstructions("");
+      setPromptGenerationMethod('ai');
+      setKeywords("");
+      setCsvFile(null);
       setError("");
     }
   }, [isOpen]);
@@ -212,6 +228,11 @@ export default function AddProjectModal({
         return !!(urlToUse && markets.length > 0);
       case StepId.BRAND:
         return !!(brandName && description && industry && attributes.length > 0);
+      case StepId.PROMPT_METHOD:
+        if (promptGenerationMethod === 'keywords') {
+          return keywords.trim().length > 0;
+        }
+        return true;
       case StepId.PROMPTS:
         return visibilityPrompts.some(p => p.selected);
       default:
@@ -255,7 +276,10 @@ export default function AddProjectModal({
         }
       }
     } else if (currentStep === StepId.BRAND) {
-      // Generate prompts when moving from Brand to Prompts
+      // Move to prompt method selection
+      setCurrentStep(StepId.PROMPT_METHOD);
+    } else if (currentStep === StepId.PROMPT_METHOD) {
+      // Generate prompts based on selected method
       await generatePromptsForProject();
     } else if (currentStep === StepId.PROMPTS) {
       await handleCreateProject();
@@ -269,30 +293,59 @@ export default function AddProjectModal({
     setError("");
 
     try {
-      const request: GeneratePromptsRequest = {
-        brandName: brandName,
-        website: showCustomUrlInput ? customUrl : website,
-        industry: industry,
-        market: markets[0]?.country || 'United States',
-        language: markets[0]?.languages?.[0] || 'English',
-        keyBrandAttributes: attributes,
-        competitors: competitors,
-        shortDescription: description,
-        fullDescription: analyzedData?.fullDescription || analyzedData?.longDescription || description
-      };
+      if (promptGenerationMethod === 'keywords') {
+        // Generate from keywords
+        const keywordList = keywords.split(',').map(k => k.trim()).filter(k => k);
+        const result = await generatePromptsFromKeywords(
+          {
+            projectId: '', // This will be ignored for new project
+            keywords: keywordList,
+            promptType: 'visibility',
+            additionalInstructions: additionalInstructions.trim() || undefined,
+            count: parseInt(promptCount),
+          },
+          token!
+        );
 
-      const response = await generatePrompts(request, token!);
+        // Set visibility prompts with IDs and selected state
+        setVisibilityPrompts(result.prompts.map(text => ({
+          id: generateId(),
+          text,
+          selected: true
+        })));
+        // For keyword generation, we need to generate other prompt types separately
+        // For now, we'll leave them empty as the backend doesn't support it yet
+        setPerceptionPrompts([]);
+        setAlignmentPrompts([]);
+        setCompetitionPrompts([]);
+      } else {
+        // Generate with AI (existing logic)
+        const request: GeneratePromptsRequest = {
+          brandName: brandName,
+          website: showCustomUrlInput ? customUrl : website,
+          industry: industry,
+          market: markets[0]?.country || 'United States',
+          language: markets[0]?.languages?.[0] || 'English',
+          keyBrandAttributes: attributes,
+          competitors: competitors,
+          shortDescription: description,
+          fullDescription: analyzedData?.fullDescription || analyzedData?.longDescription || description,
+          additionalInstructions: additionalInstructions.trim() || undefined
+        };
 
-      // Set visibility prompts with IDs and selected state
-      setVisibilityPrompts(response.visibility.map(text => ({
-        id: generateId(),
-        text,
-        selected: true
-      })));
-      // Store other prompts but don't display them
-      setPerceptionPrompts(response.sentiment);
-      setAlignmentPrompts(response.alignment);
-      setCompetitionPrompts(response.competition);
+        const response = await generatePrompts(request, token!);
+
+        // Set visibility prompts with IDs and selected state
+        setVisibilityPrompts(response.visibility.map(text => ({
+          id: generateId(),
+          text,
+          selected: true
+        })));
+        // Store other prompts but don't display them
+        setPerceptionPrompts(response.sentiment);
+        setAlignmentPrompts(response.alignment);
+        setCompetitionPrompts(response.competition);
+      }
 
       setIsLoadingPrompts(false);
       setCurrentStep(StepId.PROMPTS);
@@ -652,6 +705,50 @@ export default function AddProjectModal({
           </div>
         );
 
+      case StepId.PROMPT_METHOD:
+        return (
+          <div className="space-y-6">
+            <PromptGenerationMethod 
+              value={promptGenerationMethod} 
+              onChange={setPromptGenerationMethod}
+            />
+            
+            {/* Prompt Count Selection */}
+            <PromptCountSelect
+              value={promptCount}
+              onChange={setPromptCount}
+              promptType="visibility"
+              maxSpontaneousPrompts={getMaxPrompts()}
+            />
+            
+            {promptGenerationMethod === 'keywords' && (
+              <KeywordsInput
+                keywords={keywords}
+                onKeywordsChange={setKeywords}
+                csvFile={csvFile}
+                onCsvFileChange={setCsvFile}
+              />
+            )}
+            
+            {/* Additional Instructions */}
+            <div className="space-y-2">
+              <Label htmlFor="additionalInstructions">Additional Instructions (Optional)</Label>
+              <Textarea
+                id="additionalInstructions"
+                placeholder={promptGenerationMethod === 'keywords' 
+                  ? "e.g., Focus on technical aspects and product features"
+                  : "e.g., Generate prompts for our new running shoes products"}
+                value={additionalInstructions}
+                onChange={(e) => setAdditionalInstructions(e.target.value)}
+                rows={3}
+              />
+              <p className="text-xs text-muted-foreground">
+                Provide specific guidance to tailor the prompt generation
+              </p>
+            </div>
+          </div>
+        );
+
       case StepId.PROMPTS:
         const selectedPromptsCount = visibilityPrompts.filter(p => p.selected).length;
         const maxPrompts = getMaxPrompts();
@@ -851,15 +948,15 @@ export default function AddProjectModal({
                     index < STEPS.length - 1 ? 'flex-1' : ''
                   }`}>
                     <div className={`
-                      flex items-center justify-center w-10 h-10 rounded-full
+                      flex items-center justify-center w-8 h-8 rounded-full
                       ${isActive ? 'bg-accent-500 text-white' :
                         isCompleted ? 'bg-accent-100 text-accent-600' :
                         'bg-gray-200 text-gray-400'}
                     `}>
-                      <Icon className="h-5 w-5" />
+                      <Icon className="h-4 w-4" />
                     </div>
-                    <span className={`ml-2 font-medium ${
-                      isActive ? 'text-accent-600' :
+                    <span className={`ml-2 text-sm ${
+                      isActive ? 'text-accent-600 font-medium' :
                       isCompleted ? 'text-gray-700' :
                       'text-gray-400'
                     }`}>

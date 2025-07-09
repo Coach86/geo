@@ -135,6 +135,20 @@ export class OrganizationService {
     }
   }
 
+  async findByShopifyDomain(shopifyDomain: string): Promise<OrganizationResponseDto | null> {
+    try {
+      const organizations = await this.organizationRepository.findByShopDomain(shopifyDomain);
+      if (organizations.length === 0) {
+        return null;
+      }
+      // Return the first organization found (there should only be one per shop domain)
+      return this.mapToResponseDto(organizations[0]);
+    } catch (error) {
+      this.logger.error(`Failed to find organization by shopify domain: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
   async update(id: string, updateOrganizationDto: UpdateOrganizationDto): Promise<OrganizationResponseDto> {
     try {
       // Check if organization exists

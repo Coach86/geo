@@ -4,6 +4,7 @@ import {
   Post, 
   Param, 
   Body,
+  Query,
   UseGuards,
   BadRequestException,
   NotFoundException,
@@ -16,6 +17,7 @@ import { OrganizationService } from '../services/organization.service';
 import { TokenService } from '../../auth/services/token.service';
 import { UserService } from '../../user/services/user.service';
 import { ConfigService } from '@nestjs/config';
+import { PaginationDto, PaginatedResponseDto } from '../../../common/dto/pagination.dto';
 
 class GenerateOrganizationMagicLinkDto {
   reason?: string;
@@ -41,17 +43,38 @@ export class AdminOrganizationController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get all organizations (Admin only)' })
+  @ApiOperation({ summary: 'Get all organizations with pagination (Admin only)' })
   @ApiResponse({ 
     status: 200, 
-    description: 'List of all organizations',
+    description: 'Paginated list of organizations',
   })
-  async getAllOrganizations() {
+  async getAllOrganizations(@Query() paginationDto: PaginationDto) {
     try {
       const organizations = await this.organizationService.findAll();
       
+      // Apply search filter if provided
+      let filteredOrgs = organizations;
+      if (paginationDto.search) {
+        const searchLower = paginationDto.search.toLowerCase();
+        filteredOrgs = organizations.filter(org => 
+          org.id.toLowerCase().includes(searchLower) ||
+          org.name?.toLowerCase().includes(searchLower)
+        );
+      }
+
+      // Sort by createdAt (newest first)
+      filteredOrgs.sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+
+      // Calculate pagination
+      const total = filteredOrgs.length;
+      const startIndex = paginationDto.offset;
+      const endIndex = startIndex + (paginationDto.limit || 20);
+      const paginatedOrgs = filteredOrgs.slice(startIndex, endIndex);
+      
       // Enrich with user count and first user's email
-      const enrichedOrgs = await Promise.all(organizations.map(async (org) => {
+      const enrichedOrgs = await Promise.all(paginatedOrgs.map(async (org) => {
         const users = await this.userService.findByOrganizationId(org.id);
         const firstUser = users[0]; // Use first user as the primary contact
         
@@ -66,7 +89,12 @@ export class AdminOrganizationController {
         };
       }));
       
-      return enrichedOrgs;
+      return new PaginatedResponseDto(
+        enrichedOrgs,
+        total,
+        paginationDto.page || 1,
+        paginationDto.limit || 20
+      );
     } catch (error) {
       this.logger.error(`Failed to fetch organizations: ${error.message}`, error.stack);
       throw new BadRequestException('Failed to fetch organizations');

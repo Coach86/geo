@@ -13,6 +13,8 @@ import {
   GeneratePromptsRequest,
   GeneratePromptsResponse,
   PromptSet,
+  GeneratePromptsFromKeywordsRequest,
+  GeneratePromptsFromKeywordsResponse,
 } from './types';
 
 /**
@@ -255,14 +257,16 @@ export async function regeneratePromptType(
   projectId: string,
   promptType: 'visibility' | 'sentiment' | 'alignment' | 'competition',
   token: string,
-  count?: number
+  count?: number,
+  additionalInstructions?: string,
+  keywords?: string[]
 ): Promise<{ prompts: string[]; type: string }> {
   try {
     return await apiFetch<{ prompts: string[]; type: string }>(
       API_ENDPOINTS.PROMPTS.REGENERATE_TYPE(projectId, promptType),
       {
         method: 'POST',
-        body: JSON.stringify({ count }),
+        body: JSON.stringify({ count, additionalInstructions, keywords }),
         token,
       }
     );
@@ -270,6 +274,30 @@ export async function regeneratePromptType(
     console.error('Regenerate prompt type error:', error);
     throw new Error(
       error instanceof Error ? error.message : 'Failed to regenerate prompts'
+    );
+  }
+}
+
+/**
+ * Generate prompts from keywords (requires token authentication)
+ */
+export async function generatePromptsFromKeywords(
+  request: GeneratePromptsFromKeywordsRequest,
+  token: string
+): Promise<GeneratePromptsFromKeywordsResponse> {
+  try {
+    return await apiFetch<GeneratePromptsFromKeywordsResponse>(
+      API_ENDPOINTS.PROMPTS.GENERATE_FROM_KEYWORDS,
+      {
+        method: 'POST',
+        body: JSON.stringify(request),
+        token,
+      }
+    );
+  } catch (error) {
+    console.error('Generate prompts from keywords error:', error);
+    throw new Error(
+      error instanceof Error ? error.message : 'Failed to generate prompts from keywords'
     );
   }
 }
