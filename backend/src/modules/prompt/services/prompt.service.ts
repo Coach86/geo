@@ -58,6 +58,12 @@ export class PromptService implements OnModuleInit {
     systemPrompt: string,
     promptType: string,
   ): Promise<T> {
+    // Log the complete prompt being sent to the LLM
+    this.logger.log(`\n========== COMPLETE PROMPT FOR ${promptType.toUpperCase()} ==========`);
+    this.logger.log(`SYSTEM PROMPT:\n${systemPrompt}`);
+    this.logger.log(`\nUSER PROMPT:\n${userPrompt}`);
+    this.logger.log(`========== END OF PROMPT ==========\n`);
+    
     // Try providers in order: OpenAI -> Anthropic -> Perplexity
     const providers = [LlmProvider.OpenAI, LlmProvider.Anthropic, LlmProvider.Perplexity];
     
@@ -183,7 +189,7 @@ export class PromptService implements OnModuleInit {
     this.logger.log(`Cleaned up prompt sets for deleted project ${projectId}`);
   }
 
-  async generatePromptSet(project: Project) {
+  async generatePromptSet(project: Project, additionalInstructions?: string) {
     // Parse company info to ensure we have all fields
     const brandName = project.brandName;
     const industry = project.industry;
@@ -204,6 +210,7 @@ export class PromptService implements OnModuleInit {
         this.visibilityPromptCount,
         competitors,
         scrapedKeywords,
+        additionalInstructions,
       ),
       this.generateSentimentPrompts(
         brandName,
@@ -261,6 +268,20 @@ export class PromptService implements OnModuleInit {
       keywords,
       additionalInstructions,
     });
+    
+    // Log generation details
+    if (additionalInstructions || keywords.length > 0) {
+      this.logger.log(`\n========== AI GENERATION WITH ENHANCEMENTS ==========`);
+      this.logger.log(`Brand: ${brandName}`);
+      this.logger.log(`Prompt Type: visibility`);
+      if (keywords.length > 0) {
+        this.logger.log(`Keywords: ${keywords.join(', ')}`);
+      }
+      if (additionalInstructions) {
+        this.logger.log(`Additional Instructions: ${additionalInstructions}`);
+      }
+      this.logger.log(`========== END OF ENHANCEMENTS ==========\n`);
+    }
 
     const result = await this.getStructuredOutputWithFallback<{ prompts: string[] }>(
       userPrompt,
@@ -769,6 +790,17 @@ export class PromptService implements OnModuleInit {
         additionalInstructions,
         count || this[`${promptType}PromptCount`],
       );
+      
+      // Log the keyword-based prompt details
+      this.logger.log(`\n========== KEYWORD-BASED GENERATION DETAILS ==========`);
+      this.logger.log(`Project: ${project.brandName} (${project.projectId})`);
+      this.logger.log(`Prompt Type: ${promptType}`);
+      this.logger.log(`Keywords: ${keywords.join(', ')}`);
+      this.logger.log(`Count: ${count || this[`${promptType}PromptCount`]}`);
+      if (additionalInstructions) {
+        this.logger.log(`Additional Instructions: ${additionalInstructions}`);
+      }
+      this.logger.log(`========== END OF DETAILS ==========\n`);
 
       // Define schema for LLM output
       const promptsSchema = z.object({
@@ -846,13 +878,18 @@ export class PromptService implements OnModuleInit {
       - Market: ${project.market}
       - Language: ${project.language}
       - Keywords to incorporate: ${keywords.join(', ')}
-      ${additionalInstructions ? `- Additional Instructions: ${additionalInstructions}` : ''}
     `;
+
+    const instructionsSection = additionalInstructions ? `
+      ### IMPORTANT ADDITIONAL INSTRUCTIONS:
+      ${additionalInstructions}
+      You MUST incorporate these instructions into the generated prompts.
+    ` : '';
 
     switch (promptType) {
       case 'visibility':
         return `${baseContext}
-        
+        ${instructionsSection}
         Generate ${count} visibility prompts that:
         1. Incorporate the provided keywords naturally
         2. Focus on questions that would make AI assistants mention or list specific brands/companies
@@ -860,6 +897,7 @@ export class PromptService implements OnModuleInit {
         4. Use casual, conversational language
         5. Never mention specific brand names in the prompts
         6. Keep prompts concise (max 20 words each)
+        ${additionalInstructions ? `7. IMPORTANT: Follow the additional instructions provided above` : ''}
         
         The prompts should be in ${project.language} and target the ${project.market} market.`;
 

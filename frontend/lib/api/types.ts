@@ -140,6 +140,7 @@ export interface CreateFullProjectRequest {
   language?: string;
   keyBrandAttributes?: string[];
   competitors?: string[];
+  additionalInstructions?: string;
   prompts?: {
     visibility?: string[];
     sentiment?: string[];

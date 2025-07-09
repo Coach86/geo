@@ -107,10 +107,11 @@ export class UserRepository {
   }
 
   /**
-   * Get projects for a user
+   * Get projects for a user (via their organization)
    */
-  async findProjectsForUser(userId: string): Promise<ProjectDocument[]> {
-    return await this.projectModel.find({ userId }).sort({ updatedAt: -1 }).exec();
+  async findProjectsForUser(user: UserDocument): Promise<ProjectDocument[]> {
+    // Projects are associated with organizations, not users directly
+    return await this.projectModel.find({ organizationId: user.organizationId }).sort({ updatedAt: -1 }).exec();
   }
 
   /**
@@ -136,7 +137,7 @@ export class UserRepository {
    */
   async mapToEntityWithProjects(document: UserDocument): Promise<UserEntity> {
     const entity = this.mapToEntity(document);
-    const projects = await this.findProjectsForUser(document.id);
+    const projects = await this.findProjectsForUser(document);
 
     if (projects && projects.length > 0) {
       entity.projects = projects.map((project) => ({

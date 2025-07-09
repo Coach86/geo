@@ -454,6 +454,11 @@ export default function AddProjectModal({
         };
       }
 
+      // Add additional instructions if AI generation was used
+      if (promptGenerationMethod === 'ai' && additionalInstructions.trim()) {
+        projectRequest.additionalInstructions = additionalInstructions.trim();
+      }
+
       const result = await createProject(projectRequest, token);
 
       analytics.trackProjectCreated(result.id, brandName, 'manual');
@@ -708,11 +713,11 @@ export default function AddProjectModal({
       case StepId.PROMPT_METHOD:
         return (
           <div className="space-y-6">
-            <PromptGenerationMethod 
-              value={promptGenerationMethod} 
+            <PromptGenerationMethod
+              value={promptGenerationMethod}
               onChange={setPromptGenerationMethod}
             />
-            
+
             {/* Prompt Count Selection */}
             <PromptCountSelect
               value={promptCount}
@@ -720,7 +725,7 @@ export default function AddProjectModal({
               promptType="visibility"
               maxSpontaneousPrompts={getMaxPrompts()}
             />
-            
+
             {promptGenerationMethod === 'keywords' && (
               <KeywordsInput
                 keywords={keywords}
@@ -729,15 +734,13 @@ export default function AddProjectModal({
                 onCsvFileChange={setCsvFile}
               />
             )}
-            
+
             {/* Additional Instructions */}
             <div className="space-y-2">
               <Label htmlFor="additionalInstructions">Additional Instructions (Optional)</Label>
               <Textarea
                 id="additionalInstructions"
-                placeholder={promptGenerationMethod === 'keywords' 
-                  ? "e.g., Focus on technical aspects and product features"
-                  : "e.g., Generate prompts for our new running shoes products"}
+                placeholder={ "e.g., Focus on a line of products"}
                 value={additionalInstructions}
                 onChange={(e) => setAdditionalInstructions(e.target.value)}
                 rows={3}

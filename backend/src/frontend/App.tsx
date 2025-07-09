@@ -14,6 +14,7 @@ import UserCreation from './pages/UserCreation';
 import Config from './pages/Config';
 import PlanManagement from './pages/PlanManagement';
 import OrganizationSettings from './pages/OrganizationSettings';
+import OrganizationDetails from './pages/OrganizationDetails';
 import PromoCodeManagement from './pages/PromoCodeManagement';
 import BatchStatisticsPage from './pages/BatchStatistics';
 import BatchProjectsList from './pages/BatchProjectsList';
@@ -99,6 +100,7 @@ const App: React.FC = () => {
             <Route path="config" element={<Config />} />
             <Route path="plans" element={<PlanManagement />} />
             <Route path="organization" element={<OrganizationSettings />} />
+            <Route path="organization/:id" element={<OrganizationDetails />} />
             <Route path="promo-codes" element={<PromoCodeManagement />} />
             <Route path="*" element={<Navigate to="/projects" replace />} />
           </Route>

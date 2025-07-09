@@ -148,7 +148,7 @@ export function GeneratePromptsDialog({
 
   const handleGenerate = () => {
     const count = parseInt(promptCount);
-    
+
     // Check if user is trying to generate more prompts than allowed
     if (promptType === 'visibility' && maxSpontaneousPrompts && count > maxSpontaneousPrompts) {
       onOpenChange(false);
@@ -176,8 +176,8 @@ export function GeneratePromptsDialog({
 
         <div className="space-y-4 py-4">
           {/* Generation Method Selection */}
-          <PromptGenerationMethod 
-            value={generationMethod} 
+          <PromptGenerationMethod
+            value={generationMethod}
             onChange={setGenerationMethod}
           />
 
@@ -203,9 +203,7 @@ export function GeneratePromptsDialog({
           <div className="space-y-2">
             <Label>Additional Instructions (Optional)</Label>
             <Textarea
-              placeholder={generationMethod === 'keywords' 
-                ? "e.g., Focus on technical aspects and product features"
-                : "e.g., Generate prompts for our new running shoes products"}
+              placeholder={ "e.g., Focus on a line of products"}
               value={additionalInstructions}
               onChange={(e) => setAdditionalInstructions(e.target.value)}
               rows={3}

@@ -19,6 +19,7 @@ import { UpdateProjectDto } from '../dto/update-project.dto';
 import { ProjectResponseDto } from '../dto/project-response.dto';
 import { AdminGuard } from '../../auth/guards/admin.guard';
 import { PaginationDto, PaginatedResponseDto } from '../../../common/dto/pagination.dto';
+import { ProjectQueryDto } from '../dto/project-query.dto';
 
 @ApiTags('Admin - Projects')
 @Controller('admin/project')
@@ -82,13 +83,19 @@ export class ProjectController {
     status: 200,
     description: 'Paginated list of projects',
   })
-  async findAll(@Query() paginationDto: PaginationDto) {
-    const projects = await this.projectService.findAll();
+  async findAll(@Query() queryDto: ProjectQueryDto) {
+    // Get projects - filter by organization if provided
+    let projects;
+    if (queryDto.organizationId) {
+      projects = await this.projectService.findByOrganizationId(queryDto.organizationId);
+    } else {
+      projects = await this.projectService.findAll();
+    }
     
     // Apply search filter if provided
     let filteredProjects = projects;
-    if (paginationDto.search) {
-      const searchLower = paginationDto.search.toLowerCase();
+    if (queryDto.search) {
+      const searchLower = queryDto.search.toLowerCase();
       filteredProjects = projects.filter(project => 
         project.projectId.toLowerCase().includes(searchLower) ||
         project.name?.toLowerCase().includes(searchLower) ||
@@ -106,8 +113,8 @@ export class ProjectController {
 
     // Calculate pagination
     const total = filteredProjects.length;
-    const startIndex = paginationDto.offset;
-    const endIndex = startIndex + (paginationDto.limit || 20);
+    const startIndex = queryDto.offset;
+    const endIndex = startIndex + (queryDto.limit || 20);
     const paginatedProjects = filteredProjects.slice(startIndex, endIndex);
 
     const mappedProjects = paginatedProjects.map((project) => this.mapToResponseDto(project));
@@ -115,8 +122,8 @@ export class ProjectController {
     return new PaginatedResponseDto(
       mappedProjects,
       total,
-      paginationDto.page || 1,
-      paginationDto.limit || 20
+      queryDto.page || 1,
+      queryDto.limit || 20
     );
   }
 
