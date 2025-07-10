@@ -23,7 +23,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/persistent-tooltip";
-import { AlertCircle, RefreshCw, Info } from "lucide-react";
+import { AlertCircle, RefreshCw, Info, Plus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import BreadcrumbNav from "@/components/layout/breadcrumb-nav";
@@ -61,6 +61,7 @@ export default function Home() {
   const [editCompetitorsOpen, setEditCompetitorsOpen] = useState(false);
   const [editNameOpen, setEditNameOpen] = useState(false);
   const [editObjectivesOpen, setEditObjectivesOpen] = useState(false);
+  const [openGenerateDialog, setOpenGenerateDialog] = useState(false);
 
   // Analysis states
   const [runningAnalysis, setRunningAnalysis] = useState(false);
@@ -411,45 +412,47 @@ export default function Home() {
                   <div className="col-span-5">
                     {promptSet && (
                       <PromptsDisplay
-                        prompts={promptSet.visibility || []}
-                        type="visibility"
-                        projectId={projectDetails.id}
-                        onUpdate={async (updatedPrompts) => {
-                          const updatedSet = { ...promptSet, visibility: updatedPrompts };
-                          setPromptSet(updatedSet);
-                          if (token) {
-                            try {
-                              await updatePromptSet(
-                                projectDetails.id,
-                                {
-                                  visibility: updatedSet.visibility,
-                                  sentiment: updatedSet.sentiment,
-                                  alignment: updatedSet.alignment,
-                                  competition: updatedSet.competition,
-                                },
-                                token
-                              );
-                            } catch (error) {
-                              console.error("Failed to update prompts:", error);
+                          prompts={promptSet.visibility || []}
+                          type="visibility"
+                          projectId={projectDetails.id}
+                          onUpdate={async (updatedPrompts) => {
+                            const updatedSet = { ...promptSet, visibility: updatedPrompts };
+                            setPromptSet(updatedSet);
+                            if (token) {
+                              try {
+                                await updatePromptSet(
+                                  projectDetails.id,
+                                  {
+                                    visibility: updatedSet.visibility,
+                                    sentiment: updatedSet.sentiment,
+                                    alignment: updatedSet.alignment,
+                                    competition: updatedSet.competition,
+                                  },
+                                  token
+                                );
+                              } catch (error) {
+                                console.error("Failed to update prompts:", error);
+                              }
                             }
-                          }
-                        }}
-                        canAdd={true}
-                        maxPrompts={organization?.planSettings?.maxSpontaneousPrompts || 12}
-                        maxSpontaneousPrompts={organization?.planSettings?.maxSpontaneousPrompts}
-                        onAddClick={() => router.push("/update-plan")}
-                        onRegenerateComplete={async () => {
-                          // Refresh the prompt set after regeneration
-                          if (token) {
-                            try {
-                              const refreshedPrompts = await getPromptSet(projectDetails.id, token);
-                              setPromptSet(refreshedPrompts);
-                            } catch (error) {
-                              console.error("Failed to refresh prompts:", error);
+                          }}
+                          canAdd={true}
+                          maxPrompts={organization?.planSettings?.maxSpontaneousPrompts || 12}
+                          maxSpontaneousPrompts={organization?.planSettings?.maxSpontaneousPrompts}
+                          onAddClick={() => router.push("/update-plan")}
+                          onRegenerateComplete={async () => {
+                            // Refresh the prompt set after regeneration
+                            if (token) {
+                              try {
+                                const refreshedPrompts = await getPromptSet(projectDetails.id, token);
+                                setPromptSet(refreshedPrompts);
+                              } catch (error) {
+                                console.error("Failed to refresh prompts:", error);
+                              }
                             }
-                          }
-                        }}
-                      />
+                          }}
+                          openGenerateDialog={openGenerateDialog}
+                          onGenerateDialogClose={() => setOpenGenerateDialog(false)}
+                        />
                     )}
                   </div>
                 </div>

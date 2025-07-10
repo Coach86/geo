@@ -38,4 +38,18 @@ export class UpdateOrganizationDto extends PartialType(CreateOrganizationDto) {
   @IsOptional()
   @IsDate()
   subscriptionCancelAt?: Date;
+
+  @IsOptional()
+  @IsString()
+  shopifyAccessToken?: string;
+
+  @IsOptional()
+  @IsString()
+  shopifySubscriptionId?: string;
+
+  @IsOptional()
+  shopifySubscriptionData?: any;
+
+  @IsOptional()
+  shopifyShopData?: any;
 }

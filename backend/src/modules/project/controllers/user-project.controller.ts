@@ -478,6 +478,7 @@ export class UserProjectController {
         language: { type: 'string', example: 'English' },
         keyBrandAttributes: { type: 'array', items: { type: 'string' } },
         competitors: { type: 'array', items: { type: 'string' } },
+        additionalInstructions: { type: 'string', example: 'Focus on technical aspects and innovation' },
         prompts: {
           type: 'object',
           properties: {
@@ -511,6 +512,7 @@ export class UserProjectController {
       language?: string;
       keyBrandAttributes?: string[];
       competitors?: string[];
+      additionalInstructions?: string;
       prompts?: {
         visibility?: string[];
         sentiment?: string[];
@@ -573,7 +575,7 @@ export class UserProjectController {
       // Save directly to database without analysis
       const savedProject = await this.projectRepository.save(projectData);
 
-      // Handle custom prompts if provided
+      // Handle prompts - either custom prompts or AI-generated with additional instructions
       if (body.prompts && ((body.prompts.visibility?.length ?? 0) > 0 || (body.prompts.sentiment?.length ?? 0) > 0)) {
         this.logger.log(`Saving custom prompts for project ${projectId}`);
         
@@ -588,6 +590,38 @@ export class UserProjectController {
         } catch (promptError) {
           this.logger.error(`Failed to save custom prompts: ${promptError.message}`, promptError.stack);
           // Don't fail the project creation if prompt saving fails
+        }
+      } else if (body.additionalInstructions) {
+        this.logger.log(`Generating AI prompts with additional instructions for project ${projectId}`);
+        
+        try {
+          // Create a Project object for the prompt service
+          const projectForPrompts = {
+            projectId,
+            brandName: body.brandName,
+            website: body.url,
+            industry: body.industry || '',
+            market: body.market,
+            language: body.language || 'en',
+            keyBrandAttributes: body.keyBrandAttributes || [],
+            competitors: body.competitors || [],
+            scrapedKeywords: [],
+            shortDescription: body.description || '',
+            fullDescription: body.description || '',
+            objectives: body.objectives || '',
+            organizationId: user.organizationId,
+            updatedAt: new Date(),
+          };
+
+          // Generate prompts with additional instructions
+          const generatedPrompts = await this.promptService.generatePromptSet(projectForPrompts, body.additionalInstructions);
+          
+          // Save the generated prompts
+          await this.promptService.createPromptSet(projectId, generatedPrompts);
+          this.logger.log(`AI-generated prompts with additional instructions saved successfully for project ${projectId}`);
+        } catch (promptError) {
+          this.logger.error(`Failed to generate AI prompts with additional instructions: ${promptError.message}`, promptError.stack);
+          // Don't fail the project creation if prompt generation fails
         }
       }
       

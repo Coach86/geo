@@ -18,6 +18,8 @@ import { CreateFromUrlDto } from '../dto/create-from-url.dto';
 import { UpdateProjectDto } from '../dto/update-project.dto';
 import { ProjectResponseDto } from '../dto/project-response.dto';
 import { AdminGuard } from '../../auth/guards/admin.guard';
+import { PaginationDto, PaginatedResponseDto } from '../../../common/dto/pagination.dto';
+import { ProjectQueryDto } from '../dto/project-query.dto';
 
 @ApiTags('Admin - Projects')
 @Controller('admin/project')
@@ -76,15 +78,53 @@ export class ProjectController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all company projects' })
+  @ApiOperation({ summary: 'Get all company projects with pagination' })
   @ApiResponse({
     status: 200,
-    description: 'List of projects',
-    type: [ProjectResponseDto],
+    description: 'Paginated list of projects',
   })
-  async findAll(): Promise<ProjectResponseDto[]> {
-    const projects = await this.projectService.findAll();
-    return projects.map((project) => this.mapToResponseDto(project));
+  async findAll(@Query() queryDto: ProjectQueryDto) {
+    // Get projects - filter by organization if provided
+    let projects;
+    if (queryDto.organizationId) {
+      projects = await this.projectService.findByOrganizationId(queryDto.organizationId);
+    } else {
+      projects = await this.projectService.findAll();
+    }
+    
+    // Apply search filter if provided
+    let filteredProjects = projects;
+    if (queryDto.search) {
+      const searchLower = queryDto.search.toLowerCase();
+      filteredProjects = projects.filter(project => 
+        project.projectId.toLowerCase().includes(searchLower) ||
+        project.name?.toLowerCase().includes(searchLower) ||
+        project.brandName?.toLowerCase().includes(searchLower) ||
+        project.website?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Sort by updatedAt (newest first), fallback to projectId
+    filteredProjects.sort((a, b) => {
+      const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+      const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+      return dateB - dateA;
+    });
+
+    // Calculate pagination
+    const total = filteredProjects.length;
+    const startIndex = queryDto.offset;
+    const endIndex = startIndex + (queryDto.limit || 20);
+    const paginatedProjects = filteredProjects.slice(startIndex, endIndex);
+
+    const mappedProjects = paginatedProjects.map((project) => this.mapToResponseDto(project));
+
+    return new PaginatedResponseDto(
+      mappedProjects,
+      total,
+      queryDto.page || 1,
+      queryDto.limit || 20
+    );
   }
 
   @Get(':projectId')

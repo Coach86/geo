@@ -49,14 +49,13 @@ export function ReadableContent({ html, className, onMetadata }: ReadableContent
             'p', 'div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
             'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'em', 'strong',
             'b', 'i', 'u', 'a', 'br', 'hr', 'table', 'thead', 'tbody',
-            'tr', 'th', 'td', 'img', 'figure', 'figcaption', 'section',
-            'article', 'main'
+            'tr', 'th', 'td', 'section', 'article', 'main'
           ],
-          ALLOWED_ATTR: ['href', 'title', 'alt', 'src', 'width', 'height', 'class'],
+          ALLOWED_ATTR: ['href', 'title', 'class'],
           KEEP_CONTENT: true,
           // Add classes for styling
           ADD_ATTR: ['target'],
-          FORBID_TAGS: ['style', 'script'],
+          FORBID_TAGS: ['style', 'script', 'img', 'figure', 'figcaption'],
         });
         
         return { cleanedHTML: content, metadata: extractedMetadata };

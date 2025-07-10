@@ -8,6 +8,7 @@ import { getUserProjects, ProjectResponse } from "@/lib/auth-api";
 import { SvgLoader } from "@/components/ui/svg-loader";
 import { NavigationProvider, useNavigation } from "@/providers/navigation-provider";
 import { Toaster } from "@/components/ui/sonner";
+import FeedbackBubble from "@/components/shared/FeedbackBubble";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -95,6 +96,7 @@ function DashboardLayoutContent({ children }: DashboardLayoutProps) {
         <div className="p-8">{children}</div>
       </main>
       <Toaster />
+      <FeedbackBubble />
     </div>
   );
 }

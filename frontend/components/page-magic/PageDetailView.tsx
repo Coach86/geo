@@ -307,23 +307,13 @@ export function PageDetailView({ pageId }: PageDetailViewProps) {
 
 
       {/* Content Preview */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Page Content Preview
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <BrowserFrame url={pageDetails.url} title="Current Content" className="h-[500px]">
-            <ContentViewer
-              html={contentHtml}
-              loading={contentLoading}
-              error={contentLoading ? undefined : (!contentHtml ? 'Click above to load content' : undefined)}
-            />
-          </BrowserFrame>
-        </CardContent>
-      </Card>
+      <BrowserFrame url={pageDetails.url} title="Current Content" className="h-[1000px]">
+        <ContentViewer
+          html={contentHtml}
+          loading={contentLoading}
+          error={contentLoading ? undefined : (!contentHtml ? 'Click above to load content' : undefined)}
+        />
+      </BrowserFrame>
     </div>
   );
 }

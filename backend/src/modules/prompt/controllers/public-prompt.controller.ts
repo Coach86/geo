@@ -16,6 +16,7 @@ import {
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { PromptService } from '../services/prompt.service';
 import { UpdatePromptSetDto } from '../dto/update-prompt-set.dto';
+import { GeneratePromptsFromKeywordsDto, RegeneratePromptsDto } from '../dto/generate-prompts-keywords.dto';
 import { TokenRoute } from '../../auth/decorators/token-route.decorator';
 import { TokenService } from '../../auth/services/token.service';
 import { Project } from '../../project/entities/project.entity';
@@ -297,7 +298,7 @@ export class PublicPromptController {
     @Req() request: any,
     @Param('projectId') projectId: string,
     @Param('promptType') promptType: 'visibility' | 'sentiment' | 'alignment' | 'competition',
-    @Body() body: { count?: number },
+    @Body() body: RegeneratePromptsDto,
   ): Promise<{ prompts: string[]; type: string }> {
     try {
       this.logger.log(`Regenerating ${promptType} prompts for project ${projectId}`);
@@ -340,7 +341,13 @@ export class PublicPromptController {
       }
 
       // Regenerate prompts for the specific type
-      const regeneratedPrompts = await this.promptService.regeneratePromptType(projectId, promptType, body.count);
+      const regeneratedPrompts = await this.promptService.regeneratePromptType(
+        projectId, 
+        promptType, 
+        body.count,
+        body.additionalInstructions,
+        body.keywords,
+      );
       
       this.logger.log(`Successfully regenerated ${regeneratedPrompts.length} ${promptType} prompts for project ${projectId}`);
       
@@ -420,6 +427,107 @@ export class PublicPromptController {
       }
       this.logger.error(`Failed to update prompt set: ${error.message}`, error.stack);
       throw new BadRequestException(`Failed to update prompt set: ${error.message}`);
+    }
+  }
+
+  @Post('generate-from-keywords')
+  @TokenRoute()
+  @ApiOperation({ summary: 'Generate prompts from keywords' })
+  @ApiBody({ type: GeneratePromptsFromKeywordsDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Prompts generated successfully from keywords',
+    schema: {
+      type: 'object',
+      properties: {
+        prompts: { type: 'array', items: { type: 'string' } },
+        type: { type: 'string' },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Token required' })
+  @ApiResponse({ status: 404, description: 'Project not found' })
+  async generatePromptsFromKeywords(
+    @Req() request: any,
+    @Body() dto: GeneratePromptsFromKeywordsDto,
+  ): Promise<{ prompts: string[]; type: string }> {
+    try {
+      this.logger.log(`Generating ${dto.promptType} prompts from keywords for project ${dto.projectId}`);
+      
+      // Validate user authentication
+      if (!request.userId) {
+        if (request.token) {
+          const validation = await this.tokenService.validateAccessToken(request.token);
+          if (validation.valid && validation.userId) {
+            request.userId = validation.userId;
+          } else {
+            throw new UnauthorizedException('Invalid or expired token');
+          }
+        } else {
+          throw new UnauthorizedException('User not authenticated');
+        }
+      }
+
+      // If projectId is provided and not empty, validate ownership
+      let generatedPrompts: string[];
+      
+      if (dto.projectId && dto.projectId.trim() !== '') {
+        const project = await this.projectModel.findOne({ id: dto.projectId }).exec();
+        if (!project) {
+          throw new NotFoundException(`Project ${dto.projectId} not found`);
+        }
+        
+        // Get user to check organization
+        const user = await this.userService.findOne(request.userId);
+        if (!user) {
+          throw new BadRequestException('User not found');
+        }
+        
+        if (project.organizationId !== user.organizationId) {
+          this.logger.warn(`User ${request.userId} tried to generate prompts for project ${dto.projectId} from different organization`);
+          throw new UnauthorizedException('You do not have permission to generate prompts for this project');
+        }
+
+        // Generate prompts from keywords with project context
+        generatedPrompts = await this.promptService.generatePromptsFromKeywords(
+          dto.projectId,
+          dto.promptType,
+          dto.keywords,
+          dto.additionalInstructions,
+          dto.count,
+        );
+      } else {
+        // Generate prompts without project context (for new projects)
+        generatedPrompts = await this.promptService.generatePromptsFromKeywordsWithoutProject(
+          dto.promptType,
+          dto.keywords,
+          dto.additionalInstructions,
+          dto.count,
+          {
+            brandName: dto.brandName,
+            website: dto.website,
+            industry: dto.industry,
+            market: dto.market,
+            language: dto.language,
+            keyBrandAttributes: dto.keyBrandAttributes,
+            competitors: dto.competitors,
+            shortDescription: dto.shortDescription,
+          },
+        );
+      }
+      
+      this.logger.log(`Successfully generated ${generatedPrompts.length} ${dto.promptType} prompts from keywords for project ${dto.projectId}`);
+      
+      return {
+        prompts: generatedPrompts,
+        type: dto.promptType,
+      };
+    } catch (error) {
+      if (error instanceof UnauthorizedException || error instanceof NotFoundException || error instanceof BadRequestException) {
+        throw error;
+      }
+      this.logger.error(`Failed to generate prompts from keywords: ${error.message}`, error.stack);
+      throw new BadRequestException(`Failed to generate prompts from keywords: ${error.message}`);
     }
   }
 }

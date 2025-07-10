@@ -38,6 +38,7 @@ export const API_ENDPOINTS = {
   // Prompt endpoints
   PROMPTS: {
     GENERATE: "/prompts/generate",
+    GENERATE_FROM_KEYWORDS: "/prompts/generate-from-keywords",
     BY_PROJECT: (projectId: string) => `/prompts/${projectId}`,
     UPDATE: (projectId: string) => `/prompts/${projectId}`,
     REGENERATE_TYPE: (projectId: string, promptType: string) => `/prompts/${projectId}/regenerate/${promptType}`,

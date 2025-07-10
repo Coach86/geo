@@ -141,6 +141,7 @@ export interface CreateFullProjectRequest {
   language?: string;
   keyBrandAttributes?: string[];
   competitors?: string[];
+  additionalInstructions?: string;
   prompts?: {
     visibility?: string[];
     sentiment?: string[];
@@ -175,6 +176,7 @@ export interface GeneratePromptsRequest {
   scrapedKeywords?: string[];
   shortDescription?: string;
   fullDescription?: string;
+  additionalInstructions?: string;
 }
 
 export interface GeneratePromptsResponse {
@@ -193,6 +195,28 @@ export interface PromptSet {
   competition: string[];
   updatedAt: string;
   createdAt: string;
+}
+
+export interface GeneratePromptsFromKeywordsRequest {
+  projectId?: string;
+  keywords: string[];
+  additionalInstructions?: string;
+  promptType: 'visibility' | 'sentiment' | 'alignment' | 'competition';
+  count?: number;
+  // Project context for when projectId is not provided
+  brandName?: string;
+  website?: string;
+  industry?: string;
+  market?: string;
+  language?: string;
+  keyBrandAttributes?: string[];
+  competitors?: string[];
+  shortDescription?: string;
+}
+
+export interface GeneratePromptsFromKeywordsResponse {
+  prompts: string[];
+  type: string;
 }
 
 // Batch result types

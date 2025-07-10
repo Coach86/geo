@@ -85,7 +85,8 @@ const ProjectCreation: React.FC = () => {
       try {
         setLoadingUsers(true);
         const data = await getUsers();
-        setUsers(data);
+        // Handle paginated response
+        setUsers(data.data || data);
       } catch (err) {
         console.error('Failed to fetch users:', err);
         setError(

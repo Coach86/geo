@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { X, Plus, Check, Users, Tag, LineChart, PenTool } from "lucide-react"
+import { isUrl } from "@/utils/url-utils"
 
 interface AttributeItem {
   id: string;
@@ -155,6 +156,7 @@ export default function BrandIdentity({ initialData, onDataReady }: BrandIdentit
   // UI state
   const [attributeInput, setAttributeInput] = useState("")
   const [competitorInput, setCompetitorInput] = useState("")
+  const [competitorError, setCompetitorError] = useState("")
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editableValue, setEditableValue] = useState<string>("")
 
@@ -260,6 +262,12 @@ export default function BrandIdentity({ initialData, onDataReady }: BrandIdentit
     const trimmed = name.trim()
     if (!trimmed) return
 
+    // Check if it's a URL
+    if (isUrl(trimmed)) {
+      setCompetitorError("Enter the name of the competitor, not their URL");
+      return;
+    }
+
     // Check if already exists
     if (competitorItems.some(c => c.name === trimmed)) {
       return
@@ -275,6 +283,7 @@ export default function BrandIdentity({ initialData, onDataReady }: BrandIdentit
 
     setCompetitorItems([...competitorItems, newCompetitor]);
     setCompetitorInput("");
+    setCompetitorError("");
   }
 
   // Handle toggling a competitor by ID
@@ -552,32 +561,43 @@ export default function BrandIdentity({ initialData, onDataReady }: BrandIdentit
               ))}
             </div>
 
-            <div className="mt-4 flex items-center gap-3">
-              <div className="relative flex-1">
-                <Input
-                  placeholder="Add a competitor"
-                  value={competitorInput}
-                  onChange={(e) => setCompetitorInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault()
-                      handleAddCompetitor(competitorInput)
-                    }
-                  }}
-                  className="pr-10 input-focus"
-                />
-                {competitorInput && (
-                  <button
-                    onClick={() => handleAddCompetitor(competitorInput)}
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                  >
-                    <Plus className="h-5 w-5" />
-                  </button>
-                )}
+            <div className="mt-4">
+              <div className="flex items-center gap-3">
+                <div className="relative flex-1">
+                  <Input
+                    placeholder="Add a competitor"
+                    value={competitorInput}
+                    onChange={(e) => {
+                      setCompetitorInput(e.target.value)
+                      // Clear error when user types
+                      if (competitorError) {
+                        setCompetitorError("")
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault()
+                        handleAddCompetitor(competitorInput)
+                      }
+                    }}
+                    className={`pr-10 input-focus ${competitorError ? "border-red-500 focus:border-red-500" : ""}`}
+                  />
+                  {competitorInput && (
+                    <button
+                      onClick={() => handleAddCompetitor(competitorInput)}
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    >
+                      <Plus className="h-5 w-5" />
+                    </button>
+                  )}
+                </div>
+                <Badge className="bg-accent-100 text-accent-700">
+                  {competitorItems.filter(c => c.selected).length}/5
+                </Badge>
               </div>
-              <Badge className="bg-accent-100 text-accent-700">
-                {competitorItems.filter(c => c.selected).length}/5
-              </Badge>
+              {competitorError && (
+                <p className="text-xs text-red-500 mt-1">{competitorError}</p>
+              )}
             </div>
             <div>
               {competitorItems.filter(c => c.selected).length >= 5 && (

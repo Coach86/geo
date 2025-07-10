@@ -103,7 +103,7 @@ export class UserService {
         )
       );
 
-      return this.mapToResponseDto(savedUser);
+      return await this.mapToResponseDto(savedUser);
     } catch (error) {
       this.logger.error(`Failed to create user: ${error.message}`, error.stack);
       throw error;
@@ -140,7 +140,7 @@ export class UserService {
   async findOne(id: string): Promise<UserResponseDto> {
     try {
       const user = await this.userRepository.findById(id);
-      return this.mapToResponseDto(user);
+      return await this.mapToResponseDto(user);
     } catch (error) {
       this.logger.error(`Failed to find user: ${error.message}`, error.stack);
       throw error;
@@ -227,7 +227,7 @@ export class UserService {
       };
 
       const updatedUser = await this.userRepository.update(id, updateData);
-      return this.mapToResponseDto(updatedUser);
+      return await this.mapToResponseDto(updatedUser);
     } catch (error) {
       this.logger.error(`Failed to update user: ${error.message}`, error.stack);
       throw error;
@@ -266,7 +266,7 @@ export class UserService {
         )
       );
 
-      return this.mapToResponseDto(updatedUser);
+      return await this.mapToResponseDto(updatedUser);
     } catch (error) {
       this.logger.error(`Failed to update phone number: ${error.message}`, error.stack);
       throw error;
@@ -322,7 +322,7 @@ export class UserService {
         )
       );
 
-      return this.mapToResponseDto(updatedUser);
+      return await this.mapToResponseDto(updatedUser);
     } catch (error) {
       this.logger.error(`Failed to update email: ${error.message}`, error.stack);
       throw error;
@@ -385,8 +385,8 @@ export class UserService {
    * @param user - Mongoose User model
    * @returns UserResponseDto
    */
-  private mapToResponseDto(user: UserDocument): UserResponseDto {
-    const entity = this.userRepository.mapToEntity(user);
+  private async mapToResponseDto(user: UserDocument): Promise<UserResponseDto> {
+    const entity = await this.userRepository.mapToEntityWithProjects(user);
     return this.mapToEntityDto(entity);
   }
 
@@ -397,7 +397,8 @@ export class UserService {
    */
   async getUserProjectIds(userId: string): Promise<string[]> {
     try {
-      const projects = await this.userRepository.findProjectsForUser(userId);
+      const user = await this.userRepository.findById(userId);
+      const projects = await this.userRepository.findProjectsForUser(user);
       return projects ? projects.map((p) => p.id) : [];
     } catch (error) {
       this.logger.error(`Failed to get user company IDs: ${error.message}`, error.stack);

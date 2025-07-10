@@ -250,4 +250,58 @@ export class EmailService {
       // Don't throw - we don't want email failures to affect the system
     }
   }
+
+  async sendFeedbackEmail(
+    userEmail: string,
+    userName: string,
+    subject: string,
+    message: string,
+  ): Promise<void> {
+    if (!this.resend) {
+      this.logger.warn('Email service not configured, skipping feedback email');
+      return;
+    }
+
+    try {
+      this.logger.log('Sending feedback email:', {
+        userEmail,
+        userName,
+        subject,
+      });
+
+      const { error } = await this.resend.emails.send({
+        from: 'Mint Feedback <feedback@getmint.ai>',
+        to: 'contact@getmint.ai',
+        replyTo: userEmail,
+        subject: `[Feedback] ${subject}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #333;">New Feedback Received</h2>
+            <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <p><strong>From:</strong> ${userName}</p>
+              <p><strong>Email:</strong> <a href="mailto:${userEmail}">${userEmail}</a></p>
+              <p><strong>Subject:</strong> ${subject}</p>
+            </div>
+            <div style="background-color: #ffffff; border: 1px solid #e0e0e0; padding: 20px; border-radius: 8px;">
+              <h3 style="color: #555; margin-top: 0;">Message:</h3>
+              <p style="white-space: pre-wrap;">${message}</p>
+            </div>
+            <p style="color: #666; font-size: 12px; margin-top: 20px;">
+              This email was sent from the Mint AI feedback form.
+            </p>
+          </div>
+        `,
+        text: `New Feedback Received\n\nFrom: ${userName}\nEmail: ${userEmail}\nSubject: ${subject}\n\nMessage:\n${message}`,
+      });
+
+      if (error) {
+        throw new Error(`Failed to send feedback email: ${error.message}`);
+      }
+
+      this.logger.log(`Feedback email sent from ${userEmail}`);
+    } catch (error) {
+      this.logger.error(`Failed to send feedback email: ${error.message}`, error.stack);
+      throw error; // Throw for feedback emails so user knows if it failed
+    }
+  }
 }

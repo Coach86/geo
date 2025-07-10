@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { PaginationParams, PaginatedResponse } from './api';
 
 const API_URL = '/api/admin';
 
@@ -37,12 +38,10 @@ const createAuthAxios = () => {
 };
 
 // Organization endpoints
-export const getAllOrganizations = async (includeProjects: boolean = false) => {
+export const getAllOrganizations = async (params?: PaginationParams & { includeProjects?: boolean }) => {
   const api = createAuthAxios();
-  const response = await api.get('/organizations', {
-    params: includeProjects ? { includeProjects: 'true' } : {}
-  });
-  return response.data;
+  const response = await api.get('/organizations', { params });
+  return response.data as PaginatedResponse<any>;
 };
 
 export const getOrganization = async (id: string) => {

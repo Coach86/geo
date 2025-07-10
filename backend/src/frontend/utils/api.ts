@@ -20,9 +20,26 @@ const api = axios.create({
   },
 });
 
+// Pagination types
+export interface PaginationParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
 // Project API
-export const getProjects = async (): Promise<Project[]> => {
-  const response = await authApi.get('/project');
+export const getProjects = async (params?: PaginationParams): Promise<PaginatedResponse<Project>> => {
+  const response = await authApi.get('/project', { params });
   return response.data;
 };
 
@@ -62,8 +79,8 @@ export const refreshCompetitors = async (id: string): Promise<{ message: string 
 };
 
 // User API
-export const getUsers = async (): Promise<User[]> => {
-  const response = await authApi.get('/users');
+export const getUsers = async (params?: PaginationParams): Promise<PaginatedResponse<User>> => {
+  const response = await authApi.get('/users', { params });
   return response.data;
 };
 

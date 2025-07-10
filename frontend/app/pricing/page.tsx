@@ -4,9 +4,12 @@ import { useEffect, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import PricingPage from "@/components/pricing/pricing-page"
 import { getOnboardingData } from "@/lib/onboarding-storage"
+import FeedbackBubble from "@/components/shared/FeedbackBubble"
+import { useAuth } from "@/providers/auth-provider"
 
 export default function Pricing() {
   const searchParams = useSearchParams()
+  const { isAuthenticated } = useAuth()
   const [recommendedPlan, setRecommendedPlan] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
@@ -58,5 +61,17 @@ export default function Pricing() {
     )
   }
 
-  return <PricingPage forcedRecommendedPlan={recommendedPlan === "calculate" ? undefined : recommendedPlan} />
+  return (
+    <>
+      <PricingPage forcedRecommendedPlan={recommendedPlan === "calculate" ? undefined : recommendedPlan} />
+      {isAuthenticated && (
+        <FeedbackBubble 
+          description="Need help choosing your plan? Contact us!"
+          buttonText="Contact Us"
+          defaultSubject="Question about pricing"
+          startExpanded={true}
+        />
+      )}
+    </>
+  )
 }

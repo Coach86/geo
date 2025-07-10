@@ -7,6 +7,7 @@ import { UserLoopsListener } from './listeners/user-loops.listener';
 import { EmailEventListener } from './listeners/email-event.listener';
 import { UserModule } from '../user/user.module';
 import { ProjectModule } from '../project/project.module';
+import { FeedbackController } from './controllers/feedback.controller';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { ProjectModule } from '../project/project.module';
     forwardRef(() => UserModule),
     forwardRef(() => ProjectModule),
   ],
+  controllers: [FeedbackController],
   providers: [
     EmailService,
     LoopsService,
