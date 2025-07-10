@@ -10,6 +10,7 @@ import { PostHogProvider } from "@/providers/posthog-provider";
 import { NotificationProvider } from "@/providers/notification-provider";
 import { BatchEventsProvider } from "@/providers/batch-events-provider";
 import { PageTransitionProvider } from "@/providers/page-transition-provider";
+import { Toaster } from "@/components/ui/sonner";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -43,6 +44,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <Toaster />
           <PostHogProvider>
             <AuthProvider>
               <ModelsProvider>

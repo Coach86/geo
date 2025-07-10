@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/providers/auth-provider";
 import { useAnalytics } from "@/hooks/use-analytics";
 import { analyzeWebsite, createProject, getUserUrlUsage, generatePrompts, generatePromptsFromKeywords, type CreateFullProjectRequest, type UrlUsageResponse, type GeneratePromptsRequest } from "@/lib/auth-api";
-import { extractHostname } from "@/utils/url-utils";
+import { extractHostname, isUrl } from "@/utils/url-utils";
 import { saveSelectedDomain, saveSelectedProject } from "@/lib/navigation-persistence";
 import { getMyOrganization, type Organization } from "@/lib/organization-api";
 import { Label } from "@/components/ui/label";
@@ -103,6 +103,7 @@ export default function AddProjectModal({
   const [industry, setIndustry] = useState("");
   const [attributes, setAttributes] = useState<string[]>([]);
   const [competitors, setCompetitors] = useState<string[]>([]);
+  const [competitorError, setCompetitorError] = useState("");
   const [analyzedData, setAnalyzedData] = useState<any>(null);
 
   // Step 3: Prompt Method
@@ -691,16 +692,34 @@ export default function AddProjectModal({
               <Input
                 type="text"
                 placeholder={competitors.length >= getMaxCompetitors() ? "Maximum competitors reached" : "Add a competitor and press Enter"}
-                className="mt-2"
+                className={`mt-2 ${competitorError ? "border-red-500 focus:border-red-500" : ""}`}
                 disabled={competitors.length >= getMaxCompetitors()}
+                onChange={(e) => {
+                  // Clear error when user types
+                  if (competitorError) {
+                    setCompetitorError("");
+                  }
+                }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && e.currentTarget.value.trim() && competitors.length < getMaxCompetitors()) {
                     e.preventDefault();
-                    setCompetitors([...competitors, e.currentTarget.value.trim()]);
+                    const competitorName = e.currentTarget.value.trim();
+                    
+                    // Check if it's a URL
+                    if (isUrl(competitorName)) {
+                      setCompetitorError("Enter the name of the competitor, not their URL");
+                      return;
+                    }
+                    
+                    setCompetitors([...competitors, competitorName]);
                     e.currentTarget.value = "";
+                    setCompetitorError("");
                   }
                 }}
               />
+              {competitorError && (
+                <p className="text-xs text-red-500 mt-1">{competitorError}</p>
+              )}
               {competitors.length >= getMaxCompetitors() && (
                 <p className="text-xs text-orange-600 mt-1">
                   Maximum of {getMaxCompetitors()} competitors allowed for your plan

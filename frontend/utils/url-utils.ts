@@ -37,3 +37,19 @@ export function projectMatchesDomain(projectUrl: string | undefined | null, doma
   const hostname = extractHostname(projectUrl);
   return hostname === domain;
 }
+
+/**
+ * Check if a string looks like a URL
+ * @param input - The input string to check
+ * @returns True if the input looks like a URL
+ */
+export function isUrl(input: string): boolean {
+  if (!input || typeof input !== 'string') return false;
+  
+  const trimmed = input.trim().toLowerCase();
+  
+  // Check for http://, https://, or www.
+  return trimmed.startsWith('http://') || 
+         trimmed.startsWith('https://') || 
+         trimmed.startsWith('www.');
+}

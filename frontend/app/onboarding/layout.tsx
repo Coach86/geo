@@ -15,6 +15,7 @@ import { createProject, analyzeWebsite, type CreateFullProjectRequest } from "@/
 import { getOnboardingData, updateOnboardingData, clearOnboardingData } from "@/lib/onboarding-storage"
 import { SvgLoader } from "@/components/ui/svg-loader"
 import { updatePhoneNumber } from "@/lib/api/user"
+import FeedbackBubble from "@/components/shared/FeedbackBubble"
 
 export default function OnboardingLayout({ children }: { children: ReactNode }) {
   return (
@@ -31,6 +32,7 @@ export default function OnboardingLayout({ children }: { children: ReactNode }) 
               <NavigationButtons />
             </div>
           </footer>
+          <FeedbackBubble />
         </div>
       </ProtectedOnboarding>
     </OnboardingProvider>

@@ -3,6 +3,8 @@
  * Re-exports all API functions and types for easy importing
  */
 
+import { apiFetch } from './utils';
+
 // Export all types
 export * from './types';
 
@@ -77,3 +79,15 @@ export {
 
 // Export utils if needed
 export { apiFetch, buildQueryString } from './utils';
+
+// Feedback API
+export async function sendFeedback(
+  data: { subject: string; message: string },
+  token: string
+): Promise<{ success: boolean; message: string }> {
+  return apiFetch<{ success: boolean; message: string }>('/feedback/send', {
+    method: 'POST',
+    token,
+    body: JSON.stringify(data),
+  });
+}
