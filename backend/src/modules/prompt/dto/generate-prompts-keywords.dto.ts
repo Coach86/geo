@@ -5,9 +5,11 @@ export class GeneratePromptsFromKeywordsDto {
   @ApiProperty({
     description: 'Project ID',
     example: '123e4567-e89b-12d3-a456-426614174000',
+    required: false,
   })
+  @IsOptional()
   @IsString()
-  projectId: string;
+  projectId?: string;
 
   @ApiProperty({
     description: 'Keywords to generate prompts from',
@@ -44,6 +46,81 @@ export class GeneratePromptsFromKeywordsDto {
   })
   @IsOptional()
   count?: number;
+
+  // Project context for when projectId is not provided
+  @ApiProperty({
+    description: 'Brand name',
+    example: 'Acme Corporation',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  brandName?: string;
+
+  @ApiProperty({
+    description: 'Website URL',
+    example: 'https://acme.com',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  website?: string;
+
+  @ApiProperty({
+    description: 'Industry',
+    example: 'Technology',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  industry?: string;
+
+  @ApiProperty({
+    description: 'Target market',
+    example: 'United States',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  market?: string;
+
+  @ApiProperty({
+    description: 'Language',
+    example: 'English',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  language?: string;
+
+  @ApiProperty({
+    description: 'Key brand attributes',
+    example: ['Quality', 'Innovation', 'Customer Service'],
+    required: false,
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  keyBrandAttributes?: string[];
+
+  @ApiProperty({
+    description: 'Competitors',
+    example: ['Competitor A', 'Competitor B'],
+    required: false,
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  competitors?: string[];
+
+  @ApiProperty({
+    description: 'Short description',
+    example: 'Leading provider of innovative solutions',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  shortDescription?: string;
 }
 
 export class RegeneratePromptsDto {

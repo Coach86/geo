@@ -299,11 +299,19 @@ export default function AddProjectModal({
         const keywordList = keywords.split(',').map(k => k.trim()).filter(k => k);
         const result = await generatePromptsFromKeywords(
           {
-            projectId: '', // This will be ignored for new project
             keywords: keywordList,
             promptType: 'visibility',
             additionalInstructions: additionalInstructions.trim() || undefined,
             count: parseInt(promptCount),
+            // Pass project context for prompt generation
+            brandName: brandName,
+            website: showCustomUrlInput ? customUrl : website,
+            industry: industry,
+            market: markets[0]?.country || "United States",
+            language: markets[0]?.languages?.[0] || "English",
+            keyBrandAttributes: attributes,
+            competitors: competitors,
+            shortDescription: analyzedData?.shortDescription || description,
           },
           token!
         );

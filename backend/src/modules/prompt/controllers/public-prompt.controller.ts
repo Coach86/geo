@@ -468,31 +468,53 @@ export class PublicPromptController {
         }
       }
 
-      // Check if the user owns this project
-      const project = await this.projectModel.findOne({ id: dto.projectId }).exec();
-      if (!project) {
-        throw new NotFoundException(`Project ${dto.projectId} not found`);
-      }
+      // If projectId is provided and not empty, validate ownership
+      let generatedPrompts: string[];
       
-      // Get user to check organization
-      const user = await this.userService.findOne(request.userId);
-      if (!user) {
-        throw new BadRequestException('User not found');
-      }
-      
-      if (project.organizationId !== user.organizationId) {
-        this.logger.warn(`User ${request.userId} tried to generate prompts for project ${dto.projectId} from different organization`);
-        throw new UnauthorizedException('You do not have permission to generate prompts for this project');
-      }
+      if (dto.projectId && dto.projectId.trim() !== '') {
+        const project = await this.projectModel.findOne({ id: dto.projectId }).exec();
+        if (!project) {
+          throw new NotFoundException(`Project ${dto.projectId} not found`);
+        }
+        
+        // Get user to check organization
+        const user = await this.userService.findOne(request.userId);
+        if (!user) {
+          throw new BadRequestException('User not found');
+        }
+        
+        if (project.organizationId !== user.organizationId) {
+          this.logger.warn(`User ${request.userId} tried to generate prompts for project ${dto.projectId} from different organization`);
+          throw new UnauthorizedException('You do not have permission to generate prompts for this project');
+        }
 
-      // Generate prompts from keywords
-      const generatedPrompts = await this.promptService.generatePromptsFromKeywords(
-        dto.projectId,
-        dto.promptType,
-        dto.keywords,
-        dto.additionalInstructions,
-        dto.count,
-      );
+        // Generate prompts from keywords with project context
+        generatedPrompts = await this.promptService.generatePromptsFromKeywords(
+          dto.projectId,
+          dto.promptType,
+          dto.keywords,
+          dto.additionalInstructions,
+          dto.count,
+        );
+      } else {
+        // Generate prompts without project context (for new projects)
+        generatedPrompts = await this.promptService.generatePromptsFromKeywordsWithoutProject(
+          dto.promptType,
+          dto.keywords,
+          dto.additionalInstructions,
+          dto.count,
+          {
+            brandName: dto.brandName,
+            website: dto.website,
+            industry: dto.industry,
+            market: dto.market,
+            language: dto.language,
+            keyBrandAttributes: dto.keyBrandAttributes,
+            competitors: dto.competitors,
+            shortDescription: dto.shortDescription,
+          },
+        );
+      }
       
       this.logger.log(`Successfully generated ${generatedPrompts.length} ${dto.promptType} prompts from keywords for project ${dto.projectId}`);
       

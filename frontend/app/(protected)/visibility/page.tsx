@@ -5,7 +5,7 @@ import { useAuth } from "@/providers/auth-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Calendar } from "lucide-react";
 import type { ReportResponse } from "@/types/reports";
 import { ReportRangeSelector } from "@/components/shared/ReportRangeSelector";
 import { VisibilityMetricsCard } from "@/components/visibility/VisibilityMetricsCard";
@@ -258,9 +258,9 @@ export default function VisibilityPage() {
           <Card className="max-w-md w-full">
             <CardContent className="pt-6">
               <Alert>
-                <AlertCircle className="h-4 w-4" />
+                <Calendar className="h-4 w-4" />
                 <AlertDescription>
-                  Please select a date range to view visibility data.
+                  There is no analysis available in this time range. Choose another time range or select "Latest" to view the most recent data.
                 </AlertDescription>
               </Alert>
             </CardContent>

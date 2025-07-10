@@ -782,15 +782,6 @@ export class PromptService implements OnModuleInit {
         language: projectRaw.language,
       };
 
-      // Generate keyword-based prompts
-      const keywordPrompt = this.createKeywordBasedPrompt(
-        promptType,
-        project,
-        keywords,
-        additionalInstructions,
-        count || this[`${promptType}PromptCount`],
-      );
-      
       // Log the keyword-based prompt details
       this.logger.log(`\n========== KEYWORD-BASED GENERATION DETAILS ==========`);
       this.logger.log(`Project: ${project.brandName} (${project.projectId})`);
@@ -807,25 +798,62 @@ export class PromptService implements OnModuleInit {
         prompts: z.array(z.string()),
       });
 
-      // Get the appropriate system prompt
+      // Get the appropriate system and user prompts
       let systemPrompt: string;
+      let userPrompt: string;
+      const promptCount = count || this[`${promptType}PromptCount`];
+      
       switch (promptType) {
         case 'visibility':
           systemPrompt = visibilitySystemPrompt;
+          userPrompt = visibilityUserPrompt({
+            market: project.market,
+            language: project.language,
+            websiteUrl: project.website,
+            industry: project.industry,
+            brandName: project.brandName,
+            count: promptCount,
+            competitors: project.competitors,
+            keywords: keywords,
+            additionalInstructions: additionalInstructions,
+          });
           break;
         case 'sentiment':
           systemPrompt = sentimentSystemPrompt;
+          userPrompt = sentimentUserPrompt({
+            market: project.market,
+            brandName: project.brandName,
+            count: promptCount,
+            websiteUrl: project.website,
+            language: project.language,
+          });
           break;
         case 'alignment':
           systemPrompt = alignmentSystemPrompt;
+          userPrompt = alignmentUserPrompt({
+            market: project.market,
+            language: project.language,
+            brandName: project.brandName,
+            brandAttributes: project.keyBrandAttributes,
+            count: promptCount,
+          });
           break;
         case 'competition':
           systemPrompt = competitionSystemPrompt;
+          userPrompt = competitionUserPrompt({
+            market: project.market,
+            language: project.language,
+            industry: project.industry,
+            brandName: project.brandName,
+            count: promptCount,
+            competitors: project.competitors,
+            keyBrandAttributes: project.keyBrandAttributes,
+          });
           break;
       }
 
       const result = await this.getStructuredOutputWithFallback<{ prompts: string[] }>(
-        keywordPrompt,
+        userPrompt,
         promptsSchema,
         systemPrompt,
         `${promptType} (keyword-based)`,
@@ -860,85 +888,105 @@ export class PromptService implements OnModuleInit {
   }
 
   /**
-   * Create a keyword-based prompt for LLM
-   * @private
+   * Generate prompts from keywords without requiring a project
+   * This is used when creating new projects
    */
-  private createKeywordBasedPrompt(
-    promptType: string,
-    project: Project,
+  async generatePromptsFromKeywordsWithoutProject(
+    promptType: 'visibility' | 'sentiment' | 'alignment' | 'competition',
     keywords: string[],
-    additionalInstructions: string | undefined,
-    count: number,
-  ): string {
-    const baseContext = `
-      Project Information:
-      - Brand: ${project.brandName}
-      - Website: ${project.website}
-      - Industry: ${project.industry}
-      - Market: ${project.market}
-      - Language: ${project.language}
-      - Keywords to incorporate: ${keywords.join(', ')}
-    `;
+    additionalInstructions?: string,
+    count?: number,
+    projectContext?: {
+      brandName?: string;
+      website?: string;
+      industry?: string;
+      market?: string;
+      language?: string;
+      keyBrandAttributes?: string[];
+      competitors?: string[];
+      shortDescription?: string;
+    },
+  ): Promise<string[]> {
+    this.logger.log(`Generating ${promptType} prompts from keywords (no project context)`);
 
-    const instructionsSection = additionalInstructions ? `
-      ### IMPORTANT ADDITIONAL INSTRUCTIONS:
-      ${additionalInstructions}
-      You MUST incorporate these instructions into the generated prompts.
-    ` : '';
+    try {
+      // Log the keyword-based prompt details
+      this.logger.log(`\n========== KEYWORD-BASED GENERATION DETAILS (NO PROJECT) ==========`);
+      this.logger.log(`Prompt Type: ${promptType}`);
+      this.logger.log(`Keywords: ${keywords.join(', ')}`);
+      this.logger.log(`Count: ${count || this[`${promptType}PromptCount`]}`);
+      if (additionalInstructions) {
+        this.logger.log(`Additional Instructions: ${additionalInstructions}`);
+      }
+      this.logger.log(`========== END OF DETAILS ==========\n`);
 
-    switch (promptType) {
-      case 'visibility':
-        return `${baseContext}
-        ${instructionsSection}
-        Generate ${count} visibility prompts that:
-        1. Incorporate the provided keywords naturally
-        2. Focus on questions that would make AI assistants mention or list specific brands/companies
-        3. Cover different stages of the customer journey (awareness, consideration, decision)
-        4. Use casual, conversational language
-        5. Never mention specific brand names in the prompts
-        6. Keep prompts concise (max 20 words each)
-        ${additionalInstructions ? `7. IMPORTANT: Follow the additional instructions provided above` : ''}
-        
-        The prompts should be in ${project.language} and target the ${project.market} market.`;
+      // Define schema for LLM output
+      const promptsSchema = z.object({
+        prompts: z.array(z.string()),
+      });
 
-      case 'sentiment':
-        return `${baseContext}
-        
-        Generate ${count} sentiment analysis prompts that:
-        1. Incorporate the provided keywords naturally
-        2. Focus on how people perceive brands in the ${project.industry} industry
-        3. Cover aspects like reputation, customer satisfaction, and brand perception
-        4. Use natural, conversational language
-        5. Be specific enough to elicit detailed responses
-        
-        The prompts should be in ${project.language} and target the ${project.market} market.`;
+      // Get the appropriate system and user prompts
+      let systemPrompt: string;
+      let userPrompt: string;
+      const promptCount = count || this[`${promptType}PromptCount`];
+      
+      // Use project context if provided, otherwise use defaults
+      const projectParams = {
+        market: projectContext?.market || 'Global',
+        language: projectContext?.language || 'English',
+        websiteUrl: projectContext?.website || 'example.com',
+        industry: projectContext?.industry || 'General',
+        brandName: projectContext?.brandName || 'Brand',
+        count: promptCount,
+        competitors: projectContext?.competitors || ['Competitor 1', 'Competitor 2', 'Competitor 3'],
+        keyBrandAttributes: projectContext?.keyBrandAttributes || ['Quality', 'Innovation', 'Service'],
+        brandDescription: projectContext?.shortDescription || 'A leading company in its industry',
+      };
+      
+      switch (promptType) {
+        case 'visibility':
+          systemPrompt = visibilitySystemPrompt;
+          userPrompt = visibilityUserPrompt({
+            ...projectParams,
+            keywords: keywords,
+            additionalInstructions: additionalInstructions,
+          });
+          break;
+        case 'sentiment':
+          systemPrompt = sentimentSystemPrompt;
+          userPrompt = sentimentUserPrompt(projectParams);
+          break;
+        case 'alignment':
+          systemPrompt = alignmentSystemPrompt;
+          userPrompt = alignmentUserPrompt({
+            market: projectParams.market,
+            language: projectParams.language,
+            brandName: projectParams.brandName,
+            brandAttributes: projectParams.keyBrandAttributes,
+            count: projectParams.count,
+          });
+          break;
+        case 'competition':
+          systemPrompt = competitionSystemPrompt;
+          userPrompt = competitionUserPrompt({
+            ...projectParams,
+            keyBrandAttributes: projectParams.keyBrandAttributes,
+          });
+          break;
+      }
 
-      case 'alignment':
-        return `${baseContext}
-        
-        Generate ${count} alignment verification prompts that:
-        1. Incorporate the provided keywords naturally
-        2. Test if AI accurately represents brand attributes: ${project.keyBrandAttributes.join(', ')}
-        3. Verify correct information about products, services, and positioning
-        4. Use specific, fact-checking style questions
-        5. Cover different aspects of the brand's identity
-        
-        The prompts should be in ${project.language} and target the ${project.market} market.`;
+      const result = await this.getStructuredOutputWithFallback<{ prompts: string[] }>(
+        userPrompt,
+        promptsSchema,
+        systemPrompt,
+        `${promptType} (keyword-based, no project)`,
+      );
 
-      case 'competition':
-        return `${baseContext}
-        
-        Generate ${count} competitive analysis prompts that:
-        1. Incorporate the provided keywords naturally
-        2. Focus on comparisons between brands in the ${project.industry} industry
-        3. Cover aspects like features, pricing, strengths, and weaknesses
-        4. Use comparison-focused language
-        5. Never mention specific competitor names in the prompts
-        
-        The prompts should be in ${project.language} and target the ${project.market} market.`;
-
-      default:
-        throw new Error(`Unknown prompt type: ${promptType}`);
+      this.logger.log(`Successfully generated ${result.prompts.length} ${promptType} prompts from keywords (no project)`);
+      return result.prompts;
+    } catch (error) {
+      this.logger.error(`Failed to generate prompts from keywords: ${error.message}`, error.stack);
+      throw error;
     }
   }
 }

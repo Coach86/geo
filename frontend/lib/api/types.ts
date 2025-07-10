@@ -197,11 +197,20 @@ export interface PromptSet {
 }
 
 export interface GeneratePromptsFromKeywordsRequest {
-  projectId: string;
+  projectId?: string;
   keywords: string[];
   additionalInstructions?: string;
   promptType: 'visibility' | 'sentiment' | 'alignment' | 'competition';
   count?: number;
+  // Project context for when projectId is not provided
+  brandName?: string;
+  website?: string;
+  industry?: string;
+  market?: string;
+  language?: string;
+  keyBrandAttributes?: string[];
+  competitors?: string[];
+  shortDescription?: string;
 }
 
 export interface GeneratePromptsFromKeywordsResponse {
