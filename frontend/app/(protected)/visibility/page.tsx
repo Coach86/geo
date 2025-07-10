@@ -5,7 +5,8 @@ import { useAuth } from "@/providers/auth-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, Calendar } from "lucide-react";
+import { AlertCircle } from "lucide-react";
+import { NoAnalysisDataCard } from "@/components/shared/NoAnalysisDataCard";
 import type { ReportResponse } from "@/types/reports";
 import { ReportRangeSelector } from "@/components/shared/ReportRangeSelector";
 import { VisibilityMetricsCard } from "@/components/visibility/VisibilityMetricsCard";
@@ -255,16 +256,7 @@ export default function VisibilityPage() {
       {/* No Selected Reports */}
       {!loading && projectReports.length > 0 && selectedReports.length === 0 && (
         <div className="flex items-center justify-center h-[50vh]">
-          <Card className="max-w-md w-full">
-            <CardContent className="pt-6">
-              <Alert>
-                <Calendar className="h-4 w-4" />
-                <AlertDescription>
-                  There is no analysis available in this time range. Choose another time range or select "Latest" to view the most recent data.
-                </AlertDescription>
-              </Alert>
-            </CardContent>
-          </Card>
+          <NoAnalysisDataCard />
         </div>
       )}
       </div>

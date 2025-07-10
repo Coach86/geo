@@ -6,6 +6,7 @@ import { useFeatureGate } from "@/hooks/use-feature-access";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { NoAnalysisDataCard } from "@/components/shared/NoAnalysisDataCard";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/persistent-tooltip";
 import { ModelDisplay } from "@/components/shared/ModelDisplay";
 import type { CompetitionData as CompetitionTypeData } from "@/types/competition";
@@ -236,16 +237,11 @@ export default function CompetitionPage() {
       {/* No Selected Report */}
       {!loadingCompetition && !reportLoading && projectReports.length > 0 && !selectedReport && (
         <div className="flex items-center justify-center h-[50vh]">
-          <Card className="max-w-md w-full">
-            <CardContent className="pt-6">
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  Please select a report from the dropdown above to view competition analysis.
-                </AlertDescription>
-              </Alert>
-            </CardContent>
-          </Card>
+          <NoAnalysisDataCard 
+            message="Please select a report from the dropdown above to view competition analysis." 
+            title="No Report Selected"
+            showHint={false}
+          />
         </div>
       )}
       </div>

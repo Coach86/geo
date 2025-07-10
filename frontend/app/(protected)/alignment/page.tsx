@@ -5,6 +5,7 @@ import { useFeatureGate } from "@/hooks/use-feature-access";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { NoAnalysisDataCard } from "@/components/shared/NoAnalysisDataCard";
 import { AttributeScoresWithSelector } from "@/components/alignment/AttributeScoresWithSelector";
 import { useAuth } from "@/providers/auth-provider";
 import type { AlignmentResults } from "@/types/alignment";
@@ -260,16 +261,7 @@ export default function AlignmentPage() {
       {/* No Selected Reports */}
       {!loading && projectReports.length > 0 && selectedReports.length === 0 && (
         <div className="flex items-center justify-center h-[50vh]">
-          <Card className="max-w-md w-full">
-            <CardContent className="pt-6">
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  Please select a date range to view alignment data.
-                </AlertDescription>
-              </Alert>
-            </CardContent>
-          </Card>
+          <NoAnalysisDataCard />
         </div>
       )}
       </div>

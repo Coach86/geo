@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, X } from "lucide-react";
+import { NoAnalysisDataCard } from "@/components/shared/NoAnalysisDataCard";
 import type { ReportResponse } from "@/types/reports";
 import { SentimentMetricsCard } from "@/components/sentiment/SentimentMetricsCard";
 import { SentimentTrendChart } from "@/components/sentiment/SentimentTrendChart";
@@ -440,27 +441,10 @@ export default function SentimentPage() {
           <ProcessingLoader />
         )}
         
-        {/* No Selected Reports - Show empty state briefly while initial selection happens */}
+        {/* No Selected Reports */}
         {!loading && projectReports.length > 0 && selectedReports.length === 0 && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <Skeleton className="h-6 w-48" />
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-32 w-full" />
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <Skeleton className="h-6 w-48" />
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-32 w-full" />
-                </CardContent>
-              </Card>
-            </div>
+          <div className="flex items-center justify-center h-[50vh]">
+            <NoAnalysisDataCard />
           </div>
         )}
       </div>
