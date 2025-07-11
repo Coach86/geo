@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsString, IsOptional, ArrayMinSize, ArrayMaxSize } from 'class-validator';
+import { IsArray, IsString, IsOptional, ArrayMinSize, ArrayMaxSize, IsBoolean } from 'class-validator';
 
 export class GeneratePromptsFromKeywordsDto {
   @ApiProperty({
@@ -121,6 +121,15 @@ export class GeneratePromptsFromKeywordsDto {
   @IsOptional()
   @IsString()
   shortDescription?: string;
+
+  @ApiProperty({
+    description: 'Whether to add prompts to existing ones instead of overwriting',
+    example: false,
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  addMode?: boolean;
 }
 
 export class RegeneratePromptsDto {
@@ -150,4 +159,13 @@ export class RegeneratePromptsDto {
   @IsArray()
   @IsString({ each: true })
   keywords?: string[];
+
+  @ApiProperty({
+    description: 'Whether to add prompts to existing ones instead of overwriting',
+    example: false,
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  addMode?: boolean;
 }

@@ -25,6 +25,7 @@ import { Model } from 'mongoose';
 import { PromptSet, PromptSetDocument } from '../schemas/prompt-set.schema';
 import { Project as ProjectSchema, ProjectDocument } from '../../project/schemas/project-base.schema';
 import { UserService } from '../../user/services/user.service';
+import { Organization, OrganizationDocument } from '../../organization/schemas/organization.schema';
 
 export interface GeneratePromptsRequest {
   brandName: string;
@@ -56,6 +57,7 @@ export class PublicPromptController {
   constructor(
     @InjectModel(PromptSet.name) private promptSetModel: Model<PromptSetDocument>,
     @InjectModel(ProjectSchema.name) private projectModel: Model<ProjectDocument>,
+    @InjectModel(Organization.name) private organizationModel: Model<OrganizationDocument>,
     private readonly promptService: PromptService,
     private readonly tokenService: TokenService,
     private readonly userService: UserService,
@@ -340,6 +342,29 @@ export class PublicPromptController {
         throw new BadRequestException(`Invalid prompt type. Must be one of: ${validTypes.join(', ')}`);
       }
 
+      // Check if we need to apply plan limits for add mode
+      if (body.addMode && promptType === 'visibility') {
+        // Get current prompts to check limit
+        const existingPromptSet = await this.promptSetModel.findOne({ projectId }).lean().exec();
+        const currentPromptCount = existingPromptSet?.visibility?.length || 0;
+        
+        // Check if user's plan allows adding more prompts
+        if (user.organizationId) {
+          const org = await this.organizationModel.findOne({ id: user.organizationId }).lean().exec();
+          const maxPrompts = org?.planSettings?.maxSpontaneousPrompts || 12;
+          const remainingSlots = maxPrompts - currentPromptCount;
+          
+          if (remainingSlots <= 0) {
+            throw new BadRequestException('You have reached the maximum number of visibility prompts for your plan');
+          }
+          
+          // Adjust count if it exceeds remaining slots
+          if (body.count && body.count > remainingSlots) {
+            body.count = remainingSlots;
+          }
+        }
+      }
+
       // Regenerate prompts for the specific type
       const regeneratedPrompts = await this.promptService.regeneratePromptType(
         projectId, 
@@ -347,6 +372,7 @@ export class PublicPromptController {
         body.count,
         body.additionalInstructions,
         body.keywords,
+        body.addMode,
       );
       
       this.logger.log(`Successfully regenerated ${regeneratedPrompts.length} ${promptType} prompts for project ${projectId}`);
@@ -488,6 +514,29 @@ export class PublicPromptController {
           throw new UnauthorizedException('You do not have permission to generate prompts for this project');
         }
 
+        // Check if we need to apply plan limits for add mode
+        if (dto.addMode && dto.promptType === 'visibility') {
+          // Get current prompts to check limit
+          const existingPromptSet = await this.promptSetModel.findOne({ projectId: dto.projectId }).lean().exec();
+          const currentPromptCount = existingPromptSet?.visibility?.length || 0;
+          
+          // Check if user's plan allows adding more prompts
+          if (user.organizationId) {
+            const org = await this.organizationModel.findOne({ id: user.organizationId }).lean().exec();
+            const maxPrompts = org?.planSettings?.maxSpontaneousPrompts || 12;
+            const remainingSlots = maxPrompts - currentPromptCount;
+            
+            if (remainingSlots <= 0) {
+              throw new BadRequestException('You have reached the maximum number of visibility prompts for your plan');
+            }
+            
+            // Adjust count if it exceeds remaining slots
+            if (dto.count && dto.count > remainingSlots) {
+              dto.count = remainingSlots;
+            }
+          }
+        }
+
         // Generate prompts from keywords with project context
         generatedPrompts = await this.promptService.generatePromptsFromKeywords(
           dto.projectId,
@@ -495,6 +544,7 @@ export class PublicPromptController {
           dto.keywords,
           dto.additionalInstructions,
           dto.count,
+          dto.addMode,
         );
       } else {
         // Generate prompts without project context (for new projects)
