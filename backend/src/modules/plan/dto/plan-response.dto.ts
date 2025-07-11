@@ -24,6 +24,9 @@ export class PlanResponseDto {
   metadata: Record<string, any>;
   prices?: PlanPriceDto;
   refreshFrequency: string;
-  createdAt: Date;
-  updatedAt: Date;
+  shopifyMonthlyPrice?: number;
+  shopifyAnnualPrice?: number;
+  shopifyTrialDays?: number;
+  createdAt: string;
+  updatedAt: string;
 }

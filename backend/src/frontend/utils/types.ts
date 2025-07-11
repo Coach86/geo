@@ -79,6 +79,9 @@ export interface PlanResponseDto {
   order: number;
   metadata: Record<string, any>;
   prices?: PlanPriceDto;
+  shopifyMonthlyPrice?: number;
+  shopifyAnnualPrice?: number;
+  shopifyTrialDays?: number;
   createdAt: Date;
   updatedAt: Date;
 }

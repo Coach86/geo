@@ -18,8 +18,17 @@ class WebsiteAnalyzer {
       sentiment: {}
     };
     
+    // Model-specific maps
+    this.domainsByModel = {
+      visibility: {},
+      sentiment: {}
+    };
+    
     // Check if language separation is requested
     this.separateByLanguage = process.argv.includes('--by-language');
+    
+    // Check if model separation is requested
+    this.separateByModel = process.argv.includes('--by-model');
   }
 
   async initialize() {
@@ -83,6 +92,7 @@ class WebsiteAnalyzer {
           const category = row['Category']?.toLowerCase();
           const websitesConsulted = row['Websites Consulted'] || '';
           const language = row['Language'] || 'unknown';
+          const modelName = row['Model Name'] || 'unknown';
           const companyUrl = row['URL'] || '';
           
           const domains = this.extractDomains(websitesConsulted);
@@ -106,6 +116,14 @@ class WebsiteAnalyzer {
                 this.domainsByLanguage.visibility[language].set(domain, 
                   (this.domainsByLanguage.visibility[language].get(domain) || 0) + 1);
               }
+              
+              if (this.separateByModel) {
+                if (!this.domainsByModel.visibility[modelName]) {
+                  this.domainsByModel.visibility[modelName] = new Map();
+                }
+                this.domainsByModel.visibility[modelName].set(domain, 
+                  (this.domainsByModel.visibility[modelName].get(domain) || 0) + 1);
+              }
             } else if (category === 'sentiment') {
               this.sentimentDomains.set(domain, (this.sentimentDomains.get(domain) || 0) + 1);
               
@@ -115,6 +133,14 @@ class WebsiteAnalyzer {
                 }
                 this.domainsByLanguage.sentiment[language].set(domain, 
                   (this.domainsByLanguage.sentiment[language].get(domain) || 0) + 1);
+              }
+              
+              if (this.separateByModel) {
+                if (!this.domainsByModel.sentiment[modelName]) {
+                  this.domainsByModel.sentiment[modelName] = new Map();
+                }
+                this.domainsByModel.sentiment[modelName].set(domain, 
+                  (this.domainsByModel.sentiment[modelName].get(domain) || 0) + 1);
               }
             }
           });
@@ -128,6 +154,14 @@ class WebsiteAnalyzer {
               ...Object.keys(this.domainsByLanguage.sentiment)
             ]);
             allLanguages.forEach(lang => console.log(`- ${lang}`));
+          }
+          if (this.separateByModel) {
+            console.log('Models found:');
+            const allModels = new Set([
+              ...Object.keys(this.domainsByModel.visibility),
+              ...Object.keys(this.domainsByModel.sentiment)
+            ]);
+            allModels.forEach(model => console.log(`- ${model}`));
           }
           resolve();
         })
@@ -269,6 +303,9 @@ Based on your analysis of the actual website content, respond with only the cate
     if (this.separateByLanguage) {
       // Export by language
       await this.exportByLanguage(outputDir, timestamp);
+    } else if (this.separateByModel) {
+      // Export by model
+      await this.exportByModel(outputDir, timestamp);
     } else {
       // Export combined results with "all-" prefix
       const visibilityCSV = this.convertToCSV(visibilityResults);
@@ -425,9 +462,112 @@ Based on your analysis of the actual website content, respond with only the cate
     console.log(`\nResults exported to ${outputDir}/ (by language):`);
     exportedFiles.forEach(file => console.log(`- ${file}`));
   }
+  
+  async exportByModel(outputDir, timestamp) {
+    const exportedFiles = [];
+    
+    // Export visibility domains by model
+    for (const [modelName, domainMap] of Object.entries(this.domainsByModel.visibility)) {
+      const modelCode = this.sanitizeModelName(modelName);
+      let domains = this.getTopDomains(domainMap);
+      
+      // Categorize domains if LLM is available
+      if (this.perplexityModel) {
+        console.log(`\n=== Categorizing Visibility Domains for ${modelName} ===`);
+        domains = await this.categorizeTopDomains(domains);
+      }
+      
+      const csv = this.convertToCSV(domains);
+      const filename = `by-model-visibility-domains-${modelCode}-${timestamp}.csv`;
+      fs.writeFileSync(`${outputDir}/${filename}`, csv);
+      exportedFiles.push(filename);
+    }
+    
+    // Export sentiment domains by model
+    for (const [modelName, domainMap] of Object.entries(this.domainsByModel.sentiment)) {
+      const modelCode = this.sanitizeModelName(modelName);
+      let domains = this.getTopDomains(domainMap);
+      
+      // Categorize domains if LLM is available
+      if (this.perplexityModel) {
+        console.log(`\n=== Categorizing Sentiment Domains for ${modelName} ===`);
+        domains = await this.categorizeTopDomains(domains);
+      }
+      
+      const csv = this.convertToCSV(domains);
+      const filename = `by-model-sentiment-domains-${modelCode}-${timestamp}.csv`;
+      fs.writeFileSync(`${outputDir}/${filename}`, csv);
+      exportedFiles.push(filename);
+    }
+    
+    // Export model summary
+    const summaryData = [['Model', 'Category', 'Total Unique Domains', 'Top Domain', 'Top Domain Count', 'Owned', 'News', 'Blog', 'Corporate', 'Marketplace', 'Social', 'Directory', 'Government', 'Academic', 'E-commerce', 'SaaS', 'Other']];
+    
+    // Visibility summary
+    for (const [modelName, domainMap] of Object.entries(this.domainsByModel.visibility)) {
+      const domains = this.getTopDomains(domainMap);
+      const topDomain = domains.length > 0 ? domains[0] : { domain: 'N/A', count: 0 };
+      
+      const summaryRow = [
+        modelName,
+        'Visibility',
+        domainMap.size,
+        topDomain.domain,
+        topDomain.count
+      ];
+      
+      // If LLM categorization was performed, add category counts
+      if (this.perplexityModel) {
+        const categorySummary = { owned: 0, news: 0, blog: 0, corporate: 0, marketplace: 0, social: 0, directory: 0, government: 0, academic: 0, ecommerce: 0, saas: 0, other: 0 };
+        // Note: In a real implementation, we'd need to parse the generated CSV 
+        // or store the categorized results. For now, we'll add placeholder zeros.
+        summaryRow.push(categorySummary.owned, categorySummary.news, categorySummary.blog, categorySummary.corporate, categorySummary.marketplace, categorySummary.social, categorySummary.directory, categorySummary.government, categorySummary.academic, categorySummary.ecommerce, categorySummary.saas, categorySummary.other);
+      } else {
+        summaryRow.push(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0); // No categorization
+      }
+      
+      summaryData.push(summaryRow);
+    }
+    
+    // Sentiment summary
+    for (const [modelName, domainMap] of Object.entries(this.domainsByModel.sentiment)) {
+      const domains = this.getTopDomains(domainMap);
+      const topDomain = domains.length > 0 ? domains[0] : { domain: 'N/A', count: 0 };
+      
+      const summaryRow = [
+        modelName,
+        'Sentiment',
+        domainMap.size,
+        topDomain.domain,
+        topDomain.count
+      ];
+      
+      if (this.perplexityModel) {
+        const categorySummary = { owned: 0, news: 0, blog: 0, corporate: 0, marketplace: 0, social: 0, directory: 0, government: 0, academic: 0, ecommerce: 0, saas: 0, other: 0 };
+        summaryRow.push(categorySummary.owned, categorySummary.news, categorySummary.blog, categorySummary.corporate, categorySummary.marketplace, categorySummary.social, categorySummary.directory, categorySummary.government, categorySummary.academic, categorySummary.ecommerce, categorySummary.saas, categorySummary.other);
+      } else {
+        summaryRow.push(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+      }
+      
+      summaryData.push(summaryRow);
+    }
+    
+    const summaryCSV = summaryData.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+    const summaryFilename = `by-model-domain-analysis-summary-${timestamp}.csv`;
+    fs.writeFileSync(`${outputDir}/${summaryFilename}`, summaryCSV);
+    exportedFiles.push(summaryFilename);
+    
+    console.log(`\nResults exported to ${outputDir}/ (by model):`);
+    exportedFiles.forEach(file => console.log(`- ${file}`));
+  }
 
   sanitizeLanguageCode(language) {
     return language.replace(/[^\w\-]/g, '').toLowerCase();
+  }
+  
+  sanitizeModelName(modelName) {
+    // Replace spaces with hyphens and remove special characters
+    return modelName.replace(/\s+/g, '-').replace(/[^\w\-]/g, '').toLowerCase();
   }
 
   convertToCSV(domains) {
@@ -504,6 +644,31 @@ Based on your analysis of the actual website content, respond with only the cate
             console.log(`... and ${topDomains.length - 10} more domains`);
           }
         }
+      } else if (this.separateByModel) {
+        // Show model-specific statistics
+        console.log('\n=== Analysis by Model ===');
+        
+        for (const [modelName, domainMap] of Object.entries(this.domainsByModel.visibility)) {
+          const topDomains = this.getTopDomains(domainMap);
+          console.log(`\n--- Top 10 Visibility Domains for ${modelName} (from ${topDomains.length} total) ---`);
+          topDomains.slice(0, 10).forEach((item, i) => {
+            console.log(`${i + 1}. ${item.domain} (${item.count} occurrences)`);
+          });
+          if (topDomains.length > 10) {
+            console.log(`... and ${topDomains.length - 10} more domains`);
+          }
+        }
+        
+        for (const [modelName, domainMap] of Object.entries(this.domainsByModel.sentiment)) {
+          const topDomains = this.getTopDomains(domainMap);
+          console.log(`\n--- Top 10 Sentiment Domains for ${modelName} (from ${topDomains.length} total) ---`);
+          topDomains.slice(0, 10).forEach((item, i) => {
+            console.log(`${i + 1}. ${item.domain} (${item.count} occurrences)`);
+          });
+          if (topDomains.length > 10) {
+            console.log(`... and ${topDomains.length - 10} more domains`);
+          }
+        }
       } else {
         // Show aggregated statistics
         console.log(`\nVisibility domains: ${this.visibilityDomains.size} unique domains`);
@@ -537,6 +702,17 @@ Based on your analysis of the actual website content, respond with only the cate
         if (this.perplexityModel) {
           console.log('\n=== Categorizing Domains by Language ===');
           // Categorization will be done per language in exportResults
+        } else {
+          console.log('\nSkipping domain categorization (no LLM available)');
+        }
+      } else if (this.separateByModel) {
+        // For model separation, we'll handle categorization in the export function
+        categorizedVisibility = null;
+        categorizedSentiment = null;
+        
+        if (this.perplexityModel) {
+          console.log('\n=== Categorizing Domains by Model ===');
+          // Categorization will be done per model in exportResults
         } else {
           console.log('\nSkipping domain categorization (no LLM available)');
         }
@@ -581,6 +757,7 @@ Usage: node scripts/analyze-websites-consulted.js [options]
 Options:
   --skip-llm        Skip LLM categorization (faster, but no domain categories)
   --by-language     Separate analysis by language (FR/EN)
+  --by-model        Separate analysis by AI model (GPT-4o, Claude, etc.)
   --help, -h        Show this help message
 
 Features:
@@ -601,6 +778,12 @@ Examples:
   
   # Full analysis with language separation
   node scripts/analyze-websites-consulted.js --by-language
+  
+  # Separate by AI model without LLM
+  node scripts/analyze-websites-consulted.js --skip-llm --by-model
+  
+  # Full analysis with model separation
+  node scripts/analyze-websites-consulted.js --by-model
 
 Output:
   - CSV files with top 100 domains for each category/language
@@ -610,6 +793,7 @@ Output:
 File naming:
   Regular mode: all-[type]-[timestamp].csv
   Language mode: by-language-[type]-[lang]-[timestamp].csv
+  Model mode: by-model-[type]-[model]-[timestamp].csv
 `);
     process.exit(0);
   }

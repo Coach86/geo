@@ -13,6 +13,8 @@ export interface Citation {
   model?: string;
   promptType?: string;
   promptIndex?: number;
+  brandMentioned?: boolean;
+  brandMentionContext?: string;
 }
 
 export interface CitationWithMetadata extends Citation {

@@ -41,14 +41,16 @@ import PhoneIcon from '@mui/icons-material/Phone';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
 import { getUsers, deleteUser, updateUser, PaginatedResponse } from '../utils/api';
-import { getAllOrganizations } from '../utils/api-organization';
+import { getOrganizationSummaries } from '../utils/api-organization';
 import { User } from '../utils/types';
 import Pagination from '../components/shared/Pagination';
 import { usePagination } from '../hooks/usePagination';
 
-interface Organization {
+interface OrganizationSummary {
   id: string;
-  createdAt: string;
+  name: string;
+  currentProjects: number;
+  currentUsers: number;
 }
 
 
@@ -56,7 +58,7 @@ const UserList: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [usersData, setUsersData] = useState<PaginatedResponse<User> | null>(null);
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [organizations, setOrganizations] = useState<OrganizationSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
   const isInitialMount = useRef(true);
@@ -118,12 +120,21 @@ const UserList: React.FC = () => {
         (queryParams as any).organizationId = organizationFilter;
       }
 
-      const [userData, orgsData] = await Promise.all([
-        getUsers(queryParams),
-        getAllOrganizations(),
-      ]);
+      // Fetch users
+      const userData = await getUsers(queryParams);
       setUsersData(userData);
-      setOrganizations(orgsData.data || orgsData); // Handle both paginated and non-paginated response
+      
+      // Fetch organization summaries separately (only once on mount)
+      if (isInitialMount.current) {
+        try {
+          const orgSummaries = await getOrganizationSummaries();
+          setOrganizations(orgSummaries.data || []);
+        } catch (err) {
+          console.error('Failed to fetch organization summaries:', err);
+          // Don't fail the whole request if org summaries fail
+        }
+      }
+      
       setError(null);
     } catch (err) {
       console.error('Failed to fetch data:', err);
@@ -473,7 +484,7 @@ const UserList: React.FC = () => {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
                   <BusinessIcon sx={{ fontSize: 16 }} />
                   <Typography variant="body2" noWrap sx={{ flex: 1 }}>
-                    {org.id}
+                    {org.name}
                   </Typography>
                 </Box>
               </MenuItem>
@@ -535,7 +546,7 @@ const UserList: React.FC = () => {
               </MenuItem>
               {organizations.map((org) => (
                 <MenuItem key={org.id} value={org.id}>
-                  {org.id}
+                  {org.name}
                 </MenuItem>
               ))}
             </Select>

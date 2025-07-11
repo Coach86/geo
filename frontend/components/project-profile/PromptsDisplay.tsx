@@ -34,6 +34,7 @@ interface PromptsDisplayProps {
   maxSpontaneousPrompts?: number;
   openGenerateDialog?: boolean;
   onGenerateDialogClose?: () => void;
+  projectObjectives?: string;
 }
 
 export function PromptsDisplay({
@@ -48,6 +49,7 @@ export function PromptsDisplay({
   maxSpontaneousPrompts,
   openGenerateDialog = false,
   onGenerateDialogClose,
+  projectObjectives,
 }: PromptsDisplayProps) {
   const { token } = useAuth();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -323,6 +325,7 @@ export function PromptsDisplay({
         }}
         maxSpontaneousPrompts={maxSpontaneousPrompts}
         initialMethod={selectedGenerationMethod}
+        projectObjectives={projectObjectives}
       />
     </>
   );

@@ -132,4 +132,24 @@ export class ShopifyWebhookController {
   ): Promise<{ success: boolean }> {
     return this.handleWebhook(topic, shop, signature, payload, req);
   }
+
+  @Post('compliance')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Handle GDPR compliance webhooks' })
+  async handleCompliance(
+    @Headers('x-shopify-topic') topic: string,
+    @Headers('x-shopify-shop-domain') shop: string,
+    @Headers('x-shopify-hmac-sha256') signature: string,
+    @Body() payload: any,
+    @Req() req: RawBodyRequest<Request>,
+  ): Promise<{ success: boolean }> {
+    this.logger.log(`Received compliance webhook: ${topic} for shop: ${shop}`);
+    
+    // For now, just acknowledge receipt. In a real app, you would:
+    // - customers/data_request: Export customer data
+    // - customers/redact: Delete customer data
+    // - shop/redact: Delete shop data after app uninstall
+    
+    return { success: true };
+  }
 }

@@ -44,6 +44,12 @@ export const getAllOrganizations = async (params?: PaginationParams & { includeP
   return response.data as PaginatedResponse<any>;
 };
 
+export const getOrganizationSummaries = async () => {
+  const api = createAuthAxios();
+  const response = await api.get('/organizations/summary');
+  return response.data;
+};
+
 export const getOrganization = async (id: string) => {
   const api = createAuthAxios();
   const response = await api.get(`/organizations/${id}`);

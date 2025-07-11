@@ -168,10 +168,19 @@ export class ShopifyAuthService {
 
       // Verify the token signature using HMAC SHA256
       const shopifyApiSecret = this.configService.get<string>('SHOPIFY_API_SECRET');
+      const shopifyApiKey = this.configService.get<string>('SHOPIFY_API_KEY');
       
       if (!shopifyApiSecret) {
         throw new Error('SHOPIFY_API_SECRET not configured');
       }
+
+      // Log the credentials being used (masked for security)
+      this.logger.log('Using Shopify credentials for verification:', {
+        apiKey: shopifyApiKey,
+        apiSecretFirstChars: shopifyApiSecret.substring(0, 8) + '...',
+        apiSecretLength: shopifyApiSecret.length,
+        apiSecretLastChars: '...' + shopifyApiSecret.substring(shopifyApiSecret.length - 4),
+      });
 
       // Verify JWT signature using HMAC SHA256
       const message = `${headerB64}.${payloadB64}`;
@@ -184,8 +193,10 @@ export class ShopifyAuthService {
         this.logger.error('Signature verification failed', {
           expected: expectedSignature.substring(0, 20) + '...',
           received: signatureB64.substring(0, 20) + '...',
-          apiKey: this.configService.get<string>('SHOPIFY_API_KEY'),
+          apiKey: shopifyApiKey,
           secretLength: shopifyApiSecret.length,
+          message: message.substring(0, 50) + '...',
+          tokenPayload: payload,
         });
         throw new Error('Invalid token signature');
       }
@@ -195,7 +206,6 @@ export class ShopifyAuthService {
         throw new Error('Invalid destination claim');
       }
       
-      const shopifyApiKey = this.configService.get<string>('SHOPIFY_API_KEY');
       if (!shopifyApiKey) {
         throw new Error('SHOPIFY_API_KEY not configured');
       }
@@ -287,14 +297,15 @@ export class ShopifyAuthService {
    * Validate webhook from Shopify
    */
   validateWebhook(rawBody: string, signature: string): boolean {
-    const shopifyWebhookSecret = this.configService.get<string>('SHOPIFY_WEBHOOK_SECRET');
-    if (!shopifyWebhookSecret) {
-      this.logger.warn('SHOPIFY_WEBHOOK_SECRET not configured');
+    // Shopify now uses API Secret as the webhook secret
+    const shopifyApiSecret = this.configService.get<string>('SHOPIFY_API_SECRET');
+    if (!shopifyApiSecret) {
+      this.logger.warn('SHOPIFY_API_SECRET not configured');
       return false;
     }
 
     const hash = crypto
-      .createHmac('sha256', shopifyWebhookSecret)
+      .createHmac('sha256', shopifyApiSecret)
       .update(rawBody, 'utf8')
       .digest('base64');
 

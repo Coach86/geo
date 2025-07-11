@@ -21,6 +21,14 @@ export class ShopifyBillingService {
   ) {}
 
   private createAxiosInstance(shop: string, accessToken: string): AxiosInstance {
+    this.logger.log('Creating Axios instance:', {
+      shop,
+      apiVersion: this.apiVersion,
+      tokenLength: accessToken.length,
+      tokenPrefix: accessToken.substring(0, 20),
+      baseURL: `https://${shop}/admin/api/${this.apiVersion}`,
+    });
+    
     return axios.create({
       baseURL: `https://${shop}/admin/api/${this.apiVersion}`,
       headers: {
@@ -30,6 +38,35 @@ export class ShopifyBillingService {
     });
   }
 
+  private async graphqlRequest(shop: string, accessToken: string, query: string, variables?: any): Promise<any> {
+    try {
+      const response = await axios.post(
+        `https://${shop}/admin/api/${this.apiVersion}/graphql.json`,
+        {
+          query,
+          variables,
+        },
+        {
+          headers: {
+            'X-Shopify-Access-Token': accessToken,
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+
+      if (response.data.errors) {
+        throw new BadRequestException(
+          `GraphQL errors: ${JSON.stringify(response.data.errors)}`,
+        );
+      }
+
+      return response.data.data;
+    } catch (error) {
+      this.logger.error('GraphQL request failed:', error);
+      throw error;
+    }
+  }
+
   async createRecurringCharge(
     shop: string,
     accessToken: string,
@@ -37,7 +74,8 @@ export class ShopifyBillingService {
   ): Promise<ShopifyRecurringCharge> {
     try {
       const client = this.createAxiosInstance(shop, accessToken);
-      const response = await client.post('/recurring_application_charges.json', {
+      
+      const payload = {
         recurring_application_charge: {
           name: input.name,
           price: input.price,
@@ -46,13 +84,143 @@ export class ShopifyBillingService {
           test: input.test || false,
           currency: input.currency || 'USD',
         },
+      };
+      
+      this.logger.log('SHOPIFY API CALL - Creating recurring charge:', {
+        url: '/recurring_application_charges.json',
+        shop,
+        payload: JSON.stringify(payload, null, 2),
+        input: {
+          name: input.name,
+          nameType: typeof input.name,
+          nameLength: input.name?.length,
+          price: input.price,
+          returnUrl: input.returnUrl,
+          trialDays: input.trialDays,
+          test: input.test,
+          currency: input.currency,
+        },
       });
+      
+      const response = await client.post('/recurring_application_charges.json', payload);
 
       this.logger.log(`Created recurring charge for shop ${shop}`);
+      this.logger.log('SHOPIFY API RESPONSE:', {
+        chargeId: response.data.recurring_application_charge.id,
+        chargeName: response.data.recurring_application_charge.name,
+        confirmationUrl: response.data.recurring_application_charge.confirmation_url,
+      });
       return response.data.recurring_application_charge;
     } catch (error) {
       this.logger.error(`Failed to create recurring charge: ${error.message}`, error.stack);
+      
+      // Log more details about the error
+      if (error.response) {
+        this.logger.error('Shopify API Error Response:', {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          data: error.response.data,
+          headers: error.response.headers,
+        });
+      }
+      
+      // If it's a 401, provide more helpful error message
+      if (error.response?.status === 401) {
+        throw new BadRequestException(
+          'Shopify access token is invalid or expired. Please reconnect your Shopify store.'
+        );
+      }
+      
       throw new BadRequestException('Failed to create recurring charge');
+    }
+  }
+
+  async createAppSubscription(
+    shop: string,
+    accessToken: string,
+    input: {
+      name: string;
+      price: number;
+      interval: 'ANNUAL' | 'EVERY_30_DAYS';
+      trialDays?: number;
+      test?: boolean;
+      returnUrl: string;
+      currencyCode?: string;
+    },
+  ): Promise<any> {
+    const mutation = `
+      mutation appSubscriptionCreate($input: AppSubscriptionInput!) {
+        appSubscriptionCreate(input: $input) {
+          appSubscription {
+            id
+            name
+            status
+            trialDays
+            currentPeriodEnd
+            test
+            lineItems {
+              id
+              plan {
+                pricingDetails {
+                  __typename
+                  ... on AppRecurringPricing {
+                    price {
+                      amount
+                      currencyCode
+                    }
+                    interval
+                  }
+                }
+              }
+            }
+          }
+          confirmationUrl
+          userErrors {
+            field
+            message
+          }
+        }
+      }
+    `;
+
+    const variables = {
+      input: {
+        name: input.name,
+        returnUrl: input.returnUrl,
+        trialDays: input.trialDays || 0,
+        test: input.test || false,
+        lineItems: [
+          {
+            plan: {
+              appRecurringPricingDetails: {
+                price: {
+                  amount: input.price,
+                  currencyCode: input.currencyCode || 'USD',
+                },
+                interval: input.interval,
+              },
+            },
+          },
+        ],
+      },
+    };
+
+    try {
+      const result = await this.graphqlRequest(shop, accessToken, mutation, variables);
+      
+      if (result.appSubscriptionCreate.userErrors?.length > 0) {
+        throw new BadRequestException(
+          `Failed to create subscription: ${result.appSubscriptionCreate.userErrors.map((e: any) => e.message).join(', ')}`,
+        );
+      }
+
+      return {
+        subscription: result.appSubscriptionCreate.appSubscription,
+        confirmationUrl: result.appSubscriptionCreate.confirmationUrl,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to create app subscription: ${error.message}`, error.stack);
+      throw error;
     }
   }
 
@@ -192,9 +360,10 @@ export class ShopifyBillingService {
     signature: string,
   ): Promise<boolean> {
     try {
-      const webhookSecret = this.configService.get<string>('SHOPIFY_WEBHOOK_SECRET');
+      // Shopify now uses API Secret as the webhook secret
+      const webhookSecret = this.configService.get<string>('SHOPIFY_API_SECRET');
       if (!webhookSecret) {
-        this.logger.warn('Shopify webhook secret not configured');
+        this.logger.warn('Shopify API secret not configured');
         return false;
       }
 
@@ -295,5 +464,184 @@ export class ShopifyBillingService {
 
   generateBillingUrl(charge: ShopifyRecurringCharge): string {
     return charge.confirmation_url || charge.decorated_return_url || '';
+  }
+
+  // Subscription Product Management Methods (Admin Only)
+  
+  async createSubscriptionProduct(
+    shop: string,
+    accessToken: string,
+    productData: any,
+  ): Promise<any> {
+    try {
+      // Note: Shopify doesn't have a specific API for subscription products
+      // You would typically store these in your own database
+      // and use them as templates when creating recurring charges
+      this.logger.log(`Creating subscription product: ${productData.name}`);
+      
+      // For now, we'll return a mock response
+      // In a real implementation, save this to your database
+      return {
+        id: `product_${Date.now()}`,
+        ...productData,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+    } catch (error) {
+      this.logger.error(`Failed to create subscription product: ${error.message}`, error.stack);
+      throw new BadRequestException('Failed to create subscription product');
+    }
+  }
+
+  async listSubscriptionProducts(
+    shop: string,
+    accessToken: string,
+  ): Promise<any[]> {
+    try {
+      // In a real implementation, fetch from your database
+      this.logger.log('Listing subscription products');
+      
+      // Return mock data for now
+      return [
+        {
+          id: 'product_1',
+          name: 'Basic Plan',
+          price: 9.99,
+          interval: 'monthly',
+          currency: 'USD',
+          trialDays: 7,
+          features: ['10 projects', 'Basic support'],
+          active: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: 'product_2',
+          name: 'Pro Plan',
+          price: 19.99,
+          interval: 'monthly',
+          currency: 'USD',
+          trialDays: 14,
+          features: ['Unlimited projects', 'Premium support', 'API access'],
+          active: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ];
+    } catch (error) {
+      this.logger.error(`Failed to list subscription products: ${error.message}`, error.stack);
+      throw new BadRequestException('Failed to list subscription products');
+    }
+  }
+
+  async getSubscriptionProduct(
+    shop: string,
+    accessToken: string,
+    productId: string,
+  ): Promise<any> {
+    try {
+      // In a real implementation, fetch from your database
+      this.logger.log(`Getting subscription product: ${productId}`);
+      
+      const products = await this.listSubscriptionProducts(shop, accessToken);
+      const product = products.find(p => p.id === productId);
+      
+      if (!product) {
+        throw new NotFoundException('Subscription product not found');
+      }
+      
+      return product;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error(`Failed to get subscription product: ${error.message}`, error.stack);
+      throw new BadRequestException('Failed to get subscription product');
+    }
+  }
+
+  async updateSubscriptionProduct(
+    shop: string,
+    accessToken: string,
+    productId: string,
+    updateData: any,
+  ): Promise<any> {
+    try {
+      // In a real implementation, update in your database
+      this.logger.log(`Updating subscription product: ${productId}`);
+      
+      const product = await this.getSubscriptionProduct(shop, accessToken, productId);
+      
+      return {
+        ...product,
+        ...updateData,
+        updatedAt: new Date().toISOString(),
+      };
+    } catch (error) {
+      this.logger.error(`Failed to update subscription product: ${error.message}`, error.stack);
+      throw new BadRequestException('Failed to update subscription product');
+    }
+  }
+
+  async deleteSubscriptionProduct(
+    shop: string,
+    accessToken: string,
+    productId: string,
+  ): Promise<void> {
+    try {
+      // In a real implementation, delete from your database
+      this.logger.log(`Deleting subscription product: ${productId}`);
+      
+      await this.getSubscriptionProduct(shop, accessToken, productId);
+      
+      // Delete logic here
+    } catch (error) {
+      this.logger.error(`Failed to delete subscription product: ${error.message}`, error.stack);
+      throw new BadRequestException('Failed to delete subscription product');
+    }
+  }
+
+  async activateSubscriptionProduct(
+    shop: string,
+    accessToken: string,
+    productId: string,
+  ): Promise<any> {
+    try {
+      // In a real implementation, update status in your database
+      this.logger.log(`Activating subscription product: ${productId}`);
+      
+      const product = await this.getSubscriptionProduct(shop, accessToken, productId);
+      
+      return {
+        ...product,
+        active: true,
+        updatedAt: new Date().toISOString(),
+      };
+    } catch (error) {
+      this.logger.error(`Failed to activate subscription product: ${error.message}`, error.stack);
+      throw new BadRequestException('Failed to activate subscription product');
+    }
+  }
+
+  async deactivateSubscriptionProduct(
+    shop: string,
+    accessToken: string,
+    productId: string,
+  ): Promise<any> {
+    try {
+      // In a real implementation, update status in your database
+      this.logger.log(`Deactivating subscription product: ${productId}`);
+      
+      const product = await this.getSubscriptionProduct(shop, accessToken, productId);
+      
+      return {
+        ...product,
+        active: false,
+        updatedAt: new Date().toISOString(),
+      };
+    } catch (error) {
+      this.logger.error(`Failed to deactivate subscription product: ${error.message}`, error.stack);
+      throw new BadRequestException('Failed to deactivate subscription product');
+    }
   }
 }

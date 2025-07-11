@@ -14,18 +14,22 @@ import { VisibilityTrendChart } from "@/components/visibility/VisibilityTrendCha
 import { MentionsListCard } from "@/components/visibility/MentionsListCard";
 import { TopDomainRankingCard } from "@/components/visibility/TopDomainRankingCard";
 import { DomainSourceChart } from "@/components/visibility/DomainSourceChart";
+import { VisibilityCitationsTable } from "@/components/visibility/VisibilityCitationsTable";
 import { useVisibilityReports } from "@/hooks/use-visibility-reports";
+import { useVisibilityCitations } from "@/hooks/use-visibility-citations";
 import { useReports } from "@/providers/report-provider";
 import { useNavigation } from "@/providers/navigation-provider";
 import { ProcessingLoader } from "@/components/shared/ProcessingLoader";
 import BreadcrumbNav from "@/components/layout/breadcrumb-nav";
 import { PageTransition } from "@/components/shared/PageTransition";
 import { usePageTransition } from "@/providers/page-transition-provider";
+import { usePostHogFlags } from "@/hooks/use-posthog-flags";
 
 
 export default function VisibilityPage() {
   const { token } = useAuth();
   const { allProjects, selectedProject, setSelectedProject } = useNavigation();
+  const { isFeatureEnabled } = usePostHogFlags();
   const { reports, loadingReports, fetchReports } = useReports();
   const { endTransition } = usePageTransition();
 
@@ -78,6 +82,13 @@ export default function VisibilityPage() {
     totalPromptsTested,
     domainSourceAnalysis,
   } = useVisibilityReports(selectedProjectId, selectedModels, token, isAllTime, memoizedDateRange, isLatest);
+  
+  // Hook for visibility citations
+  const {
+    loading: loadingCitations,
+    error: citationsError,
+    citations,
+  } = useVisibilityCitations(selectedProjectId, selectedModels, token, isAllTime, memoizedDateRange, isLatest);
 
   // Update available models when visibility data changes
   useEffect(() => {
@@ -126,8 +137,8 @@ export default function VisibilityPage() {
   }, []);
 
 
-  const loading = loadingReports[selectedProjectId || ''] || loadingVisibility;
-  const error = visibilityError;
+  const loading = loadingReports[selectedProjectId || ''] || loadingVisibility || loadingCitations;
+  const error = visibilityError || citationsError;
 
 
   if (!selectedProjectId) {
@@ -245,6 +256,17 @@ export default function VisibilityPage() {
               />
             </div>
           </div>
+
+          {/* Third Row: Citations Analysis Table */}
+          {(process.env.NODE_ENV === 'development' || isFeatureEnabled('visibility-sources-analysis')) && (
+            <div>
+              <VisibilityCitationsTable
+                citations={citations}
+                loading={loadingCitations}
+                brandName={brandName}
+              />
+            </div>
+          )}
         </div>
       )}
 

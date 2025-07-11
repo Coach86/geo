@@ -55,6 +55,15 @@ export class Plan {
 
   @Prop({ required: true, default: 'weekly', enum: ['daily', 'weekly', 'unlimited'] })
   refreshFrequency: string;
+
+  @Prop({ required: false })
+  shopifyMonthlyPrice?: number;
+
+  @Prop({ required: false })
+  shopifyAnnualPrice?: number;
+
+  @Prop({ required: false, default: 7 })
+  shopifyTrialDays?: number;
 }
 
 export const PlanSchema = SchemaFactory.createForClass(Plan);

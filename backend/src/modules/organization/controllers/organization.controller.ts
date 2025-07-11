@@ -8,6 +8,7 @@ import {
   Delete,
   UseGuards,
   Query,
+  BadRequestException,
 } from '@nestjs/common';
 import { OrganizationService } from '../services/organization.service';
 import { CreateOrganizationDto } from '../dto/create-organization.dto';
@@ -46,6 +47,33 @@ export class OrganizationController {
   })
   async findAll(@Query('includeProjects') includeProjects?: string): Promise<OrganizationResponseDto[]> {
     return await this.organizationService.findAll(includeProjects === 'true');
+  }
+
+  @Get('summary')
+  @ApiOperation({ summary: 'Get organization summaries for dropdowns (Admin only)' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'List of organization summaries with minimal data',
+  })
+  async getOrganizationSummaries() {
+    try {
+      const organizations = await this.organizationService.findAll();
+      
+      // Return minimal data for dropdown usage
+      const summaries = organizations.map(org => ({
+        id: org.id,
+        name: org.name || org.id,
+        currentProjects: org.currentProjects || 0,
+        currentUsers: org.currentUsers || 0,
+      }));
+      
+      // Sort by name/id
+      summaries.sort((a, b) => a.name.localeCompare(b.name));
+      
+      return { data: summaries };
+    } catch (error) {
+      throw new BadRequestException('Failed to fetch organization summaries');
+    }
   }
 
   @Get(':id')

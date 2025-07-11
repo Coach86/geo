@@ -44,6 +44,28 @@ export class ReportBuilderService {
   private readonly logger = new Logger(ReportBuilderService.name);
 
   /**
+   * Extract brand name from project website URL
+   * @param projectWebsite The project website URL
+   * @returns The extracted brand name or null
+   */
+  private extractBrandNameFromProject(projectWebsite?: string): string | null {
+    if (!projectWebsite) return null;
+    
+    try {
+      const url = new URL(projectWebsite);
+      const domain = url.hostname.replace(/^www\./, '');
+      // Extract the main part of the domain (before TLD)
+      const parts = domain.split('.');
+      if (parts.length >= 2) {
+        return parts[0]; // Return the first part as brand name
+      }
+      return domain;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /**
    * Build explorer data from all pipeline results
    */
   public buildExplorerData(
@@ -344,6 +366,86 @@ export class ReportBuilderService {
       }
     }
 
+    // Calculate brand mention metrics
+    let brandMentionMetrics: ExplorerData['brandMentionMetrics'] | undefined;
+    
+    // Extract brand name from project details
+    const brandName = this.extractBrandNameFromProject(projectWebsite);
+    
+    if (brandName && totalCitations > 0) {
+      let citationsWithBrandMentions = 0;
+      const domainMentionCounts = new Map<string, { mentionCount: number; totalCount: number }>();
+      const modelMentionCounts = new Map<string, { mentionCount: number; totalCitations: number }>();
+      
+      // Process all citations to check for brand mentions
+      allCitationsData.forEach(({ modelId, citations }) => {
+        citations.forEach((citation: any) => {
+          const domain = this.extractDomain(citation.url || citation.link || citation.source || '');
+          
+          // Initialize domain counts if not exists
+          if (domain && !domainMentionCounts.has(domain)) {
+            domainMentionCounts.set(domain, { mentionCount: 0, totalCount: 0 });
+          }
+          
+          // Initialize model counts if not exists
+          if (!modelMentionCounts.has(modelId)) {
+            modelMentionCounts.set(modelId, { mentionCount: 0, totalCitations: 0 });
+          }
+          
+          // Count total citations
+          if (domain) {
+            domainMentionCounts.get(domain)!.totalCount++;
+          }
+          modelMentionCounts.get(modelId)!.totalCitations++;
+          
+          // Check if brand is mentioned
+          if (citation.brandMentioned === true) {
+            citationsWithBrandMentions++;
+            
+            if (domain) {
+              domainMentionCounts.get(domain)!.mentionCount++;
+            }
+            modelMentionCounts.get(modelId)!.mentionCount++;
+          }
+        });
+      });
+      
+      // Calculate brand mention rate
+      const brandMentionRate = (citationsWithBrandMentions / totalCitations) * 100;
+      
+      // Get top domains with brand mentions
+      const topDomainsWithBrandMentions = Array.from(domainMentionCounts.entries())
+        .filter(([_, counts]) => counts.mentionCount > 0)
+        .map(([domain, counts]) => ({
+          domain,
+          mentionCount: counts.mentionCount,
+          totalCount: counts.totalCount,
+          mentionRate: Math.round((counts.mentionCount / counts.totalCount) * 1000) / 10 // Round to 1 decimal
+        }))
+        .sort((a, b) => b.mentionCount - a.mentionCount)
+        .slice(0, 10);
+      
+      // Get brand mentions by model
+      const brandMentionsByModel = Array.from(modelMentionCounts.entries())
+        .map(([model, counts]) => ({
+          model,
+          mentionCount: counts.mentionCount,
+          totalCitations: counts.totalCitations,
+          mentionRate: Math.round((counts.mentionCount / counts.totalCitations) * 1000) / 10 // Round to 1 decimal
+        }))
+        .sort((a, b) => b.mentionRate - a.mentionRate);
+      
+      brandMentionMetrics = {
+        citationsWithBrandMentions,
+        totalCitationsAnalyzed: totalCitations,
+        brandMentionRate: Math.round(brandMentionRate * 10) / 10, // Round to 1 decimal
+        topDomainsWithBrandMentions,
+        brandMentionsByModel
+      };
+      
+      this.logger.log(`Brand mention metrics: ${citationsWithBrandMentions}/${totalCitations} citations mention the brand (${brandMentionRate.toFixed(1)}%)`);
+    }
+
     return {
       summary: {
         totalPrompts,
@@ -361,6 +463,7 @@ export class ReportBuilderService {
         failedQueries: 0,
       },
       domainSourceAnalysis,
+      brandMentionMetrics,
     };
   }
 

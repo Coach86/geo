@@ -68,6 +68,23 @@ export interface ExplorerData {
     unknownSourcesCount?: number;
     unknownSourcesPercentage?: number;
   };
+  brandMentionMetrics?: {
+    citationsWithBrandMentions: number;
+    totalCitationsAnalyzed: number;
+    brandMentionRate: number;
+    topDomainsWithBrandMentions: {
+      domain: string;
+      mentionCount: number;
+      totalCount: number;
+      mentionRate: number;
+    }[];
+    brandMentionsByModel: {
+      model: string;
+      mentionCount: number;
+      totalCitations: number;
+      mentionRate: number;
+    }[];
+  };
 }
 
 // Visibility data - brand mention rates

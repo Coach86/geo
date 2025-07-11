@@ -36,16 +36,16 @@ import ClearIcon from '@mui/icons-material/Clear';
 import PublicIcon from '@mui/icons-material/Public';
 import CategoryIcon from '@mui/icons-material/Category';
 import { getProjects, deleteProject, PaginatedResponse } from '../utils/api';
-import { getAllOrganizations } from '../utils/api-organization';
+import { getOrganizationSummaries } from '../utils/api-organization';
 import { Project } from '../utils/types';
 import Pagination from '../components/shared/Pagination';
 import { usePagination } from '../hooks/usePagination';
 
-interface Organization {
+interface OrganizationSummary {
   id: string;
-  name?: string;
-  currentProjects?: number;
-  createdAt: string;
+  name: string;
+  currentProjects: number;
+  currentUsers: number;
 }
 
 const ProjectListTable: React.FC = () => {
@@ -58,7 +58,7 @@ const ProjectListTable: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [localSearch, setLocalSearch] = useState('');
   const [organizationFilter, setOrganizationFilter] = useState<string>('');
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [organizations, setOrganizations] = useState<OrganizationSummary[]>([]);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   
@@ -122,14 +122,21 @@ const ProjectListTable: React.FC = () => {
         (queryParams as any).organizationId = organizationFilter;
       }
 
-      // Fetch projects and organizations
-      const [projectData, orgData] = await Promise.all([
-        getProjects(queryParams),
-        getAllOrganizations(),
-      ]);
-
+      // Fetch projects
+      const projectData = await getProjects(queryParams);
       setProjectsData(projectData);
-      setOrganizations(orgData.data || orgData);
+      
+      // Fetch organization summaries separately (only once on mount)
+      if (isInitialMount.current) {
+        try {
+          const orgSummaries = await getOrganizationSummaries();
+          setOrganizations(orgSummaries.data || []);
+        } catch (err) {
+          console.error('Failed to fetch organization summaries:', err);
+          // Don't fail the whole request if org summaries fail
+        }
+      }
+      
       setError(null);
     } catch (err) {
       console.error('Failed to fetch projects:', err);
@@ -245,7 +252,7 @@ const ProjectListTable: React.FC = () => {
             <TableRow>
               <TableCell sx={{ maxWidth: 200 }}>Brand Name</TableCell>
               <TableCell sx={{ maxWidth: 300 }}>Organization ID</TableCell>
-              <TableCell sx={{ width: 80 }}>Industry</TableCell>
+              <TableCell sx={{ width: 60 }}>Industry</TableCell>
               <TableCell sx={{ width: 100 }}>Market</TableCell>
               <TableCell sx={{ width: 120 }}>Website</TableCell>
               <TableCell sx={{ width: 100 }}>Created</TableCell>
@@ -344,7 +351,13 @@ const ProjectListTable: React.FC = () => {
                     sx={{ 
                       height: 20,
                       fontSize: '0.7rem',
-                      '& .MuiChip-label': { px: 1 }
+                      maxWidth: '100%',
+                      '& .MuiChip-label': { 
+                        px: 1,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }
                     }}
                   />
                 </TableCell>
@@ -511,10 +524,10 @@ const ProjectListTable: React.FC = () => {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
                   <BusinessIcon sx={{ fontSize: 16 }} />
                   <Typography variant="body2" noWrap sx={{ flex: 1 }}>
-                    {org.id}
+                    {org.name}
                   </Typography>
                   <Chip 
-                    label={`${org.currentProjects || 0} projects`} 
+                    label={`${org.currentProjects} projects`} 
                     size="small" 
                     sx={{ fontSize: '0.7rem', height: 20 }}
                   />

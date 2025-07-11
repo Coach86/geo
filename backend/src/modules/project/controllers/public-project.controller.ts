@@ -89,7 +89,11 @@ export class PublicProjectController {
         try {
           const organization = await this.organizationService.findOne(project.organizationId);
           if (organization.stripePlanId) {
-            if (organization.stripePlanId !== 'manual') {
+            // 'manual' is a special plan ID that allows manual analysis
+            if (organization.stripePlanId === 'manual') {
+              // Manual plan is allowed to run analysis
+            } else {
+              // For other plans, check if it's a free plan
               const plan = await this.planService.findById(organization.stripePlanId);
               // Check if plan is free
               const isFreePlan = plan?.metadata?.isFree === true ||

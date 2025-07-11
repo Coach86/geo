@@ -22,15 +22,19 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { Request } from 'express';
+import { ConfigService } from '@nestjs/config';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ShopifyAuthGuard } from '../../auth/guards/shopify-auth.guard';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { ShopifyBillingService } from '../services/shopify-billing.service';
+import { OrganizationService } from '../../organization/services/organization.service';
+import { PlanService } from '../../plan/services/plan.service';
 import {
   CreateSubscriptionDto,
   ActivateChargeDto,
   CreateUsageChargeDto,
 } from '../dto/create-subscription.dto';
+import { CreatePlanSubscriptionDto } from '../dto/create-plan-subscription.dto';
 import {
   SubscriptionResponseDto,
   UsageChargeResponseDto,
@@ -44,12 +48,47 @@ export class ShopifyBillingController {
 
   constructor(
     private readonly shopifyBillingService: ShopifyBillingService,
+    private readonly configService: ConfigService,
+    private readonly organizationService: OrganizationService,
+    private readonly planService: PlanService,
   ) {}
 
+  private async getShopifyConfig(organizationId: string) {
+    this.logger.log(`Getting Shopify config for organization: ${organizationId}`);
+    
+    // Use findOneRaw to get the full access token for internal use
+    const organization = await this.organizationService.findOneRaw(organizationId);
+    
+    if (!organization) {
+      this.logger.error(`Organization not found: ${organizationId}`);
+      throw new BadRequestException('Organization not found');
+    }
+
+    this.logger.log(`Organization found:`, {
+      id: organization.id,
+      name: organization.name,
+      hasShopifyDomain: !!organization.shopifyShopDomain,
+      hasShopifyToken: !!organization.shopifyAccessToken,
+      shopifyDomain: organization.shopifyShopDomain,
+      tokenLength: organization.shopifyAccessToken ? organization.shopifyAccessToken.length : 0,
+      tokenPrefix: organization.shopifyAccessToken ? organization.shopifyAccessToken.substring(0, 10) : 'none',
+    });
+
+    if (!organization.shopifyShopDomain || !organization.shopifyAccessToken) {
+      throw new BadRequestException('Shopify is not configured for this organization. Please complete the Shopify OAuth flow.');
+    }
+
+    return { 
+      shop: organization.shopifyShopDomain, 
+      accessToken: organization.shopifyAccessToken 
+    };
+  }
+
   @Post('subscription')
-  @UseGuards(ShopifyAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a new subscription' })
+  @ApiOperation({ summary: 'Create a new subscription for the user\'s organization' })
+  @ApiBearerAuth()
   @ApiResponse({
     status: HttpStatus.CREATED,
     description: 'Subscription created successfully',
@@ -57,9 +96,14 @@ export class ShopifyBillingController {
   })
   async createSubscription(
     @Body() createSubscriptionDto: CreateSubscriptionDto,
-    @Req() req: Request,
+    @CurrentUser() user: any,
   ): Promise<SubscriptionResponseDto> {
-    const { shop, accessToken } = (req as any).shopifySession;
+    // Regular users create subscriptions for their own organization
+    const organizationId = user.organizationId;
+    if (!organizationId) {
+      throw new BadRequestException('User must belong to an organization');
+    }
+    const { shop, accessToken } = await this.getShopifyConfig(organizationId);
     
     const charge = await this.shopifyBillingService.createRecurringCharge(
       shop,
@@ -67,7 +111,7 @@ export class ShopifyBillingController {
       {
         name: createSubscriptionDto.name,
         price: createSubscriptionDto.price,
-        returnUrl: `${process.env.APP_URL}/billing/callback`,
+        returnUrl: `${process.env.APP_URL}/api/billing/callback?shop=${encodeURIComponent(shop)}`,
         trialDays: createSubscriptionDto.trialDays,
         test: createSubscriptionDto.test,
         currency: createSubscriptionDto.currency,
@@ -92,10 +136,149 @@ export class ShopifyBillingController {
     };
   }
 
+  @Post('subscription/plan')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create a subscription from a plan template' })
+  @ApiBearerAuth()
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    description: 'Subscription created successfully',
+    type: SubscriptionResponseDto,
+  })
+  async createPlanSubscription(
+    @Body() createPlanSubscriptionDto: CreatePlanSubscriptionDto,
+    @CurrentUser() user: any,
+  ): Promise<SubscriptionResponseDto> {
+    this.logger.log(`Creating plan subscription`, {
+      planId: createPlanSubscriptionDto.planId,
+      interval: createPlanSubscriptionDto.interval,
+      userId: user.id,
+      organizationId: user.organizationId,
+    });
+
+    const organizationId = user.organizationId;
+    if (!organizationId) {
+      throw new BadRequestException('User must belong to an organization');
+    }
+    
+    // Get the plan details
+    const plan = await this.planService.findById(createPlanSubscriptionDto.planId);
+    if (!plan) {
+      this.logger.error(`Plan not found: ${createPlanSubscriptionDto.planId}`);
+      throw new BadRequestException('Plan not found');
+    }
+
+    this.logger.log(`Found plan:`, {
+      planId: plan.id,
+      planName: plan.name,
+      planNameType: typeof plan.name,
+      planNameLength: plan.name?.length,
+      shopifyMonthlyPrice: plan.shopifyMonthlyPrice,
+      shopifyAnnualPrice: plan.shopifyAnnualPrice,
+      planObject: JSON.stringify(plan, null, 2),
+    });
+
+    // Determine the price based on interval
+    let price: number;
+    if (createPlanSubscriptionDto.interval === 'annual') {
+      if (!plan.shopifyAnnualPrice) {
+        throw new BadRequestException('This plan does not support annual billing');
+      }
+      price = plan.shopifyAnnualPrice;
+    } else {
+      if (!plan.shopifyMonthlyPrice) {
+        throw new BadRequestException('This plan does not support monthly billing');
+      }
+      price = plan.shopifyMonthlyPrice;
+    }
+
+    const { shop, accessToken } = await this.getShopifyConfig(organizationId);
+    
+    // Use GraphQL for annual billing, REST API for monthly
+    if (createPlanSubscriptionDto.interval === 'annual') {
+      const returnUrl = `${process.env.APP_URL}/api/billing/callback?shop=${encodeURIComponent(shop)}`;
+      this.logger.log(`Creating annual subscription with return URL: ${returnUrl}`);
+      
+      const result = await this.shopifyBillingService.createAppSubscription(
+        shop,
+        accessToken,
+        {
+          name: plan.name,
+          price: price,
+          interval: 'ANNUAL',
+          returnUrl: returnUrl,
+          trialDays: plan.shopifyTrialDays,
+          test: createPlanSubscriptionDto.test || false,
+          currencyCode: 'USD',
+        },
+      );
+
+      return {
+        id: result.subscription.id,
+        name: result.subscription.name,
+        price: price,
+        currency: 'USD',
+        status: result.subscription.status,
+        interval: 'annual',
+        trialDays: result.subscription.trialDays,
+        trialEndsOn: undefined, // GraphQL response structure is different
+        activatedOn: undefined,
+        cancelledOn: undefined,
+        test: result.subscription.test,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        confirmationUrl: result.confirmationUrl,
+      };
+    } else {
+      // Use REST API for monthly billing
+      const returnUrl = `${process.env.APP_URL}/api/billing/callback?shop=${encodeURIComponent(shop)}`;
+      this.logger.log(`BEFORE SHOPIFY API CALL - Monthly subscription:`, {
+        planName: plan.name,
+        planNameType: typeof plan.name,
+        price: price,
+        trialDays: plan.shopifyTrialDays,
+        shop: shop,
+        returnUrl: returnUrl,
+      });
+      
+      const charge = await this.shopifyBillingService.createRecurringCharge(
+        shop,
+        accessToken,
+        {
+          name: plan.name,
+          price: price,
+          returnUrl: returnUrl,
+          trialDays: plan.shopifyTrialDays,
+          test: createPlanSubscriptionDto.test || false,
+          currency: 'USD',
+        },
+      );
+
+      return {
+        id: charge.id.toString(),
+        name: charge.name,
+        price: parseFloat(charge.price),
+        currency: charge.currency,
+        status: charge.status,
+        interval: 'monthly',
+        trialDays: charge.trial_days,
+        trialEndsOn: charge.trial_ends_on,
+        activatedOn: charge.activated_on,
+        cancelledOn: charge.cancelled_on,
+        test: charge.test,
+        createdAt: charge.created_at,
+        updatedAt: charge.updated_at,
+        confirmationUrl: charge.confirmation_url,
+      };
+    }
+  }
+
   @Post('subscription/:chargeId/activate')
-  @UseGuards(ShopifyAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Activate a recurring charge after merchant approval' })
+  @ApiBearerAuth()
   @ApiParam({ name: 'chargeId', type: 'number' })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -104,9 +287,13 @@ export class ShopifyBillingController {
   })
   async activateSubscription(
     @Param('chargeId') chargeId: number,
-    @Req() req: Request,
+    @CurrentUser() user: any,
   ): Promise<SubscriptionResponseDto> {
-    const { shop, accessToken } = (req as any).shopifySession;
+    const organizationId = user.organizationId;
+    if (!organizationId) {
+      throw new BadRequestException('User must belong to an organization');
+    }
+    const { shop, accessToken } = await this.getShopifyConfig(organizationId);
     
     const charge = await this.shopifyBillingService.activateRecurringCharge(
       shop,
@@ -132,9 +319,10 @@ export class ShopifyBillingController {
   }
 
   @Delete('subscription/:chargeId')
-  @UseGuards(ShopifyAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Cancel a recurring charge' })
+  @ApiBearerAuth()
   @ApiParam({ name: 'chargeId', type: 'number' })
   @ApiResponse({
     status: HttpStatus.NO_CONTENT,
@@ -142,9 +330,13 @@ export class ShopifyBillingController {
   })
   async cancelSubscription(
     @Param('chargeId') chargeId: number,
-    @Req() req: Request,
+    @CurrentUser() user: any,
   ): Promise<void> {
-    const { shop, accessToken } = (req as any).shopifySession;
+    const organizationId = user.organizationId;
+    if (!organizationId) {
+      throw new BadRequestException('User must belong to an organization');
+    }
+    const { shop, accessToken } = await this.getShopifyConfig(organizationId);
     
     await this.shopifyBillingService.cancelRecurringCharge(
       shop,
@@ -154,8 +346,9 @@ export class ShopifyBillingController {
   }
 
   @Get('subscription/:chargeId')
-  @UseGuards(ShopifyAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get a specific subscription' })
+  @ApiBearerAuth()
   @ApiParam({ name: 'chargeId', type: 'number' })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -164,9 +357,13 @@ export class ShopifyBillingController {
   })
   async getSubscription(
     @Param('chargeId') chargeId: number,
-    @Req() req: Request,
+    @CurrentUser() user: any,
   ): Promise<SubscriptionResponseDto> {
-    const { shop, accessToken } = (req as any).shopifySession;
+    const organizationId = user.organizationId;
+    if (!organizationId) {
+      throw new BadRequestException('User must belong to an organization');
+    }
+    const { shop, accessToken } = await this.getShopifyConfig(organizationId);
     
     const charge = await this.shopifyBillingService.getRecurringCharge(
       shop,
@@ -192,8 +389,9 @@ export class ShopifyBillingController {
   }
 
   @Get('subscriptions')
-  @UseGuards(ShopifyAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'List all subscriptions' })
+  @ApiBearerAuth()
   @ApiQuery({ name: 'status', required: false, type: 'string' })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -202,9 +400,13 @@ export class ShopifyBillingController {
   })
   async listSubscriptions(
     @Query('status') status: string,
-    @Req() req: Request,
+    @CurrentUser() user: any,
   ): Promise<SubscriptionResponseDto[]> {
-    const { shop, accessToken } = (req as any).shopifySession;
+    const organizationId = user.organizationId;
+    if (!organizationId) {
+      throw new BadRequestException('User must belong to an organization');
+    }
+    const { shop, accessToken } = await this.getShopifyConfig(organizationId);
     
     const charges = await this.shopifyBillingService.listRecurringCharges(
       shop,
@@ -230,17 +432,23 @@ export class ShopifyBillingController {
   }
 
   @Get('status')
-  @UseGuards(ShopifyAuthGuard)
-  @ApiOperation({ summary: 'Get billing status for the current shop' })
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get billing status' })
+  @ApiBearerAuth()
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Billing status',
     type: BillingStatusResponseDto,
   })
   async getBillingStatus(
-    @Req() req: Request,
+    @CurrentUser() user: any,
   ): Promise<BillingStatusResponseDto> {
-    const { shop, accessToken } = (req as any).shopifySession;
+    const organizationId = user.organizationId;
+    if (!organizationId) {
+      throw new BadRequestException('User must belong to an organization');
+    }
+    
+    const { shop, accessToken } = await this.getShopifyConfig(organizationId);
     
     const activeSubscription = await this.shopifyBillingService.getActiveSubscription(
       shop,
@@ -291,9 +499,10 @@ export class ShopifyBillingController {
   }
 
   @Post('usage-charge/:recurringChargeId')
-  @UseGuards(ShopifyAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a usage charge' })
+  @ApiBearerAuth()
   @ApiParam({ name: 'recurringChargeId', type: 'number' })
   @ApiResponse({
     status: HttpStatus.CREATED,
@@ -303,9 +512,13 @@ export class ShopifyBillingController {
   async createUsageCharge(
     @Param('recurringChargeId') recurringChargeId: number,
     @Body() createUsageChargeDto: CreateUsageChargeDto,
-    @Req() req: Request,
+    @CurrentUser() user: any,
   ): Promise<UsageChargeResponseDto> {
-    const { shop, accessToken } = (req as any).shopifySession;
+    const organizationId = user.organizationId;
+    if (!organizationId) {
+      throw new BadRequestException('User must belong to an organization');
+    }
+    const { shop, accessToken } = await this.getShopifyConfig(organizationId);
     
     const usageCharge = await this.shopifyBillingService.createUsageCharge(
       shop,
@@ -328,8 +541,9 @@ export class ShopifyBillingController {
   }
 
   @Get('usage-charges/:recurringChargeId')
-  @UseGuards(ShopifyAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get usage charges for a subscription' })
+  @ApiBearerAuth()
   @ApiParam({ name: 'recurringChargeId', type: 'number' })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -338,9 +552,13 @@ export class ShopifyBillingController {
   })
   async getUsageCharges(
     @Param('recurringChargeId') recurringChargeId: number,
-    @Req() req: Request,
+    @CurrentUser() user: any,
   ): Promise<UsageChargeResponseDto[]> {
-    const { shop, accessToken } = (req as any).shopifySession;
+    const organizationId = user.organizationId;
+    if (!organizationId) {
+      throw new BadRequestException('User must belong to an organization');
+    }
+    const { shop, accessToken } = await this.getShopifyConfig(organizationId);
     
     const usageCharges = await this.shopifyBillingService.getUsageCharges(
       shop,
@@ -359,4 +577,5 @@ export class ShopifyBillingController {
       updatedAt: charge.updated_at,
     }));
   }
+
 }

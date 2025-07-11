@@ -86,3 +86,35 @@ export class BillingStatusResponseDto {
   @ApiProperty({ required: false })
   shop?: string;
 }
+
+export class SubscriptionProductResponseDto {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty()
+  name: string;
+
+  @ApiProperty()
+  price: number;
+
+  @ApiProperty()
+  interval: string;
+
+  @ApiProperty()
+  currency: string;
+
+  @ApiProperty({ required: false })
+  trialDays?: number;
+
+  @ApiProperty({ required: false, type: [String] })
+  features?: string[];
+
+  @ApiProperty()
+  active: boolean;
+
+  @ApiProperty()
+  createdAt: string;
+
+  @ApiProperty()
+  updatedAt: string;
+}

@@ -13,7 +13,9 @@ import {
   Database,
   Link as LinkIcon,
   Download,
+  FolderOpen,
 } from "lucide-react";
+import { NoAnalysisDataCard } from "@/components/shared/NoAnalysisDataCard";
 import { CitationsTable } from "@/components/explorer/CitationsTable";
 import {
   getPromptSet,
@@ -306,18 +308,13 @@ export default function ExplorerPage() {
   if (!selectedProjectId) {
     return (
       <div className="flex items-center justify-center h-[50vh]">
-          <Card className="max-w-md w-full">
-            <CardContent className="pt-6">
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  Please select a project from the sidebar to view explorer
-                  data.
-                </AlertDescription>
-              </Alert>
-            </CardContent>
-          </Card>
-        </div>
+        <NoAnalysisDataCard 
+          message="Please select a project from the sidebar to view explorer data."
+          title="No Project Selected"
+          icon={FolderOpen}
+          showHint={false}
+        />
+      </div>
     );
   }
 
@@ -503,16 +500,11 @@ export default function ExplorerPage() {
       {/* No Selected Reports */}
       {!loading && projectReports.length > 0 && selectedReports.length === 0 && (
         <div className="flex items-center justify-center h-[50vh]">
-          <Card className="max-w-md w-full">
-            <CardContent className="pt-6">
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  Please select a date range to view explorer data.
-                </AlertDescription>
-              </Alert>
-            </CardContent>
-          </Card>
+          <NoAnalysisDataCard 
+            message="Please select a date range to view explorer data."
+            title="No Data Available"
+            icon={Database}
+          />
         </div>
       )}
       </div>

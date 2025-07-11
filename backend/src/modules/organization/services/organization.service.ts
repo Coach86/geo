@@ -149,6 +149,19 @@ export class OrganizationService {
     }
   }
 
+  async findOneRaw(id: string): Promise<OrganizationEntity> {
+    try {
+      const organization = await this.organizationRepository.findById(id);
+      if (!organization) {
+        throw new NotFoundException(`Organization with ID ${id} not found`);
+      }
+      return this.organizationRepository.mapToEntity(organization);
+    } catch (error) {
+      this.logger.error(`Failed to find organization (raw): ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
   async update(id: string, updateOrganizationDto: UpdateOrganizationDto): Promise<OrganizationResponseDto> {
     try {
       // Check if organization exists
@@ -316,6 +329,7 @@ export class OrganizationService {
       id: entity.id,
       name: entity.name,
       shopifyShopDomain: entity.shopifyShopDomain,
+      shopifyAccessToken: entity.shopifyAccessToken ? entity.shopifyAccessToken.substring(0, 10) + '...' : undefined,
       stripeCustomerId: entity.stripeCustomerId,
       stripePlanId: entity.stripePlanId,
       stripeSubscriptionId: entity.stripeSubscriptionId,

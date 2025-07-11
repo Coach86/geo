@@ -98,6 +98,8 @@ export class BrandReport {
       promptType: string;
       promptIndex: number;
       promptText?: string;
+      brandMentioned?: boolean;
+      brandMentionContext?: string;
       webSearchQueries?: {
         query: string;
         timestamp?: string;
@@ -113,6 +115,23 @@ export class BrandReport {
       otherSourcesPercentage: number;
       brandDomainCount: number;
       otherSourcesCount: number;
+    };
+    brandMentionMetrics?: {
+      citationsWithBrandMentions: number;
+      totalCitationsAnalyzed: number;
+      brandMentionRate: number;
+      topDomainsWithBrandMentions: {
+        domain: string;
+        mentionCount: number;
+        totalCount: number;
+        mentionRate: number;
+      }[];
+      brandMentionsByModel: {
+        model: string;
+        mentionCount: number;
+        totalCitations: number;
+        mentionRate: number;
+      }[];
     };
   };
 

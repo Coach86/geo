@@ -44,6 +44,9 @@ interface PlanFormData {
   order: number;
   metadata: Record<string, any>;
   refreshFrequency: string;
+  shopifyMonthlyPrice?: number;
+  shopifyAnnualPrice?: number;
+  shopifyTrialDays?: number;
 }
 
 const defaultPlanData: PlanFormData = {
@@ -123,6 +126,9 @@ export default function PlanManagement() {
       order: plan.order,
       metadata: plan.metadata,
       refreshFrequency: plan.refreshFrequency || 'weekly',
+      shopifyMonthlyPrice: plan.shopifyMonthlyPrice,
+      shopifyAnnualPrice: plan.shopifyAnnualPrice,
+      shopifyTrialDays: plan.shopifyTrialDays,
     });
     setEditDialogOpen(true);
   };
@@ -217,10 +223,34 @@ export default function PlanManagement() {
 
               {plan.prices && (
                 <Box mb={2}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Stripe Pricing
+                  </Typography>
                   <Typography variant="h6">${plan.prices.monthly}/mo</Typography>
                   <Typography variant="body2" color="text.secondary">
                     ${plan.prices.yearly}/year
                   </Typography>
+                </Box>
+              )}
+
+              {(plan.shopifyMonthlyPrice || plan.shopifyAnnualPrice) && (
+                <Box mb={2}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Shopify Pricing
+                  </Typography>
+                  {plan.shopifyMonthlyPrice && (
+                    <Typography variant="h6">${plan.shopifyMonthlyPrice}/mo</Typography>
+                  )}
+                  {plan.shopifyAnnualPrice && (
+                    <Typography variant="body2" color="text.secondary">
+                      ${plan.shopifyAnnualPrice}/year
+                    </Typography>
+                  )}
+                  {plan.shopifyTrialDays && (
+                    <Typography variant="body2" color="text.secondary">
+                      {plan.shopifyTrialDays} day trial
+                    </Typography>
+                  )}
                 </Box>
               )}
 
@@ -394,6 +424,43 @@ export default function PlanManagement() {
                 <MenuItem value="unlimited">Unlimited</MenuItem>
               </Select>
             </FormControl>
+            <Typography variant="subtitle1" sx={{ mt: 2 }}>
+              Shopify Pricing
+            </Typography>
+            <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr 1fr' }} gap={2}>
+              <TextField
+                fullWidth
+                type="number"
+                label="Shopify Monthly Price"
+                value={formData.shopifyMonthlyPrice || ''}
+                onChange={(e) => setFormData({ ...formData, shopifyMonthlyPrice: e.target.value ? parseFloat(e.target.value) : undefined })}
+                InputProps={{
+                  inputProps: { min: 0, step: 0.01 },
+                  startAdornment: '$',
+                }}
+              />
+              <TextField
+                fullWidth
+                type="number"
+                label="Shopify Annual Price"
+                value={formData.shopifyAnnualPrice || ''}
+                onChange={(e) => setFormData({ ...formData, shopifyAnnualPrice: e.target.value ? parseFloat(e.target.value) : undefined })}
+                InputProps={{
+                  inputProps: { min: 0, step: 0.01 },
+                  startAdornment: '$',
+                }}
+              />
+              <TextField
+                fullWidth
+                type="number"
+                label="Shopify Trial Days"
+                value={formData.shopifyTrialDays || 7}
+                onChange={(e) => setFormData({ ...formData, shopifyTrialDays: parseInt(e.target.value) || 7 })}
+                InputProps={{
+                  inputProps: { min: 0, max: 30 },
+                }}
+              />
+            </Box>
             <Box>
               <Typography variant="subtitle2" gutterBottom>
                 What's Included

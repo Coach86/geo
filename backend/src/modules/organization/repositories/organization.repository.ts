@@ -132,6 +132,7 @@ export class OrganizationRepository {
       id: document.id,
       name: document.name,
       shopifyShopDomain: document.shopifyShopDomain,
+      shopifyAccessToken: document.shopifyAccessToken,
       stripeCustomerId: document.stripeCustomerId,
       stripePlanId: document.stripePlanId,
       stripeSubscriptionId: document.stripeSubscriptionId,

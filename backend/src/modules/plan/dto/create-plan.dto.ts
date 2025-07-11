@@ -63,4 +63,16 @@ export class CreatePlanDto {
   @IsEnum(['daily', 'weekly', 'unlimited'])
   @IsOptional()
   refreshFrequency?: string;
+
+  @IsNumber()
+  @IsOptional()
+  shopifyMonthlyPrice?: number;
+
+  @IsNumber()
+  @IsOptional()
+  shopifyAnnualPrice?: number;
+
+  @IsNumber()
+  @IsOptional()
+  shopifyTrialDays?: number;
 }

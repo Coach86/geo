@@ -285,22 +285,20 @@ export class BrandReportExplorerAggregationService {
       unknownSourcesPercentage: totalDomainCounts > 0 ? Math.round((totalUnknownSourcesCount / totalDomainCounts) * 1000) / 10 : 0,
     } : undefined;
 
-    // Deduplicate web search results
-    const deduplicatedWebSearchResults = this.deduplicateWebSearchResults(allWebSearchResults);
-    
-    // Recalculate citation count based on deduplicated results to match what will be shown in the table
-    const finalCitationCount = deduplicatedWebSearchResults.reduce((count, result) => {
+    // Don't deduplicate - show all web search results
+    // This matches the visibility table behavior
+    const finalCitationCount = allWebSearchResults.reduce((count, result) => {
       return count + (result.citations?.length || 0);
     }, 0);
 
     return {
       totalPrompts,
       promptsWithWebAccess,
-      actualCitationCount: finalCitationCount, // Use count from deduplicated results
+      actualCitationCount: finalCitationCount, // Use count from all results without deduplication
       uniqueSourcesCount: uniqueSourcesSet.size,
       topKeywords,
       topSources,
-      allWebSearchResults: deduplicatedWebSearchResults,
+      allWebSearchResults: allWebSearchResults, // Return all results without deduplication
       domainSourceAnalysis,
       availableModels: Array.from(availableModelsSet).sort()
     };

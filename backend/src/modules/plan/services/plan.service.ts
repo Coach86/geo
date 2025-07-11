@@ -253,9 +253,12 @@ export class PlanService {
       isMostPopular: plan.isMostPopular,
       order: plan.order,
       metadata: plan.metadata,
-      refreshFrequency: (plan as any).refreshFrequency || 'weekly',
-      createdAt: (plan as any).createdAt,
-      updatedAt: (plan as any).updatedAt,
+      refreshFrequency: plan.refreshFrequency || 'weekly',
+      shopifyMonthlyPrice: plan.shopifyMonthlyPrice,
+      shopifyAnnualPrice: plan.shopifyAnnualPrice,
+      shopifyTrialDays: plan.shopifyTrialDays,
+      createdAt: (plan as any).createdAt?.toISOString() || new Date().toISOString(),
+      updatedAt: (plan as any).updatedAt?.toISOString() || new Date().toISOString(),
     };
   }
 

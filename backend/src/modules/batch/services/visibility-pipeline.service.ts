@@ -308,7 +308,7 @@ export class VisibilityPipelineService extends BasePipelineService {
         llmResponse,
         // Include web search and citation information if available
         usedWebSearch: metadata.usedWebSearch || false,
-        citations: metadata.annotations || [],
+        citations: this.enhanceCitationsWithBrandMentions(metadata.annotations || [], brandName),
         toolUsage: metadata.toolUsage || [],
         // Include the full LLM response object for provider-specific metadata extraction
         llmResponseObj: llmResponseObj,
@@ -317,6 +317,71 @@ export class VisibilityPipelineService extends BasePipelineService {
       this.logger.error(`All analyzers failed for visibility analysis: ${error.message}`);
       throw error;
     }
+  }
+
+  /**
+   * Enhance citations with brand mention detection
+   * @param citations Array of citations
+   * @param brandName The brand name to search for
+   * @returns Enhanced citations with brand mention information
+   */
+  private enhanceCitationsWithBrandMentions(citations: any[], brandName: string): any[] {
+    if (!citations || !Array.isArray(citations)) {
+      return [];
+    }
+
+    return citations.map(citation => {
+      const brandMentionInfo = this.checkBrandMentionInCitation(citation, brandName);
+      return {
+        ...citation,
+        ...brandMentionInfo
+      };
+    });
+  }
+
+  /**
+   * Check if brand is mentioned in citation content
+   * @param citation Citation object with text/title
+   * @param brandName The brand name to search for
+   * @returns Object with brandMentioned flag and context
+   */
+  private checkBrandMentionInCitation(
+    citation: any,
+    brandName: string
+  ): { brandMentioned: boolean; brandMentionContext?: string } {
+    if (!citation || !brandName) {
+      return { brandMentioned: false };
+    }
+
+    // Normalize brand name for matching (case-insensitive)
+    const normalizedBrand = brandName.toLowerCase().trim();
+    
+    // Check in various citation fields
+    const fieldsToCheck = [
+      citation.text,
+      citation.title,
+      citation.snippet,
+      citation.content,
+      citation.description
+    ].filter(field => field && typeof field === 'string');
+
+    for (const field of fieldsToCheck) {
+      const normalizedField = field.toLowerCase();
+      if (normalizedField.includes(normalizedBrand)) {
+        // Extract context around the brand mention
+        const index = normalizedField.indexOf(normalizedBrand);
+        const contextStart = Math.max(0, index - 50);
+        const contextEnd = Math.min(field.length, index + normalizedBrand.length + 50);
+        const context = field.substring(contextStart, contextEnd).trim();
+        
+        return {
+          brandMentioned: true,
+          brandMentionContext: context
+        };
+      }
+    }
+
+    return { brandMentioned: false };
   }
 
   /**

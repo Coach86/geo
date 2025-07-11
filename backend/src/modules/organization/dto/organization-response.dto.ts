@@ -2,6 +2,7 @@ export class OrganizationResponseDto {
   id: string;
   name: string;
   shopifyShopDomain?: string;
+  shopifyAccessToken?: string;
   stripeCustomerId?: string;
   stripePlanId?: string;
   stripeSubscriptionId?: string;

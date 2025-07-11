@@ -159,4 +159,47 @@ export class AggregatedVisibilityResponseDto {
     required: false
   })
   domainSourceAnalysis?: DomainSourceAnalysisDto;
+
+  @ApiProperty({ 
+    description: 'Detailed visibility results with citations',
+    type: 'array',
+    items: {
+      type: 'object',
+      properties: {
+        model: { type: 'string' },
+        promptIndex: { type: 'number' },
+        brandMentioned: { type: 'boolean' },
+        originalPrompt: { type: 'string' },
+        citations: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              url: { type: 'string' },
+              title: { type: 'string' },
+              website: { type: 'string' },
+              domain: { type: 'string' },
+              brandMentioned: { type: 'boolean' },
+              brandMentionContext: { type: 'string' }
+            }
+          }
+        }
+      }
+    },
+    required: false
+  })
+  detailedResults?: Array<{
+    model: string;
+    promptIndex: number;
+    brandMentioned: boolean;
+    originalPrompt: string;
+    citations: Array<{
+      url?: string;
+      title?: string;
+      website?: string;
+      domain?: string;
+      brandMentioned?: boolean;
+      brandMentionContext?: string;
+    }>;
+  }>;
 }

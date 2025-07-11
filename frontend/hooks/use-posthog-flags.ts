@@ -7,6 +7,7 @@ import { useAuth } from "@/providers/auth-provider";
 interface FeatureFlags {
   'page-intelligence': boolean;
   'page-magic': boolean;
+  'visibility-sources-analysis': boolean;
 }
 
 export function usePostHogFlags() {
@@ -15,6 +16,7 @@ export function usePostHogFlags() {
   const [flags, setFlags] = useState<FeatureFlags>({
     'page-intelligence': false,
     'page-magic': false,
+    'visibility-sources-analysis': false,
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -24,6 +26,7 @@ export function usePostHogFlags() {
       setFlags({
         'page-intelligence': true,
         'page-magic': true,
+        'visibility-sources-analysis': true,
       });
       setIsLoading(false);
       return;
@@ -44,6 +47,7 @@ export function usePostHogFlags() {
       setFlags({
         'page-intelligence': posthog.isFeatureEnabled('page-intelligence') || false,
         'page-magic': posthog.isFeatureEnabled('page-magic') || false,
+        'visibility-sources-analysis': posthog.isFeatureEnabled('visibility-sources-analysis') || false,
       });
       setIsLoading(false);
     });
@@ -53,6 +57,7 @@ export function usePostHogFlags() {
       setFlags({
         'page-intelligence': posthog.isFeatureEnabled('page-intelligence') || false,
         'page-magic': posthog.isFeatureEnabled('page-magic') || false,
+        'visibility-sources-analysis': posthog.isFeatureEnabled('visibility-sources-analysis') || false,
       });
       setIsLoading(false);
     };

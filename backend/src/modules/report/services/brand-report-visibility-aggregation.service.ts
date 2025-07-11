@@ -82,6 +82,31 @@ export class BrandReportVisibilityAggregationService {
       project?.competitorDetails
     );
 
+    // Collect all detailedResults from reports
+    interface DetailedResult {
+      model: string;
+      promptIndex: number;
+      brandMentioned: boolean;
+      extractedCompanies: string[];
+      originalPrompt: string;
+      llmResponse: string;
+      usedWebSearch: boolean;
+      citations: any[];
+      toolUsage: any[];
+    }
+    
+    const detailedResults: DetailedResult[] = [];
+    reports.forEach(report => {
+      if (report.visibility?.detailedResults) {
+        report.visibility.detailedResults.forEach((result: DetailedResult) => {
+          // Apply model filter if specified
+          if (!selectedModels || selectedModels.length === 0 || selectedModels.includes(result.model)) {
+            detailedResults.push(result);
+          }
+        });
+      }
+    });
+
     const response = {
       averageScore: aggregationResult.averageScore,
       scoreVariation,
@@ -97,7 +122,8 @@ export class BrandReportVisibilityAggregationService {
         end: reports[reports.length - 1].reportDate.toISOString()
       },
       totalPromptsTested: aggregationResult.totalPromptsTested || 0,
-      domainSourceAnalysis
+      domainSourceAnalysis,
+      detailedResults
     };
 
 
@@ -319,11 +345,11 @@ export class BrandReportVisibilityAggregationService {
       // Fallback to detailedResults if no explorer data
       
       visData.detailedResults.forEach((result: any) => {
-        // Filter by selected models and promptType if provided
-        if (result.promptType === 'visibility' && (!selectedModels || selectedModels.length === 0 || selectedModels.includes(result.model))) {
+        // Filter by selected models - all detailedResults in visibility are visibility prompts
+        if (!selectedModels || selectedModels.length === 0 || selectedModels.includes(result.model)) {
           if (result.citations) {
             result.citations.forEach((citation: any) => {
-              // Process only visibility citations from detailedResults
+              // Process visibility citations from detailedResults
               if (citation.url) {
                 try {
                   const url = new URL(citation.url);
