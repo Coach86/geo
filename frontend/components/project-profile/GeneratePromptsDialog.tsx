@@ -30,6 +30,7 @@ interface GeneratePromptsDialogProps {
   onPromptsGenerated: (prompts: string[]) => void;
   maxSpontaneousPrompts?: number;
   initialMethod?: 'ai' | 'keywords';
+  projectObjectives?: string;
 }
 
 export function GeneratePromptsDialog({
@@ -41,12 +42,13 @@ export function GeneratePromptsDialog({
   onPromptsGenerated,
   maxSpontaneousPrompts,
   initialMethod = 'ai',
+  projectObjectives,
 }: GeneratePromptsDialogProps) {
   const { token } = useAuth();
   const router = useRouter();
   const [generationMethod, setGenerationMethod] = useState<'ai' | 'keywords'>(initialMethod);
   const [keywords, setKeywords] = useState('');
-  const [additionalInstructions, setAdditionalInstructions] = useState('');
+  const [additionalInstructions, setAdditionalInstructions] = useState(projectObjectives || '');
   const [promptCount, setPromptCount] = useState('12');
   const [isGenerating, setIsGenerating] = useState(false);
   const [csvFile, setCsvFile] = useState<File | null>(null);
@@ -55,6 +57,13 @@ export function GeneratePromptsDialog({
   useEffect(() => {
     setGenerationMethod(initialMethod);
   }, [initialMethod]);
+
+  // Update additional instructions when projectObjectives changes or dialog opens
+  useEffect(() => {
+    if (open && projectObjectives) {
+      setAdditionalInstructions(projectObjectives);
+    }
+  }, [open, projectObjectives]);
 
   const handleGenerateFromKeywords = async () => {
     if (!token) {

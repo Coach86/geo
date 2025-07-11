@@ -452,6 +452,7 @@ export default function Home() {
                           }}
                           openGenerateDialog={openGenerateDialog}
                           onGenerateDialogClose={() => setOpenGenerateDialog(false)}
+                          projectObjectives={projectDetails.objectives}
                         />
                     )}
                   </div>
@@ -518,6 +519,7 @@ export default function Home() {
                             }
                           }
                         }}
+                        projectObjectives={projectDetails.objectives}
                       />
                     )}
                   </div>
@@ -571,6 +573,7 @@ export default function Home() {
                             }
                           }
                         }}
+                        projectObjectives={projectDetails.objectives}
                       />
                     )}
                   </div>
