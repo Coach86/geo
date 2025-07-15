@@ -1,8 +1,6 @@
 import { Injectable, Logger, OnModuleInit, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OnEvent } from '@nestjs/event-emitter';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
 import { PromptSetRepository } from '../repositories/prompt-set.repository';
 import { ProjectCreatedEvent } from '../../project/events/project-created.event';
 import { LlmService } from '../../llm/services/llm.service';
@@ -12,7 +10,6 @@ import { sentimentSystemPrompt, sentimentUserPrompt } from './sentiment-prompts'
 import { competitionSystemPrompt, competitionUserPrompt } from './competition-prompts';
 import { alignmentSystemPrompt, alignmentUserPrompt } from './alignment-prompts';
 import { Project } from '../../project/entities/project.entity';
-import { PromptSet, PromptSetDocument } from '../schemas/prompt-set.schema';
 import { ProjectRepository } from '../../project/repositories/project.repository';
 import { LlmProvider } from '@/modules/llm/interfaces/llm-provider.enum';
 
@@ -63,10 +60,10 @@ export class PromptService implements OnModuleInit {
     this.logger.log(`SYSTEM PROMPT:\n${systemPrompt}`);
     this.logger.log(`\nUSER PROMPT:\n${userPrompt}`);
     this.logger.log(`========== END OF PROMPT ==========\n`);
-    
+
     // Try providers in order: OpenAI -> Anthropic -> Perplexity
     const providers = [LlmProvider.OpenAI, LlmProvider.Anthropic, LlmProvider.Perplexity];
-    
+
     for (const provider of providers) {
       try {
         this.logger.log(`Attempting to generate ${promptType} prompts using ${provider}`);
@@ -80,20 +77,20 @@ export class PromptService implements OnModuleInit {
         return result;
       } catch (error) {
         // Check if it's a quota error for clearer logging
-        const isQuotaError = error.message?.toLowerCase().includes('exceeded your current quota') || 
+        const isQuotaError = error.message?.toLowerCase().includes('exceeded your current quota') ||
                             error.message?.toLowerCase().includes('billing');
-        
+
         if (isQuotaError) {
           this.logger.warn(`${provider} has quota/billing issue: ${error.message}. Trying fallback provider...`);
         } else {
           this.logger.warn(`Failed to generate ${promptType} prompts with ${provider}: ${error.message}`);
         }
-        
+
         // If this is the last provider, throw the error
         if (provider === providers[providers.length - 1]) {
           throw new Error(`Failed to generate prompts with all providers. Last error: ${error.message}`);
         }
-        
+
         // Otherwise, continue to next provider
         const nextProvider = providers[providers.indexOf(provider) + 1];
         this.logger.log(`Falling back to ${nextProvider}...`);
@@ -268,7 +265,7 @@ export class PromptService implements OnModuleInit {
       keywords,
       additionalInstructions,
     });
-    
+
     // Log generation details
     if (additionalInstructions || keywords.length > 0) {
       this.logger.log(`\n========== AI GENERATION WITH ENHANCEMENTS ==========`);
@@ -630,7 +627,7 @@ export class PromptService implements OnModuleInit {
 
       if (existingPromptSet) {
         let updateData: any;
-        
+
         if (addMode) {
           // In add mode, combine existing prompts with new ones
           const existingPrompts = existingPromptSet[promptType] || [];
@@ -817,7 +814,7 @@ export class PromptService implements OnModuleInit {
       let systemPrompt: string;
       let userPrompt: string;
       const promptCount = count || this[`${promptType}PromptCount`];
-      
+
       switch (promptType) {
         case 'visibility':
           systemPrompt = visibilitySystemPrompt;
@@ -879,7 +876,7 @@ export class PromptService implements OnModuleInit {
 
       if (existingPromptSet) {
         let updateData: any;
-        
+
         if (addMode) {
           // In add mode, combine existing prompts with new ones
           const existingPrompts = existingPromptSet[promptType] || [];
@@ -894,7 +891,7 @@ export class PromptService implements OnModuleInit {
             [promptType]: result.prompts,
           };
         }
-        
+
         await this.promptSetRepository.updateByProjectId(projectId, updateData);
       } else {
         // Create new prompt set with only the generated type
@@ -958,7 +955,7 @@ export class PromptService implements OnModuleInit {
       let systemPrompt: string;
       let userPrompt: string;
       const promptCount = count || this[`${promptType}PromptCount`];
-      
+
       // Use project context if provided, otherwise use defaults
       const projectParams = {
         market: projectContext?.market || 'Global',
@@ -971,7 +968,7 @@ export class PromptService implements OnModuleInit {
         keyBrandAttributes: projectContext?.keyBrandAttributes || ['Quality', 'Innovation', 'Service'],
         brandDescription: projectContext?.shortDescription || 'A leading company in its industry',
       };
-      
+
       switch (promptType) {
         case 'visibility':
           systemPrompt = visibilitySystemPrompt;

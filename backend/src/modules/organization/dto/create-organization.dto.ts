@@ -1,4 +1,4 @@
-import { IsOptional, IsObject, IsArray, IsString, IsNotEmpty } from 'class-validator';
+import { IsOptional, IsObject, IsArray, IsString, IsNotEmpty, ValidateIf } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateOrganizationDto {
@@ -36,6 +36,7 @@ export class CreateOrganizationDto {
   selectedModels?: string[];
 
   @IsOptional()
+  @ValidateIf((o) => o.stripePlanId !== null)
   @IsString()
-  stripePlanId?: string;
+  stripePlanId?: string | null;
 }

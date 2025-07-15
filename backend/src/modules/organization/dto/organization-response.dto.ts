@@ -4,7 +4,7 @@ export class OrganizationResponseDto {
   shopifyShopDomain?: string;
   shopifyAccessToken?: string;
   stripeCustomerId?: string;
-  stripePlanId?: string;
+  stripePlanId?: string | null;
   stripeSubscriptionId?: string;
   subscriptionStatus?: string;
   subscriptionCurrentPeriodEnd?: string;

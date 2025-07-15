@@ -28,7 +28,8 @@ export class PlanService {
     private readonly configService: ConfigService,
     private readonly eventEmitter: EventEmitter2,
     @Inject(forwardRef(() => UserService)) private readonly userService: UserService,
-    @Inject(forwardRef(() => OrganizationService)) private readonly organizationService: OrganizationService,
+    @Inject(forwardRef(() => OrganizationService))
+    private readonly organizationService: OrganizationService,
     @Inject(forwardRef(() => PromoCodeService)) private readonly promoCodeService: PromoCodeService,
     private readonly postHogService: PostHogService,
   ) {
@@ -164,23 +165,28 @@ export class PlanService {
         if (organization && organization.promoCode) {
           // Get promo code details (without usage validation)
           const promo = await this.promoCodeService.findByCode(organization.promoCode);
-          
+
           if (promo && promo.isActive) {
             // For trial_days promo codes, check if this plan matches the trialPlanId
             let isValidForPlan = false;
-            
+
             if (promo.discountType === DiscountType.TRIAL_DAYS) {
               // Use trialPlanId for trial_days type promos
               isValidForPlan = promo.trialPlanId === planId;
             } else {
               // For other promo types, use validPlanIds
-              isValidForPlan = !promo.validPlanIds || 
-                             promo.validPlanIds.length === 0 || 
-                             promo.validPlanIds.includes(planId);
+              isValidForPlan =
+                !promo.validPlanIds ||
+                promo.validPlanIds.length === 0 ||
+                promo.validPlanIds.includes(planId);
             }
-            
+
             // Apply trial days if promo code provides them and is valid for this plan
-            if (isValidForPlan && promo.discountType === DiscountType.TRIAL_DAYS && promo.discountValue > 0) {
+            if (
+              isValidForPlan &&
+              promo.discountType === DiscountType.TRIAL_DAYS &&
+              promo.discountValue > 0
+            ) {
               sessionConfig.subscription_data = {
                 trial_period_days: promo.discountValue,
                 metadata: {
@@ -188,7 +194,9 @@ export class PlanService {
                   organizationId: user.organizationId,
                 },
               };
-              console.log(`Applied ${promo.discountValue} trial days from promo code ${organization.promoCode} for user ${userId}`);
+              console.log(
+                `Applied ${promo.discountValue} trial days from promo code ${organization.promoCode} for user ${userId}`,
+              );
             }
           }
         }
@@ -262,25 +270,6 @@ export class PlanService {
     };
   }
 
-  async findFreePlan(): Promise<PlanResponseDto | null> {
-    // Find the free plan by name or tag or metadata
-    const plans = await this.planRepository.findAll();
-    const freePlan = plans.find(
-      plan => plan.name.toLowerCase() === 'free' || 
-              plan.tag?.toLowerCase() === 'free' ||
-              plan.metadata?.isFree === true ||
-              plan.stripeProductId === null || 
-              plan.stripeProductId === ''
-    );
-    
-    if (!freePlan) {
-      return null;
-    }
-    
-    return this.mapPlanToResponse(freePlan);
-  }
-
-
   async cancelUserSubscription(userId: string): Promise<void> {
     if (!this.stripe) {
       throw new BadRequestException('Stripe is not configured');
@@ -299,19 +288,24 @@ export class PlanService {
 
     try {
       // Cancel the subscription at the end of the billing period
-      const updatedSubscription = await this.stripe.subscriptions.update(organization.stripeSubscriptionId, {
-        cancel_at_period_end: true,
-      }) as StripeSubscriptionWithPeriodEnd;
+      const updatedSubscription = (await this.stripe.subscriptions.update(
+        organization.stripeSubscriptionId,
+        {
+          cancel_at_period_end: true,
+        },
+      )) as StripeSubscriptionWithPeriodEnd;
 
       // Update organization subscription status and cancel date
       await this.organizationService.update(user.organizationId, {
         subscriptionStatus: 'canceling',
-        subscriptionCancelAt: updatedSubscription.cancel_at 
+        subscriptionCancelAt: updatedSubscription.cancel_at
           ? new Date(updatedSubscription.cancel_at * 1000)
           : undefined,
       });
 
-      console.log(`Subscription ${organization.stripeSubscriptionId} marked for cancellation for user ${userId}`);
+      console.log(
+        `Subscription ${organization.stripeSubscriptionId} marked for cancellation for user ${userId}`,
+      );
 
       // Track subscription cancellation in PostHog
       await this.postHogService.track(userId, 'subscription_cancelled', {
@@ -319,21 +313,25 @@ export class PlanService {
         organizationName: organization.name,
         subscriptionId: organization.stripeSubscriptionId,
         planId: organization.stripePlanId,
-        cancelAt: updatedSubscription.cancel_at ? new Date(updatedSubscription.cancel_at * 1000).toISOString() : undefined,
-        currentPeriodEnd: updatedSubscription.current_period_end ? new Date(updatedSubscription.current_period_end * 1000).toISOString() : undefined,
+        cancelAt: updatedSubscription.cancel_at
+          ? new Date(updatedSubscription.cancel_at * 1000).toISOString()
+          : undefined,
+        currentPeriodEnd: updatedSubscription.current_period_end
+          ? new Date(updatedSubscription.current_period_end * 1000).toISOString()
+          : undefined,
       });
 
       // Send cancellation confirmation email
       if (updatedSubscription.cancel_at_period_end) {
         // Get the current plan name based on subscription
         let planName = 'Pro'; // Default plan name
-        
+
         // Try to get the plan name from the subscription's price metadata
         if (updatedSubscription.items && updatedSubscription.items.data.length > 0) {
           const priceId = updatedSubscription.items.data[0].price.id;
           try {
             const price = await this.stripe.prices.retrieve(priceId, {
-              expand: ['product']
+              expand: ['product'],
             });
             if (price.product && typeof price.product === 'object' && 'name' in price.product) {
               planName = price.product.name;
@@ -342,17 +340,17 @@ export class PlanService {
             console.log('Could not retrieve price details, using default plan name');
           }
         }
-        
+
         // Get the end date (when the subscription will actually end)
         const currentPeriodEnd = updatedSubscription.current_period_end;
         const endDate = currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : new Date();
-        
+
         console.log('Subscription cancel details:', {
           current_period_end: currentPeriodEnd,
           endDate: endDate.toISOString(),
           isValidDate: !isNaN(endDate.getTime()),
         });
-        
+
         // Emit event to send cancellation email
         this.eventEmitter.emit(
           'email.subscription-cancelled',

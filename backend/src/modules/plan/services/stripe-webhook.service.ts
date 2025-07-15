@@ -8,6 +8,7 @@ import { UserService } from '../../user/services/user.service';
 import { PromoCodeService } from '../../promo/services/promo-code.service';
 import { SendSubscriptionConfirmationEmailEvent } from '../../email/events/email.events';
 import { OrganizationPlanUpdatedEvent } from '../../organization/events/organization-plan-updated.event';
+import { ORGANIZATION_DEFAULTS } from '@/modules/organization/constants/defaults';
 
 @Injectable()
 export class StripeWebhookService {
@@ -406,16 +407,10 @@ export class StripeWebhookService {
       return;
     }
 
-    // Reset to free plan when subscription is cancelled
-    const freePlan = await this.planService.findFreePlan();
-    if (!freePlan) {
-      console.error('Free plan not found');
-      return;
-    }
 
     // Update organization to free plan
     await this.organizationService.update(organization.id, {
-      stripePlanId: freePlan.id,
+      stripePlanId: null,
       stripeSubscriptionId: undefined,
       subscriptionStatus: 'canceled',
       subscriptionCurrentPeriodEnd: undefined,
@@ -423,19 +418,19 @@ export class StripeWebhookService {
 
     // Update plan settings to free plan limits
     await this.organizationService.updatePlanSettings(organization.id, {
-      maxProjects: freePlan.maxProjects,
-      maxAIModels: freePlan.maxModels,
-      maxSpontaneousPrompts: freePlan.maxSpontaneousPrompts,
-      maxUrls: freePlan.maxUrls,
-      maxUsers: freePlan.maxUsers,
-      maxCompetitors: freePlan.maxCompetitors,
+      maxProjects: ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_PROJECTS,
+      maxAIModels: ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_AI_MODELS,
+      maxSpontaneousPrompts: ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_SPONTANEOUS_PROMPTS,
+      maxUrls: ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_URLS,
+      maxUsers: ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_USERS,
+      maxCompetitors: ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_COMPETITORS,
     });
 
     // If downgrading to free plan, reduce selected models to match the limit
     const currentOrg = await this.organizationService.findOne(organization.id);
-    if (currentOrg.selectedModels.length > freePlan.maxModels) {
+    if (currentOrg.selectedModels.length > ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_AI_MODELS) {
       // Keep only the first maxModels models
-      const reducedModels = currentOrg.selectedModels.slice(0, freePlan.maxModels);
+      const reducedModels = currentOrg.selectedModels.slice(0, ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_AI_MODELS);
       await this.organizationService.updateSelectedModels(organization.id, reducedModels);
 
       console.log(`Reduced selected models from ${currentOrg.selectedModels.length} to ${reducedModels.length} for organization ${organization.id}`);

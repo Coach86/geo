@@ -35,35 +35,10 @@ export class OrganizationService {
       // Get default models from config if selectedModels not provided
       const defaultModels = this.configService.getDefaultModels();
       let selectedModels = createOrganizationDto.selectedModels || defaultModels;
-      
+
       // Try to find the free plan
       let stripePlanId: string | undefined;
       let planSettings = createOrganizationDto.planSettings;
-      
-      try {
-        const freePlan = await this.planService.findFreePlan();
-        if (freePlan && !createOrganizationDto.stripePlanId) {
-          // Use free plan settings if no plan is specified
-          stripePlanId = freePlan.id;
-          planSettings = {
-            maxProjects: freePlan.maxProjects,
-            maxAIModels: freePlan.maxModels,
-            maxSpontaneousPrompts: freePlan.maxSpontaneousPrompts,
-            maxUrls: freePlan.maxUrls,
-            maxUsers: freePlan.maxUsers,
-            maxCompetitors: freePlan.maxCompetitors,
-          };
-          
-          // Limit selected models to the free plan's limit
-          if (selectedModels.length > freePlan.maxModels) {
-            selectedModels = selectedModels.slice(0, freePlan.maxModels);
-          }
-          
-          this.logger.log(`Assigning free plan to new organization`);
-        }
-      } catch (error) {
-        this.logger.warn(`Could not find free plan: ${error.message}`);
-      }
 
       const organizationData = {
         id: uuidv4(),
@@ -321,7 +296,7 @@ export class OrganizationService {
     // Get current usage counts
     const currentUsers = await this.organizationRepository.countUsersByOrganizationId(entity.id);
     const currentProjects = await this.organizationRepository.countProjectsByOrganizationId(entity.id);
-    
+
     // Get project details if requested
     const projects = includeProjects ? await this.organizationRepository.getProjectsByOrganizationId(entity.id) : undefined;
 
@@ -400,11 +375,11 @@ export class OrganizationService {
       }
 
       this.logger.log(`Trial activated successfully for organization ${organizationId}`);
-      
+
       // Get all users in the organization to update their Loops profiles
       const orgUsers = await this.userService.findByOrganizationId(organizationId);
       const userEmails = orgUsers.map((u: any) => u.email);
-      
+
       // Emit organization plan update event for Loops
       this.eventEmitter.emit(
         'organization.plan.updated',
@@ -418,7 +393,7 @@ export class OrganizationService {
           'trialing', // subscriptionStatus
         ),
       );
-      
+
       return this.mapToResponseDto(updatedOrganization);
     } catch (error) {
       this.logger.error(`Failed to activate trial: ${error.message}`, error.stack);
@@ -429,40 +404,33 @@ export class OrganizationService {
   async checkAndExpireTrials(): Promise<void> {
     try {
       const now = new Date();
-      
+
       // Find all organizations with expired trials
       const expiredTrials = await this.organizationRepository.findExpiredTrials(now);
-      
+
       for (const organization of expiredTrials) {
         this.logger.log(`Expiring trial for organization ${organization.id}`);
-        
-        // Find the free plan to downgrade to
-        const freePlan = await this.planService.findFreePlan();
-        if (!freePlan) {
-          this.logger.error('No free plan found for downgrade');
-          continue;
-        }
 
         // Downgrade to free plan
         await this.organizationRepository.update(organization.id, {
           isOnTrial: false,
-          stripePlanId: freePlan.id,
+          stripePlanId: null,
           planSettings: {
-            maxProjects: freePlan.maxProjects,
-            maxAIModels: freePlan.maxModels,
-            maxSpontaneousPrompts: freePlan.maxSpontaneousPrompts,
-            maxUrls: freePlan.maxUrls,
-            maxUsers: freePlan.maxUsers,
-            maxCompetitors: freePlan.maxCompetitors,
+            maxProjects: ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_PROJECTS,
+            maxAIModels: ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_AI_MODELS,
+            maxSpontaneousPrompts: ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_SPONTANEOUS_PROMPTS,
+            maxUrls: ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_URLS,
+            maxUsers: ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_USERS,
+            maxCompetitors: ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_COMPETITORS,
           },
         });
 
         this.logger.log(`Organization ${organization.id} downgraded to free plan after trial expiry`);
-        
+
         // Get all users in the organization to update their Loops profiles
         const orgUsers = await this.userService.findByOrganizationId(organization.id);
         const userEmails = orgUsers.map((u: any) => u.email);
-        
+
         // Emit organization plan update event for Loops (trial expired, back to free)
         this.eventEmitter.emit(
           'organization.plan.updated',

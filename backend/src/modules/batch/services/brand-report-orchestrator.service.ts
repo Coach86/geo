@@ -143,7 +143,7 @@ export class BrandReportOrchestratorService {
             }
           }
           // Check if this project should be refreshed today
-          const shouldRefresh = await this.shouldRefreshProject(project, plan, organization, stripePlanId);
+          const shouldRefresh = await this.shouldRefreshProject(project, plan, organization, stripePlanId || undefined);
 
           if (!shouldRefresh) {
             this.logger.log(
