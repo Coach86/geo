@@ -155,9 +155,9 @@ const OrganizationDetails: React.FC = () => {
   const fetchPlanName = async (planId: string) => {
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`/api/public/plans/${planId}/name`, {
+      const response = await fetch(`/api/admin/plans/${planId}/name`, {
         headers: {
-          'Authorization': token ? `Bearer ${token}` : '',
+          'Authorization': `Bearer ${token}`,
         },
       });
       
@@ -165,7 +165,7 @@ const OrganizationDetails: React.FC = () => {
         const data = await response.json();
         setPlanName(data.name);
       } else {
-        console.error('Failed to fetch plan name');
+        console.error('Failed to fetch plan name, status:', response.status);
         setPlanName('Unknown Plan');
       }
     } catch (err) {

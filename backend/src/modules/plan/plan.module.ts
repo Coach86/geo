@@ -7,6 +7,7 @@ import { StripeWebhookService } from './services/stripe-webhook.service';
 import { PlanController } from './controllers/plan.controller';
 import { PublicPlanController } from './controllers/public-plan.controller';
 import { StripeWebhookController } from './controllers/stripe-webhook.controller';
+import { AdminPlanController } from './controllers/admin-plan.controller';
 import { OrganizationModule } from '../organization/organization.module';
 import { UserModule } from '../user/user.module';
 import { AuthModule } from '../auth/auth.module';
@@ -22,7 +23,7 @@ import { AnalyticsModule } from '../analytics/analytics.module';
     forwardRef(() => PromoModule),
     AnalyticsModule,
   ],
-  controllers: [PlanController, PublicPlanController, StripeWebhookController],
+  controllers: [PlanController, PublicPlanController, StripeWebhookController, AdminPlanController],
   providers: [PlanService, PlanRepository, StripeWebhookService],
   exports: [PlanService, PlanRepository, StripeWebhookService],
 })
