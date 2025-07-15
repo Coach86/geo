@@ -123,6 +123,10 @@
         {
           "name": "LOOPS_API_KEY",
           "valueFrom": "arn:aws:secretsmanager:eu-west-1:767828741433:secret:LOOPS_API_KEY-OY96GV"
+        },
+        {
+          "name": "STRIPE_WEBHOOK_SECRET",
+          "valueFrom": "arn:aws:secretsmanager:eu-west-1:767828741433:secret:STRIPE_WEBHOOK_SECRET-ePo2ga"
         }
       ],
       "environmentFiles": [],
