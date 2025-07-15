@@ -68,6 +68,7 @@ interface User {
 interface Organization {
   id: string;
   name?: string;
+  stripePlanId?: string;
   planSettings: {
     maxProjects: number;
     maxAIModels: number;
@@ -100,6 +101,8 @@ const OrganizationDetails: React.FC = () => {
     magicLink: '',
     reason: '',
   });
+  const [planName, setPlanName] = useState<string | null>(null);
+  const [projects, setProjects] = useState<Array<{ id: string; brandName: string }>>([]);
 
   useEffect(() => {
     if (id) {
@@ -110,6 +113,11 @@ const OrganizationDetails: React.FC = () => {
   useEffect(() => {
     if (organization) {
       loadOrganizationUsers();
+      loadOrganizationProjects();
+      // Fetch plan name if stripePlanId exists
+      if (organization.stripePlanId) {
+        fetchPlanName(organization.stripePlanId);
+      }
     }
   }, [organization]);
 
@@ -141,6 +149,49 @@ const OrganizationDetails: React.FC = () => {
     } catch (err) {
       console.error('Failed to load users:', err);
       setError('Failed to load users. Please try again.');
+    }
+  };
+
+  const fetchPlanName = async (planId: string) => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`/api/public/plans/${planId}/name`, {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setPlanName(data.name);
+      } else {
+        console.error('Failed to fetch plan name');
+        setPlanName('Unknown Plan');
+      }
+    } catch (err) {
+      console.error('Error fetching plan name:', err);
+      setPlanName('Unknown Plan');
+    }
+  };
+
+  const loadOrganizationProjects = async () => {
+    try {
+      // Create a custom API call with organizationId as query parameter
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`/api/admin/project?organizationId=${id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (Array.isArray(data)) {
+          setProjects(data);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load organization projects:', err);
     }
   };
 
@@ -345,6 +396,23 @@ const OrganizationDetails: React.FC = () => {
                     {new Date(organization.createdAt).toLocaleDateString()}
                   </Typography>
                 </Box>
+                {organization.stripePlanId && (
+                  <Box>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Stripe Plan
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                      <Typography variant="body1" sx={{ fontFamily: 'monospace', fontSize: '0.875rem' }}>
+                        {organization.stripePlanId}
+                      </Typography>
+                      {planName && (
+                        <Typography variant="body2" sx={{ fontWeight: 500, color: 'primary.main' }}>
+                          {planName}
+                        </Typography>
+                      )}
+                    </Box>
+                  </Box>
+                )}
               </Box>
               {users.length > 0 && (
                 <Alert severity="info" sx={{ mt: 2 }}>
@@ -507,7 +575,7 @@ const OrganizationDetails: React.FC = () => {
               </Box>
               <Divider sx={{ mb: 2 }} />
 
-              {!organization.projects || organization.projects.length === 0 ? (
+              {projects.length === 0 ? (
                 <Typography color="text.secondary">No projects in this organization yet.</Typography>
               ) : (
                 <TableContainer>
@@ -520,7 +588,7 @@ const OrganizationDetails: React.FC = () => {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {organization.projects.map((project) => (
+                      {projects.map((project) => (
                         <TableRow 
                           key={project.id}
                           hover
