@@ -12,6 +12,7 @@ import { AccessTokenRepository } from '../auth/repositories/access-token.reposit
 import { AccessToken, AccessTokenSchema } from '../auth/schemas/access-token.schema';
 import { Project, ProjectSchema } from '../project/schemas/project-base.schema';
 import { UserModule } from '../user/user.module';
+import { Organization, OrganizationSchema } from '../organization/schemas/organization.schema';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { UserModule } from '../user/user.module';
       { name: PromptSet.name, schema: PromptSetSchema },
       { name: AccessToken.name, schema: AccessTokenSchema },
       { name: Project.name, schema: ProjectSchema },
+      { name: Organization.name, schema: OrganizationSchema },
     ]),
   ],
   providers: [PromptService, PromptSetRepository, TokenService, AccessTokenRepository],

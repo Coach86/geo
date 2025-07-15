@@ -546,6 +546,7 @@ export class PromptService implements OnModuleInit {
     count?: number,
     additionalInstructions?: string,
     keywords?: string[],
+    addMode?: boolean,
   ): Promise<string[]> {
     this.logger.log(`Regenerating ${promptType} prompts for project: ${projectId}`);
 
@@ -628,9 +629,22 @@ export class PromptService implements OnModuleInit {
       const existingPromptSet = await this.promptSetRepository.findByProjectId(projectId);
 
       if (existingPromptSet) {
-        const updateData = {
-          [promptType]: regeneratedPrompts,
-        };
+        let updateData: any;
+        
+        if (addMode) {
+          // In add mode, combine existing prompts with new ones
+          const existingPrompts = existingPromptSet[promptType] || [];
+          const combinedPrompts = [...existingPrompts, ...regeneratedPrompts];
+          updateData = {
+            [promptType]: combinedPrompts,
+          };
+          this.logger.log(`Adding ${regeneratedPrompts.length} ${promptType} prompts to existing ${existingPrompts.length} prompts`);
+        } else {
+          // In overwrite mode, replace all prompts
+          updateData = {
+            [promptType]: regeneratedPrompts,
+          };
+        }
 
         await this.promptSetRepository.updateByProjectId(projectId, updateData);
       } else {
@@ -753,6 +767,7 @@ export class PromptService implements OnModuleInit {
     keywords: string[],
     additionalInstructions?: string,
     count?: number,
+    addMode?: boolean,
   ): Promise<string[]> {
     this.logger.log(`Generating ${promptType} prompts from keywords for project: ${projectId}`);
 
@@ -863,9 +878,23 @@ export class PromptService implements OnModuleInit {
       const existingPromptSet = await this.promptSetRepository.findByProjectId(projectId);
 
       if (existingPromptSet) {
-        const updateData = {
-          [promptType]: result.prompts,
-        };
+        let updateData: any;
+        
+        if (addMode) {
+          // In add mode, combine existing prompts with new ones
+          const existingPrompts = existingPromptSet[promptType] || [];
+          const combinedPrompts = [...existingPrompts, ...result.prompts];
+          updateData = {
+            [promptType]: combinedPrompts,
+          };
+          this.logger.log(`Adding ${result.prompts.length} ${promptType} prompts to existing ${existingPrompts.length} prompts`);
+        } else {
+          // In overwrite mode, replace all prompts
+          updateData = {
+            [promptType]: result.prompts,
+          };
+        }
+        
         await this.promptSetRepository.updateByProjectId(projectId, updateData);
       } else {
         // Create new prompt set with only the generated type

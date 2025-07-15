@@ -203,6 +203,7 @@ export interface GeneratePromptsFromKeywordsRequest {
   additionalInstructions?: string;
   promptType: 'visibility' | 'sentiment' | 'alignment' | 'competition';
   count?: number;
+  addMode?: boolean;
   // Project context for when projectId is not provided
   brandName?: string;
   website?: string;

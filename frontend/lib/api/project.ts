@@ -259,14 +259,15 @@ export async function regeneratePromptType(
   token: string,
   count?: number,
   additionalInstructions?: string,
-  keywords?: string[]
+  keywords?: string[],
+  addMode?: boolean
 ): Promise<{ prompts: string[]; type: string }> {
   try {
     return await apiFetch<{ prompts: string[]; type: string }>(
       API_ENDPOINTS.PROMPTS.REGENERATE_TYPE(projectId, promptType),
       {
         method: 'POST',
-        body: JSON.stringify({ count, additionalInstructions, keywords }),
+        body: JSON.stringify({ count, additionalInstructions, keywords, addMode }),
         token,
       }
     );
