@@ -416,7 +416,7 @@ export class StripeWebhookService {
       subscriptionCurrentPeriodEnd: undefined,
     });
 
-    // Update plan settings to free plan limits
+    // Update plan settings to free plan limits (skip validation for system downgrade)
     await this.organizationService.updatePlanSettings(organization.id, {
       maxProjects: ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_PROJECTS,
       maxAIModels: ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_AI_MODELS,
@@ -424,7 +424,7 @@ export class StripeWebhookService {
       maxUrls: ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_URLS,
       maxUsers: ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_USERS,
       maxCompetitors: ORGANIZATION_DEFAULTS.PLAN_SETTINGS.MAX_COMPETITORS,
-    });
+    }, true); // Skip validation for system-initiated downgrade
 
     // If downgrading to free plan, reduce selected models to match the limit
     const currentOrg = await this.organizationService.findOne(organization.id);

@@ -168,24 +168,27 @@ export class OrganizationService {
   async updatePlanSettings(
     id: string,
     planSettings: Partial<UpdatePlanSettingsDto>,
+    skipValidation: boolean = false,
   ): Promise<OrganizationResponseDto> {
     try {
       const organization = await this.findOne(id);
 
-      // Validate that current usage doesn't exceed new limits
-      const currentUsers = await this.organizationRepository.countUsersByOrganizationId(id);
-      const currentProjects = await this.organizationRepository.countProjectsByOrganizationId(id);
+      // Validate that current usage doesn't exceed new limits (unless validation is skipped for system downgrades)
+      if (!skipValidation) {
+        const currentUsers = await this.organizationRepository.countUsersByOrganizationId(id);
+        const currentProjects = await this.organizationRepository.countProjectsByOrganizationId(id);
 
-      if (planSettings.maxUsers !== undefined && planSettings.maxUsers !== UNLIMITED_VALUE && currentUsers > planSettings.maxUsers) {
-        throw new BadRequestException(
-          `Cannot set maxUsers to ${planSettings.maxUsers}. Organization currently has ${currentUsers} users.`
-        );
-      }
+        if (planSettings.maxUsers !== undefined && planSettings.maxUsers !== UNLIMITED_VALUE && currentUsers > planSettings.maxUsers) {
+          throw new BadRequestException(
+            `Cannot set maxUsers to ${planSettings.maxUsers}. Organization currently has ${currentUsers} users.`
+          );
+        }
 
-      if (planSettings.maxProjects !== undefined && currentProjects > planSettings.maxProjects) {
-        throw new BadRequestException(
-          `Cannot set maxProjects to ${planSettings.maxProjects}. Organization currently has ${currentProjects} projects.`
-        );
+        if (planSettings.maxProjects !== undefined && currentProjects > planSettings.maxProjects) {
+          throw new BadRequestException(
+            `Cannot set maxProjects to ${planSettings.maxProjects}. Organization currently has ${currentProjects} projects.`
+          );
+        }
       }
 
       const updatedOrganization = await this.organizationRepository.update(id, {
