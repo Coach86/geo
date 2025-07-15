@@ -52,7 +52,8 @@ export function GeneratePromptsDialog({
   const [generationMethod, setGenerationMethod] = useState<'ai' | 'keywords'>(initialMethod);
   const [keywords, setKeywords] = useState('');
   const [additionalInstructions, setAdditionalInstructions] = useState(projectObjectives || '');
-  const [promptCount, setPromptCount] = useState(promptType === 'visibility' ? '12' : '3');
+  const defaultPromptCount = promptType === 'visibility' ? '12' : '3';
+  const [promptCount, setPromptCount] = useState(defaultPromptCount);
   const [isGenerating, setIsGenerating] = useState(false);
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [isAddMode, setIsAddMode] = useState(false); // Default to replace mode
@@ -243,7 +244,13 @@ export function GeneratePromptsDialog({
                   <Switch
                     id="add-mode"
                     checked={isAddMode}
-                    onCheckedChange={setIsAddMode}
+                    onCheckedChange={(checked) => {
+                      setIsAddMode(checked);
+                      // Restore default prompt count when switching back to replace mode
+                      if (!checked) {
+                        setPromptCount(defaultPromptCount);
+                      }
+                    }}
                     className="data-[state=checked]:bg-green-600"
                   />
                   <span className="text-sm text-muted-foreground">Create additional prompts</span>
