@@ -55,13 +55,16 @@ export class BrandReportOrchestratorService {
     project: Project,
     plan: PlanResponseDto | null,
     organization: OrganizationResponseDto,
+    stripePlanId: string | undefined,
   ): Promise<boolean> {
     // Free plans should not have automatic refresh
-    if (!plan || plan.name?.toLowerCase() === 'free' || !organization.stripeSubscriptionId) {
-      this.logger.debug(
-        `Project ${project.projectId} is a free plan or has no stripe subscription`,
-      );
-      return false;
+    if (stripePlanId !== 'manual') {
+      if (!plan || plan.name?.toLowerCase() === 'free' || !organization.stripeSubscriptionId) {
+        this.logger.debug(
+          `Project ${project.projectId} is a free plan or has no stripe subscription`,
+        );
+        return false;
+      }
     }
 
     // Check if project has createdAt date
@@ -70,7 +73,7 @@ export class BrandReportOrchestratorService {
       return false;
     }
 
-    const refreshFrequency = plan.refreshFrequency || 'weekly';
+    const refreshFrequency = plan?.refreshFrequency || 'weekly';
     const today = new Date();
     const projectCreatedAt = new Date(project.createdAt);
     this.logger.debug(`Project ${project.projectId} created at: ${projectCreatedAt}`);
@@ -130,17 +133,17 @@ export class BrandReportOrchestratorService {
           }
 
           // Get the plan details using the organization's planSettings._id
-          const planSettings = organization.planSettings as { _id?: string };
-          const planId = planSettings?._id;
+          const stripePlanId = organization.stripePlanId
           let plan: PlanResponseDto | null = null;
-          this.logger.debug(`Plan ID: ${planId} for project ${project.projectId}`);
+          this.logger.debug(`Plan ID: ${stripePlanId} for project ${project.projectId}`);
 
-          if (planId) {
-            plan = await this.planService.findById(planId);
+          if (stripePlanId) {
+              if (stripePlanId !== 'manual') {
+                plan = await this.planService.findById(stripePlanId);
+            }
           }
-
           // Check if this project should be refreshed today
-          const shouldRefresh = await this.shouldRefreshProject(project, plan, organization);
+          const shouldRefresh = await this.shouldRefreshProject(project, plan, organization, stripePlanId);
 
           if (!shouldRefresh) {
             this.logger.log(
