@@ -37,7 +37,7 @@ export function RegeneratePromptsDialog({
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [additionalInstructions, setAdditionalInstructions] = useState("");
 
-  const countOptions = promptType === 'visibility' 
+  const countOptions = promptType === 'visibility'
     ? [
         { value: "12", label: "12 prompts" },
         { value: "15", label: "15 prompts" },
@@ -52,14 +52,14 @@ export function RegeneratePromptsDialog({
 
   const handleRegenerate = async () => {
     const count = parseInt(selectedCount);
-    
+
     // Check if user is trying to generate more prompts than allowed
     if (promptType === 'visibility' && maxSpontaneousPrompts && count > maxSpontaneousPrompts) {
       onOpenChange(false);
       router.push("/update-plan");
       return;
     }
-    
+
     setIsRegenerating(true);
     try {
       await onConfirm(count, additionalInstructions.trim() || undefined);
@@ -113,7 +113,7 @@ export function RegeneratePromptsDialog({
               {countOptions.map((option) => {
                 const optionCount = parseInt(option.value);
                 const requiresUpgrade = promptType === 'visibility' && maxSpontaneousPrompts && optionCount > maxSpontaneousPrompts;
-                
+
                 return (
                   <div key={option.value} className="flex items-center space-x-2">
                     <RadioGroupItem value={option.value} id={option.value} />
@@ -133,7 +133,7 @@ export function RegeneratePromptsDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Additional Instructions (Optional)</Label>
+            <Label>Project Objectives (Optional)</Label>
             <Textarea
               placeholder="e.g., Focus on technical aspects of the product"
               value={additionalInstructions}

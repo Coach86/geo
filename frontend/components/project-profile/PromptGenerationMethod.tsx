@@ -21,7 +21,7 @@ export function PromptGenerationMethod({ value, onChange }: PromptGenerationMeth
               <span className="font-medium">Generate with AI</span>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              Let AI automatically create prompts based on your project context
+              Let AI automatically create prompts based on your project objectives
             </p>
           </Label>
         </div>
@@ -33,7 +33,7 @@ export function PromptGenerationMethod({ value, onChange }: PromptGenerationMeth
               <span className="font-medium">Generate from Keywords</span>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              Create prompts based on specific keywords you provide
+              Create prompts based on specific keywords you provide and your project objectives
             </p>
           </Label>
         </div>

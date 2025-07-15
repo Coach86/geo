@@ -56,7 +56,6 @@ export function GeneratePromptsDialog({
   const [isGenerating, setIsGenerating] = useState(false);
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [isAddMode, setIsAddMode] = useState(false); // Default to replace mode
-
   // Update generation method when initialMethod prop changes
   useEffect(() => {
     setGenerationMethod(initialMethod);
@@ -70,12 +69,12 @@ export function GeneratePromptsDialog({
   }, [open, projectObjectives]);
 
   // Calculate remaining prompts that can be added
-  const remainingPrompts = promptType === 'visibility' && maxSpontaneousPrompts 
+  const remainingPrompts = promptType === 'visibility' && maxSpontaneousPrompts
     ? Math.max(0, maxSpontaneousPrompts - currentPrompts.length)
     : Infinity;
-  
-  const canAddPrompts = remainingPrompts > 0;
-  
+  const [canAddPrompts, setCanAddPrompts] = useState(remainingPrompts > 0);
+
+
   // Adjust prompt count if in add mode and it exceeds remaining or is 0
   useEffect(() => {
     if (isAddMode) {
@@ -224,9 +223,6 @@ export function GeneratePromptsDialog({
       <DialogContent className="sm:max-w-[800px]">
         <DialogHeader>
           <DialogTitle>Create {promptType.charAt(0).toUpperCase() + promptType.slice(1)} Prompts</DialogTitle>
-          <DialogDescription>
-            Choose how to generate your prompts
-          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
@@ -243,17 +239,17 @@ export function GeneratePromptsDialog({
               <div className="space-y-2">
                 <Label>Mode</Label>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">Replace prompts</span>
+                  <span className="text-sm text-muted-foreground">Replace existing prompts</span>
                   <Switch
                     id="add-mode"
                     checked={isAddMode}
                     onCheckedChange={setIsAddMode}
                     className="data-[state=checked]:bg-green-600"
                   />
-                  <span className="text-sm text-muted-foreground">Add prompts</span>
+                  <span className="text-sm text-muted-foreground">Create additional prompts</span>
                 </div>
               </div>
-              
+
               {/* Number Input - Right Column */}
               <div className="space-y-2">
                 {isAddMode ? (
@@ -266,16 +262,17 @@ export function GeneratePromptsDialog({
                         value={promptCount}
                         onChange={(e) => {
                           const value = parseInt(e.target.value) || 1;
-                          if (value >= 1 && value <= Math.max(remainingPrompts, 1)) {
+                          if (value >= 1) {
                             setPromptCount(value.toString());
+                            setCanAddPrompts(value <= remainingPrompts);
                           }
                         }}
                         min={1}
-                        max={Math.max(remainingPrompts, 1)}
+                        max={100}
                       />
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {remainingPrompts > 0 
+                      {remainingPrompts > 0
                         ? `You can add up to ${remainingPrompts} more prompts (${currentPrompts.length}/${maxSpontaneousPrompts} used)`
                         : `Limit reached (${currentPrompts.length}/${maxSpontaneousPrompts} used) - Upgrade to add more`
                       }
@@ -315,7 +312,7 @@ export function GeneratePromptsDialog({
 
           {/* Additional Instructions */}
           <div className="space-y-2">
-            <Label>Additional Instructions (Optional)</Label>
+            <Label>Project Objectives (Optional)</Label>
             <Textarea
               placeholder={ "e.g., Focus on a line of products"}
               value={additionalInstructions}
@@ -336,7 +333,7 @@ export function GeneratePromptsDialog({
               </AlertDescription>
             </Alert>
           )}
-          
+
         </div>
 
         <DialogFooter>
@@ -348,8 +345,8 @@ export function GeneratePromptsDialog({
             Cancel
           </Button>
           {isAddMode && !canAddPrompts ? (
-            <Badge 
-              variant="secondary" 
+            <Badge
+              variant="secondary"
               className="px-4 py-2 text-sm bg-purple-100 text-purple-700 cursor-pointer hover:bg-purple-200 transition-colors flex items-center"
               onClick={() => {
                 onOpenChange(false);
