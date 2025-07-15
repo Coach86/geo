@@ -8,6 +8,31 @@ import {
 } from '@/app/onboarding/types/form-data';
 
 const STORAGE_KEY = 'onboarding-form-data';
+const STORAGE_EXPIRY_KEY = 'onboarding-form-data-expiry';
+const EXPIRY_DURATION_MS = 6 * 60 * 60 * 1000; // 6 hours in milliseconds
+
+interface StoredData {
+  data: FormData;
+  timestamp: number;
+}
+
+function isDataExpired(): boolean {
+  if (typeof window === 'undefined') {
+    return true;
+  }
+  
+  try {
+    const expiryTime = localStorage.getItem(STORAGE_EXPIRY_KEY);
+    if (!expiryTime) {
+      return true;
+    }
+    
+    const expiry = parseInt(expiryTime, 10);
+    return Date.now() > expiry;
+  } catch (error) {
+    return true;
+  }
+}
 
 export function getOnboardingData(): FormData {
   if (typeof window === 'undefined') {
@@ -15,6 +40,12 @@ export function getOnboardingData(): FormData {
   }
   
   try {
+    // Check if data has expired
+    if (isDataExpired()) {
+      clearOnboardingData();
+      return createDefaultFormData();
+    }
+    
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) {
       return createDefaultFormData();
@@ -85,6 +116,10 @@ export function updateOnboardingData(updates: Partial<FormData>): void {
     };
     
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    
+    // Update expiry time whenever data is updated
+    const expiryTime = Date.now() + EXPIRY_DURATION_MS;
+    localStorage.setItem(STORAGE_EXPIRY_KEY, expiryTime.toString());
   } catch (error) {
     console.error('Error updating onboarding data in localStorage:', error);
   }
@@ -97,6 +132,8 @@ export function clearOnboardingData(): void {
   
   try {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(STORAGE_EXPIRY_KEY);
+    localStorage.removeItem('onboardingStep');
   } catch (error) {
     console.error('Error clearing onboarding data from localStorage:', error);
   }
@@ -121,4 +158,8 @@ export function updateNestedField(path: string, value: any): void {
   
   // Save back to localStorage
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  
+  // Update expiry time whenever data is updated
+  const expiryTime = Date.now() + EXPIRY_DURATION_MS;
+  localStorage.setItem(STORAGE_EXPIRY_KEY, expiryTime.toString());
 }

@@ -18,6 +18,7 @@ import {
 import { NavigationConfirmationDialog } from "@/components/onboarding/navigation-confirmation-dialog";
 import { getOnboardingData, updateOnboardingData, clearOnboardingData } from "@/lib/onboarding-storage";
 import type { FormData } from "@/app/onboarding/types/form-data";
+import { createDefaultFormData } from "@/app/onboarding/types/form-data";
 
 // Define the context type - navigation + step data management
 type OnboardingContextType = {
@@ -69,12 +70,23 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   // Load step from localStorage on initial render
   useEffect(() => {
     try {
+      // Check if onboarding data has expired
+      const formData = getOnboardingData();
+      // If getOnboardingData returns default data, it means data was expired and cleared
       const savedStep = localStorage.getItem("onboardingStep");
+      
       if (savedStep) {
         const stepNumber = Number.parseInt(savedStep, 10);
         // Validate that it's a valid StepId
         if (Object.values(StepId).includes(stepNumber)) {
-          setCurrentStepState(stepNumber as StepId);
+          // If data was expired and we were past the first step, reset to the beginning
+          const isDefaultData = JSON.stringify(formData) === JSON.stringify(createDefaultFormData());
+          if (isDefaultData && stepNumber > StepId.PROJECT) {
+            setCurrentStepState(StepId.PROJECT);
+            localStorage.removeItem("onboardingStep");
+          } else {
+            setCurrentStepState(stepNumber as StepId);
+          }
         }
       }
     } catch (error) {
