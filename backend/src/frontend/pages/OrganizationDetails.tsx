@@ -186,9 +186,20 @@ const OrganizationDetails: React.FC = () => {
       
       if (response.ok) {
         const data = await response.json();
-        if (Array.isArray(data)) {
+        console.log('Projects API response:', data);
+        // Handle paginated response
+        if (data && data.data && Array.isArray(data.data)) {
+          setProjects(data.data);
+          console.log('Projects set to state:', data.data);
+        } else if (Array.isArray(data)) {
+          // Handle non-paginated response (backward compatibility)
           setProjects(data);
+          console.log('Projects set to state:', data);
+        } else {
+          console.log('Unexpected response format:', data);
         }
+      } else {
+        console.error('Failed to fetch projects, status:', response.status);
       }
     } catch (err) {
       console.error('Failed to load organization projects:', err);
