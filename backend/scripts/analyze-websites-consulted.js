@@ -619,6 +619,99 @@ Based on your analysis of the actual website content, respond with only the cate
       console.log('Processing CSV file...');
       await this.processCSV(csvPath);
       
+      // Check if count-only mode is requested
+      if (process.argv.includes('--count-only')) {
+        console.log('\n=== Website Consultation Count Summary ===');
+        
+        // Helper function to sum all occurrences in a domain map
+        const getTotalOccurrences = (domainMap) => {
+          let total = 0;
+          for (const count of domainMap.values()) {
+            total += count;
+          }
+          return total;
+        };
+        
+        if (this.separateByModel) {
+          // Show counts by model
+          console.log('\nVisibility consultations by model:');
+          for (const [modelName, domainMap] of Object.entries(this.domainsByModel.visibility)) {
+            const totalConsultations = getTotalOccurrences(domainMap);
+            console.log(`  ${modelName}: ${totalConsultations} consultations (${domainMap.size} unique domains)`);
+          }
+          
+          console.log('\nSentiment consultations by model:');
+          for (const [modelName, domainMap] of Object.entries(this.domainsByModel.sentiment)) {
+            const totalConsultations = getTotalOccurrences(domainMap);
+            console.log(`  ${modelName}: ${totalConsultations} consultations (${domainMap.size} unique domains)`);
+          }
+          
+          // Calculate total consultations per model
+          console.log('\nTotal consultations by model:');
+          const allModels = new Set([
+            ...Object.keys(this.domainsByModel.visibility),
+            ...Object.keys(this.domainsByModel.sentiment)
+          ]);
+          
+          for (const modelName of allModels) {
+            const visibilityDomains = this.domainsByModel.visibility[modelName] || new Map();
+            const sentimentDomains = this.domainsByModel.sentiment[modelName] || new Map();
+            const visibilityConsultations = getTotalOccurrences(visibilityDomains);
+            const sentimentConsultations = getTotalOccurrences(sentimentDomains);
+            const totalConsultations = visibilityConsultations + sentimentConsultations;
+            const totalUnique = new Set([
+              ...visibilityDomains.keys(),
+              ...sentimentDomains.keys()
+            ]).size;
+            console.log(`  ${modelName}: ${totalConsultations} consultations (${totalUnique} unique domains)`);
+          }
+        } else if (this.separateByLanguage) {
+          // Show counts by language
+          console.log('\nVisibility consultations by language:');
+          for (const [language, domainMap] of Object.entries(this.domainsByLanguage.visibility)) {
+            const totalConsultations = getTotalOccurrences(domainMap);
+            console.log(`  ${language}: ${totalConsultations} consultations (${domainMap.size} unique domains)`);
+          }
+          
+          console.log('\nSentiment consultations by language:');
+          for (const [language, domainMap] of Object.entries(this.domainsByLanguage.sentiment)) {
+            const totalConsultations = getTotalOccurrences(domainMap);
+            console.log(`  ${language}: ${totalConsultations} consultations (${domainMap.size} unique domains)`);
+          }
+          
+          // Calculate total consultations per language
+          console.log('\nTotal consultations by language:');
+          const allLanguages = new Set([
+            ...Object.keys(this.domainsByLanguage.visibility),
+            ...Object.keys(this.domainsByLanguage.sentiment)
+          ]);
+          
+          for (const language of allLanguages) {
+            const visibilityDomains = this.domainsByLanguage.visibility[language] || new Map();
+            const sentimentDomains = this.domainsByLanguage.sentiment[language] || new Map();
+            const visibilityConsultations = getTotalOccurrences(visibilityDomains);
+            const sentimentConsultations = getTotalOccurrences(sentimentDomains);
+            const totalConsultations = visibilityConsultations + sentimentConsultations;
+            const totalUnique = new Set([
+              ...visibilityDomains.keys(),
+              ...sentimentDomains.keys()
+            ]).size;
+            console.log(`  ${language}: ${totalConsultations} consultations (${totalUnique} unique domains)`);
+          }
+        } else {
+          // Show overall counts
+          const visibilityConsultations = getTotalOccurrences(this.visibilityDomains);
+          const sentimentConsultations = getTotalOccurrences(this.sentimentDomains);
+          const totalConsultations = visibilityConsultations + sentimentConsultations;
+          
+          console.log(`Visibility consultations: ${visibilityConsultations} (${this.visibilityDomains.size} unique domains)`);
+          console.log(`Sentiment consultations: ${sentimentConsultations} (${this.sentimentDomains.size} unique domains)`);
+          console.log(`Total consultations: ${totalConsultations} (${new Set([...this.visibilityDomains.keys(), ...this.sentimentDomains.keys()]).size} unique domains)`);
+        }
+        
+        return;
+      }
+      
       if (this.separateByLanguage) {
         // Show language-specific statistics
         console.log('\n=== Analysis by Language ===');
@@ -755,6 +848,7 @@ Website Consulted Analysis Tool
 Usage: node scripts/analyze-websites-consulted.js [options]
 
 Options:
+  --count-only      Show only the total website consultations count (fastest mode)
   --skip-llm        Skip LLM categorization (faster, but no domain categories)
   --by-language     Separate analysis by language (FR/EN)
   --by-model        Separate analysis by AI model (GPT-4o, Claude, etc.)
@@ -767,6 +861,15 @@ Features:
     directory, government, academic, ecommerce, saas, other
 
 Examples:
+  # Just show domain counts (fastest)
+  node scripts/analyze-websites-consulted.js --count-only
+  
+  # Show domain counts by model
+  node scripts/analyze-websites-consulted.js --count-only --by-model
+  
+  # Show domain counts by language
+  node scripts/analyze-websites-consulted.js --count-only --by-language
+  
   # Basic analysis with LLM categorization
   node scripts/analyze-websites-consulted.js
   

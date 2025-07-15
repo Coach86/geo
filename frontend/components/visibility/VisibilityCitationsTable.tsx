@@ -59,12 +59,14 @@ export interface VisibilityCitation {
   brandMentioned?: boolean;
   brandMentionContext?: string;
   title?: string;
+  searchQueries?: string[];
 }
 
 interface VisibilityCitationsTableProps {
   citations: VisibilityCitation[] | undefined;
   loading?: boolean;
   brandName: string;
+  hideCard?: boolean;
 }
 
 // Custom filter functions
@@ -85,7 +87,7 @@ const multiSelectFilter: FilterFn<VisibilityCitation> = (row, columnId, value) =
   return value.includes(rowValue as string);
 };
 
-export function VisibilityCitationsTable({ citations, loading, brandName }: VisibilityCitationsTableProps) {
+export function VisibilityCitationsTable({ citations, loading, brandName, hideCard = false }: VisibilityCitationsTableProps) {
   const [globalFilter, setGlobalFilter] = React.useState("");
 
   // Get unique domains for favicon fetching
@@ -396,6 +398,18 @@ export function VisibilityCitationsTable({ citations, loading, brandName }: Visi
   });
 
   if (loading) {
+    const loadingContent = (
+      <div className="space-y-2">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="h-12 bg-gray-100 rounded animate-pulse" />
+        ))}
+      </div>
+    );
+
+    if (hideCard) {
+      return loadingContent;
+    }
+
     return (
       <Card className="border-0 shadow-sm">
         <CardHeader>
@@ -403,18 +417,22 @@ export function VisibilityCitationsTable({ citations, loading, brandName }: Visi
             Sources Analysis
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-12 bg-gray-100 rounded animate-pulse" />
-            ))}
-          </div>
-        </CardContent>
+        <CardContent>{loadingContent}</CardContent>
       </Card>
     );
   }
 
   if (!citations || citations.length === 0) {
+    const emptyContent = (
+      <p className="text-sm text-gray-400 italic text-center py-8">
+        No citations found for the selected period
+      </p>
+    );
+
+    if (hideCard) {
+      return emptyContent;
+    }
+
     return (
       <Card className="border-0 shadow-sm">
         <CardHeader>
@@ -425,11 +443,7 @@ export function VisibilityCitationsTable({ citations, loading, brandName }: Visi
             Track all citations from visibility prompts and whether {brandName} was mentioned
           </p>
         </CardHeader>
-        <CardContent>
-          <p className="text-sm text-gray-400 italic text-center py-8">
-            No citations found for the selected period
-          </p>
-        </CardContent>
+        <CardContent>{emptyContent}</CardContent>
       </Card>
     );
   }
@@ -439,34 +453,25 @@ export function VisibilityCitationsTable({ citations, loading, brandName }: Visi
   const citationsWithBrandMention = citations.filter(c => c.brandMentioned === true).length;
   const brandMentionRate = totalCitations > 0 ? (citationsWithBrandMention / totalCitations) * 100 : 0;
 
-  return (
-    <Card className="border-0 shadow-sm">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <Globe className="h-5 w-5 text-blue-600" />
-              Sources Analysis
-            </CardTitle>
-            <p className="text-sm text-gray-500 mt-1">
-              {totalCitations} total citations • {citationsWithBrandMention} mention {brandName} ({brandMentionRate.toFixed(1)}%)
-            </p>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Input
-              placeholder="Search all columns..."
-              value={globalFilter ?? ""}
-              onChange={(e) => setGlobalFilter(e.target.value)}
-              className="max-w-sm"
-            />
-            <span className="text-sm text-gray-500">
-              {table.getFilteredRowModel().rows.length} of {citations.length} entries
-            </span>
-          </div>
+  const tableContent = (
+    <div className="space-y-4">
+      {/* Summary stats and search bar */}
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-gray-500">
+          {totalCitations} total citations • {citationsWithBrandMention} mention {brandName} ({brandMentionRate.toFixed(1)}%)
+        </p>
+        <div className="flex items-center space-x-2">
+          <Input
+            placeholder="Search all columns..."
+            value={globalFilter ?? ""}
+            onChange={(e) => setGlobalFilter(e.target.value)}
+            className="max-w-sm"
+          />
+          <span className="text-sm text-gray-500">
+            {table.getFilteredRowModel().rows.length} of {citations.length} entries
+          </span>
         </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
+      </div>
           {/* Table */}
           <div className="overflow-x-auto bg-white rounded-lg border border-gray-200">
             <table className="w-full min-w-[1000px] border-collapse table-fixed">
@@ -585,7 +590,27 @@ export function VisibilityCitationsTable({ citations, loading, brandName }: Visi
               </Button>
             </div>
           </div>
+    </div>
+  );
+
+  if (hideCard) {
+    return tableContent;
+  }
+
+  return (
+    <Card className="border-0 shadow-sm">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <Globe className="h-5 w-5 text-blue-600" />
+              Sources Analysis
+            </CardTitle>
+          </div>
         </div>
+      </CardHeader>
+      <CardContent>
+        {tableContent}
       </CardContent>
     </Card>
   );

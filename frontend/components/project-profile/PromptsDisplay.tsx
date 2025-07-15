@@ -35,6 +35,9 @@ interface PromptsDisplayProps {
   openGenerateDialog?: boolean;
   onGenerateDialogClose?: () => void;
   projectObjectives?: string;
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  showRegenerateButton?: boolean;
 }
 
 export function PromptsDisplay({
@@ -50,9 +53,14 @@ export function PromptsDisplay({
   openGenerateDialog = false,
   onGenerateDialogClose,
   projectObjectives,
+  isOpen,
+  onOpenChange,
+  showRegenerateButton = false,
 }: PromptsDisplayProps) {
   const { token } = useAuth();
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [internalDrawerOpen, setInternalDrawerOpen] = useState(false);
+  const isDrawerOpen = isOpen !== undefined ? isOpen : internalDrawerOpen;
+  const setIsDrawerOpen = onOpenChange || setInternalDrawerOpen;
   const [isRegenerateDialogOpen, setIsRegenerateDialogOpen] = useState(false);
   const [isGenerateDialogOpen, setIsGenerateDialogOpen] = useState(openGenerateDialog);
   const [isRegenerating, setIsRegenerating] = useState(false);
@@ -94,7 +102,7 @@ export function PromptsDisplay({
     sentiment: "gray",
   } as const;
 
-  const handleRegenerate = async (count: number, additionalInstructions?: string) => {
+  const handleRegenerate = async (count?: number, additionalInstructions?: string) => {
     if (!token) {
       toast({
         title: "Authentication required",
@@ -228,7 +236,19 @@ export function PromptsDisplay({
                   Manage your {type} prompts. {canAdd && type === "visibility" && "You can add, edit, or remove prompts."}
                 </SheetDescription>
               </div>
-              {type === "visibility" && (
+              {showRegenerateButton && type === "alignment" && (
+                <Button 
+                  variant="default" 
+                  size="sm" 
+                  className="text-xs"
+                  onClick={() => handleRegenerate()} // Direct regeneration, count determined by backend
+                  disabled={isRegenerating}
+                >
+                  <RefreshCw className={`h-3 w-3 mr-1 ${isRegenerating ? 'animate-spin' : ''}`} />
+                  {isRegenerating ? 'Regenerating...' : 'Regenerate Prompts'}
+                </Button>
+              )}
+              {type === "visibility" && !showRegenerateButton && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm" className="text-xs">
@@ -289,15 +309,17 @@ export function PromptsDisplay({
         </SheetContent>
       </Sheet>
 
-      {/* Regenerate Dialog */}
-      <RegeneratePromptsDialog
-        open={isRegenerateDialogOpen}
-        onOpenChange={setIsRegenerateDialogOpen}
-        promptType={type}
-        onConfirm={handleRegenerate}
-        currentPromptCount={prompts.length}
-        maxSpontaneousPrompts={maxSpontaneousPrompts}
-      />
+      {/* Regenerate Dialog - only show for non-alignment or when not using direct regeneration */}
+      {(!showRegenerateButton || type !== "alignment") && (
+        <RegeneratePromptsDialog
+          open={isRegenerateDialogOpen}
+          onOpenChange={setIsRegenerateDialogOpen}
+          promptType={type}
+          onConfirm={handleRegenerate}
+          currentPromptCount={prompts.length}
+          maxSpontaneousPrompts={maxSpontaneousPrompts}
+        />
+      )}
 
       {/* Generate Prompts Dialog */}
       <GeneratePromptsDialog

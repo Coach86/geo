@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -29,6 +29,13 @@ export function EditAttributesDialog({
   const [editingAttributes, setEditingAttributes] =
     useState<string[]>(attributes);
   const [saving, setSaving] = useState(false);
+
+  // Reset attributes when dialog opens
+  useEffect(() => {
+    if (open) {
+      setEditingAttributes(attributes);
+    }
+  }, [open, attributes]);
 
   const handleSave = async () => {
     setSaving(true);

@@ -5,7 +5,13 @@ import { useAuth } from "@/providers/auth-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Globe } from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { NoAnalysisDataCard } from "@/components/shared/NoAnalysisDataCard";
 import type { ReportResponse } from "@/types/reports";
 import { ReportRangeSelector } from "@/components/shared/ReportRangeSelector";
@@ -15,6 +21,7 @@ import { MentionsListCard } from "@/components/visibility/MentionsListCard";
 import { TopDomainRankingCard } from "@/components/visibility/TopDomainRankingCard";
 import { DomainSourceChart } from "@/components/visibility/DomainSourceChart";
 import { VisibilityCitationsTable } from "@/components/visibility/VisibilityCitationsTable";
+import { SourcesFlowGraph } from "@/components/visibility/SourcesFlowGraph";
 import { useVisibilityReports } from "@/hooks/use-visibility-reports";
 import { useVisibilityCitations } from "@/hooks/use-visibility-citations";
 import { useReports } from "@/providers/report-provider";
@@ -257,14 +264,44 @@ export default function VisibilityPage() {
             </div>
           </div>
 
-          {/* Third Row: Citations Analysis Table */}
+          {/* Third Row: Sources Flow Analysis and Citations Table */}
           {(process.env.NODE_ENV === 'development' || isFeatureEnabled('visibility-sources-analysis')) && (
-            <div>
-              <VisibilityCitationsTable
+            <div className="space-y-6">
+              {/* Sources Flow Graph - now first */}
+              <SourcesFlowGraph
                 citations={citations}
                 loading={loadingCitations}
                 brandName={brandName}
               />
+              
+              {/* Sources Analysis Table - now in accordion */}
+              <Card className="border-0 shadow-sm">
+                <Accordion type="single" collapsible className="w-full">
+                  <AccordionItem value="sources-analysis" className="border-0">
+                    <AccordionTrigger className="p-0 hover:no-underline">
+                      <CardHeader className="pb-4">
+                        <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                          <Globe className="h-5 w-5 text-blue-600" />
+                          Sources Analysis
+                        </CardTitle>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Track all citations from visibility prompts and whether {brandName} was mentioned
+                        </p>
+                      </CardHeader>
+                    </AccordionTrigger>
+                    <AccordionContent className="p-0">
+                      <CardContent className="pt-0">
+                        <VisibilityCitationsTable
+                          citations={citations}
+                          loading={loadingCitations}
+                          brandName={brandName}
+                          hideCard={true}
+                        />
+                      </CardContent>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              </Card>
             </div>
           )}
         </div>

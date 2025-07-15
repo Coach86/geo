@@ -65,6 +65,10 @@ export default function Home() {
 
   // Analysis states
   const [runningAnalysis, setRunningAnalysis] = useState(false);
+  
+  // Regeneration states
+  const [showAlignmentPromptsDrawer, setShowAlignmentPromptsDrawer] = useState(false);
+  const [showRegenerateButton, setShowRegenerateButton] = useState(false);
 
   // End transition when component mounts
   useEffect(() => {
@@ -144,6 +148,7 @@ export default function Home() {
 
   const handleSaveAttributes = async (attributes: string[]) => {
     if (!projectDetails || !token) return;
+    
     const updatedCard = await updateProject(
       projectDetails.id,
       { keyBrandAttributes: attributes },
@@ -279,6 +284,7 @@ export default function Home() {
     
     return undefined;
   };
+
 
   return (
     <div className="space-y-6">
@@ -491,6 +497,11 @@ export default function Home() {
                           setProjectDetails(updated);
                         }
                       }}
+                      onRegeneratePrompts={() => {
+                        // Open the alignment prompts drawer and show regenerate button
+                        setShowAlignmentPromptsDrawer(true);
+                        setShowRegenerateButton(true);
+                      }}
                     />
                   </div>
                   <div className="col-span-5">
@@ -520,6 +531,28 @@ export default function Home() {
                           }
                         }}
                         projectObjectives={projectDetails.objectives}
+                        isOpen={showAlignmentPromptsDrawer}
+                        onOpenChange={(open) => {
+                          setShowAlignmentPromptsDrawer(open);
+                          // Reset regenerate button state when drawer is closed
+                          if (!open) {
+                            setShowRegenerateButton(false);
+                          }
+                        }}
+                        showRegenerateButton={showRegenerateButton}
+                        onRegenerateComplete={async () => {
+                          // Refresh the prompt set after regeneration and hide regenerate button
+                          if (token) {
+                            try {
+                              const refreshedPrompts = await getPromptSet(projectDetails.id, token);
+                              setPromptSet(refreshedPrompts);
+                              setShowRegenerateButton(false); // Hide regenerate button after use
+                              // Don't close drawer - keep it open
+                            } catch (error) {
+                              console.error("Failed to refresh prompts:", error);
+                            }
+                          }
+                        }}
                       />
                     )}
                   </div>
@@ -618,7 +651,7 @@ export default function Home() {
               onOpenChange={setEditAttributesOpen}
               attributes={projectDetails.keyBrandAttributes}
               brandName={projectDetails.brandName}
-              onSave={handleSaveAttributes}
+              onSave={async (attributes) => handleSaveAttributes(attributes)}
             />
 
             <EditCompetitorsDialog

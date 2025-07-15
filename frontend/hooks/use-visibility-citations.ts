@@ -21,6 +21,16 @@ interface Citation {
   brandMentionContext?: string;
 }
 
+interface ToolUsage {
+  type?: string;
+  input?: {
+    query?: string;
+  };
+  execution?: {
+    resultCount?: number;
+  };
+}
+
 interface DetailedResult {
   model: string;
   promptIndex: number;
@@ -28,6 +38,7 @@ interface DetailedResult {
   originalPrompt: string;
   citations: Citation[];
   usedWebSearch?: boolean;
+  toolUsage?: ToolUsage[];
 }
 
 export function useVisibilityCitations(
@@ -90,6 +101,17 @@ export function useVisibilityCitations(
             // Apply model filter
             if (selectedModels.length === 0 || selectedModels.includes(result.model)) {
               totalDetailedResults++;
+              
+              // Extract search queries from toolUsage
+              const searchQueries: string[] = [];
+              if (result.toolUsage && Array.isArray(result.toolUsage)) {
+                result.toolUsage.forEach((tool) => {
+                  if (tool.type === 'web_search' && tool.input?.query && tool.input.query !== 'unknown') {
+                    searchQueries.push(tool.input.query);
+                  }
+                });
+              }
+              
               // Process each citation in this result
               if (result.citations && Array.isArray(result.citations) && result.citations.length > 0) {
                 resultsWithCitations++;
@@ -125,6 +147,7 @@ export function useVisibilityCitations(
                     brandMentioned: result.brandMentioned === true,
                     brandMentionContext: citation.brandMentionContext || '',
                     title: citation.title || '',
+                    searchQueries: searchQueries.length > 0 ? searchQueries : undefined,
                   });
                 });
               }

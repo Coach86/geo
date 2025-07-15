@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ProjectResponse } from "@/lib/auth-api";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, Settings } from "lucide-react";
+import { ChevronRight, Settings, RefreshCw, AlertCircle } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -9,21 +9,45 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { EditableList } from "./EditableList";
 
 interface AttributesListProps {
   project: ProjectResponse;
   onEdit: () => void;
   onUpdate?: (attributes: string[]) => void;
+  onRegeneratePrompts?: () => void;
 }
 
-export function AttributesList({ project, onEdit, onUpdate }: AttributesListProps) {
+export function AttributesList({ project, onEdit, onUpdate, onRegeneratePrompts }: AttributesListProps) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [showRegenerateNotice, setShowRegenerateNotice] = useState(false);
+  const [originalAttributes, setOriginalAttributes] = useState<string[]>([]);
   const maxAttributes = 5;
   const isAtLimit = project.keyBrandAttributes.length >= maxAttributes;
   const displayThreshold = 5;
   const displayedAttributes = project.keyBrandAttributes.slice(0, displayThreshold);
   const hiddenCount = Math.max(0, project.keyBrandAttributes.length - displayThreshold);
+
+  // Track original attributes when drawer opens
+  useEffect(() => {
+    if (isDrawerOpen) {
+      setOriginalAttributes([...project.keyBrandAttributes]);
+      setShowRegenerateNotice(false);
+    }
+  }, [isDrawerOpen]);
+
+  // Watch for changes to project.keyBrandAttributes while drawer is open
+  useEffect(() => {
+    if (isDrawerOpen && originalAttributes.length > 0) {
+      const hasChanged = project.keyBrandAttributes.length !== originalAttributes.length ||
+        !project.keyBrandAttributes.every((attr, index) => attr === originalAttributes[index]);
+      
+      if (hasChanged && !showRegenerateNotice) {
+        setShowRegenerateNotice(true);
+      }
+    }
+  }, [project.keyBrandAttributes, originalAttributes, isDrawerOpen, showRegenerateNotice]);
   
   return (
     <>
@@ -98,6 +122,36 @@ export function AttributesList({ project, onEdit, onUpdate }: AttributesListProp
               limitMessage="(Max 5)"
               itemCount={`${project.keyBrandAttributes.length}/${maxAttributes} attributes`}
             />
+            
+            {/* Regeneration Notice */}
+            {showRegenerateNotice && (
+              <Alert className="mt-4 border-orange-200 bg-orange-50">
+                <AlertCircle className="h-4 w-4 text-orange-600" />
+                <AlertDescription className="text-orange-800">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <p className="font-medium">Brand attributes have been updated</p>
+                      <p className="text-sm mt-1">
+                        Your alignment prompts should be regenerated to reflect the new attributes.
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setIsDrawerOpen(false);
+                        if (onRegeneratePrompts) {
+                          onRegeneratePrompts();
+                        }
+                      }}
+                      className="ml-4"
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Regenerate Prompts
+                    </Button>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
         </SheetContent>
       </Sheet>
