@@ -13,6 +13,7 @@ import {
   Settings,
   FileText,
   Sparkles,
+  Library,
 } from "lucide-react";
 import {
   ProjectResponse,
@@ -42,6 +43,7 @@ const optimizationMenuItems: SidebarItem[] = [
   { label: "Recommendations", icon: Lightbulb, href: "/recommendations" },
   { label: "Page Intelligence", icon: FileText, href: "/content-kpi", badge: "alpha" },
   { label: "Page Magic", icon: Sparkles, href: "/page-magic", badge: "poc" },
+  { label: "Content Hub", icon: Library, href: "/content-hub" },
 ];
 
 interface SidebarProps {

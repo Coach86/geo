@@ -10,6 +10,8 @@ import { BrowserFrame } from './BrowserFrame';
 import { SvgLoader } from '@/components/ui/svg-loader';
 import { TitleMetaDiff } from './TitleMetaDiff';
 import { AnimatedTitleMetaDiff } from './AnimatedTitleMetaDiff';
+import { MarkdownTitleMetaDiff } from './MarkdownTitleMetaDiff';
+import { renderInlineMarkdown } from './utils/markdown';
 
 export interface ContentVersion {
   content: string;
@@ -39,17 +41,30 @@ export function AnimatedDiffViewer({
 }: AnimatedDiffViewerProps) {
   const [animationKey, setAnimationKey] = useState(0);
   const [useAnimatedDiff, setUseAnimatedDiff] = useState(true);
+  const [animatedVersions, setAnimatedVersions] = useState<Set<number>>(new Set());
   const contentRef = useRef<HTMLDivElement>(null);
+  const diffRef = useRef<HTMLDivElement>(null);
 
   const currentVersion = versions[currentVersionIndex] || versions[0];
   // Always compare against the original content (version 1), not the previous version
   const previousVersion = currentVersionIndex > 0 ? versions[0] : null;
 
-  // Trigger animation when version changes
+  // Trigger animation only for new versions that haven't been animated before
   useEffect(() => {
-    if (currentVersionIndex > 0) {
+    if (currentVersionIndex > 0 && !animatedVersions.has(currentVersionIndex)) {
       setAnimationKey(prev => prev + 1);
       setUseAnimatedDiff(true);
+      setAnimatedVersions(prev => new Set([...prev, currentVersionIndex]));
+
+      // Auto-scroll to the diff area
+      setTimeout(() => {
+        if (diffRef.current) {
+          diffRef.current.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'nearest' 
+          });
+        }
+      }, 100);
 
       // Highlight changes briefly
       const timer = setTimeout(() => {
@@ -59,7 +74,7 @@ export function AnimatedDiffViewer({
             contentRef.current?.classList.remove('flash-highlight');
           }, 1000);
         }
-      }, 100);
+      }, 200);
 
       // Turn off animated diff after a delay to show final state
       const animTimer = setTimeout(() => {
@@ -71,7 +86,7 @@ export function AnimatedDiffViewer({
         clearTimeout(animTimer);
       };
     }
-  }, [currentVersionIndex]);
+  }, [currentVersionIndex, animatedVersions]);
 
 
   return (
@@ -87,9 +102,13 @@ export function AnimatedDiffViewer({
           {currentVersion?.ruleProcessed && currentVersionIndex > 0 && (
             <div className="flex items-center gap-2 px-3 py-1 bg-accent/10 rounded-lg w-fit">
               <Zap className="h-3 w-3 text-accent" />
-              <span className="text-xs text-accent">
-                Applied: {currentVersion.ruleProcessed}
-              </span>
+              <div className="text-xs text-accent">
+                Applied: <span 
+                  dangerouslySetInnerHTML={{ 
+                    __html: renderInlineMarkdown(currentVersion.ruleProcessed) 
+                  }} 
+                />
+              </div>
             </div>
           )}
           
@@ -104,17 +123,11 @@ export function AnimatedDiffViewer({
                     Title
                   </Badge>
                   <span className="text-xs text-gray-700 flex-1">
-                    {useAnimatedDiff && currentVersionIndex > 0 ? (
-                      <AnimatedTitleMetaDiff 
-                        current={currentVersion?.title || ''} 
-                        previous={previousVersion?.title || ''} 
-                      />
-                    ) : (
-                      <TitleMetaDiff 
-                        current={currentVersion?.title || ''} 
-                        previous={previousVersion?.title || ''} 
-                      />
-                    )}
+                    <MarkdownTitleMetaDiff 
+                      current={currentVersion?.title || ''} 
+                      previous={previousVersion?.title || ''} 
+                      animated={useAnimatedDiff && currentVersionIndex > 0}
+                    />
                   </span>
                 </div>
               )}
@@ -126,17 +139,11 @@ export function AnimatedDiffViewer({
                     Meta Description
                   </Badge>
                   <span className="text-xs text-gray-700 flex-1">
-                    {useAnimatedDiff && currentVersionIndex > 0 ? (
-                      <AnimatedTitleMetaDiff 
-                        current={currentVersion?.metaDescription || ''} 
-                        previous={previousVersion?.metaDescription || ''} 
-                      />
-                    ) : (
-                      <TitleMetaDiff 
-                        current={currentVersion?.metaDescription || ''} 
-                        previous={previousVersion?.metaDescription || ''} 
-                      />
-                    )}
+                    <MarkdownTitleMetaDiff 
+                      current={currentVersion?.metaDescription || ''} 
+                      previous={previousVersion?.metaDescription || ''} 
+                      animated={useAnimatedDiff && currentVersionIndex > 0}
+                    />
                   </span>
                 </div>
               )}
@@ -161,17 +168,11 @@ export function AnimatedDiffViewer({
                         Meta {key}
                       </Badge>
                       <span className="text-xs text-gray-700 flex-1">
-                        {useAnimatedDiff && currentVersionIndex > 0 ? (
-                          <AnimatedTitleMetaDiff 
-                            current={currentValue} 
-                            previous={previousValue} 
-                          />
-                        ) : (
-                          <TitleMetaDiff 
-                            current={currentValue} 
-                            previous={previousValue} 
-                          />
-                        )}
+                        <MarkdownTitleMetaDiff 
+                          current={currentValue} 
+                          previous={previousValue} 
+                          animated={useAnimatedDiff && currentVersionIndex > 0}
+                        />
                       </span>
                     </div>
                   );
@@ -191,6 +192,7 @@ export function AnimatedDiffViewer({
           >
             {/* Content */}
             <div
+              ref={diffRef}
               key={animationKey}
               className="animate-in fade-in slide-in-from-bottom-2 duration-500"
             >
