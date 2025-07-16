@@ -17,11 +17,13 @@ import { RawResponseService } from './services/raw-response.service';
 import { ReportBuilderService } from './services/report-builder.service';
 import { ProjectRecoveryService } from './services/project-recovery.service';
 import { DistributedLockService } from './services/distributed-lock.service';
+import { RefreshCalendarService } from './services/refresh-calendar.service';
 import { BatchExecution, BatchExecutionSchema } from './schemas/batch-execution.schema';
 import { BatchResult, BatchResultSchema } from './schemas/batch-result.schema';
 import { CronLock, CronLockSchema } from './schemas/cron-lock.schema';
 import { Project, ProjectSchema } from '../project/schemas/project-base.schema';
 import { BrandReport, BrandReportSchema } from '../report/schemas/brand-report.schema';
+import { Plan, PlanSchema } from '../plan/schemas/plan.schema';
 import { ProjectModule } from '../project/project.module';
 import { PromptModule } from '../prompt/prompt.module';
 import { LlmModule } from '../llm/llm.module';
@@ -51,6 +53,7 @@ import { CrawlerModule } from '../crawler/crawler.module';
       { name: CronLock.name, schema: CronLockSchema },
       { name: Project.name, schema: ProjectSchema },
       { name: BrandReport.name, schema: BrandReportSchema },
+      { name: Plan.name, schema: PlanSchema },
     ]),
     JwtModule.register({}),
     forwardRef(() => ProjectModule),
@@ -84,6 +87,7 @@ import { CrawlerModule } from '../crawler/crawler.module';
     ReportBuilderService,
     ProjectRecoveryService,
     DistributedLockService,
+    RefreshCalendarService,
     BatchExecutionRepository,
     BatchResultRepository,
     RawResponseRepository,
@@ -103,6 +107,7 @@ import { CrawlerModule } from '../crawler/crawler.module';
     RawResponseRepository,
     BatchEventsGateway,
     UserNotificationsGateway,
+    DistributedLockService,
   ],
 })
 export class BatchModule {}

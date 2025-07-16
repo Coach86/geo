@@ -52,6 +52,7 @@ import {
   runFullBatchAnalysis,
 } from '../utils/api-batch';
 import authApi from '../utils/auth';
+import { getRefreshSchedule } from '../utils/refresh-schedule';
 import {
   BatchType,
   Project,
@@ -92,6 +93,8 @@ const ProjectDetail: React.FC = () => {
   const navigate = useNavigate();
   const [project, setProject] = useState<Project | null>(null);
   const [promptSet, setPromptSet] = useState<PromptSet | null>(null);
+  const [organization, setOrganization] = useState<any>(null);
+  const [planData, setPlanData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentTab, setCurrentTab] = useState<TabValue>(TabValue.OVERVIEW);
@@ -117,6 +120,39 @@ const ProjectDetail: React.FC = () => {
     }
   }, [searchParams]);
 
+  // Fetch organization and plan data
+  const fetchOrganizationData = async (organizationId: string) => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`/api/admin/organizations/${organizationId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (response.ok) {
+        const orgData = await response.json();
+        setOrganization(orgData);
+        
+        // Fetch plan data if stripePlanId exists
+        if (orgData.stripePlanId) {
+          const planResponse = await fetch(`/api/admin/plans/${orgData.stripePlanId}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+          
+          if (planResponse.ok) {
+            const planData = await planResponse.json();
+            setPlanData(planData);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch organization data:', err);
+    }
+  };
+
   // Fetch project data and prompt set
   useEffect(() => {
     const fetchData = async () => {
@@ -126,6 +162,11 @@ const ProjectDetail: React.FC = () => {
         setLoading(true);
         const projectData = await getProjectById(id);
         setProject(projectData);
+
+        // Fetch organization data if organizationId exists
+        if (projectData.organizationId) {
+          await fetchOrganizationData(projectData.organizationId);
+        }
 
         // Try to fetch prompt set
         try {
@@ -461,6 +502,22 @@ const ProjectDetail: React.FC = () => {
               clickable
             />
           )}
+          {(() => {
+            const scheduleInfo = getRefreshSchedule(
+              planData?.name,
+              planData?.refreshFrequency,
+              project.createdAt,
+              !!organization?.stripeSubscriptionId
+            );
+            return scheduleInfo.schedule !== 'None' ? (
+              <Chip
+                icon={<HistoryIcon />}
+                label={scheduleInfo.schedule}
+                color={scheduleInfo.isPaid ? "success" : "default"}
+                variant="outlined"
+              />
+            ) : null;
+          })()}
         </Box>
 
         {/* Full width styled tabs */}

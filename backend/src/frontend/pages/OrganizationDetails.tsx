@@ -55,6 +55,7 @@ import {
   deleteOrganization,
 } from '../utils/api-organization';
 import { EditOrganizationPlanDialog } from '../components/EditOrganizationPlanDialog';
+import { getShortRefreshSchedule } from '../utils/refresh-schedule';
 
 interface User {
   id: string;
@@ -69,6 +70,7 @@ interface Organization {
   id: string;
   name?: string;
   stripePlanId?: string;
+  stripeSubscriptionId?: string;
   planSettings: {
     maxProjects: number;
     maxAIModels: number;
@@ -102,7 +104,8 @@ const OrganizationDetails: React.FC = () => {
     reason: '',
   });
   const [planName, setPlanName] = useState<string | null>(null);
-  const [projects, setProjects] = useState<Array<{ id: string; brandName: string }>>([]);
+  const [planData, setPlanData] = useState<any>(null);
+  const [projects, setProjects] = useState<Array<{ id: string; brandName: string; createdAt: string }>>([]);
 
   useEffect(() => {
     if (id) {
@@ -114,9 +117,9 @@ const OrganizationDetails: React.FC = () => {
     if (organization) {
       loadOrganizationUsers();
       loadOrganizationProjects();
-      // Fetch plan name if stripePlanId exists
+      // Fetch plan data if stripePlanId exists
       if (organization.stripePlanId) {
-        fetchPlanName(organization.stripePlanId);
+        fetchPlanData(organization.stripePlanId);
       }
     }
   }, [organization]);
@@ -152,10 +155,10 @@ const OrganizationDetails: React.FC = () => {
     }
   };
 
-  const fetchPlanName = async (planId: string) => {
+  const fetchPlanData = async (planId: string) => {
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`/api/admin/plans/${planId}/name`, {
+      const response = await fetch(`/api/admin/plans/${planId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -163,13 +166,14 @@ const OrganizationDetails: React.FC = () => {
       
       if (response.ok) {
         const data = await response.json();
+        setPlanData(data);
         setPlanName(data.name);
       } else {
-        console.error('Failed to fetch plan name, status:', response.status);
+        console.error('Failed to fetch plan data, status:', response.status);
         setPlanName('Unknown Plan');
       }
     } catch (err) {
-      console.error('Error fetching plan name:', err);
+      console.error('Error fetching plan data:', err);
       setPlanName('Unknown Plan');
     }
   };
@@ -595,6 +599,7 @@ const OrganizationDetails: React.FC = () => {
                       <TableRow>
                         <TableCell>Brand Name</TableCell>
                         <TableCell>Project ID</TableCell>
+                        <TableCell>Auto Refresh</TableCell>
                         <TableCell align="right">Actions</TableCell>
                       </TableRow>
                     </TableHead>
@@ -615,6 +620,19 @@ const OrganizationDetails: React.FC = () => {
                           <TableCell>
                             <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.875rem' }}>
                               {project.id}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                              {(() => {
+                                const schedule = getShortRefreshSchedule(
+                                  planName,
+                                  planData?.refreshFrequency,
+                                  project.createdAt,
+                                  !!organization.stripeSubscriptionId
+                                );
+                                return schedule === 'None' ? '-' : schedule;
+                              })()}
                             </Typography>
                           </TableCell>
                           <TableCell align="right">

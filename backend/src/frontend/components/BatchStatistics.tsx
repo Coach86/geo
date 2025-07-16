@@ -17,8 +17,11 @@ import {
   TableHead,
   TableRow,
   Chip,
+  Tab,
 } from '@mui/material';
 import authApi from '../utils/auth';
+import FullWidthTabs from './FullWidthTabs';
+import { RefreshCalendar } from './RefreshCalendar';
 
 interface BatchStatistic {
   date: string;
@@ -34,6 +37,7 @@ export const BatchStatistics: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<number>(30); // Default to last 30 days
+  const [activeTab, setActiveTab] = useState(0);
 
   const fetchStatistics = async () => {
     try {
@@ -93,7 +97,11 @@ export const BatchStatistics: React.FC = () => {
     navigate(`/batch-projects?${params.toString()}`);
   };
 
-  if (loading) {
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setActiveTab(newValue);
+  };
+
+  if (loading && activeTab === 0) {
     return (
       <Paper sx={{ p: 3, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
         <CircularProgress />
@@ -101,7 +109,7 @@ export const BatchStatistics: React.FC = () => {
     );
   }
 
-  if (error) {
+  if (error && activeTab === 0) {
     return (
       <Paper sx={{ p: 3 }}>
         <Alert severity="error">{error}</Alert>
@@ -110,7 +118,16 @@ export const BatchStatistics: React.FC = () => {
   }
 
   return (
-    <Paper sx={{ p: 3 }}>
+    <Box>
+      <Paper sx={{ mb: 2 }}>
+        <FullWidthTabs value={activeTab} onChange={handleTabChange}>
+          <Tab label="Batch Statistics" />
+          <Tab label="Refresh Calendar" />
+        </FullWidthTabs>
+      </Paper>
+
+      {activeTab === 0 && (
+        <Paper sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h5" component="h2">
           Batch Executions by Day
@@ -294,6 +311,10 @@ export const BatchStatistics: React.FC = () => {
           </TableContainer>
         </>
       )}
-    </Paper>
+        </Paper>
+      )}
+
+      {activeTab === 1 && <RefreshCalendar />}
+    </Box>
   );
 };

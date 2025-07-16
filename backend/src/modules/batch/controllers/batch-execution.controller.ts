@@ -1,11 +1,15 @@
 import { Controller, Get, Param, NotFoundException, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { BatchExecutionService } from '../services/batch-execution.service';
+import { RefreshCalendarService } from '../services/refresh-calendar.service';
 
 @ApiTags('Admin - Batch Processing')
 @Controller('admin/batch-executions')
 export class BatchExecutionController {
-  constructor(private readonly batchExecutionService: BatchExecutionService) {}
+  constructor(
+    private readonly batchExecutionService: BatchExecutionService,
+    private readonly refreshCalendarService: RefreshCalendarService,
+  ) {}
 
   @Get('statistics/by-day')
   @ApiOperation({ summary: 'Get batch execution statistics by day' })
@@ -57,6 +61,20 @@ export class BatchExecutionController {
       );
     } catch (error) {
       throw new NotFoundException(`Failed to retrieve projects by trigger type: ${error.message}`);
+    }
+  }
+
+  @Get('refresh-calendar')
+  @ApiOperation({ summary: 'Get projects with their refresh schedules for calendar view' })
+  @ApiResponse({
+    status: 200,
+    description: 'Return projects grouped by their refresh day',
+  })
+  async getProjectsRefreshCalendar() {
+    try {
+      return await this.refreshCalendarService.getProjectsRefreshCalendar();
+    } catch (error) {
+      throw new NotFoundException(`Failed to retrieve refresh calendar: ${error.message}`);
     }
   }
 
