@@ -297,6 +297,9 @@ export class VisibilityPipelineService extends BasePipelineService {
         this.logger.log(`[VIS-DEDUP] Brand ${idx}: name="${brand.name}", type="${brand.type}", id="${brand.id}" (${brand.id === null ? 'null' : brand.id === undefined ? 'undefined' : 'string'})`);
       });
 
+      // Extract queries from toolUsage
+      const queries = this.extractQueriesFromToolUsage(metadata.toolUsage || []);
+
       return {
         llmProvider: modelConfig.provider,
         llmModel: modelConfig.model,
@@ -312,6 +315,8 @@ export class VisibilityPipelineService extends BasePipelineService {
         toolUsage: metadata.toolUsage || [],
         // Include the full LLM response object for provider-specific metadata extraction
         llmResponseObj: llmResponseObj,
+        // Standardized queries extracted from toolUsage
+        queries,
       };
     } catch (error) {
       this.logger.error(`All analyzers failed for visibility analysis: ${error.message}`);
@@ -337,6 +342,32 @@ export class VisibilityPipelineService extends BasePipelineService {
         ...brandMentionInfo
       };
     });
+  }
+
+  /**
+   * Extract search queries from toolUsage array
+   * @param toolUsage Array of tool usage objects
+   * @returns Array of unique search queries
+   */
+  private extractQueriesFromToolUsage(toolUsage: any[]): string[] {
+    if (!toolUsage || !Array.isArray(toolUsage)) {
+      return [];
+    }
+
+    const queries = new Set<string>();
+
+    for (const tool of toolUsage) {
+      if (tool.type === 'web_search') {
+        // Check both possible locations for the query
+        const query = tool.input?.query || tool.parameters?.query;
+        
+        if (query && typeof query === 'string' && query !== 'unknown') {
+          queries.add(query);
+        }
+      }
+    }
+
+    return Array.from(queries);
   }
 
   /**

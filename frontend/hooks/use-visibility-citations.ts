@@ -39,6 +39,7 @@ interface DetailedResult {
   citations: Citation[];
   usedWebSearch?: boolean;
   toolUsage?: ToolUsage[];
+  queries?: string[];
 }
 
 export function useVisibilityCitations(
@@ -102,14 +103,11 @@ export function useVisibilityCitations(
             if (selectedModels.length === 0 || selectedModels.includes(result.model)) {
               totalDetailedResults++;
               
-              // Extract search queries from toolUsage
-              const searchQueries: string[] = [];
-              if (result.toolUsage && Array.isArray(result.toolUsage)) {
-                result.toolUsage.forEach((tool) => {
-                  if (tool.type === 'web_search' && tool.input?.query && tool.input.query !== 'unknown') {
-                    searchQueries.push(tool.input.query);
-                  }
-                });
+              // Use standardized queries field
+              let searchQueries: string[] = [];
+              
+              if (result.queries && Array.isArray(result.queries)) {
+                searchQueries = result.queries;
               }
               
               // Process each citation in this result

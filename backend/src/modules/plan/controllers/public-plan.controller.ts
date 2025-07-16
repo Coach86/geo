@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Req } from '@nestjs/common'
+import { Controller, Get, Post, Body, Param, UseGuards, Req, NotFoundException } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger';;
 import { PublicRoute } from '../../auth/decorators/public-route.decorator';
 import { TokenRoute } from '../../auth/decorators/token-route.decorator';
@@ -24,6 +24,9 @@ export class PublicPlanController {
     @Param('id') planId: string,
     @Req() req: any,
   ): Promise<{ id: string; name: string }> {
+    if (planId === 'manual') {
+      throw new NotFoundException('Plan not found');
+    }
     const plan = await this.planService.findById(planId);
     return {
       id: plan.id,

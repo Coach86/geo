@@ -63,6 +63,9 @@ export class StripeWebhookService {
       if (!planId) {
         throw new BadRequestException('Plan information missing from session');
       }
+      if (planId === 'manual') {
+        throw new BadRequestException('Invalid plan ID in session');
+      }
 
       const plan = await this.planService.findById(planId);
       if (!plan) {
@@ -309,7 +312,7 @@ export class StripeWebhookService {
       // Also emit subscription confirmation email for new subscriptions
       // Get the first user of the organization to send the email
       const users = await this.userService.findByOrganizationId(organization.id);
-      if (users && users.length > 0 && organization.stripePlanId) {
+      if (users && users.length > 0 && organization.stripePlanId && organization.stripePlanId !== 'manual') {
         // Get plan details
         const plan = await this.planService.findById(organization.stripePlanId);
         if (plan) {
@@ -362,7 +365,7 @@ export class StripeWebhookService {
     });
 
     // Get plan details and users for Loops update
-    if (organization.stripePlanId) {
+    if (organization.stripePlanId && organization.stripePlanId !== 'manual') {
       const plan = await this.planService.findById(organization.stripePlanId);
       const users = await this.userService.findByOrganizationId(organization.id);
 

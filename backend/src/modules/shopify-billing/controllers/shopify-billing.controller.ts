@@ -163,6 +163,9 @@ export class ShopifyBillingController {
     }
     
     // Get the plan details
+    if (createPlanSubscriptionDto.planId === 'manual') {
+      throw new BadRequestException('Invalid plan ID');
+    }
     const plan = await this.planService.findById(createPlanSubscriptionDto.planId);
     if (!plan) {
       this.logger.error(`Plan not found: ${createPlanSubscriptionDto.planId}`);

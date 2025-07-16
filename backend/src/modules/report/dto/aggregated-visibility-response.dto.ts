@@ -183,6 +183,10 @@ export class AggregatedVisibilityResponseDto {
               brandMentionContext: { type: 'string' }
             }
           }
+        },
+        queries: {
+          type: 'array',
+          items: { type: 'string' }
         }
       }
     },
@@ -201,5 +205,6 @@ export class AggregatedVisibilityResponseDto {
       brandMentioned?: boolean;
       brandMentionContext?: string;
     }>;
+    queries?: string[];
   }>;
 }

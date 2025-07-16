@@ -1,4 +1,4 @@
-import { Controller, Get, Param, UseGuards, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Param, UseGuards, HttpStatus, NotFoundException } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -33,6 +33,9 @@ export class AdminPlanController {
     description: 'Unauthorized - Admin access required',
   })
   async getPlanById(@Param('id') id: string) {
+    if (id === 'manual') {
+      throw new NotFoundException('Plan not found');
+    }
     const plan = await this.planService.findById(id);
     return plan;
   }
@@ -53,6 +56,9 @@ export class AdminPlanController {
     description: 'Unauthorized - Admin access required',
   })
   async getPlanName(@Param('id') id: string): Promise<{ id: string; name: string }> {
+    if (id === 'manual') {
+      throw new NotFoundException('Plan not found');
+    }
     const plan = await this.planService.findById(id);
     return {
       id: plan.id,

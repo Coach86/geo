@@ -3,7 +3,7 @@
 import React, { useMemo, useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Globe, Search, FileText, Link2, ChevronRight, ChevronDown, Filter } from "lucide-react";
+import { Globe, Search, Link2, ChevronRight, ChevronDown, Filter } from "lucide-react";
 import { ModelDisplay } from "@/components/shared/ModelDisplay";
 import { useFavicons, extractDomain } from "@/hooks/use-favicon";
 import {
@@ -202,7 +202,7 @@ export function SourcesFlowGraph({ citations, loading, brandName }: SourcesFlowG
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
-          <div className="min-w-[1100px] flex gap-6 p-4">
+          <div className="min-w-[800px] flex gap-6 p-4">
             {/* Models Column */}
             <div className="flex-shrink-0 w-48">
               <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
@@ -239,9 +239,9 @@ export function SourcesFlowGraph({ citations, loading, brandName }: SourcesFlowG
               </div>
             )}
 
-            {/* Prompts Column */}
+            {/* Prompts Column - Takes 2 columns width */}
             {selectedModel && (
-              <div className="flex-shrink-0 w-64 relative">
+              <div className="flex-shrink-0 w-[30rem] relative">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
                     <Badge variant="secondary" className="h-5">2</Badge>
@@ -260,7 +260,7 @@ export function SourcesFlowGraph({ citations, loading, brandName }: SourcesFlowG
                     </SelectContent>
                   </Select>
                 </div>
-                <div ref={promptsRef} className="space-y-2 max-h-96 overflow-y-auto">
+                <div ref={promptsRef} className="max-h-96 overflow-y-auto">
                   {(() => {
                     const filteredPrompts = Array.from(flowData.models.get(selectedModel)!.prompts.entries())
                       .filter(([_, promptData]) => {
@@ -279,39 +279,49 @@ export function SourcesFlowGraph({ citations, loading, brandName }: SourcesFlowG
                       );
                     }
                     
-                    return filteredPrompts.map(([promptIndex, promptData]) => (
-                    <button
-                      key={promptIndex}
-                      onClick={() => {
-                        setSelectedPrompt(promptIndex);
-                      }}
-                      className={`w-full text-left p-3 rounded-lg border transition-all ${
-                        selectedPrompt === promptIndex
-                          ? 'bg-blue-50 border-blue-300 shadow-sm'
-                          : 'bg-white border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <div className="flex items-start gap-2">
-                        <FileText className="h-4 w-4 text-gray-400 mt-0.5" />
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <p className="text-sm font-medium">Prompt #{promptIndex + 1}</p>
-                            {promptData.brandMentioned && (
-                              <Badge variant="success" className="text-xs">
-                                {brandName} mentioned
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="text-xs text-gray-600 line-clamp-2">
-                            {promptData.promptText || 'No prompt text available'}
-                          </p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {promptData.domains.size} domains
-                          </p>
-                        </div>
-                      </div>
-                    </button>
-                  ));
+                    return (
+                      <table className="w-full table-fixed">
+                        <thead>
+                          <tr className="border-b border-gray-200">
+                            <th className="text-left text-xs font-medium text-gray-700 pb-2">Prompt</th>
+                            <th className="text-center text-xs font-medium text-gray-700 pb-2 w-24">{brandName} mentioned</th>
+                            <th className="text-center text-xs font-medium text-gray-700 pb-2 w-16">Domains</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredPrompts.map(([promptIndex, promptData]) => (
+                            <tr
+                              key={promptIndex}
+                              onClick={() => setSelectedPrompt(promptIndex)}
+                              className={`cursor-pointer border-b transition-all ${
+                                selectedPrompt === promptIndex
+                                  ? 'bg-blue-50 border-blue-300'
+                                  : 'bg-white border-gray-100 hover:bg-gray-50'
+                              }`}
+                            >
+                              <td className="py-2 px-2 min-w-0">
+                                <div className="text-xs text-gray-700 truncate">
+                                  {promptData.promptText || 'No prompt text available'}
+                                </div>
+                              </td>
+                              <td className="text-center py-2 px-2">
+                                <Badge 
+                                  variant={promptData.brandMentioned ? "success" : "secondary"} 
+                                  className="text-xs"
+                                >
+                                  {promptData.brandMentioned ? 'Yes' : 'No'}
+                                </Badge>
+                              </td>
+                              <td className="text-center py-2 px-2">
+                                <Badge variant="outline" className="text-xs">
+                                  {promptData.domains.size}
+                                </Badge>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    );
                   })()}
                 </div>
                 {showPromptsIndicator && (
@@ -329,58 +339,50 @@ export function SourcesFlowGraph({ citations, loading, brandName }: SourcesFlowG
               </div>
             )}
 
-            {/* Keywords Column */}
-            {selectedPrompt !== null && (
-              <div className="flex-shrink-0 w-48">
-                <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                  <Badge variant="secondary" className="h-5">3</Badge>
-                  Search Keywords
-                </h3>
-                <div className="space-y-2">
-                  {flowData.models.get(selectedModel!)!.prompts.get(selectedPrompt)!.keywords.length > 0 ? (
-                    flowData.models.get(selectedModel!)!.prompts.get(selectedPrompt)!.keywords.map((keyword, idx) => (
-                      <div
-                        key={idx}
-                        className="w-full text-left p-3 rounded-lg border bg-white border-gray-200"
-                      >
-                        <div className="flex items-start gap-2">
-                          <Search className="h-3 w-3 text-gray-400 mt-0.5 flex-shrink-0" />
-                          <p className="text-xs break-words">{keyword}</p>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="w-full text-left p-3 rounded-lg border bg-gray-100 border-gray-200">
-                      <div className="flex items-center gap-2">
-                        <Search className="h-3 w-3 text-gray-400" />
-                        <p className="text-xs text-gray-500 italic">Unknown keywords</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Arrow */}
-            {selectedPrompt !== null && (
-              <div className="flex items-center">
-                <ChevronRight className="h-6 w-6 text-gray-400" />
-              </div>
-            )}
-
             {/* Domains Column */}
             {selectedPrompt !== null && (
-              <div className="flex-shrink-0 w-96 relative">
+              <div className="flex-shrink-0 w-[22rem] relative">
                 <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                  <Badge variant="secondary" className="h-5">4</Badge>
+                  <Badge variant="secondary" className="h-5">3</Badge>
                   Domains & URLs
                 </h3>
                 <div ref={domainsRef} className="space-y-2 max-h-96 overflow-y-auto">
-                  {Array.from(flowData.models.get(selectedModel!)!.prompts.get(selectedPrompt)!.domains.entries()).map(([domain, domainData]) => (
-                    <div
-                      key={domain}
-                      className="p-3 rounded-lg border bg-white border-gray-200 min-w-0"
-                    >
+                  {(() => {
+                    const promptData = flowData.models.get(selectedModel!)!.prompts.get(selectedPrompt)!;
+                    const hasKeywords = promptData.keywords.length > 0 && 
+                                       promptData.keywords[0] !== 'Unknown keywords' && 
+                                       promptData.keywords[0] !== 'undefined';
+                    
+                    return (
+                      <>
+                        {hasKeywords && (
+                          <div className="p-3 rounded-lg border bg-gray-50 border-gray-200 mb-3">
+                            <p className="text-xs font-medium text-gray-700 mb-2">Search Keywords:</p>
+                            <div className="flex flex-wrap gap-1">
+                              {promptData.keywords.map((keyword, idx) => (
+                                <TooltipProvider key={idx}>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Badge variant="outline" className="text-xs max-w-full block">
+                                        <span className="block truncate">
+                                          {keyword}
+                                        </span>
+                                      </Badge>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p className="text-xs">{keyword}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {Array.from(promptData.domains.entries()).map(([domain, domainData]) => (
+                          <div
+                            key={domain}
+                            className="p-3 rounded-lg border bg-white border-gray-200 min-w-0"
+                          >
                       <div className="flex items-start gap-2">
                         {favicons[domain] ? (
                           <img
@@ -394,7 +396,7 @@ export function SourcesFlowGraph({ citations, loading, brandName }: SourcesFlowG
                         ) : (
                           <Globe className="w-4 h-4 text-gray-400 mt-0.5" />
                         )}
-                        <div className="flex-1">
+                        <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium">{domain}</p>
                           <div className="mt-1 space-y-1">
                             {domainData.urls.slice(0, 2).map((url, idx) => (
@@ -405,14 +407,12 @@ export function SourcesFlowGraph({ citations, loading, brandName }: SourcesFlowG
                                       href={url}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="text-xs text-blue-600 hover:text-blue-700 hover:underline block"
+                                      className="text-xs text-blue-600 hover:text-blue-700 hover:underline block min-w-0"
                                     >
                                       <div className="flex items-center gap-1">
                                         <Link2 className="h-3 w-3 flex-shrink-0" />
-                                        <div className="min-w-0 flex-1">
-                                          <div className="truncate">
-                                            {url}
-                                          </div>
+                                        <div className="truncate">
+                                          {url}
                                         </div>
                                       </div>
                                     </a>
@@ -433,6 +433,9 @@ export function SourcesFlowGraph({ citations, loading, brandName }: SourcesFlowG
                       </div>
                     </div>
                   ))}
+                      </>
+                    );
+                  })()}
                 </div>
                 {showDomainsIndicator && (
                   <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white to-transparent pointer-events-none flex items-end justify-center pb-1">

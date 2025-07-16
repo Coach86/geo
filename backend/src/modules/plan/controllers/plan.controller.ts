@@ -8,6 +8,7 @@ import {
   Delete,
   UseGuards,
   Query,
+  NotFoundException,
 } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger';;
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
@@ -49,6 +50,9 @@ export class PlanController {
 
   @Get(':id')
   findOne(@Param('id') id: string): Promise<PlanResponseDto> {
+    if (id === 'manual') {
+      throw new NotFoundException('Plan not found');
+    }
     return this.planService.findById(id);
   }
 

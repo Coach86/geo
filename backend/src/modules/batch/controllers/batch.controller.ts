@@ -84,17 +84,13 @@ export class BatchController {
       if (projectContext.organizationId) {
         try {
           const organization = await this.organizationService.findOne(projectContext.organizationId);
-          if (organization.stripePlanId) {
-            const plan = await this.planService.findById(organization.stripePlanId);
-            isFreePlan = plan.metadata?.isFree === true || 
-                        plan.name.toLowerCase() === 'free' || 
-                        plan.stripeProductId === null ||
-                        plan.stripeProductId === '';
-            
-            if (isFreePlan) {
-              batchType = 'visibility';
-              console.log(`[Batch] Organization ${projectContext.organizationId} has free plan - will only process visibility`);
-            }
+          // Free plan = no stripePlanId (undefined)
+          // Paid plan = has stripePlanId (including 'manual')
+          isFreePlan = !organization.stripePlanId;
+          
+          if (isFreePlan) {
+            batchType = 'visibility';
+            console.log(`[Batch] Organization ${projectContext.organizationId} has free plan - will only process visibility`);
           }
         } catch (error) {
           console.warn(`[Batch] Could not check plan for organization ${projectContext.organizationId}: ${error.message}`);

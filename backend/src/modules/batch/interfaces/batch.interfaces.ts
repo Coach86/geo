@@ -60,6 +60,8 @@ export interface VisibilityPipelineResult {
   citations?: any[];
   toolUsage?: any[];
   llmResponseObj?: any; // Complete response object with provider-specific metadata
+  // Standardized search queries extracted from toolUsage
+  queries?: string[];
 }
 
 export interface WebsiteCount {

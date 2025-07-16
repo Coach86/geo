@@ -42,16 +42,9 @@ export class ProjectCreatedBatchListener {
       if (projectContext.organizationId) {
         try {
           const organization = await this.organizationService.findOne(projectContext.organizationId);
-          if (organization.stripePlanId) {
-            const plan = await this.planService.findById(organization.stripePlanId);
-            isFreePlan = plan?.metadata?.isFree === true || 
-                        plan?.name?.toLowerCase() === 'free' ||
-                        plan?.stripeProductId === null ||
-                        plan?.stripeProductId === '';
-          } else {
-            // No plan means free plan
-            isFreePlan = true;
-          }
+          // Free plan = no stripePlanId (undefined)
+          // Paid plan = has stripePlanId (including 'manual')
+          isFreePlan = !organization.stripePlanId;
         } catch (error) {
           this.logger.warn(`Could not check plan for organization ${projectContext.organizationId}: ${error.message}`);
           // Assume free plan on error

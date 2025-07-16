@@ -335,10 +335,14 @@ export class OrganizationService {
     try {
       this.logger.log(`Activating trial for organization ${organizationId} - Plan: ${planId}, Days: ${trialDays}, Promo: ${promoCode}`);
 
-      // Get the plan details
-      const plan = await this.planService.findById(planId);
-      if (!plan) {
-        throw new NotFoundException(`Plan with ID ${planId} not found`);
+      // 'manual' is a special plan ID that indicates a manual override for paid state
+      let plan = null;
+      if (planId !== 'manual') {
+        // Get the plan details
+        plan = await this.planService.findById(planId);
+        if (!plan) {
+          throw new NotFoundException(`Plan with ID ${planId} not found`);
+        }
       }
 
       // Calculate trial dates
@@ -355,7 +359,11 @@ export class OrganizationService {
         trialEndDate,
         trialPlanId: planId,
         // stripePlanId: planId, // REMOVED - Critical security fix
-        planSettings: {
+      };
+
+      // Only set plan settings if we have a real plan (not manual)
+      if (plan) {
+        updateData.planSettings = {
           _id: planId,
           maxProjects: plan.maxProjects,
           maxAIModels: plan.maxModels,
@@ -363,8 +371,8 @@ export class OrganizationService {
           maxUrls: plan.maxUrls,
           maxUsers: plan.maxUsers,
           maxCompetitors: plan.maxCompetitors,
-        },
-      };
+        };
+      }
 
       // Add promo code if provided
       if (promoCode) {
@@ -388,7 +396,7 @@ export class OrganizationService {
         'organization.plan.updated',
         new OrganizationPlanUpdatedEvent(
           organizationId,
-          plan.name,
+          plan?.name || 'unknown plan',
           trialStartDate,
           true, // isOnTrial
           userEmails,

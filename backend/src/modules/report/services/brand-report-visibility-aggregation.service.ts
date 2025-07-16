@@ -93,6 +93,7 @@ export class BrandReportVisibilityAggregationService {
       usedWebSearch: boolean;
       citations: any[];
       toolUsage: any[];
+      queries?: string[];
     }
     
     const detailedResults: DetailedResult[] = [];

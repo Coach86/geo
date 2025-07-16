@@ -593,6 +593,7 @@ export class ReportBuilderService {
       usedWebSearch: result.usedWebSearch || false,
       citations: result.citations || [],
       toolUsage: result.toolUsage || [],
+      queries: result.queries || [],
     }));
 
     return {

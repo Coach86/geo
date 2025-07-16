@@ -88,24 +88,11 @@ export class PublicProjectController {
       if (project.organizationId) {
         try {
           const organization = await this.organizationService.findOne(project.organizationId);
-          if (organization.stripePlanId) {
-            // 'manual' is a special plan ID that allows manual analysis
-            if (organization.stripePlanId === 'manual') {
-              // Manual plan is allowed to run analysis
-            } else {
-              // For other plans, check if it's a free plan
-              const plan = await this.planService.findById(organization.stripePlanId);
-              // Check if plan is free
-              const isFreePlan = plan?.metadata?.isFree === true ||
-                plan?.name?.toLowerCase() === 'free' ||
-                plan?.stripeProductId === null ||
-                plan?.stripeProductId === '';
-              if (isFreePlan) {
-                throw new ForbiddenException('Manual analysis is only available for paid plans. Please upgrade to unlock this feature.');
-              }
-            }
-          } else {
-            // No plan means free plan
+          // Free plan = no stripePlanId (undefined)
+          // Paid plan = has stripePlanId (including 'manual')
+          const isFreePlan = !organization.stripePlanId;
+          
+          if (isFreePlan) {
             throw new ForbiddenException('Manual analysis is only available for paid plans. Please upgrade to unlock this feature.');
           }
         } catch (error) {

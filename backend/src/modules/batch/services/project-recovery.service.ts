@@ -109,17 +109,9 @@ export class ProjectRecoveryService {
       }
 
       // Check if it's a free plan
-      const planSettings = organization.planSettings as { _id?: string };
-      const planId = planSettings?._id;
-      let isFreePlan = false;
-
-      if (planId) {
-        const plan = await this.planService.findById(planId);
-        isFreePlan = plan?.name?.toLowerCase() === 'free';
-      } else {
-        // No plan ID means free plan
-        isFreePlan = true;
-      }
+      // Free plan = no stripePlanId (undefined)
+      // Paid plan = has stripePlanId (including 'manual')
+      const isFreePlan = !organization.stripePlanId;
 
       // Get project context for batch processing
       const projectContext = await this.batchService.getProjectBatchContext(projectId);
