@@ -44,7 +44,6 @@ enum PromptTabValue {
   VISIBILITY = 'visibility',
   COMPETITION = 'competition',
   ALIGNMENT = 'alignment',
-  BRAND_BATTLE = 'brand-battle',
 }
 
 const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
@@ -75,11 +74,6 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
     Array.isArray(promptSet.alignment) ? promptSet.alignment : JSON.parse(promptSet.alignment || '[]'),
   );
 
-  const [brandBattlePrompts, setBrandBattlePrompts] = useState<string[]>(
-    Array.isArray(promptSet.brandBattle)
-      ? promptSet.brandBattle
-      : JSON.parse(promptSet.brandBattle || '[]'),
-  );
 
   // Fetch prompt templates
   useEffect(() => {
@@ -147,12 +141,6 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
         Array.isArray(result.alignment) ? result.alignment : JSON.parse(result.alignment || '[]'),
       );
 
-      setBrandBattlePrompts(
-        Array.isArray(result.brandBattle)
-          ? result.brandBattle
-          : JSON.parse(result.brandBattle || '[]'),
-      );
-
       // Clear the templates cache so they'll be refreshed next time
       setPromptTemplates(null);
     } catch (error) {
@@ -183,8 +171,6 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
         return promptTemplates.competition;
       case PromptTabValue.ALIGNMENT:
         return promptTemplates.alignment;
-      case PromptTabValue.BRAND_BATTLE:
-        return promptTemplates.brandBattle;
       default:
         return null;
     }
@@ -505,10 +491,10 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
                 icon={<SportsMmaIcon sx={{ fontSize: '1.1rem' }} />}
                 label={
                   <Typography sx={{ fontSize: '0.85rem', ml: 0.5 }}>
-                    Competition ({brandBattlePrompts.length})
+                    Competition ({competitionPrompts.length})
                   </Typography>
                 }
-                value={PromptTabValue.BRAND_BATTLE}
+                value={PromptTabValue.COMPETITION}
                 sx={{ minWidth: '80px' }}
               />
             </Tabs>
@@ -589,17 +575,6 @@ const PromptsTab: React.FC<PromptsTabProps> = ({ promptSet }) => {
               />
             )}
 
-            {currentTab === PromptTabValue.BRAND_BATTLE && (
-              <EditablePrompts
-                projectId={promptSet.projectId}
-                title="Brand Battle Prompts"
-                icon={<SportsMmaIcon color="primary" sx={{ mr: 1 }} />}
-                prompts={brandBattlePrompts}
-                promptType="brand-battle"
-                description="These prompts compare the brand directly against each competitor to identify strengths and weaknesses."
-                onUpdate={setBrandBattlePrompts}
-              />
-            )}
           </CardContent>
         </Card>
       )}

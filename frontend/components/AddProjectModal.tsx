@@ -325,31 +325,19 @@ export default function AddProjectModal({
         
         // Set other prompt types if they are returned (for project creation)
         if (result.sentiment) {
-          setPerceptionPrompts(result.sentiment.map(text => ({
-            id: generateId(),
-            text,
-            selected: true
-          })));
+          setPerceptionPrompts(result.sentiment);
         } else {
           setPerceptionPrompts([]);
         }
         
         if (result.alignment) {
-          setAlignmentPrompts(result.alignment.map(text => ({
-            id: generateId(),
-            text,
-            selected: true
-          })));
+          setAlignmentPrompts(result.alignment);
         } else {
           setAlignmentPrompts([]);
         }
         
         if (result.competition) {
-          setCompetitionPrompts(result.competition.map(text => ({
-            id: generateId(),
-            text,
-            selected: true
-          })));
+          setCompetitionPrompts(result.competition);
         } else {
           setCompetitionPrompts([]);
         }
