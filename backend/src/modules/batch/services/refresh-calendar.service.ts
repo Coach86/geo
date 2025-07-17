@@ -60,7 +60,8 @@ export class RefreshCalendarService {
             createdAt: 1,
             'organization.stripeSubscriptionId': 1,
             'organization.stripePlanId': 1,
-            'organization.name': 1
+            'organization.name': 1,
+            'organization.refreshFrequencyOverride': 1
           }
         }
       ]);
@@ -95,17 +96,34 @@ export class RefreshCalendarService {
         // Handle manual plans
         if (stripePlanId === 'manual') {
           this.logger.log(`Found manual plan project: ${project.projectId} (${project.brandName})`);
-          // Manual plans are treated as weekly refresh on creation day
-          const createdDate = new Date(project.createdAt);
-          const dayOfWeek = createdDate.getDay();
-          projectsByDay[dayOfWeek].push({
-            projectId: project.projectId,
-            brandName: project.brandName,
-            organizationName: project.organization?.name,
-            planName: 'Manual',
-            refreshFrequency: 'weekly',
-            createdAt: project.createdAt
-          });
+          // Manual plans use organization override or default to weekly
+          const refreshFrequency = project.organization?.refreshFrequencyOverride || 'weekly';
+          
+          // For daily/unlimited, add to all days
+          if (refreshFrequency === 'daily' || refreshFrequency === 'unlimited') {
+            for (let day = 0; day < 7; day++) {
+              projectsByDay[day].push({
+                projectId: project.projectId,
+                brandName: project.brandName,
+                organizationName: project.organization?.name,
+                planName: 'Manual',
+                refreshFrequency: refreshFrequency,
+                createdAt: project.createdAt
+              });
+            }
+          } else {
+            // For weekly, add to the specific day
+            const createdDate = new Date(project.createdAt);
+            const dayOfWeek = createdDate.getDay();
+            projectsByDay[dayOfWeek].push({
+              projectId: project.projectId,
+              brandName: project.brandName,
+              organizationName: project.organization?.name,
+              planName: 'Manual',
+              refreshFrequency: refreshFrequency,
+              createdAt: project.createdAt
+            });
+          }
           continue;
         }
 
@@ -128,7 +146,8 @@ export class RefreshCalendarService {
           continue;
         }
 
-        const refreshFrequency = plan.refreshFrequency || 'weekly';
+        // Use organization override if available, otherwise use plan's refresh frequency
+        const refreshFrequency = project.organization?.refreshFrequencyOverride || plan.refreshFrequency || 'weekly';
         
         // For daily/unlimited, add to all days
         if (refreshFrequency === 'daily' || refreshFrequency === 'unlimited') {
