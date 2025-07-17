@@ -78,4 +78,14 @@ export const API_ENDPOINTS = {
   CONFIG: {
     MODELS: '/config/models',
   },
+  
+  // Recommendations endpoints
+  RECOMMENDATIONS: {
+    USER_LIST: '/user/recommendations',
+    USER_SUMMARY: '/user/recommendations/summary',
+    USER_PROJECT: (projectId: string) => `/user/recommendations/project/${projectId}`,
+    UPDATE_STATUS: (id: string) => `/recommendations/${id}/status`,
+    DISMISS: (id: string) => `/recommendations/${id}/dismiss`,
+    TRIGGER_ANALYSIS: (projectId: string) => `/recommendations/project/${projectId}/analyze`,
+  },
 } as const;

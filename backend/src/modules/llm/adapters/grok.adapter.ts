@@ -1,20 +1,25 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { LlmAdapter, LlmCallOptions, LlmResponse, SourceCitation, TOOL_TYPES } from '../interfaces/llm-adapter.interface';
-import { xai, createXai } from '@ai-sdk/xai';
-import { generateText } from 'ai';
+import axios, { AxiosInstance } from 'axios';
 
 @Injectable()
 export class GrokAdapter implements LlmAdapter {
   private readonly logger = new Logger(GrokAdapter.name);
   private readonly apiKey: string;
   name = 'Grok';
-  private readonly xaiProvider: ReturnType<typeof createXai>;
+  private readonly httpClient: AxiosInstance;
+  private readonly apiBaseUrl = 'https://api.x.ai/v1';
 
   constructor(private readonly configService: ConfigService) {
     this.apiKey = this.configService.get<string>('GROK_API_KEY', '');
-    this.xaiProvider = createXai({
-      apiKey: this.apiKey,
+    this.httpClient = axios.create({
+      baseURL: this.apiBaseUrl,
+      headers: {
+        'Authorization': `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      timeout: 60000, // 60 seconds timeout
     });
   }
 
@@ -32,91 +37,125 @@ export class GrokAdapter implements LlmAdapter {
       const model = options?.model || 'grok-3-beta';
       const temperature = options?.temperature ?? 0.7;
       const maxTokens = options?.maxTokens ?? 1000;
-      
+
       this.logger.log(`Calling Grok API with model: ${model}`);
-      
-      // The SDK expects a prompt (string) or messages (array). We'll use prompt for now.
-      const result = await generateText({
-        model: this.xaiProvider(model),
-        prompt,
+
+      // Prepare the request payload with search_parameters for live search
+      const requestPayload: any = {
+        model,
+        messages: [
+          {
+            role: 'user',
+            content: prompt,
+          }
+        ],
         temperature,
-        maxTokens,
-      });
+        max_tokens: maxTokens,
+        // Enable live search with search_parameters
+        search_parameters: {
+          mode: 'auto', // Let the model decide when to search
+          return_citations: true, // Always return citations
+          max_search_results: 20, // Default limit
+          sources: [
+            { type: 'web' },
+            { type: 'x' },
+            { type: 'news' }
+          ]
+        }
+      };
+
+      // Make the HTTP request
+      const response = await this.httpClient.post('/chat/completions', requestPayload);
+      const result = response.data;
 
       // Initialize tracking variables
       const annotations: SourceCitation[] = [];
       const toolUsage = [];
       let usedWebSearch = false;
-      let webSearchQuery = '';
+      let numSourcesUsed = 0;
 
-      // Extract sources from the generateText result
-      // The AI SDK provides sources directly when web search is used
-      if (result.sources && result.sources.length > 0) {
-        this.logger.log(`Found ${result.sources.length} sources in Grok response`);
+      // Extract the main response text
+      const responseText = result.choices?.[0]?.message?.content || '';
+
+      // Check usage for num_sources_used (indicates if search was performed)
+      if (result.usage?.num_sources_used && result.usage.num_sources_used > 0) {
+        usedWebSearch = true;
+        numSourcesUsed = result.usage.num_sources_used;
+        this.logger.log(`Grok used ${numSourcesUsed} sources for search`);
+      }
+
+      // Extract citations from the API response
+      // According to docs, citations are returned as a list of URL strings
+      if (result.citations && Array.isArray(result.citations)) {
+        this.logger.log(`Found ${result.citations.length} citations in Grok response`);
         
-        for (const source of result.sources) {
-          // LanguageModelV1Source has url and title properties
-          if ('url' in source && source.url) {
+        for (const citation of result.citations) {
+          if (typeof citation === 'string') {
+            // Citation is just a URL string
             annotations.push({
-              url: source.url,
-              title: 'title' in source && source.title ? source.title : 'Web Source',
+              url: citation,
+              title: 'Web Source',
+            });
+          } else if (citation.url) {
+            // Citation might be an object with url and title
+            annotations.push({
+              url: citation.url,
+              title: citation.title || 'Web Source',
             });
           }
         }
-        
-        // If we have sources, web search was likely used
-        usedWebSearch = true;
       }
 
-      // Check tool calls for web search usage and extract query
-      if (result.toolCalls && result.toolCalls.length > 0) {
-        this.logger.log(`Found ${result.toolCalls.length} tool calls in Grok response`);
+      // For streaming responses, citations come in the last chunk
+      // Check if this is the last chunk in a stream
+      if (result.choices?.[0]?.finish_reason && result.citations) {
+        // Handle streaming citations if needed
+        this.logger.log('Processing final chunk with citations');
+      }
+
+      // Also try to extract citations from the response text
+      // Look for numbered citations like [1], [2], etc.
+      const citationRegex = /\[(\d+)\]/g;
+      const citationMatches = responseText.matchAll(citationRegex);
+      const citationNumbers = new Set<string>();
+      for (const match of citationMatches) {
+        citationNumbers.add(match[1]);
+      }
+
+      // Look for citation list at the end of the response
+      if (citationNumbers.size > 0) {
+        // Look for patterns like "[1] Title - URL" or "1. Title URL"
+        const citationListRegex = /\[?(\d+)\]?\.?\s+([^-\n]+?)(?:\s*[-–]\s*)?(https?:\/\/[^\s\n]+)/gm;
+        const listMatches = responseText.matchAll(citationListRegex);
         
-        for (const toolCall of result.toolCalls) {
-          if (toolCall.toolName === 'web_search' || toolCall.toolName === 'search') {
-            usedWebSearch = true;
-            
-            // Extract the search query from tool call parameters
-            if (toolCall.args && (toolCall.args.query || toolCall.args.q || toolCall.args.search)) {
-              webSearchQuery = toolCall.args.query || toolCall.args.q || toolCall.args.search;
-            }
+        for (const match of listMatches) {
+          const [, number, title, url] = match;
+          if (citationNumbers.has(number)) {
+            annotations.push({
+              url: url.trim(),
+              title: title.trim() || `Source [${number}]`,
+            });
           }
         }
       }
 
-      // Create a SINGLE tool usage entry if web search was used
+      // Create a tool usage entry if web search was used
       if (usedWebSearch) {
         toolUsage.push({
-          id: 'web_search_' + Date.now(),
+          id: 'live_search_' + Date.now(),
           type: TOOL_TYPES.WEB_SEARCH,
           parameters: {
-            query: webSearchQuery || 'unknown'
+            mode: 'auto',
+            sources: ['web', 'x', 'news'],
+            num_sources_used: numSourcesUsed
           },
           execution_details: {
             status: 'completed',
             timestamp: new Date().toISOString(),
             citationCount: annotations.length,
+            sourcesUsed: numSourcesUsed,
           },
         });
-      }
-
-      // Check for warnings that might indicate web search issues
-      if (result.warnings && result.warnings.length > 0) {
-        this.logger.log(`Grok response includes warnings: ${JSON.stringify(result.warnings)}`);
-      }
-
-      // Also try to extract citations from the text itself
-      // Look for common citation patterns like [1], (source: URL), etc.
-      const urlRegex = /\[(?:source|citation|ref)?:?\s*(https?:\/\/[^\s\]]+)\]/gi;
-      const matches = result.text.matchAll(urlRegex);
-      
-      for (const match of matches) {
-        if (match[1]) {
-          annotations.push({
-            url: match[1],
-            title: 'Inline Citation',
-          });
-        }
       }
 
       // Deduplicate citations by URL
@@ -127,33 +166,39 @@ export class GrokAdapter implements LlmAdapter {
         this.logger.log(
           `Extracted ${uniqueAnnotations.length} unique citations from Grok response (${annotations.length} total)`,
         );
-      } else if (result.text.toLowerCase().includes('search') || result.text.toLowerCase().includes('found')) {
-        this.logger.log(`No citations found in Grok response, but text suggests web search may have been used`);
+      } else if (numSourcesUsed > 0) {
+        this.logger.log(`Grok used ${numSourcesUsed} sources but no citations were extracted from response`);
       }
 
       return {
-        text: result.text,
-        modelVersion: model || 'grok-3-beta',
+        text: responseText,
+        modelVersion: model,
         tokenUsage: result.usage
           ? {
-              input: result.usage.promptTokens || 0,
-              output: result.usage.completionTokens || 0,
-              total: result.usage.totalTokens || 0,
+              input: result.usage.prompt_tokens || 0,
+              output: result.usage.completion_tokens || 0,
+              total: result.usage.total_tokens || 0,
             }
           : undefined,
         annotations: uniqueAnnotations.length > 0 ? uniqueAnnotations : undefined,
         toolUsage: toolUsage.length > 0 ? toolUsage : undefined,
         usedWebSearch: usedWebSearch || uniqueAnnotations.length > 0,
         responseMetadata: {
-          sources: result.sources,
-          toolCalls: result.toolCalls,
-          warnings: result.warnings,
-          finishReason: result.finishReason,
+          model: result.model,
+          created: result.created,
+          system_fingerprint: result.system_fingerprint,
+          finish_reason: result.choices?.[0]?.finish_reason,
+          citations: result.citations,
+          num_sources_used: numSourcesUsed,
+          usage: result.usage,
         },
       };
     } catch (error: any) {
-      this.logger.error(`Error calling Grok SDK: ${error.message}`);
-      throw new Error(`Failed to call Grok SDK: ${error.message}`);
+      this.logger.error(`Error calling Grok API: ${error.message}`);
+      if (error.response?.data) {
+        this.logger.error(`API Error Response: ${JSON.stringify(error.response.data)}`);
+      }
+      throw new Error(`Failed to call Grok API: ${error.message}`);
     }
   }
 

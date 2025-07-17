@@ -342,6 +342,7 @@ export class PageMagicEventsGateway implements OnGatewayInit, OnGatewayConnectio
     this.emitPageMagicEvent(event);
   }
 
+
   /**
    * Emit rule fix failed event
    */

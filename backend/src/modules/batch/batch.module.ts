@@ -18,6 +18,14 @@ import { ReportBuilderService } from './services/report-builder.service';
 import { ProjectRecoveryService } from './services/project-recovery.service';
 import { DistributedLockService } from './services/distributed-lock.service';
 import { RefreshCalendarService } from './services/refresh-calendar.service';
+import { BatchOrchestrationService } from './services/batch-orchestration.service';
+import { BatchExecutionTrackingService } from './services/batch-execution-tracking.service';
+import { BatchReportGenerationService } from './services/batch-report-generation.service';
+import { ExplorerDataService } from './services/explorer-data.service';
+import { VisibilityDataService } from './services/visibility-data.service';
+import { SentimentDataService } from './services/sentiment-data.service';
+import { AlignmentCompetitionDataService } from './services/alignment-competition-data.service';
+import { ReportDataUtilitiesService } from './services/report-data-utilities.service';
 import { BatchExecution, BatchExecutionSchema } from './schemas/batch-execution.schema';
 import { BatchResult, BatchResultSchema } from './schemas/batch-result.schema';
 import { CronLock, CronLockSchema } from './schemas/cron-lock.schema';
@@ -88,6 +96,14 @@ import { CrawlerModule } from '../crawler/crawler.module';
     ProjectRecoveryService,
     DistributedLockService,
     RefreshCalendarService,
+    BatchOrchestrationService,
+    BatchExecutionTrackingService,
+    BatchReportGenerationService,
+    ExplorerDataService,
+    VisibilityDataService,
+    SentimentDataService,
+    AlignmentCompetitionDataService,
+    ReportDataUtilitiesService,
     BatchExecutionRepository,
     BatchResultRepository,
     RawResponseRepository,
