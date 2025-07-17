@@ -18,9 +18,6 @@ import {
   AlertCircle, 
   Info,
   Code2,
-  Lightbulb,
-  Target,
-  XCircle,
   ArrowRight,
   FileText,
   Link2,
@@ -85,39 +82,39 @@ const OPTIMIZATION_GUIDES: Record<string, any> = {
     steps: [
       {
         title: 'Content Freshness (100 points)',
-        description: 'Maximize freshness signals across all components.',
+        description: 'Maximize freshness signals across all components. Focus on both metadata and visible dates for maximum impact.',
         actions: [
           'URL dates: Add /2024/01/ patterns to time-sensitive content (+15)',
-          'Metadata: Include datePublished and dateModified (+20)',
-          'Content age: Update within 30 days for maximum points (+25)',
-          'Visible dates: Display "Published" and "Last updated" dates (+15)',
-          'Year mentions: Include 3+ references to current/recent years (+15)',
-          'Freshness keywords: Use "latest", "updated", "current" 3+ times (+10)'
+          'Metadata: Include datePublished and dateModified (+20) - avoid changing dates without real updates',
+          'Content age: Update within 30 days for maximum points (+25) - update quarterly for competitive topics',
+          'Visible dates: Display "Published" and "Last updated" dates (+15) - ensure they match metadata exactly',
+          'Year mentions: Include 3+ references to current/recent years (+15) - avoid outdated year references',
+          'Freshness keywords: Use "latest", "updated", "current" 3+ times (+10) - integrate naturally in content'
         ]
       },
       {
         title: 'In-Depth Guides (93 points)',
-        description: 'Create comprehensive guides with all scoring elements.',
+        description: 'Create comprehensive guides with all scoring elements. Focus on depth, not just length - avoid penalties for shallow content.',
         actions: [
-          'Word count: Write 3,000+ words for maximum score (+30)',
-          'Structure: Use 10+ headings with 3+ H2 sections (+15)',
-          'Media: Include 10+ images, videos, or code blocks (+10)',
-          'Table of contents: Add navigation menu (+10)',
-          'Guide positioning: Use "Ultimate Guide" or "Complete Guide" (+10)',
-          'Examples: Include practical examples and case studies (+5)',
-          'Links: Add internal and external references (+5)',
-          'Industry focus: Target specific industry or use case (+5)'
+          'Word count: Write 3,000+ words for maximum score (+30) - never go below 1,500 words minimum',
+          'Structure: Use 10+ headings with 3+ H2 sections (+15) - maintain 75%+ entity coverage',
+          'Media: Include 10+ images, videos, or code blocks (+10) - use descriptive alt text',
+          'Table of contents: Add navigation menu (+10) - essential for score, not optional',
+          'Guide positioning: Use "Ultimate Guide" or "Complete Guide" (+10) - position in title/URL',
+          'Examples: Include practical examples and case studies (+5) - make them specific and actionable',
+          'Links: Add internal and external references (+5) - verify all links work',
+          'Industry focus: Target specific industry or use case (+5) - add industry-specific sections'
         ]
       },
       {
         title: 'Quality Optimization Strategy',
-        description: 'Prioritize high-impact improvements.',
+        description: 'Prioritize high-impact improvements. Implement one optimization at a time and measure impact.',
         actions: [
-          'Start with content freshness - easier to implement quickly',
-          'Focus on metadata and visible dates for immediate gains',
-          'Plan in-depth guides for pillar content topics',
-          'Aim for 93/100 on guides by including all elements',
-          'Monitor scores after updates to verify improvements'
+          'Start with content freshness - easier to implement quickly and track progress',
+          'Focus on metadata and visible dates for immediate gains - ensure consistency',
+          'Plan in-depth guides for pillar content topics - avoid shallow content penalties',
+          'Aim for 93/100 on guides by including all elements - track individual component scores',
+          'Monitor scores after updates to verify improvements - document what changes work best'
         ]
       }
     ],
@@ -168,21 +165,7 @@ https://example.com/blog/2024/01/ultimate-content-marketing-guide
 
 <!-- Metadata for freshness (+20 points) -->
 <meta property="article:published_time" content="2024-01-15T08:00:00Z">
-<meta property="article:modified_time" content="2024-01-20T10:30:00Z">`,
-    bestPractices: [
-      'Combine both rules for maximum quality score',
-      'Use all 6 freshness components for 100 points',
-      'Include all 10+ guide elements for 93 points',
-      'Update content monthly to maintain freshness',
-      'Track individual component scores for optimization'
-    ],
-    pitfalls: [
-      'Missing date metadata (-20 freshness points)',
-      'Content under 1,500 words (guide not scored)',
-      'No table of contents (-10 guide points)',
-      'Long content without depth (-10 penalty)',
-      'Ignoring freshness signals in evergreen content'
-    ]
+<meta property="article:modified_time" content="2024-01-20T10:30:00Z">`
   },
   
   // Overview Guide
@@ -240,19 +223,7 @@ https://example.com/blog/2024/01/ultimate-content-marketing-guide
    □ Images optimized
    □ Core Web Vitals passing
    □ HTTPS enabled
-   □ XML sitemap updated`,
-    bestPractices: [
-      'Track your progress with regular scans',
-      'Document what changes you make',
-      'Test improvements on a subset first',
-      'Share learnings with your team'
-    ],
-    pitfalls: [
-      'Trying to fix everything at once',
-      'Ignoring mobile experience',
-      'Focusing only on scores, not user value',
-      'Not measuring the impact of changes'
-    ]
+   □ XML sitemap updated`
   },
   // Authority Guides
   'Build more high-quality backlinks': {
@@ -1475,32 +1446,32 @@ https://example.com/blog/2024/01/content-marketing-guide
     steps: [
       {
         title: 'Use Exactly One H1 Tag',
-        description: 'Having exactly one H1 is worth 40 base points.',
+        description: 'Having exactly one H1 is worth 40 base points. Multiple H1s severely impact scoring.',
         actions: [
-          'Ensure exactly one H1 tag exists on the page (40 points)',
-          'Remove any duplicate H1 tags (multiple H1s = max 10 points)',
-          'Never have zero H1 tags (0 points total)',
-          'Place H1 prominently at the top of main content'
+          'Ensure exactly one H1 tag exists on the page (40 points) - this is critical',
+          'Remove any duplicate H1 tags (multiple H1s = max 10 points) - check all pages',
+          'Never have zero H1 tags (0 points total) - always include an H1',
+          'Place H1 prominently at the top of main content - match with title tag theme'
         ]
       },
       {
         title: 'Optimize H1 Length and Content',
-        description: 'Length and quality add up to 50 additional points.',
+        description: 'Length and quality add up to 50 additional points. Focus on descriptiveness over brevity.',
         actions: [
-          'Keep H1 between 3-10 words for optimal length (20 points)',
-          'Make H1 descriptive with 20+ characters (20 points)',
-          'Avoid generic text like "Home", "Welcome", "Page 1" (10 points)',
-          'Use specific, meaningful text that describes the page'
+          'Keep H1 between 3-10 words for optimal length (20 points) - avoid under 3 words',
+          'Make H1 descriptive with 20+ characters (20 points) - be specific about page content',
+          'Avoid generic text like "Home", "Welcome", "Page 1" (10 points) - use meaningful descriptions',
+          'Use specific, meaningful text that describes the page - include keywords naturally'
         ]
       },
       {
         title: 'Relate H1 to Title Tag',
-        description: 'H1 should relate to but not exactly match the title.',
+        description: 'H1 should relate to but not exactly match the title. Balance uniqueness with relevance.',
         actions: [
-          'Include some common keywords between H1 and title (10 points)',
-          'Make H1 unique - not an exact copy of title tag',
-          'Ensure H1 and title are topically related',
-          'Avoid completely unrelated H1 and title text'
+          'Include some common keywords between H1 and title (10 points) - maintain thematic connection',
+          'Make H1 unique - not an exact copy of title tag - exact matches lose points',
+          'Ensure H1 and title are topically related - they should support each other',
+          'Avoid completely unrelated H1 and title text - maintain semantic relationship'
         ]
       }
     ],
@@ -2345,23 +2316,13 @@ export function OptimizationDrawer({
         </SheetHeader>
 
         <div className="mt-6">
-          <div className="bg-accent/5 border border-accent/20 rounded-lg p-3 mb-6">
-            <div className="flex items-center gap-2 text-accent">
-              <Target className="h-4 w-4" />
-              <span className="font-semibold text-sm">Expected Impact</span>
-            </div>
-            <p className="text-xs text-green-700 mt-1">{guide.impact}</p>
-          </div>
-
-          <Tabs defaultValue="steps" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="steps">Steps</TabsTrigger>
+          <Tabs defaultValue="guide" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="guide">Guide</TabsTrigger>
               <TabsTrigger value="code">Code</TabsTrigger>
-              <TabsTrigger value="best">Best Practices</TabsTrigger>
-              <TabsTrigger value="pitfalls">Pitfalls</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="steps" className="space-y-6">
+            <TabsContent value="guide" className="space-y-6">
               {guide.steps.map((step: any, index: number) => (
                 <Card key={index}>
                   <CardContent className="pt-6">
@@ -2404,36 +2365,7 @@ export function OptimizationDrawer({
               </div>
             </TabsContent>
 
-            <TabsContent value="best" className="space-y-3">
-              {guide.bestPractices.map((practice: string, index: number) => (
-                <div key={index} className="flex items-start gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                  <p className="text-sm">{practice}</p>
-                </div>
-              ))}
-            </TabsContent>
-
-            <TabsContent value="pitfalls" className="space-y-3">
-              {guide.pitfalls.map((pitfall: string, index: number) => (
-                <div key={index} className="flex items-start gap-3">
-                  <XCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
-                  <p className="text-sm">{pitfall}</p>
-                </div>
-              ))}
-            </TabsContent>
           </Tabs>
-        </div>
-
-        <div className="mt-8 pt-6 border-t">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-center gap-2 text-blue-800 mb-2">
-              <Lightbulb className="h-4 w-4" />
-              <span className="font-semibold">Pro Tip</span>
-            </div>
-            <p className="text-sm text-blue-700">
-              Focus on implementing one optimization at a time. Measure the impact before moving to the next improvement to understand what works best for your specific context.
-            </p>
-          </div>
         </div>
       </SheetContent>
     </Sheet>

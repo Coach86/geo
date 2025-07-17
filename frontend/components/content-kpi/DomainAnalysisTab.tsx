@@ -17,6 +17,8 @@ import { API_BASE_URL } from '@/lib/api/constants';
 import { DIMENSION_COLORS } from '@/lib/constants/colors';
 import { PageAnalysisTable } from './PageAnalysisTable';
 import { Recommendation } from '@/hooks/useContentKPI';
+import { DonutChart } from './DonutChart';
+import { DomainIssuesDrawer } from './DomainIssuesDrawer';
 
 interface DomainAnalysisTabProps {
   projectId: string;
@@ -88,6 +90,8 @@ export function DomainAnalysisTab({ projectId, onIssueClick }: DomainAnalysisTab
   const [data, setData] = useState<DomainAnalysisData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [domainIssuesDrawerOpen, setDomainIssuesDrawerOpen] = useState(false);
+  const [allDomainIssues, setAllDomainIssues] = useState<any[]>([]);
 
   const fetchDomainAnalysis = async () => {
     try {
@@ -105,6 +109,59 @@ export function DomainAnalysisTab({ projectId, onIssueClick }: DomainAnalysisTab
       const result = await response.json();
       setData(result);
       setError(null);
+      
+      // Set all domain issues for the drawer
+      if (result && result.domainAnalyses) {
+        const allIssues = result.domainAnalyses.flatMap((domain: any) => {
+          // First, collect issues from ruleResults that have issues
+          const ruleIssues = (domain.ruleResults || [])
+            .filter((result: any) => result.issues && result.issues.length > 0)
+            .flatMap((result: any) => 
+              result.issues.map((issue: any, issueIndex: number) => ({
+                id: issue.id || `${domain.domain}-${result.ruleId}-issue-${issueIndex}`,
+                domain: domain.domain,
+                description: issue.description,
+                severity: issue.severity || 'medium',
+                dimension: result.category?.toLowerCase() || 'technical',
+                recommendation: issue.recommendation,
+                ruleId: result.ruleId,
+                ruleName: result.ruleName
+              }))
+            );
+          
+          // If we have rule issues, use them
+          if (ruleIssues.length > 0) {
+            return ruleIssues;
+          }
+          
+          // Otherwise, convert the domain-level string issues
+          return (domain.issues || []).map((issue: string | any, index: number) => {
+            if (typeof issue === 'string') {
+              // Try to determine dimension from the issue text
+              let dimension = 'authority'; // Default for domain-level issues
+              const issueLower = issue.toLowerCase();
+              
+              if (issueLower.includes('technical') || issueLower.includes('mobile') || issueLower.includes('https')) {
+                dimension = 'technical';
+              } else if (issueLower.includes('structure') || issueLower.includes('content')) {
+                dimension = 'structure';
+              } else if (issueLower.includes('monitoring') || issueLower.includes('kpi') || issueLower.includes('quality')) {
+                dimension = 'quality';
+              }
+              
+              return {
+                id: `${domain.domain}-issue-${index}`,
+                domain: domain.domain,
+                description: issue,
+                severity: 'medium' as const,
+                dimension,
+              };
+            }
+            return { ...issue, domain: domain.domain }; // Already an object, add domain
+          });
+        });
+        setAllDomainIssues(allIssues);
+      }
     } catch (err) {
       console.error('Error fetching domain analysis:', err);
       setError(err instanceof Error ? err.message : 'Failed to load domain analysis');
@@ -262,101 +319,39 @@ export function DomainAnalysisTab({ projectId, onIssueClick }: DomainAnalysisTab
 
   return (
     <div className="space-y-6">
-      {/* Issues Card - Only show if there are issues */}
-      {allIssues.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-orange-600" />
-              Domain Issues Summary
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {/* Issue counts by severity */}
-              <div className="grid grid-cols-4 gap-4">
-                {criticalIssues.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <Badge variant="destructive" className="px-2 py-1">
-                      {criticalIssues.length} Critical
-                    </Badge>
-                  </div>
-                )}
-                {highIssues.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <Badge variant="destructive" className="bg-orange-100 text-orange-800 hover:bg-orange-100">
-                      {highIssues.length} High
-                    </Badge>
-                  </div>
-                )}
-                {mediumIssues.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <Badge variant="warning" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
-                      {mediumIssues.length} Medium
-                    </Badge>
-                  </div>
-                )}
-                {lowIssues.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="bg-blue-100 text-blue-800 hover:bg-blue-100">
-                      {lowIssues.length} Low
-                    </Badge>
-                  </div>
-                )}
-              </div>
+      {/* Donut Charts Section - Domain-specific */}
+      <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
+        <CardContent className="pt-6">
+          <div className="grid gap-6 md:grid-cols-5">
+            <DonutChart
+              score={avgDomainScore}
+              color="#6366f1"
+              title="Overall"
+            />
+            <DonutChart
+              score={Math.round(avgDimensionScores.technical?.total / avgDimensionScores.technical?.count || 0)}
+              dimension="technical"
+              title="Technical"
+            />
+            <DonutChart
+              score={Math.round(avgDimensionScores.authority?.total / avgDimensionScores.authority?.count || 0)}
+              dimension="authority"
+              title="Authority"
+            />
+            <DonutChart
+              score={Math.round(avgDimensionScores.structure?.total / avgDimensionScores.structure?.count || 0)}
+              dimension="structure"
+              title="Structure"
+            />
+            <DonutChart
+              score={Math.round(avgDimensionScores.quality?.total / avgDimensionScores.quality?.count || 0)}
+              dimension="quality"
+              title="Quality"
+            />
+          </div>
+        </CardContent>
+      </Card>
 
-              {/* Issues list */}
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {['critical', 'high', 'medium', 'low'].map(severity => {
-                  const severityIssues = allIssues.filter(issue => issue.severity === severity);
-                  if (severityIssues.length === 0) return null;
-                  
-                  const Icon = SEVERITY_ICONS[severity as keyof typeof SEVERITY_ICONS];
-                  const colorClass = SEVERITY_COLORS[severity as keyof typeof SEVERITY_COLORS];
-                  
-                  return (
-                    <div key={severity} className="space-y-2">
-                      {severityIssues.map((issue, idx) => (
-                        <div 
-                          key={issue.id || idx} 
-                          className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg"
-                        >
-                          <Icon className={`h-4 w-4 mt-0.5 flex-shrink-0 ${colorClass}`} />
-                          <div className="flex-1 space-y-1">
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="flex-1">
-                                <p className="text-sm font-medium text-foreground">
-                                  {issue.description}
-                                </p>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  {issue.domain} • {issue.dimension}
-                                  {issue.ruleName && ` • ${issue.ruleName}`}
-                                </p>
-                              </div>
-                              <Badge 
-                                variant="outline" 
-                                className="text-xs"
-                                style={{ color: DIMENSION_COLORS[issue.dimension as keyof typeof DIMENSION_COLORS] }}
-                              >
-                                {issue.dimension}
-                              </Badge>
-                            </div>
-                            {issue.recommendation && (
-                              <p className="text-sm text-muted-foreground">
-                                {issue.recommendation}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Domain Analysis Table */}
       <PageAnalysisTable 
@@ -428,6 +423,16 @@ export function DomainAnalysisTab({ projectId, onIssueClick }: DomainAnalysisTab
       }))}
       projectId={projectId}
       isDomainAnalysis={true}
+      onDomainIssuesClick={() => setDomainIssuesDrawerOpen(true)}
+      totalDomainIssues={allDomainIssues.length}
+      />
+      
+      {/* Domain Issues Drawer */}
+      <DomainIssuesDrawer
+        isOpen={domainIssuesDrawerOpen}
+        onClose={() => setDomainIssuesDrawerOpen(false)}
+        issues={allDomainIssues}
+        onIssueClick={onIssueClick}
       />
     </div>
   );

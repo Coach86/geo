@@ -9,6 +9,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Search, Filter } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -21,10 +30,13 @@ import {
   ExternalLink,
   ChevronDown,
   ChevronRight,
+  AlertTriangle,
 } from 'lucide-react';
-import { FilterBar } from './FilterBar';
 import { PageDetailsSection } from './PageDetailsSection';
 import { DIMENSION_COLORS, getDimensionColor } from '@/lib/constants/colors';
+import { DonutChart } from './DonutChart';
+import { IssuesDrawer } from './IssuesDrawer';
+import { Button } from '@/components/ui/button';
 
 interface PageIssue {
   id?: string;
@@ -91,7 +103,9 @@ interface PageAnalysisTableProps {
   pages: PageAnalysis[];
   projectId: string;
   isDomainAnalysis?: boolean;
-  onIssueClick?: (issue: any) => void;
+  onIssueClick?: (issue: PageIssue) => void;
+  onDomainIssuesClick?: () => void;
+  totalDomainIssues?: number;
 }
 
 const SEVERITY_COLORS = {
@@ -209,13 +223,28 @@ const getCategoryColor = (category: string): { bg: string; text: string; border:
   };
 };
 
-export function PageAnalysisTable({ pages, projectId, isDomainAnalysis = false, onIssueClick }: PageAnalysisTableProps) {
+export function PageAnalysisTable({ pages, projectId, isDomainAnalysis = false, onIssueClick, onDomainIssuesClick, totalDomainIssues }: PageAnalysisTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterDimension, setFilterDimension] = useState<string>('all');
-  const [filterSeverity, setFilterSeverity] = useState<string>('all');
   const [filterScore, setFilterScore] = useState<string>('all');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [issuesDrawerOpen, setIssuesDrawerOpen] = useState(false);
+  const [selectedPageIssues, setSelectedPageIssues] = useState<{ issues: PageIssue[], pageUrl: string } | null>(null);
+
+  // Get unique categories from the pages
+  const uniqueCategories = React.useMemo(() => {
+    const categories = new Set<string>();
+    pages.forEach(page => {
+      if (page.pageCategory) {
+        categories.add(page.pageCategory);
+      }
+    });
+    return Array.from(categories).sort((a, b) => {
+      const nameA = formatPageCategory(a);
+      const nameB = formatPageCategory(b);
+      return nameA.localeCompare(nameB);
+    });
+  }, [pages]);
 
   const toggleRowExpansion = (pageUrl: string) => {
     if (isDomainAnalysis) return; // No accordion for domain analysis
@@ -227,6 +256,11 @@ export function PageAnalysisTable({ pages, projectId, isDomainAnalysis = false, 
       newExpanded.add(pageUrl);
     }
     setExpandedRows(newExpanded);
+  };
+
+  const openIssuesDrawer = (page: PageAnalysis) => {
+    setSelectedPageIssues({ issues: page.issues, pageUrl: page.url });
+    setIssuesDrawerOpen(true);
   };
 
   // Filter pages based on search and filters
@@ -244,21 +278,7 @@ export function PageAnalysisTable({ pages, projectId, isDomainAnalysis = false, 
       if (filterScore === 'low' && page.globalScore >= 60) return false;
     }
 
-    // Dimension filter
-    if (filterDimension !== 'all') {
-      const hasIssueInDimension = page.issues.some(issue => 
-        issue.dimension.toLowerCase() === filterDimension
-      );
-      if (!hasIssueInDimension) return false;
-    }
 
-    // Severity filter
-    if (filterSeverity !== 'all') {
-      const hasIssueWithSeverity = page.issues.some(issue => 
-        issue.severity === filterSeverity
-      );
-      if (!hasIssueWithSeverity) return false;
-    }
 
     // Category filter
     if (filterCategory !== 'all') {
@@ -270,75 +290,155 @@ export function PageAnalysisTable({ pages, projectId, isDomainAnalysis = false, 
     return true;
   });
 
+  // Sort pages by category, then by URL within each category
+  const sortedPages = [...filteredPages].sort((a, b) => {
+    // For domain analysis, don't sort by category
+    if (isDomainAnalysis) return 0;
+    
+    // Get category names for comparison
+    const categoryA = formatPageCategory(a.pageCategory || 'Unknown');
+    const categoryB = formatPageCategory(b.pageCategory || 'Unknown');
+    
+    // First sort by category
+    const categoryCompare = categoryA.localeCompare(categoryB);
+    if (categoryCompare !== 0) return categoryCompare;
+    
+    // If same category, sort by URL alphabetically
+    return a.url.localeCompare(b.url);
+  });
+
+  // Calculate average scores for pages (only non-skipped pages)
+  const validPages = pages.filter(page => !page.skipped && page.scores);
+  const avgPageScore = validPages.length > 0 
+    ? Math.round(validPages.reduce((sum, page) => sum + page.globalScore, 0) / validPages.length)
+    : 0;
+  
+  const avgDimensionScores = validPages.length > 0 ? {
+    technical: Math.round(validPages.reduce((sum, page) => sum + (page.scores?.technical || 0), 0) / validPages.length),
+    structure: Math.round(validPages.reduce((sum, page) => sum + (page.scores?.structure || 0), 0) / validPages.length),
+    authority: Math.round(validPages.reduce((sum, page) => sum + (page.scores?.authority || 0), 0) / validPages.length),
+    quality: Math.round(validPages.reduce((sum, page) => sum + (page.scores?.quality || 0), 0) / validPages.length),
+  } : { technical: 0, structure: 0, authority: 0, quality: 0 };
+
   return (
-    <Card>
+    <div className="space-y-6">
+      {/* Donut Charts Section - Page-specific (only show for page analysis, not domain) */}
       {!isDomainAnalysis && (
-        <CardHeader>
-          <FilterBar
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            filterScore={filterScore}
-            setFilterScore={setFilterScore}
-            filterDimension={filterDimension}
-            setFilterDimension={setFilterDimension}
-            filterSeverity={filterSeverity}
-            setFilterSeverity={setFilterSeverity}
-            filterCategory={filterCategory}
-            setFilterCategory={setFilterCategory}
-          />
-        </CardHeader>
+        <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
+          <CardContent className="pt-6">
+            <div className="grid gap-6 md:grid-cols-5">
+              <DonutChart
+                score={avgPageScore}
+                color="#6366f1"
+                title="Overall"
+              />
+              <DonutChart
+                score={avgDimensionScores.technical}
+                dimension="technical"
+                title="Technical"
+              />
+              <DonutChart
+                score={avgDimensionScores.authority}
+                dimension="authority"
+                title="Authority"
+              />
+              <DonutChart
+                score={avgDimensionScores.structure}
+                dimension="structure"
+                title="Structure"
+              />
+              <DonutChart
+                score={avgDimensionScores.quality}
+                dimension="quality"
+                title="Quality"
+              />
+            </div>
+          </CardContent>
+        </Card>
       )}
 
-      <CardContent className={isDomainAnalysis ? "pt-6" : ""}>
-        {!isDomainAnalysis && (
-          <div className="text-sm text-muted-foreground mb-4">
-            Showing {filteredPages.length} of {pages.length} pages
-          </div>
-        )}
+      <Card>
+
+      <CardContent className={isDomainAnalysis ? "pt-6" : "pt-4"}>
 
         <div className="overflow-x-auto">
           <Table className="min-w-full">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[30px] sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]"></TableHead>
-              <TableHead className="min-w-[200px] max-w-[400px] sticky left-[30px] bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">{isDomainAnalysis ? 'Domain' : 'Page URL'}</TableHead>
-              {!isDomainAnalysis && <TableHead className="text-center w-[100px]">Category</TableHead>}
-              <TableHead className="text-center w-[60px]">Score</TableHead>
-              <TableHead className="text-center w-[80px]">Issues</TableHead>
+              {!isDomainAnalysis && (
+                <TableHead className="text-center w-[120px] sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] p-1">
+                  <Select value={filterCategory} onValueChange={setFilterCategory}>
+                    <SelectTrigger className="h-7 text-xs border-0 shadow-none bg-transparent text-center [&>span]:w-full [&>span]:text-center">
+                      <SelectValue placeholder="Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      {uniqueCategories.map(category => (
+                        <SelectItem key={category} value={category}>
+                          {formatPageCategory(category)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </TableHead>
+              )}
+              <TableHead className={`min-w-[200px] max-w-[400px] sticky ${!isDomainAnalysis ? 'left-[120px]' : 'left-0'} bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] p-1`}>
+                <div className="flex items-center gap-1">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-2 top-1.5 h-3 w-3 text-muted-foreground" />
+                    <Input
+                      placeholder={isDomainAnalysis ? "Search domains..." : "Search pages..."}
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="h-7 text-xs pl-7 border-0 shadow-none bg-transparent"
+                    />
+                  </div>
+                </div>
+              </TableHead>
+              <TableHead className="text-center w-[80px] p-1">
+                <Select value={filterScore} onValueChange={setFilterScore}>
+                  <SelectTrigger className="h-7 text-xs border-0 shadow-none bg-transparent text-center [&>span]:w-full [&>span]:text-center">
+                    <SelectValue placeholder="Score" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="high">High (80+)</SelectItem>
+                    <SelectItem value="medium">Medium (60-79)</SelectItem>
+                    <SelectItem value="low">Low (&lt;60)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </TableHead>
               <TableHead className="text-center w-[60px] text-xs">Tech</TableHead>
               <TableHead className="text-center w-[60px] text-xs">Structure</TableHead>
               <TableHead className="text-center w-[60px] text-xs">Auth</TableHead>
               <TableHead className="text-center w-[60px] text-xs">Quality</TableHead>
+              <TableHead className="text-center w-[100px] text-xs">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredPages.map((page) => {
+            {sortedPages.map((page) => {
               const isExpanded = isDomainAnalysis || expandedRows.has(page.url);
               
               return (
                 <React.Fragment key={page.url}>
-                  <TableRow 
-                    className={!isDomainAnalysis ? "cursor-pointer hover:bg-muted/50" : ""}
-                    onClick={() => !isDomainAnalysis && toggleRowExpansion(page.url)}
-                  >
-                    <TableCell className="sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      {!isDomainAnalysis && (
-                        <button
-                          className="p-1 hover:bg-muted rounded-sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleRowExpansion(page.url);
-                          }}
-                        >
-                          {isExpanded ? (
-                            <ChevronDown className="h-4 w-4" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4" />
-                          )}
-                        </button>
-                      )}
-                    </TableCell>
-                    <TableCell className="min-w-[200px] max-w-[400px] sticky left-[30px] bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableRow className="hover:bg-transparent">
+                    {!isDomainAnalysis && (
+                      <TableCell className="text-center sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                        {(() => {
+                          const categoryName = formatPageCategory(page.pageCategory);
+                          const colorScheme = getCategoryColor(categoryName);
+                          return (
+                            <Badge 
+                              title={`Analysis: ${page.analysisLevel || 'full'} (${Math.round((page.categoryConfidence || 0) * 100)}% confidence)`}
+                              className={`text-xs px-2 py-0 border ${colorScheme.bg} ${colorScheme.text} ${colorScheme.border}`}
+                            >
+                              {categoryName}
+                            </Badge>
+                          );
+                        })()}
+                      </TableCell>
+                    )}
+                    <TableCell className={`min-w-[200px] max-w-[400px] sticky ${!isDomainAnalysis ? 'left-[120px]' : 'left-0'} bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]`}>
                       <div className="space-y-0.5 min-w-0 max-w-full">
                         <TooltipProvider>
                           <Tooltip>
@@ -389,22 +489,6 @@ export function PageAnalysisTable({ pages, projectId, isDomainAnalysis = false, 
                         )}
                       </div>
                     </TableCell>
-                    {!isDomainAnalysis && (
-                      <TableCell className="text-center">
-                        {(() => {
-                          const categoryName = formatPageCategory(page.pageCategory);
-                          const colorScheme = getCategoryColor(categoryName);
-                          return (
-                            <Badge 
-                              title={`Analysis: ${page.analysisLevel || 'full'} (${Math.round((page.categoryConfidence || 0) * 100)}% confidence)`}
-                              className={`text-xs px-2 py-0 border ${colorScheme.bg} ${colorScheme.text} ${colorScheme.border}`}
-                            >
-                              {categoryName}
-                            </Badge>
-                          );
-                        })()}
-                      </TableCell>
-                    )}
                     <TableCell className="text-center">
                       {page.skipped ? (
                         <Badge 
@@ -420,29 +504,6 @@ export function PageAnalysisTable({ pages, projectId, isDomainAnalysis = false, 
                         >
                           {page.globalScore}
                         </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {page.skipped ? (
-                        <span className="text-xs text-muted-foreground">-</span>
-                      ) : page.issues.length > 0 ? (
-                        <div className="flex items-center justify-center gap-1">
-                          {Object.entries(
-                            page.issues.reduce((acc, issue) => {
-                              acc[issue.severity] = (acc[issue.severity] || 0) + 1;
-                              return acc;
-                            }, {} as Record<string, number>)
-                          ).map(([severity, count]) => (
-                            <Badge
-                              key={severity}
-                              className={`text-xs px-1.5 py-0 h-5 border ${SEVERITY_COLORS[severity as keyof typeof SEVERITY_COLORS].bg} ${SEVERITY_COLORS[severity as keyof typeof SEVERITY_COLORS].text} ${SEVERITY_COLORS[severity as keyof typeof SEVERITY_COLORS].border}`}
-                            >
-                              {count}
-                            </Badge>
-                          ))}
-                        </div>
-                      ) : (
-                        <Badge variant="success" className="text-xs px-2 py-0">Clean</Badge>
                       )}
                     </TableCell>
                     <TableCell className="text-center px-2">
@@ -537,16 +598,68 @@ export function PageAnalysisTable({ pages, projectId, isDomainAnalysis = false, 
                         );
                       })()}
                     </TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        {isDomainAnalysis && onDomainIssuesClick && totalDomainIssues && totalDomainIssues > 0 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDomainIssuesClick();
+                            }}
+                            className="h-6 px-2 text-xs"
+                          >
+                            <AlertTriangle className="h-3 w-3 mr-1" />
+                            Issues ({totalDomainIssues})
+                          </Button>
+                        )}
+                        {!isDomainAnalysis && page.issues && page.issues.length > 0 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openIssuesDrawer(page);
+                            }}
+                            className="h-6 px-2 text-xs"
+                          >
+                            <AlertTriangle className="h-3 w-3 mr-1" />
+                            Issues ({page.issues.length})
+                          </Button>
+                        )}
+                        {!isDomainAnalysis && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleRowExpansion(page.url);
+                            }}
+                            className="h-6 px-2 text-xs"
+                          >
+                            {isExpanded ? (
+                              <ChevronDown className="h-3 w-3 mr-1" />
+                            ) : (
+                              <ChevronRight className="h-3 w-3 mr-1" />
+                            )}
+                            Details
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
                   </TableRow>
 
                   {isExpanded && (
-                    <TableRow>
-                      <TableCell colSpan={isDomainAnalysis ? 9 : 10} className="bg-gray-50">
-                        <PageDetailsSection 
-                          page={page} 
-                          projectId={projectId} 
-                          onIssueClick={onIssueClick} 
-                        />
+                    <TableRow className="hover:bg-transparent">
+                      <TableCell colSpan={isDomainAnalysis ? 8 : 9} className="p-0">
+                        <div className="w-full h-full border-l-4 border-blue-500">
+                          <PageDetailsSection 
+                            page={page} 
+                            projectId={projectId} 
+                            onIssueClick={onIssueClick} 
+                          />
+                        </div>
                       </TableCell>
                     </TableRow>
                   )}
@@ -564,5 +677,20 @@ export function PageAnalysisTable({ pages, projectId, isDomainAnalysis = false, 
         )}
       </CardContent>
     </Card>
+
+    {/* Issues Drawer */}
+    {selectedPageIssues && (
+      <IssuesDrawer
+        isOpen={issuesDrawerOpen}
+        onClose={() => {
+          setIssuesDrawerOpen(false);
+          setSelectedPageIssues(null);
+        }}
+        issues={selectedPageIssues.issues}
+        pageUrl={selectedPageIssues.pageUrl}
+        onIssueClick={onIssueClick}
+      />
+    )}
+    </div>
   );
 }

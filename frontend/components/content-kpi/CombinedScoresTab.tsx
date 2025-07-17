@@ -5,16 +5,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
   LineChart, Line
 } from 'recharts';
 import { 
   TrendingUp, Globe, FileText, BarChart3, Target, Layers
 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/persistent-tooltip';
 import { useAuth } from '@/providers/auth-provider';
 import { API_BASE_URL } from '@/lib/api/constants';
-import { DIMENSION_COLORS } from '@/lib/constants/colors';
+import { DIMENSION_ORDER, getDimensionColor, getDimensionDisplayName } from '@/lib/constants/dimensions';
 
 interface CombinedScoresTabProps {
   projectId: string;
@@ -39,8 +40,7 @@ interface CombinedScoresData {
   domainAnalyses: any[];
 }
 
-const COLORS = {
-  ...DIMENSION_COLORS,
+const CHART_COLORS = {
   domain: '#f59e0b',
   page: '#6366f1',
 };
@@ -130,7 +130,7 @@ export function CombinedScoresTab({ projectId }: CombinedScoresTabProps) {
       : 0;
 
     return {
-      dimension: dimension === 'quality' ? 'Quality' : dimension.charAt(0).toUpperCase() + dimension.slice(1),
+      dimension: getDimensionDisplayName(dimension),
       pageScore,
       domainScore: avgDomainScore,
     };
@@ -160,107 +160,129 @@ export function CombinedScoresTab({ projectId }: CombinedScoresTabProps) {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-700">Combined Score</CardTitle>
-            <Target className="h-4 w-4 text-gray-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold text-gray-900">{Math.round(data.combined.overallScore)}/100</div>
-            <div className="text-xs text-gray-500">
-              <span className={categoryColor(data.combined.overallScore)}>
-                {getScoreCategory(data.combined.overallScore)}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-700">Page Score</CardTitle>
-            <FileText className="h-4 w-4 text-gray-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold text-gray-900">{Math.round(data.combined.pageScore)}/100</div>
-            <p className="text-xs text-gray-500">
-              60% weight • {data.combined.totalPages} pages
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-700">Domain Score</CardTitle>
-            <Globe className="h-4 w-4 text-gray-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold text-gray-900">{Math.round(data.combined.domainScore)}/100</div>
-            <p className="text-xs text-gray-500">
-              40% weight • {data.combined.totalDomains} domains
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-700">Analysis Scope</CardTitle>
-            <Layers className="h-4 w-4 text-gray-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold text-gray-900">{data.combined.totalPages + data.combined.totalDomains}</div>
-            <p className="text-xs text-gray-500">
-              Total entities analyzed
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Score Composition and Page Analysis in same row */}
-      <div className="grid gap-4 md:grid-cols-2">
-        {/* Score Composition */}
-        <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold text-gray-900">Score Composition</CardTitle>
-            <p className="text-sm text-gray-500">
-              How page-level and domain-level analysis contribute to the overall score
-            </p>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {comparisonData.map((item, index) => (
-                <div key={index} className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                      <div 
-                        className="w-3 h-3 rounded-full" 
-                        style={{ backgroundColor: index === 0 ? COLORS.page : COLORS.domain }}
-                      />
-                      <span className="font-medium">{item.category}</span>
-                      <Badge variant="outline">{item.weight}% weight</Badge>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-bold">{Math.round(item.score)}/100</div>
-                      <div className="text-xs text-muted-foreground">
-                        Contributes {item.contribution} points
-                      </div>
-                    </div>
+    <TooltipProvider>
+      <div className="space-y-6">
+        {/* Summary Cards */}
+        <div className="grid gap-4 md:grid-cols-4">
+          <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <Target className="h-5 w-5 text-primary" />
+                Combined Score
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-xs text-gray-500 cursor-help">ⓘ</span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Weighted average of page and domain scores</p>
+                  </TooltipContent>
+                </Tooltip>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col">
+              <div className="flex-1 flex flex-col justify-center">
+                <div className="text-center">
+                  <div className="text-4xl font-bold text-primary-600">
+                    {Math.round(data.combined.overallScore)}%
                   </div>
-                  <Progress value={item.score} className="h-2" />
-                </div>
-              ))}
-              
-              <div className="border-t pt-4">
-                <div className="flex justify-between items-center">
-                  <span className="font-semibold">Final Combined Score</span>
-                  <span className="text-xl font-bold">{Math.round(data.combined.overallScore)}/100</span>
+                  <p className="text-xs text-gray-500 mt-2">
+                    {getScoreCategory(data.combined.overallScore)}
+                  </p>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <Globe className="h-5 w-5 text-amber-600" />
+                Domain Score
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-xs text-gray-500 cursor-help">ⓘ</span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Overall domain authority and technical setup</p>
+                  </TooltipContent>
+                </Tooltip>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col">
+              <div className="flex-1 flex flex-col justify-center">
+                <div className="text-center">
+                  <div className="text-4xl font-bold text-primary-600">
+                    {Math.round(data.combined.domainScore)}%
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    {getScoreCategory(data.combined.domainScore)}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <FileText className="h-5 w-5 text-indigo-600" />
+                Page Score
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-xs text-gray-500 cursor-help">ⓘ</span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Average score across all analyzed pages</p>
+                  </TooltipContent>
+                </Tooltip>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col">
+              <div className="flex-1 flex flex-col justify-center">
+                <div className="text-center">
+                  <div className="text-4xl font-bold text-primary-600">
+                    {Math.round(data.combined.pageScore)}%
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    {getScoreCategory(data.combined.pageScore)}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <Layers className="h-5 w-5 text-purple-600" />
+                Analysis Scope
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-xs text-gray-500 cursor-help">ⓘ</span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Total number of entities analyzed</p>
+                  </TooltipContent>
+                </Tooltip>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col">
+              <div className="flex-1 flex flex-col justify-center">
+                <div className="text-center">
+                  <div className="text-4xl font-bold text-primary-600">
+                    {data.combined.totalPages + data.combined.totalDomains}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    {data.combined.totalPages} pages • {data.combined.totalDomains} domains
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+      {/* Breakdown only - removed Score Composition */}
+      <div className="grid gap-4 md:grid-cols-1">
 
         {/* Breakdown */}
         <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
@@ -272,53 +294,16 @@ export function CombinedScoresTab({ projectId }: CombinedScoresTabProps) {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Page Breakdown */}
-              <div>
-                <h4 className="text-sm font-semibold text-gray-900 mb-3">Page Scores</h4>
-                <div className="space-y-3">
-                  {Object.entries(data.pageScoreBreakdown || {}).map(([dimension, score]) => {
-                    const colorKey = dimension as keyof typeof COLORS;
-                    const color = COLORS[colorKey] || '#6b7280';
-                    return (
-                      <div key={dimension} className="space-y-1">
-                        <div className="flex justify-between text-sm">
-                          <div className="flex items-center gap-2">
-                            <div 
-                              className="w-3 h-3 rounded-full" 
-                              style={{ backgroundColor: color }}
-                            />
-                            <span className="capitalize">
-                              {dimension === 'quality' ? 'Quality' : dimension}
-                            </span>
-                          </div>
-                          <span className="font-medium">{Math.round(score)}/100</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="h-2 rounded-full transition-all duration-300"
-                            style={{ 
-                              backgroundColor: color,
-                              width: `${Math.min(100, Math.max(0, score))}%`
-                            }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
               {/* Domain Breakdown */}
               <div>
                 <h4 className="text-sm font-semibold text-gray-900 mb-3">Domain Scores</h4>
                 {Object.keys(data.domainScoreBreakdown || {}).length > 0 ? (
                   <div className="space-y-3">
-                    {Object.entries(data.domainScoreBreakdown || {}).map(([dimension, scores]) => {
-                      const colorKey = dimension as keyof typeof COLORS;
-                      const color = COLORS[colorKey] || '#6b7280';
-                      const avgScore = scores.length > 0 
-                        ? Math.round(scores.reduce((sum: number, score: number) => sum + score, 0) / scores.length)
-                        : 0;
+                    {DIMENSION_ORDER.map((dimension) => {
+                      const scores = data.domainScoreBreakdown[dimension] || [];
+                      if (!scores || scores.length === 0) return null;
+                      const color = getDimensionColor(dimension);
+                      const avgScore = Math.round(scores.reduce((sum: number, score: number) => sum + score, 0) / scores.length);
                       return (
                         <div key={dimension} className="space-y-1">
                           <div className="flex justify-between text-sm">
@@ -327,8 +312,8 @@ export function CombinedScoresTab({ projectId }: CombinedScoresTabProps) {
                                 className="w-3 h-3 rounded-full" 
                                 style={{ backgroundColor: color }}
                               />
-                              <span className="capitalize">
-                                {dimension === 'quality' ? 'Quality' : dimension}
+                              <span>
+                                {getDimensionDisplayName(dimension)}
                               </span>
                             </div>
                             <span className="font-medium">{avgScore}/100</span>
@@ -354,50 +339,49 @@ export function CombinedScoresTab({ projectId }: CombinedScoresTabProps) {
                   </div>
                 )}
               </div>
+
+              {/* Page Breakdown */}
+              <div>
+                <h4 className="text-sm font-semibold text-gray-900 mb-3">Page Scores</h4>
+                <div className="space-y-3">
+                  {DIMENSION_ORDER.map((dimension) => {
+                    const score = data.pageScoreBreakdown[dimension as keyof typeof data.pageScoreBreakdown];
+                    if (score === undefined || score === null) return null;
+                    const color = getDimensionColor(dimension);
+                    return (
+                      <div key={dimension} className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: color }}
+                            />
+                            <span>
+                              {getDimensionDisplayName(dimension)}
+                            </span>
+                          </div>
+                          <span className="font-medium">{Math.round(score)}/100</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="h-2 rounded-full transition-all duration-300"
+                            style={{ 
+                              backgroundColor: color,
+                              width: `${Math.min(100, Math.max(0, score))}%`
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Methodology */}
-      <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold text-gray-900">Scoring Methodology</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4 text-sm">
-            <div>
-              <h4 className="font-medium mb-2 text-gray-900">Combined Score Calculation</h4>
-              <p className="text-gray-600">
-                The combined score is calculated as a weighted average: (Page Score × 60%) + (Domain Score × 40%).
-                This gives more weight to page-level content quality while considering domain-level authority factors.
-              </p>
-            </div>
-            
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <h4 className="font-medium mb-2 text-gray-900">Page Analysis (60% weight)</h4>
-                <ul className="text-gray-600 space-y-1">
-                  <li>• Content freshness and update frequency</li>
-                  <li>• HTML structure and technical SEO</li>
-                  <li>• Brand alignment and messaging</li>
-                  <li>• Individual page authority signals</li>
-                </ul>
-              </div>
-              
-              <div>
-                <h4 className="font-medium mb-2 text-gray-900">Domain Analysis (40% weight)</h4>
-                <ul className="text-gray-600 space-y-1">
-                  <li>• Domain authority and reputation</li>
-                  <li>• Overall site architecture quality</li>
-                  <li>• Cross-domain consistency</li>
-                  <li>• External authority signals</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }

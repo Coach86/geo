@@ -143,16 +143,14 @@ export function ScoreCalculationTable({ scores, ruleResults, pageUrl }: ScoreCal
 
   return (
     <>
-      <Table>
+      <Table className="w-full h-full -ml-1">
         <TableHeader>
           <TableRow className="bg-muted/50">
-            <TableHead className="w-[30px]"></TableHead>
-            <TableHead className="w-[90px]">Dimension</TableHead>
-            <TableHead className="w-[180px]">Rule</TableHead>
-            <TableHead className="w-[70px] text-center">Status</TableHead>
-            <TableHead className="w-[140px] text-center">Contribution</TableHead>
-            <TableHead className="w-[60px] text-center">Weight</TableHead>
-            <TableHead className="w-[60px] text-center">Issues</TableHead>
+            <TableHead className="w-[90px] text-xs h-8 py-2 text-center">Dimension</TableHead>
+            <TableHead className="w-[300px] text-xs h-8 py-2">Rule</TableHead>
+            <TableHead className="w-[140px] text-center text-xs h-8 py-2">Contribution</TableHead>
+            <TableHead className="w-[60px] text-center text-xs h-8 py-2">Issues</TableHead>
+            <TableHead className="w-[100px] text-center text-xs h-8 py-2">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -162,80 +160,65 @@ export function ScoreCalculationTable({ scores, ruleResults, pageUrl }: ScoreCal
             const hasEvidenceContent = hasEvidence || hasIssues;
 
             return (
-              <TableRow 
-                key={rule.ruleId} 
-                className={hasEvidenceContent ? "cursor-pointer hover:bg-white transition-colors" : ""}
-                onClick={hasEvidenceContent ? () => openEvidenceDrawer(rule) : undefined}
-                title={hasEvidenceContent ? "Click to view evidence" : ""}
-              >
+              <TableRow key={rule.ruleId} className="hover:bg-transparent">
+                <TableCell className="text-center">
+                  <div 
+                    className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium transition-colors"
+                    style={{ 
+                      backgroundColor: `${DIMENSION_COLORS[rule.category]}15`,
+                      color: DIMENSION_COLORS[rule.category],
+                      border: `1px solid ${DIMENSION_COLORS[rule.category]}30`
+                    }}
+                  >
+                    {formatCategoryName(rule.category)}
+                  </div>
+                </TableCell>
                 <TableCell>
-                  {hasEvidenceContent && (
-                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  <div className="font-medium text-sm" title={rule.ruleName}>
+                    {rule.ruleName}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 bg-gray-200 rounded-full h-2 relative">
+                      <div 
+                        className="h-2 rounded-full transition-all"
+                        style={{ 
+                          backgroundColor: rule.passed ? '#10b981' : '#ef4444',
+                          width: `${Math.max(0, Math.min(100, (rule.score / rule.maxScore) * 100))}%` 
+                        }}
+                      />
+                    </div>
+                    <div className="flex items-center gap-1 min-w-[60px] justify-end">
+                      <span className="font-medium text-sm">{rule.score}</span>
+                      <span className="text-muted-foreground text-xs">/ {rule.maxScore}</span>
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell className="text-center">
+                  {hasIssues ? (
+                    <div className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-red-100 text-red-700 font-semibold text-xs">
+                      {rule.issues!.length}
+                    </div>
+                  ) : (
+                    <div className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-accent/10 text-accent font-semibold text-xs">
+                      0
+                    </div>
                   )}
                 </TableCell>
-                    <TableCell>
-                      <div 
-                        className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium transition-colors"
-                        style={{ 
-                          backgroundColor: `${DIMENSION_COLORS[rule.category]}15`,
-                          color: DIMENSION_COLORS[rule.category],
-                          border: `1px solid ${DIMENSION_COLORS[rule.category]}30`
-                        }}
-                      >
-                        {formatCategoryName(rule.category)}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium text-sm" title={rule.ruleName}>
-                        {rule.ruleName}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {rule.passed ? (
-                        <Badge variant="success" className="text-xs">
-                          <CheckCircle className="h-3 w-3 mr-1" />
-                          Pass
-                        </Badge>
-                      ) : (
-                        <Badge variant="destructive" className="text-xs">
-                          <AlertCircle className="h-3 w-3 mr-1" />
-                          Fail
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 bg-gray-200 rounded-full h-2 relative">
-                          <div 
-                            className="h-2 rounded-full transition-all"
-                            style={{ 
-                              backgroundColor: rule.passed ? '#10b981' : '#ef4444',
-                              width: `${Math.max(0, Math.min(100, (rule.score / rule.maxScore) * 100))}%` 
-                            }}
-                          />
-                        </div>
-                        <div className="flex items-center gap-1 min-w-[60px] justify-end">
-                          <span className="font-medium text-sm">{rule.score}</span>
-                          <span className="text-muted-foreground text-xs">/ {rule.maxScore}</span>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <span className="text-sm font-medium">
-                        {rule.weight.toFixed(1)}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {hasIssues ? (
-                        <div className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-red-100 text-red-700 font-semibold text-xs">
-                          {rule.issues!.length}
-                        </div>
-                      ) : (
-                        <div className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-accent/10 text-accent font-semibold text-xs">
-                          0
-                        </div>
-                      )}
-                    </TableCell>
+                <TableCell className="text-center">
+                  {hasEvidenceContent && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openEvidenceDrawer(rule)}
+                      className="h-6 px-2 text-xs"
+                    >
+                      <Eye className="h-3 w-3 mr-1" />
+                      View detail
+                    </Button>
+                  )}
+                </TableCell>
               </TableRow>
             );
           })}

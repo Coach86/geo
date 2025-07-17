@@ -334,6 +334,46 @@ export function ScoringRulesTab({ projectId }: ScoringRulesTabProps) {
         {/* Domain-Level Rules */}
         {renderRulesSection('Domain-Level Rules', Database, domainRules, domainRulesByDimension)}
 
+        {/* Scoring Methodology */}
+        <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold text-gray-900">Scoring Methodology</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4 text-sm">
+              <div>
+                <h4 className="font-medium mb-2 text-gray-900">Combined Score Calculation</h4>
+                <p className="text-gray-600">
+                  The combined score is calculated as a weighted average: (Page Score × 60%) + (Domain Score × 40%).
+                  This gives more weight to page-level content quality while considering domain-level authority factors.
+                </p>
+              </div>
+              
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <h4 className="font-medium mb-2 text-gray-900">Page Analysis (60% weight)</h4>
+                  <ul className="text-gray-600 space-y-1">
+                    <li>• Content freshness and update frequency</li>
+                    <li>• HTML structure and technical SEO</li>
+                    <li>• Brand alignment and messaging</li>
+                    <li>• Individual page authority signals</li>
+                  </ul>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium mb-2 text-gray-900">Domain Analysis (40% weight)</h4>
+                  <ul className="text-gray-600 space-y-1">
+                    <li>• Domain authority and reputation</li>
+                    <li>• Overall site architecture quality</li>
+                    <li>• Cross-domain consistency</li>
+                    <li>• External authority signals</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Info Card */}
         <Card>
           <CardHeader>

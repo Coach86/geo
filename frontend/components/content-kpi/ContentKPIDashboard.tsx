@@ -7,8 +7,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/persistent-tooltip';
 import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend,
   PieChart, Pie, Cell
 } from 'recharts';
@@ -172,7 +173,7 @@ export function ContentKPIDashboard({
   // Initialize tab from URL hash on mount
   useEffect(() => {
     const hash = window.location.hash.replace('#', '');
-    const validTabs = ['overview', 'scores', 'issues', 'domain', 'detailed', 'rules'];
+    const validTabs = ['overview', 'domain', 'detailed', 'rules'];
     if (hash && validTabs.includes(hash)) {
       setSelectedTab(hash);
     }
@@ -182,7 +183,7 @@ export function ContentKPIDashboard({
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#', '');
-      const validTabs = ['overview', 'scores', 'issues', 'domain', 'detailed', 'rules'];
+      const validTabs = ['overview', 'domain', 'detailed', 'rules'];
       if (hash && validTabs.includes(hash)) {
         setSelectedTab(hash);
       } else if (!hash) {
@@ -503,16 +504,8 @@ export function ContentKPIDashboard({
         <div className="flex items-center justify-between mb-4">
           <TabsList>
             <TabsTrigger value="overview" className="flex items-center gap-2">
-              <LayoutDashboard className="h-4 w-4" />
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="scores" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
-              Scores
-            </TabsTrigger>
-            <TabsTrigger value="issues" className="flex items-center gap-2">
-              <AlertOctagon className="h-4 w-4" />
-              Issues
+              Overview
             </TabsTrigger>
             <TabsTrigger value="domain" className="flex items-center gap-2">
               <Globe className="h-4 w-4" />
@@ -536,653 +529,16 @@ export function ContentKPIDashboard({
         </div>
 
         <TabsContent value="overview" className="space-y-4">
-          {/* Donut Charts Section */}
-          <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
-            <CardContent className="pt-6">
-              <div className="grid gap-6 md:grid-cols-5">
-                <DonutChart
-                  score={combinedScore !== null ? Math.round(combinedScore) : report.summary.avgGlobalScore}
-                  color="#6366f1"
-                  title="Overall"
-                />
-                <DonutChart
-                  score={report.summary.scoreBreakdown?.technical || 0}
-                  dimension="technical"
-                  title="Technical"
-                />
-                <DonutChart
-                  score={report.summary.scoreBreakdown?.authority || 0}
-                  dimension="authority"
-                  title="Authority"
-                />
-                <DonutChart
-                  score={report.summary.scoreBreakdown?.structure || 0}
-                  dimension="structure"
-                  title="Structure"
-                />
-                <DonutChart
-                  score={report.summary.scoreBreakdown?.quality || 0}
-                  dimension="quality"
-                  title="Quality"
-                />
-              </div>
-            </CardContent>
-          </Card>
-          {/* Recommendations and Score Breakdown Grid */}
-          <div className="grid gap-4 md:grid-cols-3">
-            {/* Recommendations - 2/3 width */}
-            <div className="md:col-span-2">
-              <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300 h-full">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Lightbulb className="h-5 w-5 text-blue-500" />
-                      <CardTitle className="text-lg font-semibold text-gray-900">Recommendations</CardTitle>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleOpenGuide('Optimization Guide Overview')}
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      <BookOpen className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3 max-h-[380px] overflow-y-auto">
-                    {/* Generate smart recommendations based on scores and issues */}
-                    {(() => {
-                      const recommendations: Array<{
-                        dimension: string;
-                        score: number;
-                        priority: string;
-                        issues: number;
-                        criticals: number;
-                        icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
-                        color: string;
-                        actions: string[];
-                      }> = [];
-                      
-                      // Analyze each dimension and create targeted recommendations
-                      const dimensionData = [
-                        { 
-                          name: 'Technical', 
-                          score: report.summary.scoreBreakdown?.technical || 0,
-                          icon: Settings,
-                          color: COLORS.technical,
-                          threshold: 70
-                        },
-                        { 
-                          name: 'Structure', 
-                          score: report.summary.scoreBreakdown?.structure || 0,
-                          icon: FileText,
-                          color: COLORS.structure,
-                          threshold: 75
-                        },
-                        { 
-                          name: 'Authority', 
-                          score: report.summary.scoreBreakdown?.authority || 0,
-                          icon: CheckCircle,
-                          color: COLORS.authority,
-                          threshold: 70
-                        },
-                        { 
-                          name: 'Quality', 
-                          score: report.summary.scoreBreakdown?.quality || 0,
-                          icon: BarChart3,
-                          color: COLORS.quality,
-                          threshold: 60
-                        }
-                      ];
-
-                      // Sort dimensions by score (lowest first for priority)
-                      dimensionData.sort((a, b) => a.score - b.score);
-
-                      // Count issues by dimension
-                      const issuesByDimension = report.issuesSummary.reduce((acc, dim) => {
-                        acc[dim._id] = dim.totalIssues;
-                        return acc;
-                      }, {} as Record<string, number>);
-
-                      // Count critical/high severity issues
-                      const criticalIssues = report.issuesSummary.reduce((acc, dim) => {
-                        const critical = dim.severities.filter((s: { severity: string }) => s.severity === 'critical' || s.severity === 'high')
-                          .reduce((sum: number, s: { count: number }) => sum + s.count, 0);
-                        if (critical > 0) acc[dim._id] = critical;
-                        return acc;
-                      }, {} as Record<string, number>);
-
-                      // Generate recommendations for each dimension
-                      dimensionData.forEach((dim) => {
-                        if (dim.score < dim.threshold) {
-                          const issues = issuesByDimension[dim.name.toLowerCase()] || 0;
-                          const criticals = criticalIssues[dim.name.toLowerCase()] || 0;
-                          
-                          let priority = 'medium';
-                          if (dim.score < 50 || criticals > 5) priority = 'high';
-                          if (dim.score < 30 || criticals > 10) priority = 'critical';
-                          
-                          const recommendation = {
-                            dimension: dim.name,
-                            score: dim.score,
-                            priority,
-                            issues,
-                            criticals,
-                            icon: dim.icon,
-                            color: dim.color,
-                            actions: [] as string[]
-                          };
-
-                          // Add specific actions based on dimension
-                          if (dim.name === 'Technical') {
-                            recommendation.actions = [
-                              'Optimize internal linking structure',
-                              'Implement structured data (Schema.org)',
-                              'Add llms.txt file for AI visibility',
-                              'Ensure proper XML sitemap configuration'
-                            ];
-                          } else if (dim.name === 'Structure') {
-                            recommendation.actions = [
-                              'Add more how-to and instructional content',
-                              'Create comprehensive FAQ sections',
-                              'Include more comparison and definitional content',
-                              'Improve content freshness with regular updates'
-                            ];
-                          } else if (dim.name === 'Authority') {
-                            recommendation.actions = [
-                              'Build high-quality backlinks from authoritative sources',
-                              'Cite reputable sources and studies',
-                              'Increase brand mentions across content',
-                              'Establish thought leadership with expert content'
-                            ];
-                          } else if (dim.name === 'Quality') {
-                            recommendation.actions = [
-                              'Update content regularly to maintain freshness',
-                              'Create comprehensive in-depth guides on key topics',
-                              'Add publication and modification dates to all content',
-                              'Develop detailed, authoritative content that covers topics thoroughly'
-                            ];
-                          }
-
-                          recommendations.push(recommendation);
-                        }
-                      });
-
-                      // Limit to top 2 recommendations for height consistency
-                      const topRecommendations = recommendations.slice(0, 2);
-
-                      const getPriorityColor = (priority: string) => {
-                        if (priority === 'critical') return 'text-red-600 bg-red-50';
-                        if (priority === 'high') return 'text-orange-600 bg-orange-50';
-                        return 'text-yellow-600 bg-yellow-50';
-                      };
-
-                      const getPriorityLabel = (priority: string) => {
-                        if (priority === 'critical') return 'Critical';
-                        if (priority === 'high') return 'High Priority';
-                        return 'Medium Priority';
-                      };
-
-                      if (topRecommendations.length === 0) {
-                        return (
-                          <div className="text-center py-8">
-                            <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-3" />
-                            <p className="text-lg font-semibold text-gray-900">Great job!</p>
-                            <p className="text-sm text-gray-600">All dimensions are performing well.</p>
-                          </div>
-                        );
-                      }
-
-                      return topRecommendations.map((rec, index) => {
-                        const Icon = rec.icon;
-                        return (
-                          <div 
-                            key={index} 
-                            className="border rounded-lg p-3 space-y-2 cursor-pointer hover:bg-muted/50 transition-colors"
-                            onClick={() => handleOpenGuide(rec.actions[0], rec.dimension.toLowerCase())}
-                          >
-                            <div className="flex items-start justify-between">
-                              <div className="flex items-center gap-2">
-                                <div 
-                                  className="p-1.5 rounded-lg"
-                                  style={{ backgroundColor: `${rec.color}20` }}
-                                >
-                                  <Icon className="h-4 w-4" style={{ color: rec.color }} />
-                                </div>
-                                <div>
-                                  <h4 className="font-semibold text-gray-900 text-sm">
-                                    Improve {rec.dimension} Score
-                                  </h4>
-                                  <div className="flex items-center gap-3">
-                                    <span className="text-xs text-gray-600">
-                                      Current: {rec.score}%
-                                    </span>
-                                    {rec.issues > 0 && (
-                                      <span className="text-xs text-gray-500">
-                                        • {rec.issues} issues{rec.criticals > 0 && ` (${rec.criticals} critical)`}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                              <Badge 
-                                variant="secondary" 
-                                className={`${getPriorityColor(rec.priority)} border-0 text-xs`}
-                              >
-                                {getPriorityLabel(rec.priority)}
-                              </Badge>
-                            </div>
-                            
-                            <div className="space-y-1.5 ml-9">
-                              {rec.actions.slice(0, 2).map((action: string, i: number) => (
-                                <div key={i} className="flex items-start gap-2">
-                                  <div className="mt-1">
-                                    <div className="h-1.5 w-1.5 rounded-full bg-gray-400" />
-                                  </div>
-                                  <p className="text-xs text-gray-700">{action}</p>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      });
-                    })()}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Score Breakdown Radar Chart - 1/3 width */}
-            <div className="md:col-span-1">
-              <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5 text-purple-500" />
-                    <CardTitle className="text-lg font-semibold text-gray-900">Score Breakdown</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={320}>
-                    <RadarChart data={radarData} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                      <PolarGrid 
-                        gridType="polygon"
-                        radialLines={true}
-                        stroke="#e5e7eb"
-                        strokeWidth={1}
-                      />
-                      <PolarAngleAxis 
-                        dataKey="abbreviation" 
-                        tick={(props) => {
-                          const { x, y, payload, index } = props;
-                          const item = radarData.find(d => d.abbreviation === payload.value);
-                          // Add extra offset for top (T) and bottom (A) labels
-                          let yOffset = y ?? 0;
-                          if (index === 0 && typeof y === 'number') { // Technical (top)
-                            yOffset = y - 10;
-                          } else if (index === 2 && typeof y === 'number') { // Authority (bottom)
-                            yOffset = y + 10;
-                          }
-                          return (
-                            <text 
-                              x={x} 
-                              y={yOffset} 
-                              fill={item?.color || '#374151'}
-                              fontSize={20}
-                              fontWeight={700}
-                              textAnchor="middle"
-                              dominantBaseline="middle"
-                            >
-                              {payload.value}
-                            </text>
-                          );
-                        }}
-                      />
-                      <PolarRadiusAxis 
-                        angle={90} 
-                        domain={[0, 100]}
-                        tickCount={5}
-                        tick={{ fill: '#6b7280', fontSize: 10 }}
-                        axisLine={false}
-                      />
-                      {/* Single Radar with gradient fill and colored dots */}
-                      <defs>
-                        <linearGradient id="radarGradient" x1="0" y1="0" x2="1" y2="1">
-                          <stop offset="0%" stopColor={DIMENSION_COLORS.authority} stopOpacity={0.6} />
-                          <stop offset="33%" stopColor={DIMENSION_COLORS.technical} stopOpacity={0.6} />
-                          <stop offset="66%" stopColor={DIMENSION_COLORS.structure} stopOpacity={0.6} />
-                          <stop offset="100%" stopColor={DIMENSION_COLORS.quality} stopOpacity={0.6} />
-                        </linearGradient>
-                      </defs>
-                      <Radar 
-                        name="Score" 
-                        dataKey="value" 
-                        stroke="#6366f1"
-                        fill="url(#radarGradient)"
-                        fillOpacity={0.3}
-                        strokeWidth={2.5}
-                        dot={false}
-                      />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: 'rgba(255, 255, 255, 0.98)', 
-                          border: '1px solid #e5e7eb',
-                          borderRadius: '8px',
-                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                          padding: '12px 16px'
-                        }}
-                        formatter={(value: number, name: string, props: any) => {
-                          // Find the full dimension name from the payload
-                          const fullName = props.payload.dimension || name;
-                          return [`${value}%`, fullName];
-                        }}
-                        labelStyle={{ color: '#374151', fontWeight: 600, marginBottom: '4px' }}
-                        itemStyle={{ color: '#6b7280' }}
-                      />
-                    </RadarChart>
-                  </ResponsiveContainer>
-                  {/* Legend */}
-                  <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mt-4">
-                    {radarData.map((item) => (
-                      <div key={item.dimension} className="flex items-center gap-2">
-                        <span 
-                          className="text-sm font-bold"
-                          style={{ color: item.color }}
-                        >
-                          {item.value}%
-                        </span>
-                        <span 
-                          className="text-sm font-medium"
-                          style={{ color: item.color }}
-                        >
-                          {item.dimension}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-
-          {/* Pages Section - moved from Pages tab */}
-          <div className="grid gap-4 md:grid-cols-2">
-            {/* Top Performing Pages */}
-            <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-green-500" />
-                    <CardTitle className="text-lg font-semibold text-gray-900">Top Performing Pages</CardTitle>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-green-600">
-                      {data?.scores?.filter(page => page.globalScore > 80).length || 0}
-                    </div>
-                    <div className="text-xs text-gray-500">Pages scoring above 80</div>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {data?.scores?.filter(page => page.globalScore > 80).map((page, index) => {
-                    // Extract path from URL
-                    const getPathFromUrl = (url: string) => {
-                      try {
-                        const urlObj = new URL(url);
-                        return urlObj.pathname === '/' ? '/' : urlObj.pathname;
-                      } catch {
-                        return url;
-                      }
-                    };
-                    
-                    return (
-                      <div key={index} className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="default" className="bg-accent/10 text-accent">
-                            {Math.round(page.globalScore)}
-                          </Badge>
-                          <a
-                            href={page.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm text-gray-700 hover:underline flex items-center gap-1 truncate flex-1"
-                          >
-                            {page.title || getPathFromUrl(page.url)}
-                            <ExternalLink className="h-3 w-3 flex-shrink-0" />
-                          </a>
-                        </div>
-                        <div className="flex flex-wrap gap-1">
-                          {[
-                            ...(page.scores?.technical >= 80 ? ['Technical Excellence'] : []),
-                            ...(page.scores?.structure >= 80 ? ['AI-Ready Content'] : []),
-                            ...(page.scores?.authority >= 80 ? ['High Authority'] : []),
-                            ...(page.scores?.quality >= 80 ? ['Great AI Visibility'] : []),
-                          ].map((strength, i) => (
-                            <Badge key={i} variant="outline" className="text-xs">
-                              {strength}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  }) || []}
-                  {(!data?.scores?.filter(page => page.globalScore > 80).length) && (
-                    <p className="text-sm text-gray-500">No pages scoring above 80 yet.</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Pages Needing Improvement */}
-            <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5 text-amber-500" />
-                    <CardTitle className="text-lg font-semibold text-gray-900">Pages Needing Improvement</CardTitle>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-amber-600">
-                      {data?.scores?.filter(page => page.globalScore < 60).length || 0}
-                    </div>
-                    <div className="text-xs text-gray-500">Pages scoring below 60</div>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {data?.scores?.filter(page => page.globalScore < 60 && !(page.skipped && page.globalScore === 0)).sort((a, b) => a.globalScore - b.globalScore).slice(0, 5).map((page, index) => (
-                    <div key={index} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <a
-                          href={page.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm font-medium text-gray-700 hover:underline flex items-center gap-1 truncate"
-                        >
-                          {page.url}
-                          <ExternalLink className="h-3 w-3 flex-shrink-0" />
-                        </a>
-                        <Badge variant="destructive" className="ml-2">
-                          {Math.round(page.globalScore)}
-                        </Badge>
-                      </div>
-                      <div className="space-y-1">
-                        {page.issues?.slice(0, 2).map((issue, i) => {
-                          const Icon = SEVERITY_ICONS[issue.severity as keyof typeof SEVERITY_ICONS];
-                          return (
-                            <div 
-                              key={i} 
-                              className="flex items-start gap-2 text-xs cursor-pointer hover:bg-muted/50 -mx-2 px-2 py-1 rounded transition-colors"
-                              onClick={() => handleOpenGuide(issue.description, issue.dimension?.toLowerCase(), issue.severity)}
-                            >
-                              <Icon 
-                                className="h-3 w-3 mt-0.5 flex-shrink-0" 
-                                style={{ color: SEVERITY_COLORS[issue.severity as keyof typeof SEVERITY_ICONS] }}
-                              />
-                              <div className="min-w-0">
-                                <p className="font-medium text-gray-700 truncate">{issue.description}</p>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )) || []}
-                  {(!data?.scores?.filter(page => page.globalScore < 60 && !(page.skipped && page.globalScore === 0)).length) && (
-                    <div className="text-center py-8">
-                      <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-accent/10 mb-4">
-                        <CheckCircle className="h-8 w-8 text-green-600" />
-                      </div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                        Excellent Work! 🎉
-                      </h3>
-                      <p className="text-sm text-gray-600 max-w-sm mx-auto">
-                        All your pages are performing well! Every page scores above 60, showing great optimization across your content.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="scores" className="space-y-4">
           <CombinedScoresTab projectId={projectId} />
-        </TabsContent>
-
-        <TabsContent value="issues" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
-            {/* Issues by Dimension - 2/3 width */}
-            <div className="md:col-span-2">
-              <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <LayoutDashboard className="h-5 w-5 text-indigo-500" />
-                    <CardTitle className="text-lg font-semibold text-gray-900">Issues by Dimension</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {report.issuesSummary.map((dimension) => {
-                      const Icon = dimension.severities[0]?.severity 
-                        ? SEVERITY_ICONS[dimension.severities[0].severity as keyof typeof SEVERITY_ICONS]
-                        : Info;
-                      
-                      // Get dimension color
-                      const dimensionKey = dimension._id ? dimension._id.charAt(0).toUpperCase() + dimension._id.slice(1) : '';
-                      const dimensionColor = DIMENSION_COLORS[dimensionKey as keyof typeof DIMENSION_COLORS] || '#6b7280';
-                      
-                      return (
-                        <div key={dimension._id} className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div 
-                                className="w-3 h-3 rounded-full" 
-                                style={{ backgroundColor: dimensionColor }}
-                              />
-                              <h4 className="font-medium capitalize text-gray-900">{dimension._id}</h4>
-                            </div>
-                            <Badge 
-                              variant="outline"
-                              style={{
-                                borderColor: dimensionColor,
-                                color: dimensionColor,
-                                backgroundColor: `${dimensionColor}10`
-                              }}
-                            >
-                              {dimension.totalIssues} issues
-                            </Badge>
-                          </div>
-                          <div className="flex gap-2">
-                            {dimension.severities.map((sev: { severity: string; count: number }) => (
-                              <Badge
-                                key={sev.severity}
-                                style={{
-                                  backgroundColor: `${SEVERITY_COLORS[sev.severity as keyof typeof SEVERITY_COLORS]}20`,
-                                  color: SEVERITY_COLORS[sev.severity as keyof typeof SEVERITY_COLORS],
-                                }}
-                              >
-                                {sev.severity}: {sev.count}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Issues by Severity - 1/3 width */}
-            <div className="md:col-span-1">
-              <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <AlertOctagon className="h-5 w-5 text-red-500" />
-                    <CardTitle className="text-lg font-semibold text-gray-900">Issues by Severity</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <ResponsiveContainer width="100%" height={250}>
-                      <PieChart>
-                        <Pie
-                          data={severityData}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="count"
-                          label={({ count }) => count > 0 ? count : ''}
-                        >
-                          {severityData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={SEVERITY_COLORS[entry.severity as keyof typeof SEVERITY_COLORS]} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    
-                    {/* Legend */}
-                    <div className="flex flex-wrap justify-center gap-x-4 gap-y-2">
-                      {Object.entries(SEVERITY_COLORS).map(([severity, color]) => {
-                        const severityItem = severityData.find(item => item.severity === severity);
-                        const count = (severityItem?.count as number | undefined) || 0;
-                        return (
-                          <div key={severity} className="flex items-center gap-2">
-                            <div 
-                              className="w-3 h-3 rounded-full" 
-                              style={{ backgroundColor: color }}
-                            />
-                            <span className="text-sm capitalize text-gray-700">
-                              {severity}
-                              {count > 0 && (
-                                <span className="font-medium ml-1">({count})</span>
-                              )}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-
+          
           {/* All Issues Table - Full width */}
           <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-300">
             <CardHeader>
               <div className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-gray-500" />
+                <AlertTriangle className="h-5 w-5 text-orange-600" />
                 <div>
-                  <CardTitle className="text-lg font-semibold text-gray-900">All Issues</CardTitle>
-                  <p className="text-sm text-gray-500">Complete list of issues across all pages and domains</p>
+                  <CardTitle className="text-lg font-semibold text-gray-900">Issues to Fix</CardTitle>
+                  <p className="text-sm text-gray-500">Prioritize these improvements to boost your content performance</p>
                 </div>
               </div>
             </CardHeader>
@@ -1192,8 +548,8 @@ export function ContentKPIDashboard({
                   <thead>
                     <tr className="border-b">
                       <th className="text-left py-3 px-4 font-semibold text-sm text-gray-700">Severity</th>
-                      <th className="text-left py-3 px-4 font-semibold text-sm text-gray-700">Issue</th>
                       <th className="text-left py-3 px-4 font-semibold text-sm text-gray-700">Dimension</th>
+                      <th className="text-left py-3 px-4 font-semibold text-sm text-gray-700">Issue</th>
                       <th className="text-left py-3 px-4 font-semibold text-sm text-gray-700">Source</th>
                       <th className="text-left py-3 px-4 font-semibold text-sm text-gray-700">Type</th>
                     </tr>
@@ -1228,15 +584,27 @@ export function ContentKPIDashboard({
                       domainData?.domainAnalyses?.forEach((domain: any) => {
                         if (domain.issues && domain.issues.length > 0) {
                           domain.issues.forEach((issue: string, index: number) => {
+                            // Try to determine dimension from the issue text
+                            let dimension = 'Authority'; // Default for domain-level issues
+                            const issueLower = issue.toLowerCase();
+                            
+                            if (issueLower.includes('technical') || issueLower.includes('mobile') || issueLower.includes('https')) {
+                              dimension = 'Technical';
+                            } else if (issueLower.includes('structure') || issueLower.includes('content')) {
+                              dimension = 'Structure';
+                            } else if (issueLower.includes('monitoring') || issueLower.includes('kpi') || issueLower.includes('quality')) {
+                              dimension = 'Quality';
+                            }
+                            
                             allIssues.push({
                               source: domain.domain,
                               sourceType: 'domain',
                               issue: {
                                 description: issue,
                                 severity: 'medium', // Default severity for domain issues
-                                dimension: 'Domain Analysis'
+                                dimension: dimension
                               },
-                              dimension: 'Domain Analysis'
+                              dimension: dimension
                             });
                           });
                         }
@@ -1276,8 +644,8 @@ export function ContentKPIDashboard({
                           <tr>
                             <td colSpan={5} className="text-center py-8">
                               <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-3" />
-                              <p className="text-lg font-semibold text-gray-900">No Issues Found</p>
-                              <p className="text-sm text-gray-600">Great job! No issues detected across your pages.</p>
+                              <p className="text-lg font-semibold text-gray-900">All Clear!</p>
+                              <p className="text-sm text-gray-600">Excellent! Your content is performing well with no issues to address.</p>
                             </td>
                           </tr>
                         );
@@ -1310,24 +678,29 @@ export function ContentKPIDashboard({
                               </div>
                             </td>
                             <td className="py-3 px-4">
-                              <div className="space-y-1">
-                                <p className="text-sm text-gray-900 font-medium">
-                                  {groupedIssue.issue.ruleName || groupedIssue.issue.description}
-                                </p>
-                                {groupedIssue.issue.ruleName && (
-                                  <p className="text-xs text-gray-600">{groupedIssue.issue.description}</p>
-                                )}
-                                {groupedIssue.issue.recommendation && (
-                                  <p className="text-xs text-gray-600">
-                                    <span className="font-medium">Recommendation:</span> {groupedIssue.issue.recommendation}
-                                  </p>
-                                )}
+                              <div 
+                                className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium transition-colors"
+                                style={{ 
+                                  backgroundColor: `${getDimensionColor(groupedIssue.dimension)}15`,
+                                  color: getDimensionColor(groupedIssue.dimension),
+                                  border: `1px solid ${getDimensionColor(groupedIssue.dimension)}30`
+                                }}
+                              >
+                                {groupedIssue.dimension}
                               </div>
                             </td>
                             <td className="py-3 px-4">
-                              <Badge variant="outline" className="text-xs">
-                                {groupedIssue.dimension}
-                              </Badge>
+                              <div className="space-y-1">
+                                <p className="text-sm text-gray-900 font-medium">
+                                  {groupedIssue.issue.recommendation || groupedIssue.issue.description}
+                                </p>
+                                {groupedIssue.issue.recommendation && groupedIssue.issue.ruleName && (
+                                  <p className="text-xs text-gray-600">{groupedIssue.issue.ruleName}</p>
+                                )}
+                                {!groupedIssue.issue.recommendation && groupedIssue.issue.ruleName && (
+                                  <p className="text-xs text-gray-600">{groupedIssue.issue.ruleName}</p>
+                                )}
+                              </div>
                             </td>
                             <td className="py-3 px-4">
                               <div className="space-y-1">
@@ -1336,36 +709,47 @@ export function ContentKPIDashboard({
                                     {groupedIssue.pages.length} {groupedIssue.pages.length === 1 ? 'page' : 'pages'}
                                   </Badge>
                                 </div>
-                                <div className="space-y-0.5 max-h-20 overflow-y-auto">
-                                  {groupedIssue.pages.slice(0, 3).map((page, idx) => (
-                                    <div key={idx}>
-                                      {page.sourceType === 'page' ? (
-                                        <a
-                                          href={page.source}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="text-xs text-blue-600 hover:underline flex items-center gap-1"
-                                          onClick={(e) => e.stopPropagation()}
-                                        >
-                                          {page.title || formatUrlForDisplay(page.source, 40)}
-                                          <ExternalLink className="h-2.5 w-2.5" />
-                                        </a>
-                                      ) : (
-                                        <span className="text-xs text-gray-700">{page.source}</span>
-                                      )}
-                                    </div>
-                                  ))}
-                                  {groupedIssue.pages.length > 3 && (
-                                    <p className="text-xs text-gray-500 font-medium">
-                                      +{groupedIssue.pages.length - 3} more
-                                    </p>
-                                  )}
-                                </div>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <button 
+                                        className="text-xs text-gray-500 font-medium hover:text-gray-700 cursor-pointer"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        +view {groupedIssue.pages.length}
+                                      </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="left" className="max-w-md">
+                                      <div className="space-y-1">
+                                        <p className="font-medium text-sm">Affected pages:</p>
+                                        {groupedIssue.pages.map((page, idx) => (
+                                          <div key={idx} className="text-xs">
+                                            {page.sourceType === 'page' ? (
+                                              <a
+                                                href={page.source}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-blue-600 hover:underline flex items-center gap-1"
+                                                onClick={(e) => e.stopPropagation()}
+                                              >
+                                                {page.title || formatUrlForDisplay(page.source, 50)}
+                                                <ExternalLink className="h-2.5 w-2.5" />
+                                              </a>
+                                            ) : (
+                                              <span className="text-gray-700">{page.source}</span>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
                               </div>
                             </td>
                             <td className="py-3 px-4">
                               <Badge variant="secondary" className="text-xs">
-                                {groupedIssue.pages.some(p => p.sourceType === 'domain') ? 'Mixed' : 'Pages'}
+                                {groupedIssue.pages.every(p => p.sourceType === 'domain') ? 'Domain' : 
+                                 groupedIssue.pages.some(p => p.sourceType === 'domain') ? 'Mixed' : 'Pages'}
                               </Badge>
                             </td>
                           </tr>

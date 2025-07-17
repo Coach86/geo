@@ -52,6 +52,16 @@ export function IssuesByDimension({ issues, onIssueClick }: IssuesByDimensionPro
     return acc;
   }, {} as Record<string, PageIssue[]>);
 
+  // Sort issues within each dimension by severity (critical -> high -> medium -> low)
+  const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+  Object.keys(issuesByDimension).forEach(dimension => {
+    issuesByDimension[dimension].sort((a, b) => {
+      const severityA = severityOrder[a.severity];
+      const severityB = severityOrder[b.severity];
+      return severityA - severityB;
+    });
+  });
+
   if (Object.keys(issuesByDimension).length === 0) {
     return (
       <div className="text-center py-4 text-muted-foreground">
@@ -63,7 +73,6 @@ export function IssuesByDimension({ issues, onIssueClick }: IssuesByDimensionPro
 
   return (
     <div>
-      <h4 className="font-medium mb-3">Issues by Category</h4>
       <div className="space-y-3">
         {Object.entries(issuesByDimension).map(([dimension, dimensionIssues]) => (
           <div key={dimension} className="border rounded-lg p-3">
