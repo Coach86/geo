@@ -105,6 +105,10 @@ export class Organization {
 
   @Prop({ type: Date })
   freePlanActivatedAt?: Date;
+
+  // Optional refresh frequency override
+  @Prop({ type: String, enum: ['daily', 'weekly', 'unlimited'] })
+  refreshFrequencyOverride?: string;
 }
 
 export const OrganizationSchema = SchemaFactory.createForClass(Organization);

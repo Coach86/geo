@@ -85,6 +85,7 @@ interface Organization {
   projects?: Array<{ id: string; brandName: string }>;
   createdAt: string;
   updatedAt: string;
+  refreshFrequencyOverride?: 'daily' | 'weekly' | 'unlimited';
 }
 
 const OrganizationDetails: React.FC = () => {

@@ -328,6 +328,7 @@ export class OrganizationService {
       promoCode: entity.promoCode,
       hasActivatedFreePlan: entity.hasActivatedFreePlan,
       freePlanActivatedAt: entity.freePlanActivatedAt?.toISOString(),
+      refreshFrequencyOverride: entity.refreshFrequencyOverride,
     };
   }
 

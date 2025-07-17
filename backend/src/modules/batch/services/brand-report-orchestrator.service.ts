@@ -73,7 +73,7 @@ export class BrandReportOrchestratorService {
       return false;
     }
 
-    const refreshFrequency = plan?.refreshFrequency || 'weekly';
+    const refreshFrequency = organization.refreshFrequencyOverride || plan?.refreshFrequency || 'weekly';
     const today = new Date();
     const projectCreatedAt = new Date(project.createdAt);
     this.logger.debug(`Project ${project.projectId} created at: ${projectCreatedAt}`);

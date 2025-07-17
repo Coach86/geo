@@ -1,6 +1,6 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateOrganizationDto } from './create-organization.dto';
-import { IsOptional, IsString, IsDate, IsBoolean, ValidateIf } from 'class-validator';
+import { IsOptional, IsString, IsDate, IsBoolean, ValidateIf, IsIn } from 'class-validator';
 
 export class UpdateOrganizationDto extends PartialType(CreateOrganizationDto) {
   @IsOptional()
@@ -53,4 +53,8 @@ export class UpdateOrganizationDto extends PartialType(CreateOrganizationDto) {
 
   @IsOptional()
   shopifyShopData?: any;
+
+  @IsOptional()
+  @IsIn(['daily', 'weekly', 'unlimited'])
+  refreshFrequencyOverride?: 'daily' | 'weekly' | 'unlimited';
 }

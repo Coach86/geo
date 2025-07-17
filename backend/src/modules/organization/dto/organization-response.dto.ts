@@ -37,4 +37,7 @@ export class OrganizationResponseDto {
   // Free plan activation tracking
   hasActivatedFreePlan?: boolean;
   freePlanActivatedAt?: string;
+
+  // Optional refresh frequency override
+  refreshFrequencyOverride?: 'daily' | 'weekly' | 'unlimited';
 }

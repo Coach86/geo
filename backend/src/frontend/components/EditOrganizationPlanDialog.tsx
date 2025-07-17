@@ -18,6 +18,9 @@ import {
   Skeleton,
   LinearProgress,
   TextField,
+  Select,
+  MenuItem,
+  InputLabel,
 } from '@mui/material';
 import BusinessIcon from '@mui/icons-material/Business';
 import ModelTrainingIcon from '@mui/icons-material/ModelTraining';
@@ -26,6 +29,7 @@ import CpuIcon from '@mui/icons-material/Memory';
 import PeopleIcon from '@mui/icons-material/People';
 import LinkIcon from '@mui/icons-material/Link';
 import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { getOrganizationModels, updateOrganizationModels, updateOrganizationPlanSettings, updateOrganization } from '../utils/api-organization';
 
 interface Organization {
@@ -39,6 +43,7 @@ interface Organization {
   };
   selectedModels: string[];
   stripePlanId?: string;
+  refreshFrequencyOverride?: 'daily' | 'weekly' | 'unlimited';
 }
 
 interface AIModel {
@@ -74,13 +79,15 @@ export const EditOrganizationPlanDialog: React.FC<EditOrganizationPlanDialogProp
     maxUsers: 0,
   });
   const [stripePlanId, setStripePlanId] = useState<string>('');
+  const [refreshFrequencyOverride, setRefreshFrequencyOverride] = useState<'daily' | 'weekly' | 'unlimited' | ''>('');
 
   useEffect(() => {
     if (organization && open) {
       setSelectedModels(organization.selectedModels || []);
       setPlanSettings(organization.planSettings);
       setStripePlanId(organization.stripePlanId || '');
-      
+      setRefreshFrequencyOverride(organization.refreshFrequencyOverride || '');
+
       // Fetch available models
       const fetchModels = async () => {
         try {
@@ -121,12 +128,21 @@ export const EditOrganizationPlanDialog: React.FC<EditOrganizationPlanDialogProp
         updateOrganizationPlanSettings(organization.id, planSettings),
         updateOrganizationModels(organization.id, selectedModels),
       ];
-      
-      // Only update stripePlanId if it has changed
+
+      // Prepare organization updates
+      const orgUpdates: any = {};
       if (stripePlanId !== organization.stripePlanId) {
-        promises.push(updateOrganization(organization.id, { stripePlanId }));
+        orgUpdates.stripePlanId = stripePlanId;
       }
-      
+      if (refreshFrequencyOverride !== organization.refreshFrequencyOverride) {
+        orgUpdates.refreshFrequencyOverride = refreshFrequencyOverride || null;
+      }
+
+      // Only update organization if there are changes
+      if (Object.keys(orgUpdates).length > 0) {
+        promises.push(updateOrganization(organization.id, orgUpdates));
+      }
+
       await Promise.all(promises);
       onUpdate();
       onClose();
@@ -146,6 +162,7 @@ export const EditOrganizationPlanDialog: React.FC<EditOrganizationPlanDialogProp
         setSelectedModels(organization.selectedModels || []);
         setPlanSettings(organization.planSettings);
         setStripePlanId(organization.stripePlanId || '');
+        setRefreshFrequencyOverride(organization.refreshFrequencyOverride || '');
       }
     }
   };
@@ -183,7 +200,7 @@ export const EditOrganizationPlanDialog: React.FC<EditOrganizationPlanDialogProp
           <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
             Plan Limits
           </Typography>
-          
+
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3 }}>
             <Box sx={{ flex: '1 1 300px' }}>
               <TextField
@@ -199,7 +216,7 @@ export const EditOrganizationPlanDialog: React.FC<EditOrganizationPlanDialogProp
                 helperText="Maximum number of projects allowed"
               />
             </Box>
-            
+
             <Box sx={{ flex: '1 1 300px' }}>
               <TextField
                 fullWidth
@@ -214,7 +231,7 @@ export const EditOrganizationPlanDialog: React.FC<EditOrganizationPlanDialogProp
                 helperText="Use -1 for unlimited users"
               />
             </Box>
-            
+
             <Box sx={{ flex: '1 1 300px' }}>
               <TextField
                 fullWidth
@@ -229,7 +246,7 @@ export const EditOrganizationPlanDialog: React.FC<EditOrganizationPlanDialogProp
                 helperText="Maximum AI models per batch"
               />
             </Box>
-            
+
             <Box sx={{ flex: '1 1 300px' }}>
               <TextField
                 fullWidth
@@ -244,7 +261,7 @@ export const EditOrganizationPlanDialog: React.FC<EditOrganizationPlanDialogProp
                 helperText="URLs allowed per project"
               />
             </Box>
-            
+
             <Box sx={{ flex: '1 1 300px' }}>
               <TextField
                 fullWidth
@@ -267,8 +284,8 @@ export const EditOrganizationPlanDialog: React.FC<EditOrganizationPlanDialogProp
           <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
             Billing Settings
           </Typography>
-          
-          <Box sx={{ mb: 3 }}>
+
+          <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
             <TextField
               fullWidth
               label="Stripe Plan ID"
@@ -280,6 +297,27 @@ export const EditOrganizationPlanDialog: React.FC<EditOrganizationPlanDialogProp
               helperText="The Stripe plan ID for billing purposes (e.g., 'manual', 'basic', 'pro', 'enterprise')"
               sx={{ maxWidth: '400px' }}
             />
+
+            <FormControl sx={{ minWidth: 200 }}>
+              <InputLabel id="refresh-frequency-override-label">Refresh Frequency Override</InputLabel>
+              <Select
+                labelId="refresh-frequency-override-label"
+                value={refreshFrequencyOverride}
+                onChange={(e) => setRefreshFrequencyOverride(e.target.value as '' | 'daily' | 'weekly' | 'unlimited')}
+                label="Refresh Frequency Override"
+                startAdornment={<RefreshIcon fontSize="small" sx={{ mr: 1, ml: 1, color: 'action.main' }} />}
+              >
+                <MenuItem value="">
+                  <em>Use Plan Default</em>
+                </MenuItem>
+                <MenuItem value="daily">Daily</MenuItem>
+                <MenuItem value="weekly">Weekly</MenuItem>
+                <MenuItem value="unlimited">Unlimited</MenuItem>
+              </Select>
+              <Typography variant="caption" color="textSecondary" sx={{ mt: 0.5, ml: 1.5 }}>
+                Overrides the plan's default refresh frequency (will only work when a plan is defined)
+              </Typography>
+            </FormControl>
           </Box>
 
           <Divider sx={{ my: 3 }} />
@@ -291,14 +329,14 @@ export const EditOrganizationPlanDialog: React.FC<EditOrganizationPlanDialogProp
               <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                 AI Models Selection
               </Typography>
-              <Chip 
-                label="Admin Override" 
-                size="small" 
-                color="warning" 
-                sx={{ ml: 1 }} 
+              <Chip
+                label="Admin Override"
+                size="small"
+                color="warning"
+                sx={{ ml: 1 }}
               />
             </Box>
-            
+
             <Box sx={{ mb: 2 }}>
               <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
                 Select which AI models to use for batch processing
@@ -326,7 +364,7 @@ export const EditOrganizationPlanDialog: React.FC<EditOrganizationPlanDialogProp
               </Box>
               <Alert severity="warning" sx={{ mb: 2 }}>
                 <Typography variant="caption">
-                  <strong>Admin Override Active:</strong> You can select any number of models regardless of the plan's maxAIModels limit. 
+                  <strong>Admin Override Active:</strong> You can select any number of models regardless of the plan's maxAIModels limit.
                   The maxAIModels field ({planSettings.maxAIModels}) still applies to regular users when they edit their settings.
                 </Typography>
               </Alert>

@@ -43,6 +43,9 @@ export interface Organization {
   // Free plan activation tracking
   hasActivatedFreePlan?: boolean;
   freePlanActivatedAt?: string;
+
+  // Optional refresh frequency override
+  refreshFrequencyOverride?: 'daily' | 'weekly' | 'unlimited';
 }
 
 export interface OrganizationUser {

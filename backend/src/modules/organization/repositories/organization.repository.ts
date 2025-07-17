@@ -158,6 +158,7 @@ export class OrganizationRepository {
       subscriptionCancelAt: document.subscriptionCancelAt,
       hasActivatedFreePlan: document.hasActivatedFreePlan,
       freePlanActivatedAt: document.freePlanActivatedAt,
+      refreshFrequencyOverride: document.refreshFrequencyOverride as 'daily' | 'weekly' | 'unlimited' | undefined,
     };
   }
 
