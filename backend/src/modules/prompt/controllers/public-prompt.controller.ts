@@ -468,6 +468,11 @@ export class PublicPromptController {
       properties: {
         prompts: { type: 'array', items: { type: 'string' } },
         type: { type: 'string' },
+        // Additional fields for project creation
+        visibility: { type: 'array', items: { type: 'string' } },
+        sentiment: { type: 'array', items: { type: 'string' } },
+        alignment: { type: 'array', items: { type: 'string' } },
+        competition: { type: 'array', items: { type: 'string' } },
       },
     },
   })
@@ -476,7 +481,7 @@ export class PublicPromptController {
   async generatePromptsFromKeywords(
     @Req() request: any,
     @Body() dto: GeneratePromptsFromKeywordsDto,
-  ): Promise<{ prompts: string[]; type: string }> {
+  ): Promise<{ prompts: string[]; type: string; visibility?: string[]; sentiment?: string[]; alignment?: string[]; competition?: string[]; }> {
     try {
       this.logger.log(`Generating ${dto.promptType} prompts from keywords for project ${dto.projectId}`);
       
@@ -548,6 +553,7 @@ export class PublicPromptController {
         );
       } else {
         // Generate prompts without project context (for new projects)
+        // When creating a new project, generate all prompt types, not just visibility
         generatedPrompts = await this.promptService.generatePromptsFromKeywordsWithoutProject(
           dto.promptType,
           dto.keywords,
@@ -564,9 +570,62 @@ export class PublicPromptController {
             shortDescription: dto.shortDescription,
           },
         );
+
+        // For project creation, also generate the other prompt types
+        if (dto.promptType === 'visibility') {
+          this.logger.log(`Generating additional prompt types for project creation`);
+          
+          const projectContext = {
+            brandName: dto.brandName,
+            website: dto.website,
+            industry: dto.industry,
+            market: dto.market,
+            language: dto.language,
+            keyBrandAttributes: dto.keyBrandAttributes,
+            competitors: dto.competitors,
+            shortDescription: dto.shortDescription,
+          };
+
+          // Generate competition prompts
+          const competitionPrompts = await this.promptService.generatePromptsFromKeywordsWithoutProject(
+            'competition',
+            [], // Use empty keywords for non-visibility prompts
+            undefined,
+            undefined,
+            projectContext,
+          );
+
+          // Generate sentiment prompts
+          const sentimentPrompts = await this.promptService.generatePromptsFromKeywordsWithoutProject(
+            'sentiment',
+            [],
+            undefined,
+            undefined,
+            projectContext,
+          );
+
+          // Generate alignment prompts
+          const alignmentPrompts = await this.promptService.generatePromptsFromKeywordsWithoutProject(
+            'alignment',
+            [],
+            undefined,
+            undefined,
+            projectContext,
+          );
+
+          // Return all prompt types for project creation
+          return {
+            prompts: generatedPrompts,
+            type: dto.promptType,
+            visibility: generatedPrompts,
+            competition: competitionPrompts,
+            sentiment: sentimentPrompts,
+            alignment: alignmentPrompts,
+          };
+        }
       }
       
-      this.logger.log(`Successfully generated ${generatedPrompts.length} ${dto.promptType} prompts from keywords for project ${dto.projectId}`);
+      this.logger.log(`Successfully generated ${generatedPrompts.length} ${dto.promptType} prompts from keywords for project ${dto.projectId || 'new project'}`);
       
       return {
         prompts: generatedPrompts,

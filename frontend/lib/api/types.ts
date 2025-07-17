@@ -218,6 +218,11 @@ export interface GeneratePromptsFromKeywordsRequest {
 export interface GeneratePromptsFromKeywordsResponse {
   prompts: string[];
   type: string;
+  // Additional fields when generating for project creation
+  visibility?: string[];
+  sentiment?: string[];
+  alignment?: string[];
+  competition?: string[];
 }
 
 // Batch result types

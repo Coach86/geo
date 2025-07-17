@@ -322,11 +322,37 @@ export default function AddProjectModal({
           text,
           selected: true
         })));
-        // For keyword generation, we need to generate other prompt types separately
-        // For now, we'll leave them empty as the backend doesn't support it yet
-        setPerceptionPrompts([]);
-        setAlignmentPrompts([]);
-        setCompetitionPrompts([]);
+        
+        // Set other prompt types if they are returned (for project creation)
+        if (result.sentiment) {
+          setPerceptionPrompts(result.sentiment.map(text => ({
+            id: generateId(),
+            text,
+            selected: true
+          })));
+        } else {
+          setPerceptionPrompts([]);
+        }
+        
+        if (result.alignment) {
+          setAlignmentPrompts(result.alignment.map(text => ({
+            id: generateId(),
+            text,
+            selected: true
+          })));
+        } else {
+          setAlignmentPrompts([]);
+        }
+        
+        if (result.competition) {
+          setCompetitionPrompts(result.competition.map(text => ({
+            id: generateId(),
+            text,
+            selected: true
+          })));
+        } else {
+          setCompetitionPrompts([]);
+        }
       } else {
         // Generate with AI (existing logic)
         const request: GeneratePromptsRequest = {
