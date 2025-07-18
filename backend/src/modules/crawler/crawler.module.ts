@@ -1,6 +1,9 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { WebCrawlerService } from './services/web-crawler.service';
+import { CrawlOrchestrationService } from './services/crawl-orchestration.service';
+import { PageExtractionService } from './services/page-extraction.service';
+import { SitemapDiscoveryService } from './services/sitemap-discovery.service';
 import { ContentAnalyzerService } from './services/content-analyzer.service';
 import { CrawlerPipelineService } from './services/crawler-pipeline.service';
 import { CrawlerController } from './controllers/crawler.controller';
@@ -50,6 +53,9 @@ import { LlmModule } from '../llm/llm.module';
   controllers: [CrawlerController, UserCrawlerController],
   providers: [
     WebCrawlerService,
+    CrawlOrchestrationService,
+    PageExtractionService,
+    SitemapDiscoveryService,
     ContentAnalyzerService,
     AEOContentAnalyzerService,
     CrawlerPipelineService,

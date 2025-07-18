@@ -8,6 +8,9 @@ import { SequentialImprovementStructuredService } from './services/sequential-im
 import { ImprovementWorkflowService } from './services/improvement-workflow.service';
 import { StructuredContentService } from './services/structured-content.service';
 import { HtmlToMarkdownService } from './services/html-to-markdown.service';
+import { ImprovementOrchestrationService } from './services/improvement-orchestration.service';
+import { ImprovementLlmService } from './services/improvement-llm.service';
+import { ImprovementScoringService } from './services/improvement-scoring.service';
 import { PageImprovementJob, PageImprovementJobSchema } from './schemas/page-improvement-job.schema';
 import { PageMagicEventsGateway } from './gateways/page-magic-events.gateway';
 import { LlmModule } from '../llm/llm.module';
@@ -30,6 +33,9 @@ import { CrawlerModule } from '../crawler/crawler.module';
     ImprovementWorkflowService,
     StructuredContentService,
     HtmlToMarkdownService,
+    ImprovementOrchestrationService,
+    ImprovementLlmService,
+    ImprovementScoringService,
     PageMagicEventsGateway,
   ],
   exports: [

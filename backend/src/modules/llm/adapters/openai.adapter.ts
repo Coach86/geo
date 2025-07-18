@@ -72,10 +72,10 @@ export class OpenAiAdapter implements LlmAdapter {
         requestParams.top_p = options.topP;
       }
 
-      // Only add web search tool if webAccess is enabled
-      if (webAccess) {
-        requestParams.tools = [{ type: 'web_search_preview' }];
-      }
+      // Disable web search tool for now - causes issues with gpt-4o
+      // if (webAccess) {
+      //   requestParams.tools = [{ type: 'web_search_preview' }];
+      // }
 
       // Log the final request parameters being sent
       this.logger.log(`Final request parameters: ${JSON.stringify({

@@ -1,6 +1,9 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { PromptService } from './services/prompt.service';
+import { PromptGenerationService } from './services/prompt-generation.service';
+import { PromptManagementService } from './services/prompt-management.service';
+import { PromptKeywordsService } from './services/prompt-keywords.service';
 import { PromptSetController } from './controllers/prompt-set.controller';
 import { PublicPromptController } from './controllers/public-prompt.controller';
 import { PromptSetRepository } from './repositories/prompt-set.repository';
@@ -26,7 +29,15 @@ import { Organization, OrganizationSchema } from '../organization/schemas/organi
       { name: Organization.name, schema: OrganizationSchema },
     ]),
   ],
-  providers: [PromptService, PromptSetRepository, TokenService, AccessTokenRepository],
+  providers: [
+    PromptService,
+    PromptGenerationService,
+    PromptManagementService,
+    PromptKeywordsService,
+    PromptSetRepository,
+    TokenService,
+    AccessTokenRepository,
+  ],
   controllers: [PromptSetController, PublicPromptController],
   exports: [PromptService, PromptSetRepository],
 })

@@ -21,6 +21,7 @@ import { BrandReportAlignmentAggregationService } from './services/brand-report-
 import { BrandReportSentimentAggregationService } from './services/brand-report-sentiment-aggregation.service';
 import { BrandReportCompetitionAggregationService } from './services/brand-report-competition-aggregation.service';
 import { BrandReportExplorerAggregationService } from './services/brand-report-explorer-aggregation.service';
+import { ReportService } from './services/report.service';
 
 @Module({
   imports: [
@@ -47,12 +48,14 @@ import { BrandReportExplorerAggregationService } from './services/brand-report-e
     BrandReportSentimentAggregationService,
     BrandReportCompetitionAggregationService,
     BrandReportExplorerAggregationService,
+    ReportService,
   ],
   exports: [
     BrandReportService,
     BrandReportPersistenceService,
     // Export the services that might be used by other modules
     BrandReportQueryService,
+    ReportService,
   ],
 })
 export class ReportModule {}

@@ -173,6 +173,7 @@ export class BrandReportExplorerAggregationService {
       );
       actualCitationCount += citationResult.citationCount;
 
+      // Process webSearchResults if available
       if (explorerData.webSearchResults) {
         // Collect available models
         explorerData.webSearchResults.forEach(result => {

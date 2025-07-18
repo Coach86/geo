@@ -1,6 +1,19 @@
 {
   "llmModels": [
     {
+      "id": "openai-gpt4o-search",
+      "provider": "OpenAI",
+      "model": "gpt-4o-search-preview",
+      "name": "GPT-4o-Search",
+      "enabled": false,
+      "webAccess": true,
+      "parameters": {
+        "temperature": 0.7,
+        "maxTokens": 500,
+        "systemPrompt": "You are a helpful assistant providing clear, factual information."
+      }
+    },
+    {
       "id": "openai-gpt4-1",
       "provider": "OpenAI",
       "model": "gpt-4.1-2025-04-14",
