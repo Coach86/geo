@@ -55,12 +55,7 @@ export class GrokAdapter implements LlmAdapter {
         search_parameters: {
           mode: 'auto', // Let the model decide when to search
           return_citations: true, // Always return citations
-          max_search_results: 20, // Default limit
-          sources: [
-            { type: 'web' },
-            { type: 'x' },
-            { type: 'news' }
-          ]
+          max_search_results: 10, // Default limit
         }
       };
 
@@ -88,7 +83,7 @@ export class GrokAdapter implements LlmAdapter {
       // According to docs, citations are returned as a list of URL strings
       if (result.citations && Array.isArray(result.citations)) {
         this.logger.log(`Found ${result.citations.length} citations in Grok response`);
-        
+
         for (const citation of result.citations) {
           if (typeof citation === 'string') {
             // Citation is just a URL string
@@ -127,7 +122,7 @@ export class GrokAdapter implements LlmAdapter {
         // Look for patterns like "[1] Title - URL" or "1. Title URL"
         const citationListRegex = /\[?(\d+)\]?\.?\s+([^-\n]+?)(?:\s*[-–]\s*)?(https?:\/\/[^\s\n]+)/gm;
         const listMatches = responseText.matchAll(citationListRegex);
-        
+
         for (const match of listMatches) {
           const [, number, title, url] = match;
           if (citationNumbers.has(number)) {
@@ -144,6 +139,9 @@ export class GrokAdapter implements LlmAdapter {
         toolUsage.push({
           id: 'live_search_' + Date.now(),
           type: TOOL_TYPES.WEB_SEARCH,
+          input: {
+            query: 'unknown'
+          },
           parameters: {
             mode: 'auto',
             sources: ['web', 'x', 'news'],

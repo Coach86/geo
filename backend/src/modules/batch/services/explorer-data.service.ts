@@ -62,7 +62,7 @@ export class ExplorerDataService {
               if (query) {
                 extractedQueries.push({
                   query: query,
-                  timestamp: new Date().toISOString(),
+                  timestamp: tool.execution_details?.timestamp || new Date().toISOString(),
                 });
               }
             }
@@ -89,6 +89,8 @@ export class ExplorerDataService {
     collectCitations(sentimentResults?.results, 'sentiment');
     collectCitations(accuracyResults?.results, 'alignment');
     collectCitations(comparisonResults?.results, 'competition');
+    
+    this.logger.log(`Collected ${allCitationsData.length} citation entries from all pipelines`);
 
     // Calculate statistics
     const totalPrompts = this.reportDataUtilitiesService.countPromptsExecuted(spontaneousResults, sentimentResults, accuracyResults, comparisonResults);
@@ -187,6 +189,8 @@ export class ExplorerDataService {
       promptTypes: Array.from(entry.promptTypes),
       citations: entry.citations,
     })));
+    
+    this.logger.log(`Generated ${webSearchResults.length} webSearchResults entries`);
 
     // Get top sources
     const topSources = Array.from(sourceMap.entries())
