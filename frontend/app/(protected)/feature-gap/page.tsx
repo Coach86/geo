@@ -29,6 +29,19 @@ interface Evidence {
   collectedAt: string;
 }
 
+interface CategoryItem {
+  item: string;
+  competitors: string[];
+  impact: 'high' | 'medium' | 'low';
+}
+
+interface Category {
+  name: string;
+  description: string;
+  items: CategoryItem[];
+  percentage: number;
+}
+
 interface FeatureGapRecommendation {
   id: string;
   projectId: string;
@@ -47,6 +60,10 @@ interface FeatureGapRecommendation {
   batchExecutionId: string;
   createdAt: string;
   updatedAt: string;
+  categorizedData?: {
+    categories: Category[];
+    summary: string;
+  };
 }
 
 interface ApiResponse {
@@ -81,6 +98,18 @@ const difficultyColors = {
 } as const;
 
 export default function FeatureGapPage() {
+  // Only show this page in development environment
+  if (process.env.NODE_ENV !== 'development') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Feature Not Available</h1>
+          <p className="text-gray-600">This feature is only available in development mode.</p>
+        </div>
+      </div>
+    );
+  }
+
   const { token } = useAuth();
   const { selectedProject } = useNavigation();
   const [recommendations, setRecommendations] = useState<FeatureGapRecommendation[]>([]);
@@ -431,16 +460,72 @@ export default function FeatureGapPage() {
                   </div>
                 </div>
 
-                {/* Methodology */}
-                <div>
-                  <h4 className="font-medium mb-2 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4" />
-                    Analysis Methodology
-                  </h4>
-                  <p className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3">
-                    {recommendation.methodology}
-                  </p>
-                </div>
+                {/* Categorized Feature Gaps - Show only for feature_gap type with categorized data */}
+                {recommendation.type === 'feature_gap' && recommendation.categorizedData && (
+                  <div>
+                    <h4 className="font-medium mb-3 flex items-center gap-2">
+                      <Target className="w-4 h-4" />
+                      Feature Gap Analysis by Category
+                    </h4>
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <p className="text-sm text-gray-600 mb-4">{recommendation.categorizedData.summary || 'Analysis in progress...'}</p>
+                      <div className="space-y-4">
+                        {recommendation.categorizedData.categories && recommendation.categorizedData.categories.map((category, index) => (
+                          <div key={index} className="border rounded-lg bg-white p-4">
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <h5 className="font-medium">{category.name || 'Unknown Category'}</h5>
+                                <p className="text-sm text-gray-600">{category.description || ''}</p>
+                              </div>
+                              <Badge variant="secondary" className="ml-2">
+                                {category.percentage || 0}%
+                              </Badge>
+                            </div>
+                            {category.items && category.items.length > 0 && (
+                              <div className="mt-3 overflow-x-auto">
+                                <table className="min-w-full text-sm">
+                                  <thead>
+                                    <tr className="border-b">
+                                      <th className="text-left py-2 pr-4">Feature/Capability</th>
+                                      <th className="text-left py-2 pr-4">Competitors</th>
+                                      <th className="text-left py-2">Impact</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {category.items.slice(0, 5).map((item, itemIndex) => (
+                                      <tr key={itemIndex} className="border-b last:border-0">
+                                        <td className="py-2 pr-4">{item.item}</td>
+                                        <td className="py-2 pr-4 text-gray-600">
+                                          {item.competitors?.join(', ') || 'N/A'}
+                                        </td>
+                                        <td className="py-2">
+                                          <Badge 
+                                            variant={
+                                              item.impact === 'high' ? 'destructive' :
+                                              item.impact === 'medium' ? 'default' : 'secondary'
+                                            }
+                                            className="text-xs"
+                                          >
+                                            {item.impact}
+                                          </Badge>
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                                {category.items && category.items.length > 5 && (
+                                  <p className="text-xs text-gray-500 mt-2">
+                                    +{category.items.length - 5} more items
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <Separator />
 

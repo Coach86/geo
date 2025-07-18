@@ -175,49 +175,7 @@ Build an autonomous recommendations module that analyzes existing Mint AI data t
 - High: < 30% presence in top 20 domains
 - Medium: Missing from specific content types
 
-### 2.4 Localization Analyzer
-
-**Purpose:** Detect market/language coverage gaps.
-
-**Evidence Rules:**
-
-1. **Market Configuration**
-   - Extract: Project `market` from metadata
-   - Map: To locale using MARKETS constant
-   - Identify: Target languages
-   - Evidence: Primary market and language
-
-2. **Language-Specific Mention Rates**
-   - Detect: Language of each `llmResponse`
-   - Group: Mention rates by language
-   - Calculate: Language Gap = Global rate - Language rate
-   - Threshold: Any major language with < 50% of global rate
-   - Evidence: Mention rates per language
-
-3. **Zero-Coverage Markets**
-   - Identify: Languages with 0 brand mentions
-   - Map: Languages to markets
-   - Prioritize: By market size
-   - Evidence: List of uncovered markets
-
-4. **Competitor Market Dominance**
-   - Analyze: Competitor mentions by language
-   - Calculate: Market Share = Brand mentions / Total brand mentions in language
-   - Threshold: Competitor has > 70% market share
-   - Evidence: Market share breakdown
-
-5. **Citation Language Distribution**
-   - Extract: Language from citation sources
-   - Calculate: Citation Coverage by language
-   - Compare: With global distribution
-   - Evidence: Citation gaps by language
-
-**Priority Calculation:**
-- Critical: Zero mentions in top 5 markets
-- High: < 20% of global rate in major markets
-- Medium: Competitor dominance in any market
-
-### 2.5 Sentiment Improvement Analyzer
+### 2.4 Sentiment Improvement Analyzer
 
 **Purpose:** Identify negative sentiment patterns.
 

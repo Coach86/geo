@@ -40,8 +40,10 @@ const insightsMenuItems: SidebarItem[] = [
 ];
 
 const optimizationMenuItems: SidebarItem[] = [
-  { label: "Recommendations", icon: Lightbulb, href: "/recommendations" },
-  { label: "Feature Gap", icon: Target, href: "/feature-gap" },
+  // Only show Feature Gap in development environment
+  ...(process.env.NODE_ENV === 'development' ? [
+    { label: "Feature Gap", icon: Target, href: "/feature-gap" }
+  ] : []),
   { label: "Page Intelligence", icon: FileText, href: "/content-kpi", badge: "alpha" },
   { label: "Page Magic", icon: Sparkles, href: "/page-magic", badge: "poc" },
 ];
